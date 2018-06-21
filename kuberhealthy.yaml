@@ -1,0 +1,208 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kuberhealthy
+spec:
+  finalizers:
+  - kubernetes
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kuberhealthy
+  namespace: kuberhealthy
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+  labels:
+    app: kuberhealthy
+  name: kuberhealthy
+  namespace: kuberhealthy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kuberhealthy
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: kuberhealthy
+    spec:
+      serviceAccountName: kuberhealthy
+      automountServiceAccountToken: true
+      containers:
+      - image: quay.io/comcast/kuberhealthy:1.0.0
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 2
+          periodSeconds: 15
+          successThreshold: 1
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+        name: kuberhealthy
+        env:
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        readinessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 2
+          periodSeconds: 15
+          successThreshold: 1
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 310
+#      tolerations:
+#      - effect: NoSchedule
+#        key: node-role.kubernetes.io/master
+#        operator: Exists
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: kuberhealthy-pdb
+  namespace: kuberhealthy
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: kuberhealthy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+  annotations:
+    #service.beta.kubernetes.io/aws-load-balancer-internal: "0.0.0.0/0"
+    #external-dns.alpha.kubernetes.io/hostname: "kuberhealthy.yourdomain.com."
+  name: kuberhealthy
+  namespace: kuberhealthy
+spec:
+  #type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: kuberhealthy
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: khstates.comcast.github.io
+spec:
+  group: comcast.github.io
+  version: v1
+  scope: Namespaced
+  names:
+    plural: khstates
+    singular: khstate
+    kind: KuberhealthyState
+    shortNames:
+    - khs
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  name: kuberhealthy
+  namespace: kuberhealthy
+rules:
+  - apiGroups:
+    - apps
+    resources:
+    - daemonsets
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - extensions
+    resources:
+    - daemonsets
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - comcast.github.io
+    resources:
+    - khstates
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    verbs:
+    - get
+    - list
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: kuberhealthy
+  namespace: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kuberhealthy
+subjects:
+- kind: ServiceAccount
+  name: kuberhealthy
+  namespace: kuberhealthy
