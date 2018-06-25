@@ -38,7 +38,7 @@ spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
       containers:
-      - image: quay.io/comcast/kuberhealthy:1.0.0
+      - image: quay.io/comcast/kuberhealthy:0.1.0
         imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 3
