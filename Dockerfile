@@ -12,13 +12,12 @@ RUN cp kuberhealthy /kuberhealthy/kuberhealthy
 FROM golang
 RUN apt-get update
 RUN apt-get upgrade -y
-#RUN apk --no-cache add ca-certificates
+RUN apt-get remove mercurial -y
 RUN mkdir /app
 WORKDIR /app
 COPY --from=builder /kuberhealthy/ /app
 
-RUN groupadd -g 999 kuberhealthy && \
-    useradd -r -u 999 -g kuberhealthy kuberhealthy
+RUN groupadd -g 999 kuberhealthy && useradd -r -u 999 -g kuberhealthy kuberhealthy
 USER kuberhealthy
 EXPOSE 80
 ENTRYPOINT /app/kuberhealthy
