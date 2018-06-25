@@ -93,9 +93,11 @@ Kuberhealthy performs the following checks in parallel at all times:
 
     A command line flag exists `--podCheckNamespaces` which can optionally contain a comma-separated list of namespaces on which to run the podStatus checks.  The default value is `kube-system`.  Each namespace for which the check is configured will require the `get` and `list` verbs on the `pods` resource within that namespace.
 
-## Setup
+## Quick Setup
 
-- With system master permissions to the cluster, run `kubectl create -f https://github.com/Comcast/kuberhealthy/kuberhealthy.yaml`. This will create a Namespace, Service Account, Deployment, Pod Disruption Budget, Service, Custom Resource Definition, Role, and Role Binding , which are all needed for Kuberhealthy to operate.  Kuberhealthy will exist entirely in its own namespace, `kuberhealthy`.
-- Modify your service and expose it to the world appropriately.  This may mean changing the `type` to `LoadBalancer`, or creating a custom ingress in your environment.
-- When the service is available in your environment, you can visit it to determine cluster status.  For more detailed information on Kuberhealthy's operation, you can run a log command against the pod (`kubectl logs podName kuberhealthy`).
-- If a port other than the default of `80` is required, a command line argument `--listenAddress` is provided and is of the form `${IP}:${PORT}` if a specific bind address is required or simply `:${PORT}` if INADDR_ANY is still desirable.
+- With system master permissions to the cluster, run `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/master/kuberhealthy.yaml`. 
+- Modify your service and expose it to the world appropriately.  This may mean changing the service `type` to `LoadBalancer`, or creating a custom ingress in your environment.
+- When the service is available in your environment, you can simply hit port 80 to fetch the cluster status JSON.  For more detailed information on Kuberhealthy's operation, you can run a log command against the pod (`kubectl logs -n kuberhealthy podName kuberhealthy`).
+
+##### Security Considerations
+Kuberhealthy exposes an inscure (non-HTTPS) endpoint without authentication. You should never expose this endpoint to the public internet. Exposing Kuberhealthy to the internet could result in private cluster information being exposed to the public internet when errors occur.
