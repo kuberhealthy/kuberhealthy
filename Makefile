@@ -1,19 +1,8 @@
-IMAGE="kuberheathy:$(VERSION)"
-IMAGE_HOST="<YOUR_IMAGEHOST_HERE>"
+IMAGE="quay.io/comcast/kuberhealthy"
+TAG="unstable"
 
-build: clean
-	#GOOS=linux go build -o app
-	docker build -t $(IMAGE) .
+build:
+	docker build -t $(IMAGE):$(TAG) .
 
-clean:
-	@-docker rmi -f $(shell docker images -q kuberhealthy)
-
-tag:
-	docker tag $(IMAGE) $(IMAGE_HOST)/$(IMAGE)
-
-push: tag
-	docker push $(IMAGE_HOST)/$(IMAGE)
-
-localbuild:
-	VERSION=0
-	make build
+push:
+	docker push $(IMAGE):$(TAG)

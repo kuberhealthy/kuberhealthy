@@ -2,6 +2,8 @@
 
 Synthetic end-to-end checks for Kubernetes clusters.
 
+[![Docker Repository on Quay](https://quay.io/repository/comcast/kuberhealthy/status "Kuberhealthy Docker Repository on Quay")](https://quay.io/repository/comcast/kuberhealthy)
+
 ## What is Kuberhealthy?
 
 Kuberhealthy performs operations in Kubernetes clusters just as users do in order to catch issues that would otherwise go unnoticed until they cause problems.  Kuberhealthy takes a different approach to monitoring that traditional metric based solutions - instead of trying to identify all the things that could go wrong, Kuberhealthy replicates user and app workflow and watched for unexpected behavior.  Kuberhealthy is not a replacement for metric-based monitoring systems such as Prometheus, but it does greatly enhance metric-based monitoring by removing blind spots.
