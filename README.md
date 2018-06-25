@@ -98,3 +98,6 @@ Kuberhealthy performs the following checks in parallel at all times:
 - With system master permissions to the cluster, run `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/master/kuberhealthy.yaml`. 
 - Modify your service and expose it to the world appropriately.  This may mean changing the service `type` to `LoadBalancer`, or creating a custom ingress in your environment.
 - When the service is available in your environment, you can simply hit port 80 to fetch the cluster status JSON.  For more detailed information on Kuberhealthy's operation, you can run a log command against the pod (`kubectl logs -n kuberhealthy podName kuberhealthy`).
+
+##### Security Considerations
+Kuberhealthy exposes an inscure (non-HTTPS) endpoint without authentication. You should never expose this endpoint to the public internet. Exposing Kuberhealthy to the internet could result in private cluster information being exposed to the public internet when errors occur.
