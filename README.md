@@ -3,21 +3,22 @@
 Synthetic end-to-end checks for Kubernetes clusters.
 
 [![Docker Repository on Quay](https://quay.io/repository/comcast/kuberhealthy/status "Kuberhealthy Docker Repository on Quay")](https://quay.io/repository/comcast/kuberhealthy)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## What is Kuberhealthy?
 
-Kuberhealthy performs operations in Kubernetes clusters just as users do in order to catch issues that would otherwise go unnoticed until they cause problems.  Kuberhealthy takes a different approach to monitoring that traditional metric based solutions - instead of trying to identify all the things that could go wrong, Kuberhealthy replicates user and app workflow and watched for unexpected behavior.  Kuberhealthy is not a replacement for metric-based monitoring systems such as Prometheus, but it does greatly enhance metric-based monitoring by removing blind spots.
+Kuberhealthy performs operations in Kubernetes clusters just as users do in order to catch issues that would otherwise go unnoticed until they cause problems.  Kuberhealthy takes a different approach to monitoring than traditional metrics-based solutions.  Instead of trying to identify all the things that could go wrong, Kuberhealthy replicates real workflow and watches for unexpected behavior.  Kuberhealthy is not a replacement for metric-based monitoring systems such as [Prometheus](https://prometheus.io/), but it does greatly enhance metric-based monitoring by removing potential blind spots.  *Kuberhealthy is not an alerting system*.  Alerts are up to the user.
 
-Some examples of operations that would likely sneak under the radar:
+Some examples of operations that may sneak under the radar of metrics-only monitoring, but not Kuberhealthy:
 
 - Pods stuck in `Terminating` due to CNI communication failures
 - Pods stuck in `ContainerCreating` due to disk scheduler errors
 - Pods stuck in `Pending` due to Docker daemon errors
-- Transient Kubernetes ETCD cluster issues
-- Kubernetes system services remaining technically healthy while their underlying pods restart an excessive amount
-- Kubernetes API outages
+- Kubernetes system services remaining technically "healthy" while their underlying pods are crashing
 
-Deploying Kuberhealthy is as simple as applying a Kubernetes spec and checking the JSON on the Kuberhealthy service endpoint.  The status page takes the following format.  The `OK` field can be used to indicate up/down status, while the `Error` array will contain a list of error descriptions if any are found.  Kuberhealthy provides a total cluster overview status, as well as more granular, per-check information, including the last time a check was run, and the Kuberhealthy pod that ran that specific check.
+#### Status Page
+
+Deploying Kuberhealthy is as simple as applying the `kubernetes.yaml` spec file in this repository and setting your systems to check the JSON on the Kuberhealthy service endpoint.  The status page displays server status in the following format.  The `OK` field can be used to indicate up/down status, while the `Errors` array will contain a list of error descriptions if any are found.  The Kuberhealthy status page provides a total cluster overview status, as well as more granular, per-check information, including the last time a check was run, and the Kuberhealthy pod that ran that specific check.
 
 ```json
   {
@@ -52,6 +53,10 @@ Deploying Kuberhealthy is as simple as applying a Kubernetes spec and checking t
   "CurrentMaster": "kuberhealthy-7cf79bdc86-m78qr"
 }
 ```
+
+#### Centralized State
+
+Kuberhealthy scales horizontally to be fault tolerant.  By default, two instances are used with a [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) and [RollingUpdate](https://kubernetes.io/docs/tasks/run-application/rolling-update-replication-controller/) strategy to ensure high availability.  The current master is calculated by all nodes in the deployment by simply querying the Kubernetes API for 'Ready' Kuberhealthy pods, and sorting them by name.  The state is centralized as [custom resource](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) records for each check.
 
 ## Checks
 
@@ -92,12 +97,6 @@ Kuberhealthy performs the following checks in parallel at all times:
     `podStatus` checks for pods older than ten minutes in the `kube-system` namespace that are in an incorrect lifecycle phase (anything that is not 'Ready').  If a `podStatus` detects a pod down for 5 minutes, an alert is shown on the status page. When a pod is found to be in error, the exact pod's name will be shown as one of the `Error` field's strings.
 
     A command line flag exists `--podCheckNamespaces` which can optionally contain a comma-separated list of namespaces on which to run the podStatus checks.  The default value is `kube-system`.  Each namespace for which the check is configured will require the `get` and `list` verbs on the `pods` resource within that namespace.
-
-## Quick Setup
-
-- With system master permissions to the cluster, run `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/master/kuberhealthy.yaml`. 
-- Modify your service and expose it to the world appropriately.  This may mean changing the service `type` to `LoadBalancer`, or creating a custom ingress in your environment.
-- When the service is available in your environment, you can simply hit port 80 to fetch the cluster status JSON.  For more detailed information on Kuberhealthy's operation, you can run a log command against the pod (`kubectl logs -n kuberhealthy podName kuberhealthy`).
 
 ##### Security Considerations
 Kuberhealthy exposes an inscure (non-HTTPS) endpoint without authentication. You should never expose this endpoint to the public internet. Exposing Kuberhealthy to the internet could result in private cluster information being exposed to the public internet when errors occur.
