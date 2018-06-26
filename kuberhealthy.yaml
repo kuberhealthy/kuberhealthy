@@ -92,21 +92,44 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
+    app: kuberhealthy
+    component: kuberhealthy
   annotations:
     #service.beta.kubernetes.io/aws-load-balancer-internal: "0.0.0.0/0"
-    #external-dns.alpha.kubernetes.io/hostname: "kuberhealthy.yourdomain.com."
+    external-dns.alpha.kubernetes.io/hostname: "kuberhealthy.k8s.dev.istreamplanet.net."
+    #prometheus.io/scrape: "true"
+    #prometheus.io/port: "80"
+    #prometheus.io/path: "/metrics"
   name: kuberhealthy
   namespace: kuberhealthy
-  prometheus.io/scrape: "true"
-  prometheus.io/port: "80"
-  prometheus.io/path: "/metrics"
 spec:
   #type: LoadBalancer
   ports:
-  - port: 80
+  - name: http
+    port: 80
     targetPort: 8080
   selector:
     app: kuberhealthy
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    component: kuberhealthy
+  name: kuberhealthy
+spec:
+  jobLabel: component
+  selector:
+    matchLabels:
+      component: kuberhealthy
+      app: kuberhealthy
+  namespaceSelector:
+    matchNames:
+      - "kuberhealthy"
+  endpoints:
+  - port: http
+    interval: 15s
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
