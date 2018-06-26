@@ -308,65 +308,17 @@ func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, r *http.Requ
 
 func (k *Kuberhealthy) metricEndpointHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
-
-	// create a new set of state for this metric request
-	state := health.NewState()
-
-	// create a CRD client to fetch CRD states with
-	khClient, err := khstatecrd.Client(CRDGroup, CRDVersion, kubeConfigFile)
+	state, err := k.getCurrentState()
 	if err != nil {
 		metrics.WriteMetricError(w, state)
 		return err
 	}
-
-	// fetch a client for the master calculation
-	kubeClient, err := kubeClient.Create(kubeConfigFile)
-	if err != nil {
-		metrics.WriteMetricError(w, state)
-		return err
-	}
-
-	// calculate the current master and apply it to the status output
-	currentMaster, err := masterCalculation.CalculateMaster(kubeClient)
-	state.CurrentMaster = currentMaster
-	if err != nil {
-		metrics.WriteMetricError(w, state)
-		return err
-	}
-
-	// loop over every check and apply the current state to the status return
-	for _, c := range k.Checks {
-		log.Debugln("Getting status of check for client:", c.Name())
-
-		// get the state from the CRD that exists for this check
-		checkDetails, err := getCheckCRDState(c, khClient)
-		if err != nil {
-			errMessage := "System error when fetching status for check " + c.Name() + ":" + err.Error()
-			log.Errorln(errMessage)
-			// if there was an error getting the CRD, then use that for the check status
-			// and set the check state to failed
-			state.AddError(errMessage)
-			log.Debugln("Status page: Setting OK to false due to an error in fetching crd state data")
-			state.OK = false
-			continue
-		}
-
-		// parse check status from CRD and add it to the status
-		state.AddError(checkDetails.Errors...)
-		if !checkDetails.OK {
-			log.Debugln("Status page: Setting OK to false due to check details not being OK")
-			state.OK = false
-		}
-		state.CheckDetails[c.Name()] = checkDetails
-	}
-
 	metrics := metrics.GenerateMetrics(state)
 	// write summarized health check results back to caller
 	_, err = w.Write([]byte(metrics))
 	if err != nil {
 		log.Warningln("Error writing health check results to caller:", err)
 	}
-
 	return err
 }
 
@@ -374,30 +326,41 @@ func (k *Kuberhealthy) metricEndpointHandler(w http.ResponseWriter, r *http.Requ
 // returns a status output to a web request client
 func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
+	state, err := k.getCurrentState()
+	if err != nil {
+		k.writeHealthCheckError(w, r, err, state)
+		return err
+	}
+	// write summarized health check results back to caller
+	err = state.WriteHTTPStatusResponse(w)
+	if err != nil {
+		log.Warningln("Error writing health check results to caller:", err)
+	}
+	return err
+}
 
+// getCurrentState returns a Kuberhealthy state object, or errors
+func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	// create a new set of state for this page render
 	state := health.NewState()
 
 	// create a CRD client to fetch CRD states with
 	khClient, err := khstatecrd.Client(CRDGroup, CRDVersion, kubeConfigFile)
 	if err != nil {
-		k.writeHealthCheckError(w, r, err, state)
-		return err
+		return state, err
 	}
 
 	// fetch a client for the master calculation
 	kubeClient, err := kubeClient.Create(kubeConfigFile)
 	if err != nil {
-		k.writeHealthCheckError(w, r, err, state)
-		return err
+		return state, err
 	}
 
 	// caculate the current master and apply it to the status output
 	currentMaster, err := masterCalculation.CalculateMaster(kubeClient)
 	state.CurrentMaster = currentMaster
 	if err != nil {
-		k.writeHealthCheckError(w, r, err, state)
-		return err
+		return state, err
 	}
 
 	// loop over every check and apply the current state to the status return
@@ -425,12 +388,5 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 		}
 		state.CheckDetails[c.Name()] = checkDetails
 	}
-
-	// write summarized health check results back to caller
-	err = state.WriteHTTPStatusResponse(w)
-	if err != nil {
-		log.Warningln("Error writing health check results to caller:", err)
-	}
-
-	return err
+	return state, nil
 }
