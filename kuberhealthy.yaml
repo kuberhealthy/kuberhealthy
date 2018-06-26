@@ -97,6 +97,9 @@ metadata:
     #external-dns.alpha.kubernetes.io/hostname: "kuberhealthy.yourdomain.com."
   name: kuberhealthy
   namespace: kuberhealthy
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "80"
+  prometheus.io/path: "/metrics"
 spec:
   #type: LoadBalancer
   ports:
