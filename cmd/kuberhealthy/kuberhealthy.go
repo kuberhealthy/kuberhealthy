@@ -278,7 +278,7 @@ func (k *Kuberhealthy) StartWebServer() {
 	})
 
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		err := k.metricEndpointHandler(w, r)
+		err := k.prometheusMetricsHandler(w, r)
 		if err != nil {
 			log.Errorln(err)
 		}
@@ -306,7 +306,7 @@ func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (k *Kuberhealthy) metricEndpointHandler(w http.ResponseWriter, r *http.Request) error {
+func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
 	state, err := k.getCurrentState()
 	if err != nil {
@@ -339,7 +339,7 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 	return err
 }
 
-// getCurrentState returns a Kuberhealthy state object, or errors
+// getCurrentState fetches the current state of all checks from their CRD objects and returns the summary as a health.State. Failures to fetch CRD state return an error.
 func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	// create a new set of state for this page render
 	state := health.NewState()
