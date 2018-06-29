@@ -22,6 +22,7 @@ import (
 	"github.com/Comcast/kuberhealthy/khstatecrd"
 	"github.com/Comcast/kuberhealthy/kubeClient"
 	"github.com/Comcast/kuberhealthy/masterCalculation"
+	"github.com/Comcast/kuberhealthy/metrics"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 )
@@ -276,6 +277,13 @@ func (k *Kuberhealthy) StartWebServer() {
 		}
 	})
 
+	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		err := k.prometheusMetricsHandler(w, r)
+		if err != nil {
+			log.Errorln(err)
+		}
+	})
+
 	log.Infoln("Starting web services on port", k.ListenAddr)
 	err := http.ListenAndServe(k.ListenAddr, nil)
 	if err != nil {
@@ -298,34 +306,61 @@ func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
+	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
+	state, err := k.getCurrentState()
+	if err != nil {
+		metrics.WriteMetricError(w, state)
+		return err
+	}
+	metrics := metrics.GenerateMetrics(state)
+	// write summarized health check results back to caller
+	_, err = w.Write([]byte(metrics))
+	if err != nil {
+		log.Warningln("Error writing health check results to caller:", err)
+	}
+	return err
+}
+
 // healthCheckHandler runs health checks against kubernetes and
 // returns a status output to a web request client
 func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
+	state, err := k.getCurrentState()
+	if err != nil {
+		k.writeHealthCheckError(w, r, err, state)
+		return err
+	}
+	// write summarized health check results back to caller
+	err = state.WriteHTTPStatusResponse(w)
+	if err != nil {
+		log.Warningln("Error writing health check results to caller:", err)
+	}
+	return err
+}
 
+// getCurrentState fetches the current state of all checks from their CRD objects and returns the summary as a health.State. Failures to fetch CRD state return an error.
+func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	// create a new set of state for this page render
 	state := health.NewState()
 
 	// create a CRD client to fetch CRD states with
 	khClient, err := khstatecrd.Client(CRDGroup, CRDVersion, kubeConfigFile)
 	if err != nil {
-		k.writeHealthCheckError(w, r, err, state)
-		return err
+		return state, err
 	}
 
 	// fetch a client for the master calculation
 	kubeClient, err := kubeClient.Create(kubeConfigFile)
 	if err != nil {
-		k.writeHealthCheckError(w, r, err, state)
-		return err
+		return state, err
 	}
 
 	// caculate the current master and apply it to the status output
 	currentMaster, err := masterCalculation.CalculateMaster(kubeClient)
 	state.CurrentMaster = currentMaster
 	if err != nil {
-		k.writeHealthCheckError(w, r, err, state)
-		return err
+		return state, err
 	}
 
 	// loop over every check and apply the current state to the status return
@@ -353,12 +388,5 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 		}
 		state.CheckDetails[c.Name()] = checkDetails
 	}
-
-	// write summarized health check results back to caller
-	err = state.WriteHTTPStatusResponse(w)
-	if err != nil {
-		log.Warningln("Error writing health check results to caller:", err)
-	}
-
-	return err
+	return state, nil
 }
