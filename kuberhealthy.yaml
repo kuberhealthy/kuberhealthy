@@ -96,7 +96,7 @@ metadata:
     component: kuberhealthy
   annotations:
     #service.beta.kubernetes.io/aws-load-balancer-internal: "0.0.0.0/0"
-    external-dns.alpha.kubernetes.io/hostname: "kuberhealthy.k8s.dev.istreamplanet.net."
+    #external-dns.alpha.kubernetes.io/hostname: "kuberhealthy.yourdomain.com."
     #prometheus.io/scrape: "true"
     #prometheus.io/port: "80"
     #prometheus.io/path: "/metrics"
