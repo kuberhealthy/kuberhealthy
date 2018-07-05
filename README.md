@@ -90,17 +90,17 @@ Kuberhealthy performs the following checks in parallel at all times:
 #### Daemonset Deployment and Termination
 
 - Namespace: kuberhealthy
-- Default Timeout: 5 minutes
-- Default Interval: 15 minutes
+- Timeout: 5 minutes
+- Interval: 15 minutes
 - Check name: `daemonSet`
 
     `daemonSet` deploys a daemonSet to the `kuberhealthy` namespace, waits for all pods to be in the 'Ready' state, then terminates them and ensures all pod terminations were successful.  Containers are deployed with their resource requirements set to 0 cores and 0 memory and use the pause container from Google (`gcr.io/google_containers/pause:0.8.0`).  The `node-role.kubernetes.io/master` `NoSchedule` taint is tolerated by daemonset testing pods.  The pause container is already used by Kubelet to do various tasks and should be cached at all times.  If a failure occurs anywhere in the daemonset deployment or tear down, an error is shown on the status page describing the issue.
 
 #### Component Health
 
-- Default timeout: 1 minute
-- Default interval: 2 minute
-- Default downtime toleration: 5 minutes
+- Timeout: 1 minute
+- Interval: 2 minute
+- Downtime toleration: 5 minutes
 - Check name: `componentStatus`
 
   `componentStatus` checks for the state of cluster `componentstatuses`.  Kubernetes components include the ETCD and ETCD-event deployments, the Kubernetes scheduler, and the Kubernetes controller manager.  This is almost the same as running `kubectl get componentstatuses`.  If a `componentstatus` status is down for 5 minutes, an alert is shown on the status page.
@@ -108,21 +108,21 @@ Kuberhealthy performs the following checks in parallel at all times:
 #### Excessive Pod Restarts
 
 - Namespace: kube-system
-- Default timeout: 3 minutes
-- Default interval: 5 minutes
-- Default tolerated restarts per pod over 1 hour: 5
+- Timeout: 3 minutes
+- Interval: 5 minutes
+- Tolerated restarts per pod over 1 hour: 5
 - Check name: `podRestarts`  
 
     `podRestarts` checks for excessive pod restarts in the `kube-system` namespace.  If a pod has restarted more than five times in an hour, an error is indicated on the status page.  The exact pod's name will be shown as one of the `Error` field's strings.
 
     A command line flag exists `--podCheckNamespaces` which can optionally contain a comma-separated list of namespaces on which to run the podRestarts checks.  The default value is `kube-system`.  Each namespace for which the check is configured will require the `get` and `list` verbs on the `pods` resource within that namespace.
 
-#### Pod Error Status
+#### Pod Status
 
 - Namespace: kube-system
-- Default timeout: 1 minutes
-- Default interval: 2 minutes
-- Default downtime toleration: 5 minutes
+- Timeout: 1 minutes
+- Interval: 2 minutes
+- Error state toleration: 5 minutes
 - Check name: `podStatus`
 
     `podStatus` checks for pods older than ten minutes in the `kube-system` namespace that are in an incorrect lifecycle phase (anything that is not 'Ready').  If a `podStatus` detects a pod down for 5 minutes, an alert is shown on the status page. When a pod is found to be in error, the exact pod's name will be shown as one of the `Error` field's strings.
