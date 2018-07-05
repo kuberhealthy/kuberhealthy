@@ -4,14 +4,12 @@ metadata:
   labels:
     app: kuberhealthy
     component: kuberhealthy
+  {{if .Values.prometheus.enableScraping -}}
   annotations:
-    #service.beta.kubernetes.io/aws-load-balancer-internal: "0.0.0.0/0"
-    #external-dns.alpha.kubernetes.io/hostname: "kuberhealthy.yourdomain.com."
-    {{- if .Values.prometheus.enableScraping -}}
     prometheus.io/scrape: "true"
     prometheus.io/port: {{ .Values.service.externalPort }}
     prometheus.io/path: "/metrics"
-    {{- end -}}
+  {{ end -}}
   name: kuberhealthy
   namespace: kuberhealthy
 spec:
