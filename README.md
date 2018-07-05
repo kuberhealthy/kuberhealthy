@@ -1,6 +1,6 @@
 # kuberhealthy
 
-Synthetic end-to-end checks for Kubernetes clusters.
+Easy synthetic testing for Kubernetes clusters.
 
 [![Docker Repository on Quay](https://quay.io/repository/comcast/kuberhealthy/status "Kuberhealthy Docker Repository on Quay")](https://quay.io/repository/comcast/kuberhealthy)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
