@@ -3,7 +3,9 @@
 # Declare variables to be passed into your templates.
 
 prometheus:
+  name: "prometheus"
   enableScraping: true
+  serviceMonitor: true
   enableAlerting: true
 
 image:

@@ -4,7 +4,7 @@ kind: ConfigMap
 metadata:
   labels:
     app: "prometheus"
-    # prometheus: 
+    prometheus: {{ .Values.prometheus.name }}
     role: alert-rules
   name: kuberhealthy
 data:

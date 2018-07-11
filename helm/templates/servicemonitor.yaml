@@ -1,10 +1,10 @@
-{{- if .Values.prometheus.enableScraping -}}
+{{- if .Values.prometheus.serviceMonitor -}}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
     component: kuberhealthy
-    # prometheus: ""
+    prometheus: {{ .Values.prometheus.name }}
   name: kuberhealthy
 spec:
   jobLabel: component
