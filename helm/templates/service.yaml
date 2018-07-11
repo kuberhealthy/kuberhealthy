@@ -7,7 +7,7 @@ metadata:
   {{if .Values.prometheus.enableScraping -}}
   annotations:
     prometheus.io/scrape: "true"
-    prometheus.io/port: {{ .Values.service.externalPort }}
+    prometheus.io/port: {{ .Values.service.externalPort | quote }}
     prometheus.io/path: "/metrics"
   {{ end -}}
   name: kuberhealthy
