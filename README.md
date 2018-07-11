@@ -34,7 +34,7 @@ helm install .
 
 ##### Prometheus Integration
 
-If you wish for Kuberhealthy's checks to write metrics for Prometheus to collect and alert on, this is already available and configured with an annotation after installing the helm chart.  Alert manager configuration examples are available.
+If you wish for Kuberhealthy's checks to write metrics for Prometheus to collect and alert on, this is already available and configured with an annotation after installing the helm chart.  Alertmanager configuration examples are available.
 
 ##### Status Page
 
