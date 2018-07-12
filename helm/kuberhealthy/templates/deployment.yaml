@@ -58,7 +58,7 @@ spec:
             memory: {{ .Values.resources.requests.memory }}
       restartPolicy: Always
       terminationGracePeriodSeconds: 310
-{{- if .Values.tolerations.master -}}
+{{- if .Values.tolerations.master }}
       tolerations:
       - effect: NoSchedule
         key: node-role.kubernetes.io/master
