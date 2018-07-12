@@ -17,7 +17,7 @@ _If you do not have prometheus enabled in your cluster, make sure you set `prome
 
 ##### Service Exposure
 
-After installation, Kuberhealthy will only be available from within the cluster (service `Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose kuberhealthy to an external checking service, you must edit (`kubectl -n kuberhealthy edit service kuberhealthy`) the service to set `Type: LoadBalancer`.
+After installation, Kuberhealthy will only be available from within the cluster (service `Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you must edit (`kubectl -n kuberhealthy edit service kuberhealthy`) the service to set `Type: LoadBalancer`.
 
 ##### Helm Template Tweaks
 
