@@ -269,16 +269,16 @@ func (k *Kuberhealthy) storeCheckState(checkName string, details health.CheckDet
 
 // StartWebServer starts a JSON status web server at the specified listener.
 func (k *Kuberhealthy) StartWebServer() {
-	// Assign all requests to be handled by the healthCheckHandler function
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		err := k.healthCheckHandler(w, r)
+	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		err := k.prometheusMetricsHandler(w, r)
 		if err != nil {
 			log.Errorln(err)
 		}
 	})
 
-	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		err := k.prometheusMetricsHandler(w, r)
+	// Assign all requests to be handled by the healthCheckHandler function
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		err := k.healthCheckHandler(w, r)
 		if err != nil {
 			log.Errorln(err)
 		}
