@@ -6,8 +6,10 @@ Kuberhealthy has been installed to your cluster!
 	Service Type: {{ .Values.service.type }}
 	Service Port: {{ .Values.service.externalPort }}
 	Tolerates Masters: {{ .Values.tolerations.master }}
+{{- if .Values.prometheus.enabled -}}
 	Prometheus Scraping: {{ .Values.prometheus.enableScraping }}
 	Prometheus Alerting: {{ .Values.prometheus.enableAlerting }}
+{{- end -}}
 
 If you are using Prometheus alert manager for your alerts, Kuberhealthy should
 be good to go.  If you are going tomanually scrape Kuberhealthy's status JSON 
