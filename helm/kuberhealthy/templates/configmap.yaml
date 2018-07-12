@@ -1,3 +1,4 @@
+{{- if .Values.prometheus.enabled -}}
 {{- if .Values.prometheus.enableAlerting -}}
 apiVersion: v1
 kind: ConfigMap
@@ -26,4 +27,5 @@ data:
           severity: critical
         annotations:
           description: Kuberhealthy shows that the cluster is not healthy
+{{- end -}}
 {{- end -}}
