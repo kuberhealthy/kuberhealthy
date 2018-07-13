@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/health"
+	"github.com/Comcast/kuberhealthy/pkg/health"
 	"github.com/Pallinder/go-randomdata"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"

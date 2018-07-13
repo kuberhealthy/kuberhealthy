@@ -1,9 +1,9 @@
 FROM golang as builder
 LABEL LOCATION="git@github.com:Comcast/kuberhealthy.git"
 LABEL DESCRIPTION="Kuberhealthy - Check and expose kubernetes cluster health in detail."
-RUN mkdir -p /go/src/github.com/Comcast/kuberhealthy/kubeClient
-ADD ./ /go/src/github.com/Comcast/kuberhealthy/
-WORKDIR /go/src/github.com/Comcast/kuberhealthy/cmd/kuberhealthy
+RUN mkdir -p /go/src/github.com/Comcast/kuberhealthy/pkg/kubeClient
+ADD ./ /go/src/github.com/Comcast/kuberhealthy/pkg/
+WORKDIR /go/src/github.com/Comcast/kuberhealthy/pkg/cmd/kuberhealthy
 RUN go get -v
 RUN go build -v -o kuberhealthy
 RUN mkdir /kuberhealthy

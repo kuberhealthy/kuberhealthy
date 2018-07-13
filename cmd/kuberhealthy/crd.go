@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/health"
-	"github.com/Comcast/kuberhealthy/khstatecrd"
+	"github.com/Comcast/kuberhealthy/pkg/health"
+	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
