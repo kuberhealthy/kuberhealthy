@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/health"
-	"github.com/Comcast/kuberhealthy/kubeClient"
+	"github.com/Comcast/kuberhealthy/pkg/health"
+	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 	"github.com/Pallinder/go-randomdata"
 )
 

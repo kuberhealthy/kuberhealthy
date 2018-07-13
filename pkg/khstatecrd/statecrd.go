@@ -14,7 +14,7 @@ package khstatecrd
 import (
 	"encoding/json"
 
-	"github.com/Comcast/kuberhealthy/health"
+	"github.com/Comcast/kuberhealthy/pkg/health"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

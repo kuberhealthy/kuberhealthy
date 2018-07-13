@@ -16,7 +16,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Comcast/kuberhealthy/health"
+	"github.com/Comcast/kuberhealthy/pkg/health"
 )
 
 func parseMetrics(metricOutput string) map[string]string {
