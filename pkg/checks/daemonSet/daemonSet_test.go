@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/kubeClient"
+	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
 	betaapiv1 "k8s.io/api/extensions/v1beta1"

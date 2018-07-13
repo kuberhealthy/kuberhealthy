@@ -19,7 +19,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/Comcast/kuberhealthy/health"
+	"github.com/Comcast/kuberhealthy/pkg/health"
 )
 
 //GenerateMetrics takes the state and returns it in the Prometheus format

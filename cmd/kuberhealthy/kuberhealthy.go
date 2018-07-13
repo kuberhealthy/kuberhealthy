@@ -18,11 +18,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/health"
-	"github.com/Comcast/kuberhealthy/khstatecrd"
-	"github.com/Comcast/kuberhealthy/kubeClient"
-	"github.com/Comcast/kuberhealthy/masterCalculation"
-	"github.com/Comcast/kuberhealthy/metrics"
+	"github.com/Comcast/kuberhealthy/pkg/health"
+	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
+	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
+	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
+	"github.com/Comcast/kuberhealthy/pkg/metrics"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 )
