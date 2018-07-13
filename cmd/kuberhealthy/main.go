@@ -20,12 +20,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/checks/componentStatus"
-	"github.com/Comcast/kuberhealthy/checks/daemonSet"
-	"github.com/Comcast/kuberhealthy/checks/podRestarts"
-	"github.com/Comcast/kuberhealthy/checks/podStatus"
-	"github.com/Comcast/kuberhealthy/kubeClient"
-	"github.com/Comcast/kuberhealthy/masterCalculation"
+	"github.com/Comcast/kuberhealthy/pkg/checks/componentStatus"
+	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
+	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
+	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
+	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
+	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
 )

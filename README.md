@@ -11,7 +11,7 @@ Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supple
 
 Installation via [Helm](https://helm.sh) template is recommended.
 
-`helm template --set prometheus.enabled=true https://github.com/Comcast/kuberhealthy/raw/master/helm/kuberhealthy-0.1.1.tgz | kubectl apply -f -`
+`helm template --set prometheus.enabled=true https://github.com/Comcast/kuberhealthy/pkg/raw/master/helm/kuberhealthy-0.1.1.tgz | kubectl apply -f -`
 
 _If you do not have prometheus enabled in your cluster, make sure you set `prometheus.enabled=false` in the above command._
 
@@ -23,14 +23,14 @@ After installation, Kuberhealthy will only be available from within the cluster 
 
 If you need more options, or want to customize the helm chart, feel free render the helm chart and manually make updates:
 
-`helm template https://github.com/Comcast/kuberhealthy/raw/master/helm/kuberhealthy-0.1.1.tgz > kubernetes.yaml`
+`helm template https://github.com/Comcast/kuberhealthy/pkg/raw/master/helm/kuberhealthy-0.1.1.tgz > kubernetes.yaml`
 
 Alternatively, you can tweak the helm `values.yaml` file by cloning the repository and visiting the `helm/kuberhealthy` directory.
 
 
 ## What is Kuberhealthy?
 
-Kuberhealthy performs stynthetic tests from within Kubernetes clusters in order to catch issues that would otherwise go unnoticed.  Instead of trying to identify all the things that could potentially go wrong, Kuberhealthy replicates real workflow and watches carefully for the expected Kubernetes behavior to occur.  Kuberhealthy serves both a JSON status page and a [Prometheus](https://prometheus.io/) metrics endpoint for integration into your choice of alerting solution.  More checks will be added in future versions to better cover [service provisioning](https://github.com/Comcast/kuberhealthy/issues/11), [DNS resolution](https://github.com/Comcast/kuberhealthy/issues/16), [disk provisioning](https://github.com/Comcast/kuberhealthy/issues/9), and more.
+Kuberhealthy performs stynthetic tests from within Kubernetes clusters in order to catch issues that would otherwise go unnoticed.  Instead of trying to identify all the things that could potentially go wrong, Kuberhealthy replicates real workflow and watches carefully for the expected Kubernetes behavior to occur.  Kuberhealthy serves both a JSON status page and a [Prometheus](https://prometheus.io/) metrics endpoint for integration into your choice of alerting solution.  More checks will be added in future versions to better cover [service provisioning](https://github.com/Comcast/kuberhealthy/pkg/issues/11), [DNS resolution](https://github.com/Comcast/kuberhealthy/pkg/issues/16), [disk provisioning](https://github.com/Comcast/kuberhealthy/pkg/issues/9), and more.
 
 Some examples of errors Kuberhealthy would detect:
 
