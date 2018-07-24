@@ -67,9 +67,10 @@ func CalculateMaster(client *kubernetes.Clientset) (string, error) {
 	var podlist []string
 	for _, p := range pods.Items {
 		podlist = append(podlist, p.Name)
-		if len(podlist) < 1 {
-			return "", errors.New("Failed to retreive list of Kuberhealthy pods.")
-		}
+	}
+
+	if len(podlist) < 1 {
+		return "", errors.New("Failed to retrieve list of Kuberhealthy pods")
 	}
 
 	// choose master by grabbing the first in alphabetical order based on
