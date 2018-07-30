@@ -9,11 +9,11 @@ Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supple
 
 #### Helm Install
 
-Installation via [Helm](https://helm.sh) template is recommended.
+Installation via `helm template` and `kubectl apply -f -` is recommended.  You can use the following command to download the Kuberhealthy chart and install it to your default `kubectl` context.
 
-`helm template --set prometheus.enabled=true https://github.com/Comcast/kuberhealthy/raw/master/helm/kuberhealthy-0.1.1.tgz | kubectl apply -f -`
+_If you do not have prometheus enabled in your cluster, make sure you set `prometheus.enabled=false` in the following command._
 
-_If you do not have prometheus enabled in your cluster, make sure you set `prometheus.enabled=false` in the above command._
+`wget https://github.com/Comcast/kuberhealthy/raw/master/helm/kuberhealthy-0.1.1.tgz && helm template --set prometheus.enabled=true kuberhealthy-0.1.1.tgz | kubectl apply -f -`
 
 ##### Service Exposure
 
