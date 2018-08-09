@@ -24,7 +24,6 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
@@ -99,15 +98,8 @@ func main() {
 
 	go listenForInterrupts()
 
-	client, err := kubeClient.Create(kubeConfigFile)
-	if err != nil {
-		log.Errorln("Unable to create kubernetes client", err)
-		sigChan <- os.Interrupt
-		return
-	}
-
 	// Create a new Kuberhealthy struct
-	kuberhealthy = NewKuberhealthy(client)
+	kuberhealthy = NewKuberhealthy()
 	kuberhealthy.ListenAddr = listenAddress
 
 	// Split the podCheckNamespaces into a []string
