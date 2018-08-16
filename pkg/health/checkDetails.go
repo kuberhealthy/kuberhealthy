@@ -17,6 +17,7 @@ import "time"
 type CheckDetails struct {
 	OK             bool
 	Errors         []string
+	Namespace      string
 	LastRun        time.Time // the time the check last was last run
 	AuthorativePod string    // the pod that last ran the check
 }

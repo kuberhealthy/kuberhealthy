@@ -110,6 +110,11 @@ func (dsc *Checker) Name() string {
 	return "DaemonSetChecker"
 }
 
+// CheckNamespace returns the namespace of this checker
+func (dsc *Checker) CheckNamespace() string {
+	return dsc.Namespace
+}
+
 // Interval returns the interval at which this check runs
 func (dsc *Checker) Interval() time.Duration {
 	return time.Minute * 15

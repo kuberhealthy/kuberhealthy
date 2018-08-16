@@ -15,7 +15,6 @@ package metrics
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -37,7 +36,7 @@ func GenerateMetrics(state health.State) string {
 	metricsOutput += fmt.Sprintf("kuberhealthy_cluster_state %s\n", healthStatus)
 	checkMetricState := map[string]string{}
 	for c, d := range state.CheckDetails {
-		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\"}", strings.ToLower(strings.Replace(c, " ", "_", -1)))
+		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		checkStatus := "0"
 		if d.OK {
 			checkStatus = "1"
