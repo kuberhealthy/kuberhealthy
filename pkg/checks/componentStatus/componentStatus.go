@@ -38,6 +38,11 @@ func (csc *Checker) Name() string {
 	return "ComponentStatusChecker"
 }
 
+// CheckNamespace returns the namespace of this checker
+func (csc *Checker) CheckNamespace() string {
+	return ""
+}
+
 // Interval returns the interval at which this check runs
 func (csc *Checker) Interval() time.Duration {
 	return time.Minute * 2
