@@ -425,6 +425,10 @@ func (dsc *Checker) doChecks(ctx context.Context) error {
 		return err
 	}
 
+	// sleep for 10s to mitigate a possible race condition present when deleting
+	// a DS directly after creating it
+	time.Sleep(time.Second * 10)
+
 	// clean up the daemonset.  Does not return until removed completely or
 	// an error occurs
 	err = dsc.doRemove(ctx)
