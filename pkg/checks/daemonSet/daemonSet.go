@@ -604,7 +604,7 @@ func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
 
 		// DS must show as healthy for 5 concurrent checks separated by 1 second each
 		if ds.Status.NumberAvailable == ds.Status.DesiredNumberScheduled && ds.Status.DesiredNumberScheduled > 0 {
-			c++
+			counter++
 			if counter >= 5 {
 				log.Infoln(dsc.Name(), "Daemonset "+dsc.dsName()+" done deploying pods.")
 				return nil
