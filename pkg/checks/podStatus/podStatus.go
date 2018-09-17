@@ -41,6 +41,11 @@ func (psc *Checker) Name() string {
 	return fmt.Sprintf("PodStatusChecker namespace %s", psc.Namespace)
 }
 
+// CheckNamespace returns the namespace of this checker
+func (psc *Checker) CheckNamespace() string {
+	return psc.Namespace
+}
+
 // Interval returns the interval at which this check runs
 func (psc *Checker) Interval() time.Duration {
 	return time.Minute * 2
