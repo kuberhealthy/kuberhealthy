@@ -691,7 +691,7 @@ func (dsc *Checker) waitForPodRemoval(ctx context.Context) error {
 		// check all pods for any kuberhealthy test daemonset pods that still exist
 		log.Infoln(dsc.Name(), "Daemonset check waiting for", len(pods.Items), "pods to delete")
 		for _, p := range pods.Items {
-			log.Infoln(dsc.Name(), "Test daemonset pod is still removing:", p.Namespace, p.Name, " on node ", p.Spec.NodeName)
+			log.Infoln(dsc.Name(), "Test daemonset pod is still removing:", p.Namespace, p.Name, "on node", p.Spec.NodeName)
 		}
 
 		if len(pods.Items) == 0 {
