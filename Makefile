@@ -5,4 +5,4 @@ build:
 	docker build -t $(IMAGE):$(TAG) .
 
 push:
-	docker push $(IMAGE):$(TAG)
+docker push $(IMAGE):$(TAG)
