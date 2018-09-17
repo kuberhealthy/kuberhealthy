@@ -44,6 +44,11 @@ func (prc *Checker) Name() string {
 	return fmt.Sprintf("PodRestartChecker namespace %s", prc.Namespace)
 }
 
+// CheckNamespace returns the namespace of this checker
+func (prc *Checker) CheckNamespace() string {
+	return prc.Namespace
+}
+
 // Interval returns the interval at which this check runs
 func (prc *Checker) Interval() time.Duration {
 	return time.Minute * 5

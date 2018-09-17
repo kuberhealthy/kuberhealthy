@@ -12,6 +12,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -48,6 +49,13 @@ func NewKuberhealthy(client *kubernetes.Clientset) *Kuberhealthy {
 // its crd status
 func (k *Kuberhealthy) setCheckExecutionError(checkName string, err error) {
 	details := health.NewCheckDetails()
+	check, err := k.getCheck(checkName)
+	if err != nil {
+		log.Errorln(err)
+	}
+	if check != nil {
+		details.Namespace = check.CheckNamespace()
+	}
 	details.OK = false
 	details.Errors = []string{"Check execution error: " + err.Error()}
 	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors)
@@ -230,6 +238,7 @@ func (k *Kuberhealthy) runCheck(stopChan chan bool, c KuberhealthyCheck) {
 
 		// make a new state for this check and fill it from the check's current status
 		details := health.NewCheckDetails()
+		details.Namespace = c.CheckNamespace()
 		details.OK, details.Errors = c.CurrentStatus()
 		log.Infoln("Setting state of check", c.Name(), "to", details.OK, details.Errors)
 
@@ -389,4 +398,14 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 		state.CheckDetails[c.Name()] = checkDetails
 	}
 	return state, nil
+}
+
+// getCheck returns a Kuberhealthy check object from its name, returns an error otherwise
+func (k *Kuberhealthy) getCheck(name string) (KuberhealthyCheck, error) {
+	for _, c := range k.Checks {
+		if c.Name() == name {
+			return c, nil
+		}
+	}
+	return nil, fmt.Errorf("Could not find Kuberhealthy check with name %s", name)
 }
