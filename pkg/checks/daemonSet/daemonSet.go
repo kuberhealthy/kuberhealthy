@@ -549,6 +549,11 @@ func (dsc *Checker) fetchDS() (bool, error) {
 // doDeploy actually deploys the DS into the cluster
 func (dsc *Checker) doDeploy(ctx context.Context) error {
 
+	// TODO - find all taints in the cluster on all nodes.  Tolerate them all.
+	// TODO - add the taints as a property on the DSC so checks can use it.
+	// this prevents a race condition where taints are added after the deploy
+	// is created, but before it has deployed all its pods.
+
 	// create DS
 	dsc.DaemonSetDeployed = true
 	err := dsc.deploy()
@@ -584,7 +589,6 @@ func (dsc *Checker) doRemove(ctx context.Context) error {
 
 // waitForPodsToComeOnline blocks until all pods of the daemonset are deployed and online
 func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
-	dsClient := dsc.getDaemonSetClient()
 
 	// counter for DS status check below
 	var counter int
@@ -603,26 +607,31 @@ func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
 			log.Infoln(dsc.Name(), "Nodes which were unable to schedule before shutdown signal was received:", nodesMissingDSPod)
 			return nil
 		}
-		ds, err := dsClient.Get(dsc.dsName(), metav1.GetOptions{})
+
+		// check the number of nodes in the cluster.  Make sure we have that many
+		// pods scheduled.
+
+		// get a list of all the nodes in the cluster
+		nodes, err := dsc.client.CoreV1().Nodes().List(metav1.ListOptions{})
 		if err != nil {
-			log.Warningln(dsc.Name(), "API error when fetching daemonset:", err)
+			return err
 		}
-		// we check to see if the number of scheduled pods matches the number
-		// that are in available status, but the number scheduled must be
-		// more than 0
-		log.Infoln(dsc.Name(), "Daemonset check waiting for pods to come up", ds.Status.NumberAvailable, "/", ds.Status.DesiredNumberScheduled)
+
+		// find nodes missing pods from this daemonset
 		nodesMissingDSPod, err = dsc.getNodesMissingDSPod()
 		if err != nil {
-			log.Warningln(dsc.Name(), "Error determining which node was unschedulable", err)
+			log.Warningln(dsc.Name(), "Error determining which node was unschedulable. Retrying.", err)
+			continue
 		}
+		log.Infoln(dsc.Name(), "Daemonset check waiting for pods to come up.", len(nodesMissingDSPod), "/", len(nodes.Items))
 
 		// We want to ensure all the DS pods are up and healthy for at least 5 seconds
 		// before moving on. This is to help verify that the DS is _actually_ healthy
 		// and to mitigate possible race conditions arising from deleting pods that
 		// were _just_ created
 
-		// DS must show as healthy for 5 concurrent checks separated by 1 second each
-		if len(nodesMissingDSPod) == 0 {
+		// The DS must not have any nodes missing pods for five iterations in a row
+		if len(nodesMissingDSPod) > 0 {
 			counter++
 			if counter >= 5 {
 				log.Infoln(dsc.Name(), "Daemonset "+dsc.dsName()+" done deploying pods.")
@@ -673,7 +682,6 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 			for _, ip := range node.Status.Addresses {
 				if ip.Type == "InternalIP" && ip.Address == p.Status.HostIP && p.Status.Phase == "Running" {
 					nodeStatuses[node.Name] = true
-					break
 				}
 			}
 		}
@@ -687,7 +695,6 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 		}
 	}
 
-	log.Infoln("These nodes were found to not have daemonset pods running yet:", nodesMissingDSPods)
 	return nodesMissingDSPods, nil
 }
 
