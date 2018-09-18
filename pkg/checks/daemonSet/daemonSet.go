@@ -123,7 +123,7 @@ func (dsc *Checker) Interval() time.Duration {
 
 // Timeout returns the maximum run time for this check before it times out
 func (dsc *Checker) Timeout() time.Duration {
-	return time.Minute * 5
+	return time.Minute * 10
 }
 
 // Shutdown signals the DS to begin a cleanup
