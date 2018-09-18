@@ -610,7 +610,7 @@ func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
 		// we check to see if the number of scheduled pods matches the number
 		// that are in available status, but the number scheduled must be
 		// more than 0
-		log.Infoln(dsc.Name(), "Daemonset check waiting for pods to come up", ds.Status.NumberAvailable, "/", ds.Status.DesiredNumberScheduled, ".")
+		log.Infoln(dsc.Name(), "Daemonset check waiting for pods to come up", ds.Status.NumberAvailable, "/", ds.Status.DesiredNumberScheduled)
 		nodesMissingDSPod, err = dsc.getNodesMissingDSPod()
 		if err != nil {
 			log.Warningln(dsc.Name(), "Error determining which node was unschedulable", err)
@@ -671,7 +671,7 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 	for _, p := range pods.Items {
 		for _, node := range nodes.Items {
 			for _, ip := range node.Status.Addresses {
-				if ip.Type == "InternalIP" && ip.Address == p.Status.HostIP {
+				if ip.Type == "InternalIP" && ip.Address == p.Status.HostIP && p.Status.Phase == "Running" {
 					nodeStatuses[node.Name] = true
 				}
 			}
