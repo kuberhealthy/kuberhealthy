@@ -22,6 +22,8 @@ import (
 type KuberhealthyCheck interface {
 	// Name returns the identfier for this check such as: Checker
 	Name() string
+	// CheckNamespace returns the name of the namespace that the check runs in
+	CheckNamespace() string
 	// Interval returns a run interval indicating how often this check
 	// should be performed
 	Interval() time.Duration
