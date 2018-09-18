@@ -111,6 +111,11 @@ func (dsc *Checker) Name() string {
 	return "DaemonSetChecker"
 }
 
+// CheckNamespace returns the namespace of this checker
+func (dsc *Checker) CheckNamespace() string {
+	return dsc.Namespace
+}
+
 // Interval returns the interval at which this check runs
 func (dsc *Checker) Interval() time.Duration {
 	return time.Minute * 15
@@ -323,6 +328,9 @@ func (dsc *Checker) getAllPods() ([]apiv1.Pod, error) {
 		podList, err = dsc.client.Core().Pods(dsc.Namespace).List(metav1.ListOptions{
 			LabelSelector: "source=kuberhealthy",
 		})
+		if err != nil {
+			log.Warningln("Unable to get all pods:", err)
+		}
 		cont = podList.Continue
 
 		// pick the items out and add them to our end results
@@ -357,6 +365,9 @@ func (dsc *Checker) getAllDaemonsets() ([]betaapiv1.DaemonSet, error) {
 		dsList, err = dsClient.List(metav1.ListOptions{
 			LabelSelector: "source=kuberhealthy",
 		})
+		if err != nil {
+			log.Warningln("Unable to get all Daemon Sets:", err)
+		}
 		cont = dsList.Continue
 
 		// pick the items out and add them to our end results
@@ -407,6 +418,7 @@ func (dsc *Checker) Run(client *kubernetes.Clientset) error {
 		dsc.ErrorMessages = []string{errorMessage}
 		log.Errorln(dsc.Name(), errorMessage)
 	case err := <-doneChan:
+		cancelCtx()
 		return err
 	}
 
@@ -576,16 +588,19 @@ func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
 
 	// counter for DS status check below
 	var counter int
+	var nodesMissingDSPod []string
 
 	for {
 		ctxErr := ctx.Err()
 		if ctxErr != nil {
+			log.Infoln(dsc.Name(), "Nodes which were unable to schedule before context was cancelled:", nodesMissingDSPod)
 			return ctxErr
 		}
 		time.Sleep(time.Second)
 
 		// if we need to shut down, stop waiting entirely
 		if dsc.shuttingDown {
+			log.Infoln(dsc.Name(), "Nodes which were unable to schedule before shutdown signal was received:", nodesMissingDSPod)
 			return nil
 		}
 		ds, err := dsClient.Get(dsc.dsName(), metav1.GetOptions{})
@@ -595,7 +610,11 @@ func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
 		// we check to see if the number of scheduled pods matches the number
 		// that are in available status, but the number scheduled must be
 		// more than 0
-		log.Infoln(dsc.Name(), "Daemonset check waiting for pods to come up", ds.Status.NumberAvailable, "/", ds.Status.DesiredNumberScheduled)
+		log.Infoln(dsc.Name(), "Daemonset check waiting for pods to come up", ds.Status.NumberAvailable, "/", ds.Status.DesiredNumberScheduled, ".")
+		nodesMissingDSPod, err = dsc.getNodesMissingDSPod()
+		if err != nil {
+			log.Warningln(dsc.Name(), "Error determining which node was unschedulable", err)
+		}
 
 		// We want to ensure all the DS pods are up and healthy for at least 5 seconds
 		// before moving on. This is to help verify that the DS is _actually_ healthy
@@ -609,13 +628,65 @@ func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
 				log.Infoln(dsc.Name(), "Daemonset "+dsc.dsName()+" done deploying pods.")
 				return nil
 			}
-		}
-		// if the DS is unhealthy during one of our checks, set the counter back to 0
-		if ds.Status.NumberAvailable != ds.Status.DesiredNumberScheduled && ds.Status.DesiredNumberScheduled > 0 {
-			log.Infoln(dsc.Name(), "Daemonset "+dsc.dsName()+" was ready for ", counter, " out of 5 seconds but has left the ready state. Restarting 5 second timer.")
-			counter = 0
+		} else {
+			if counter > 0 {
+				log.Infoln(dsc.Name(), "Daemonset "+dsc.dsName()+" was ready for", counter, "out of 5 seconds but has left the ready state. Restarting 5 second timer.")
+				counter = 0
+			}
 		}
 	}
+}
+
+// getNodesMissingDSPod gets a list of nodes that do not have a DS pod running on them
+func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
+
+	// nodesMissingDSPods holds the final list of nodes missing pods
+	var nodesMissingDSPods []string
+
+	// get a list of all the nodes in the cluster
+	nodes, err := dsc.client.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		return nodesMissingDSPods, err
+	}
+
+	// get a list of DS pods
+	pods, err := dsc.client.CoreV1().Pods(dsc.Namespace).List(metav1.ListOptions{
+		IncludeUninitialized: true,
+		LabelSelector:        "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
+	})
+	if err != nil {
+		return nodesMissingDSPods, err
+	}
+
+	// populate a node status map. default status is "false", meaning there is
+	// not a pod deployed to that node.
+	nodeStatuses := make(map[string]bool)
+	for _, n := range nodes.Items {
+		nodeStatuses[n.Name] = false
+	}
+
+	// Look over all daemonset pods.  Mark any hosts that host one of the pods
+	// as "true" in the nodeStatuses map, indicating that a daemonset pod is
+	// deployed there.
+	for _, p := range pods.Items {
+		for _, node := range nodes.Items {
+			for _, ip := range node.Status.Addresses {
+				if ip.Type == "InternalIP" && ip.Address == p.Status.HostIP {
+					nodeStatuses[node.Name] = true
+				}
+			}
+		}
+	}
+
+	// pick out all the nodes without daemonset pods on them and
+	// add them to the final results
+	for nodeName, hasDS := range nodeStatuses {
+		if !hasDS {
+			nodesMissingDSPods = append(nodesMissingDSPods, nodeName)
+		}
+	}
+
+	return nodesMissingDSPods, nil
 }
 
 // dsName fetches the current name of the test DS
@@ -691,7 +762,7 @@ func (dsc *Checker) waitForPodRemoval(ctx context.Context) error {
 		// check all pods for any kuberhealthy test daemonset pods that still exist
 		log.Infoln(dsc.Name(), "Daemonset check waiting for", len(pods.Items), "pods to delete")
 		for _, p := range pods.Items {
-			log.Infoln(dsc.Name(), "Test daemonset pod is still removing:", p.Namespace, p.Name, " on node ", p.Spec.NodeName)
+			log.Infoln(dsc.Name(), "Test daemonset pod is still removing:", p.Namespace, p.Name, "on node", p.Spec.NodeName)
 		}
 
 		if len(pods.Items) == 0 {
