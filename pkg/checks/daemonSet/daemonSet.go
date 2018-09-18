@@ -639,8 +639,9 @@ func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
 
 // getNodesMissingDSPod gets a list of nodes that do not have a DS pod running on them
 func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
+
+	// nodesMissingDSPods holds the final list of nodes missing pods
 	var nodesMissingDSPods []string
-	nodeInternalIPs := make(map[string]string)
 
 	// get a list of all the nodes in the cluster
 	nodes, err := dsc.client.CoreV1().Nodes().List(metav1.ListOptions{})
@@ -657,27 +658,33 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 		return nodesMissingDSPods, err
 	}
 
-	// create a map of node names to internal IPs for use in the comparison below
+	// populate a node status map. default status is "false", meaning there is
+	// not a pod deployed to that node.
+	nodeStatuses := make(map[string]bool)
 	for _, n := range nodes.Items {
-		for _, ip := range n.Status.Addresses {
-			if ip.Type == "InternalIP" {
-				nodeInternalIPs[n.Name] = ip.Address
-				// add every node into the nodesMissingDSPods slice so we can compare and remove them later
-				nodesMissingDSPods = append(nodesMissingDSPods, n.Name)
+		nodeStatuses[n.Name] = false
+	}
+
+	// Look over all daemonset pods.  Mark any hosts that host one of the pods
+	// as "true" in the nodeStatuses map, indicating that a daemonset pod is
+	// deployed there.
+	for _, p := range pods.Items {
+		for _, node := range nodes.Items {
+			for _, ip := range node.Status.Addresses {
+				if ip.Type == "InternalIP" && ip.Address == p.Status.HostIP {
+					// TODO - should the pod be in a READY state before it flags a node
+					// as OK?
+					nodeStatuses[node.Name] = true
+				}
 			}
 		}
 	}
 
-	// Range the DS pods and the node IPs and remove any matches (nodes that have DS pods running on them)
-	// from the nodesMissingDSPods list - what is left are the nodes that did not match any pod host IPs
-	// and thus do not have DS pods running on them
-	for _, p := range pods.Items {
-		for _, ip := range nodeInternalIPs {
-			for i := range nodesMissingDSPods {
-				if p.Status.HostIP == ip {
-					nodesMissingDSPods = append(nodesMissingDSPods[:i], nodesMissingDSPods[i+1:]...)
-				}
-			}
+	// pick out all the nodes without daemonset pods on them and
+	// add them to the final results
+	for nodeName, hasDS := range nodeStatuses {
+		if !hasDS {
+			nodesMissingDSPods = append(nodesMissingDSPods, nodeName)
 		}
 	}
 
