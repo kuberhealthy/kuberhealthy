@@ -652,24 +652,30 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 		return nodesMissingDSPods, err
 	}
 
-	// create a map of node internal IPs
+	// create a map of node names to internal IPs for use in the comparison below
 	for _, n := range nodes.Items {
 		for _, ip := range n.Status.Addresses {
 			if ip.Type == "InternalIP" {
 				nodeInternalIPs[n.Name] = ip.Address
+				// add every node into the nodesMissingDSPods slice so we can compare and remove them later
+				nodesMissingDSPods = append(nodesMissingDSPods, n.Name)
 			}
 		}
 	}
 
-	// compare the list of node internal IPs to a list of the node IPs DS pods are running on
-	// and determine which nodes do not have a DS pod running on them
+	// Range the DS pods and the node IPs and remove any matches (nodes that have DS pods running on them)
+	// from the nodesMissingDSPods list - what is left are the nodes that did not match any pod host IPs
+	// and thus do not have DS pods running on them
 	for _, p := range pods.Items {
-		for name, ip := range nodeInternalIPs {
-			if p.Status.HostIP == ip {
-				nodesMissingDSPods = append(nodesMissingDSPods, name)
+		for _, ip := range nodeInternalIPs {
+			for i := range nodesMissingDSPods {
+				if p.Status.HostIP == ip {
+					nodesMissingDSPods = append(nodesMissingDSPods[:i], nodesMissingDSPods[i+1:]...)
+				}
 			}
 		}
 	}
+
 	return nodesMissingDSPods, nil
 }
 
