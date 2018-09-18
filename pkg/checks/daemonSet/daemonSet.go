@@ -628,13 +628,11 @@ func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
 				log.Infoln(dsc.Name(), "Daemonset "+dsc.dsName()+" done deploying pods.")
 				return nil
 			}
-		}
-		// if the DS is unhealthy during one of our checks, set the counter back to 0
-		if ds.Status.NumberAvailable != ds.Status.DesiredNumberScheduled && ds.Status.DesiredNumberScheduled > 0 && counter >= 1 {
+		} else {
 			if counter > 0 {
 				log.Infoln(dsc.Name(), "Daemonset "+dsc.dsName()+" was ready for", counter, "out of 5 seconds but has left the ready state. Restarting 5 second timer.")
+				counter = 0
 			}
-			counter = 0
 		}
 	}
 }
