@@ -622,7 +622,7 @@ func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
 		// were _just_ created
 
 		// DS must show as healthy for 5 concurrent checks separated by 1 second each
-		if ds.Status.NumberAvailable == ds.Status.DesiredNumberScheduled && ds.Status.DesiredNumberScheduled > 0 {
+		if len(nodesMissingDSPod) == 0 {
 			counter++
 			if counter >= 5 {
 				log.Infoln(dsc.Name(), "Daemonset "+dsc.dsName()+" done deploying pods.")
@@ -673,6 +673,7 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 			for _, ip := range node.Status.Addresses {
 				if ip.Type == "InternalIP" && ip.Address == p.Status.HostIP && p.Status.Phase == "Running" {
 					nodeStatuses[node.Name] = true
+					break
 				}
 			}
 		}
@@ -686,6 +687,7 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 		}
 	}
 
+	log.Infoln("These nodes were found to not have daemonset pods running yet:", nodesMissingDSPods)
 	return nodesMissingDSPods, nil
 }
 
