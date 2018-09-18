@@ -671,7 +671,7 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 	for _, p := range pods.Items {
 		for _, node := range nodes.Items {
 			for _, ip := range node.Status.Addresses {
-				if ip.Type == "InternalIP" && ip.Address == p.Status.HostIP {
+				if ip.Type == "InternalIP" && ip.Address == p.Status.HostIP && p.Status.Phase == "Running" {
 					nodeStatuses[node.Name] = true
 				}
 			}
