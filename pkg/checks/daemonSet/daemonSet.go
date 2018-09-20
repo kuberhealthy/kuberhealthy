@@ -712,11 +712,21 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 	// Look over all daemonset pods.  Mark any hosts that host one of the pods
 	// as "true" in the nodeStatuses map, indicating that a daemonset pod is
 	// deployed there.
-	for _, p := range pods.Items {
+	//Additionally, only look on nodes with taints that we tolerate
+	for _, pod := range pods.Items {
+		// the pod should be ready
+		if pod.Status.Phase != "Running" {
+			continue
+		}
 		for _, node := range nodes.Items {
-			for _, ip := range node.Status.Addresses {
-				if ip.Type == "InternalIP" && ip.Address == p.Status.HostIP && p.Status.Phase == "Running" {
+			for _, nodeip := range node.Status.Addresses {
+				// We are looking for the Internal IP and it needs to match the host IP
+				if nodeip.Type != "InternalIP" || nodeip.Address != pod.Status.HostIP {
+					continue
+				}
+				if taintsAreTolerated(node.Spec.Taints, dsc.tolerations) {
 					nodeStatuses[node.Name] = true
+					break
 				}
 			}
 		}
@@ -731,6 +741,26 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 	}
 
 	return nodesMissingDSPods, nil
+}
+
+// taintsAreTolerated iterates through all taints and tolerations passed in
+// and checks if we are tolerating all the taints on a node
+func taintsAreTolerated(taints []apiv1.Taint, tolerations []apiv1.Toleration) bool {
+	for _, taint := range taints {
+		var taintIsTolerated bool
+		for _, toleration := range tolerations {
+			if taint.Key == toleration.Key {
+				taintIsTolerated = true
+				break
+			}
+		}
+		// if none of the tolerations match the taint, it is not tolerated
+		if !taintIsTolerated {
+			return false
+		}
+	}
+	// if all taints have a matchin toleration, return true
+	return true
 }
 
 // dsName fetches the current name of the test DS
