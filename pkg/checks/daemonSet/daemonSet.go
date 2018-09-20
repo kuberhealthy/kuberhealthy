@@ -35,11 +35,12 @@ type Checker struct {
 	DaemonSetDeployed bool
 	DaemonSetName     string
 	hostname          string
+	tolerations       []apiv1.Toleration
 	client            *kubernetes.Clientset
 }
 
 // New creates a new Checker object
-func New() (*Checker, error) {
+func New(tolerations []apiv1.Toleration) (*Checker, error) {
 
 	hostname := getHostname()
 
@@ -49,6 +50,7 @@ func New() (*Checker, error) {
 		Namespace:     namespace,
 		DaemonSetName: daemonSetBaseName + "-" + hostname + "-" + strconv.Itoa(int(time.Now().Unix())),
 		hostname:      hostname,
+		tolerations:   tolerations,
 	}
 
 	testDS.DaemonSet = &betaapiv1.DaemonSet{
@@ -103,6 +105,9 @@ func New() (*Checker, error) {
 		},
 	}
 
+	// Add our generated list of tolerations or any the user input via flag
+	testDS.DaemonSet.Spec.Template.Spec.Tolerations = append(testDS.DaemonSet.Spec.Template.Spec.Tolerations, testDS.tolerations...)
+
 	return &testDS, nil
 }
 
@@ -149,6 +154,36 @@ func (dsc *Checker) Shutdown() error {
 	log.Infoln(dsc.Name(), "Daemonset "+dsc.dsName()+" ready for shutdown.")
 	return nil
 
+}
+
+// FindAllUniqueTaints returns a list of all taints present on any node group in the cluster
+// this is exportable because of a chicken/egg.  We need to determine the taints before
+// we construct the testDS in New() and pass them into New()
+func FindAllUniqueTaints(client *kubernetes.Clientset) ([]apiv1.Toleration, error) {
+
+	var uniqueTaints []apiv1.Toleration
+
+	// get a list of all the nodes in the cluster
+	nodes, err := client.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		return uniqueTaints, err
+	}
+
+	// this keeps track of the unique taint values
+	keys := make(map[string]bool)
+	// get a list of all taints
+	for _, n := range nodes.Items {
+		for _, t := range n.Spec.Taints {
+			// only add unique entries to the slice
+			if _, value := keys[t.Value]; !value {
+				keys[t.Value] = true
+				// add the taints in with formatting so we can slot them right into
+				// daemonset.spec.template.spec.tolerations
+				uniqueTaints = append(uniqueTaints, apiv1.Toleration{Key: t.Key})
+			}
+		}
+	}
+	return uniqueTaints, nil
 }
 
 // CurrentStatus returns the status of the check as of right now
