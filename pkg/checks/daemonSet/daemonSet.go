@@ -44,7 +44,6 @@ func New(tolerations []apiv1.Toleration) (*Checker, error) {
 
 	hostname := getHostname()
 
-	terminationGracePeriod := int64(1)
 	testDS := Checker{
 		ErrorMessages: []string{},
 		Namespace:     namespace,
@@ -53,32 +52,51 @@ func New(tolerations []apiv1.Toleration) (*Checker, error) {
 		tolerations:   tolerations,
 	}
 
-	testDS.DaemonSet = &betaapiv1.DaemonSet{
+	return &testDS, nil
+}
+
+// generateDaemonSetSpec generates a daemon set spec to deploy into the cluster
+func (dsc *Checker) generateDaemonSetSpec() {
+
+	terminationGracePeriod := int64(1)
+
+	// if we didnt pass in a list of tolerations, generate our own
+	if len(dsc.tolerations) < 1 {
+		var err error
+		dsc.tolerations, err = findAllUniqueTolerations(dsc.client)
+		if err != nil {
+			log.Warningln("Unable to generate list of pod scheduling tolerations", err)
+		}
+	}
+
+	//create the DS object
+	log.Infoln("Generating daemon set kubernetes spec.")
+	dsc.DaemonSet = &betaapiv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: testDS.DaemonSetName,
+			Name: dsc.DaemonSetName,
 			Labels: map[string]string{
-				"app":              testDS.DaemonSetName,
+				"app":              dsc.DaemonSetName,
 				"source":           "kuberhealthy",
-				"creatingInstance": hostname,
+				"creatingInstance": dsc.hostname,
 			},
 		},
 		Spec: betaapiv1.DaemonSetSpec{
 			MinReadySeconds: 2,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app":              testDS.DaemonSetName,
+					"app":              dsc.DaemonSetName,
 					"source":           "kuberhealthy",
-					"creatingInstance": hostname,
+					"creatingInstance": dsc.hostname,
 				},
 			},
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app":              testDS.DaemonSetName,
+						"app":              dsc.DaemonSetName,
 						"source":           "kuberhealthy",
-						"creatingInstance": hostname,
+						"creatingInstance": dsc.hostname,
 					},
-					Name: testDS.DaemonSetName,
+					Name: dsc.DaemonSetName,
 				},
 				Spec: apiv1.PodSpec{
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
@@ -106,9 +124,7 @@ func New(tolerations []apiv1.Toleration) (*Checker, error) {
 	}
 
 	// Add our generated list of tolerations or any the user input via flag
-	testDS.DaemonSet.Spec.Template.Spec.Tolerations = append(testDS.DaemonSet.Spec.Template.Spec.Tolerations, testDS.tolerations...)
-
-	return &testDS, nil
+	dsc.DaemonSet.Spec.Template.Spec.Tolerations = append(dsc.DaemonSet.Spec.Template.Spec.Tolerations, dsc.tolerations...)
 }
 
 // Name returns the name of this checker
@@ -156,10 +172,10 @@ func (dsc *Checker) Shutdown() error {
 
 }
 
-// FindAllUniqueTaints returns a list of all taints present on any node group in the cluster
+// findAllUniqueTolerations returns a list of all taints present on any node group in the cluster
 // this is exportable because of a chicken/egg.  We need to determine the taints before
 // we construct the testDS in New() and pass them into New()
-func FindAllUniqueTaints(client *kubernetes.Clientset) ([]apiv1.Toleration, error) {
+func findAllUniqueTolerations(client *kubernetes.Clientset) ([]apiv1.Toleration, error) {
 
 	var uniqueTaints []apiv1.Toleration
 
@@ -168,7 +184,7 @@ func FindAllUniqueTaints(client *kubernetes.Clientset) ([]apiv1.Toleration, erro
 	if err != nil {
 		return uniqueTaints, err
 	}
-
+	log.Infoln("Searching for unique taints on the cluster.")
 	// this keeps track of the unique taint values
 	keys := make(map[string]bool)
 	// get a list of all taints
@@ -183,6 +199,7 @@ func FindAllUniqueTaints(client *kubernetes.Clientset) ([]apiv1.Toleration, erro
 			}
 		}
 	}
+	log.Infoln("Found taints to tolerate:", uniqueTaints)
 	return uniqueTaints, nil
 }
 
@@ -584,11 +601,6 @@ func (dsc *Checker) fetchDS() (bool, error) {
 // doDeploy actually deploys the DS into the cluster
 func (dsc *Checker) doDeploy(ctx context.Context) error {
 
-	// TODO - find all taints in the cluster on all nodes.  Tolerate them all.
-	// TODO - add the taints as a property on the DSC so checks can use it.
-	// this prevents a race condition where taints are added after the deploy
-	// is created, but before it has deployed all its pods.
-
 	// create DS
 	dsc.DaemonSetDeployed = true
 	err := dsc.deploy()
@@ -744,7 +756,7 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 }
 
 // taintsAreTolerated iterates through all taints and tolerations passed in
-// and checks if we are tolerating all the taints on a node
+// and checks that all taints are tolerated by the supplied tolerations
 func taintsAreTolerated(taints []apiv1.Taint, tolerations []apiv1.Toleration) bool {
 	for _, taint := range taints {
 		var taintIsTolerated bool
@@ -770,6 +782,9 @@ func (dsc *Checker) dsName() string {
 
 // Deploy creates a daemon set
 func (dsc *Checker) deploy() error {
+	//Generate the spec for the DS that we are about to deploy
+	dsc.generateDaemonSetSpec()
+	//Generate DS client and create the set with the template we just generated
 	daemonSetClient := dsc.getDaemonSetClient()
 	_, err := daemonSetClient.Create(dsc.DaemonSet)
 	dsc.DaemonSetDeployed = true
