@@ -27,6 +27,7 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
+	apiv1 "k8s.io/api/core/v1"
 )
 
 // status represents the current Kuberhealthy OK:Error state
@@ -40,12 +41,14 @@ var doneChan chan bool
 var terminationGracePeriodSeconds = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
 // flags indicating that checks of specific types should be used
-var enableComponentStatusChecks = true // do componentstatus checking
-var enableDaemonSetChecks = true       // do daemon set restart checking
-var enablePodRestartChecks = true      // do pod restart checking
-var enablePodStatusChecks = true       // do pod status checking
-var enableForceMaster bool             // force master mode - for debugging
-var enableDebug bool                   // enable deubug logging
+var enableComponentStatusChecks = true      // do componentstatus checking
+var enableDaemonSetChecks = true            // do daemon set restart checking
+var enablePodRestartChecks = true           // do pod restart checking
+var enablePodStatusChecks = true            // do pod status checking
+var enableForceMaster bool                  // force master mode - for debugging
+var enableDebug bool                        // enable deubug logging
+var tolerations []string                    // pass in a list of toleration
+var formattedTolerations []apiv1.Toleration // we convert the tolerations slice into this object
 
 var kuberhealthy *Kuberhealthy
 
@@ -66,6 +69,7 @@ func init() {
 	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
+	flaggy.StringSlice(&tolerations, "t", "tolerate", "Pass one toleration flag per taint to tolerate as a static list. By default, all cluster taints are tolerated.")
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
 	flaggy.Parse()
 
@@ -92,6 +96,14 @@ func init() {
 		masterCalculation.DebugAlwaysMasterOn()
 	}
 
+	// if tolerations are passed in, format them for use in the daemon set
+	if len(tolerations) >= 0 {
+		log.Infoln("Using tolerations passed in via flag.")
+		for _, t := range tolerations {
+			formattedTolerations = append(formattedTolerations, apiv1.Toleration{Key: t})
+		}
+	}
+
 }
 
 func main() {
@@ -114,7 +126,7 @@ func main() {
 
 	// daemonset checking
 	if enableDaemonSetChecks {
-		dsc, err := daemonSet.New()
+		dsc, err := daemonSet.New(formattedTolerations)
 		if err != nil {
 			log.Fatalln("unable to create daemonset checker:", err)
 		}
