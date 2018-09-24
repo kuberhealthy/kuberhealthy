@@ -167,7 +167,7 @@ func (dsc *Checker) Shutdown() error {
 		dsc.waitForPodRemoval(ctx)
 	}
 
-	log.Infoln(dsc.Name(), "Daemonset "+dsc.dsName()+" ready for shutdown.")
+	log.Infoln(dsc.Name(), "Daemonset "+dsc.DaemonSetName+" ready for shutdown.")
 	return nil
 
 }
@@ -513,7 +513,7 @@ func (dsc *Checker) cleanUp(ctx context.Context) error {
 	dsClient := dsc.getDaemonSetClient()
 
 	// check for existing daemonset to cleanup
-	ds, err := dsClient.Get(dsc.dsName(), metav1.GetOptions{})
+	ds, err := dsClient.Get(dsc.DaemonSetName, metav1.GetOptions{})
 
 	// if a DS isn't found, then return nil. No cleanup is needed.
 	if err != nil && strings.Contains(err.Error(), "not found") {
@@ -587,7 +587,7 @@ func (dsc *Checker) fetchDS() (bool, error) {
 
 		// check results for our daemonset
 		for _, item := range dsList.Items {
-			if item.GetName() == dsc.dsName() {
+			if item.GetName() == dsc.DaemonSetName {
 				// ds does exist, return true
 				return true, nil
 			}
@@ -681,12 +681,12 @@ func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
 		if len(nodesMissingDSPod) > 0 {
 			counter++
 			if counter >= 5 {
-				log.Infoln(dsc.Name(), "Daemonset "+dsc.dsName()+" done deploying pods.")
+				log.Infoln(dsc.Name(), "Daemonset "+dsc.DaemonSetName+" done deploying pods.")
 				return nil
 			}
 		} else {
 			if counter > 0 {
-				log.Infoln(dsc.Name(), "Daemonset "+dsc.dsName()+" was ready for", counter, "out of 5 seconds but has left the ready state. Restarting 5 second timer.")
+				log.Infoln(dsc.Name(), "Daemonset "+dsc.DaemonSetName+" was ready for", counter, "out of 5 seconds but has left the ready state. Restarting 5 second timer.")
 				counter = 0
 			}
 		}
@@ -775,11 +775,6 @@ func taintsAreTolerated(taints []apiv1.Taint, tolerations []apiv1.Toleration) bo
 	return true
 }
 
-// dsName fetches the current name of the test DS
-func (dsc *Checker) dsName() string {
-	return dsc.DaemonSet.ObjectMeta.Name
-}
-
 // Deploy creates a daemon set
 func (dsc *Checker) deploy() error {
 	//Generate the spec for the DS that we are about to deploy
@@ -808,7 +803,7 @@ func (dsc *Checker) remove() error {
 	// delete the daemonset
 	log.Infoln(dsc.Name(), "removing daemonset")
 	daemonSetClient := dsc.getDaemonSetClient()
-	err = daemonSetClient.Delete(dsc.dsName(), &metav1.DeleteOptions{})
+	err = daemonSetClient.Delete(dsc.DaemonSetName, &metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
