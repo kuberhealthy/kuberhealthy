@@ -97,7 +97,7 @@ func init() {
 	}
 
 	// if tolerations are passed in, format them for use in the daemon set
-	if len(tolerations) >= 0 {
+	if len(tolerations) > 0 {
 		log.Infoln("Using tolerations passed in via flag.")
 		for _, t := range tolerations {
 			formattedTolerations = append(formattedTolerations, apiv1.Toleration{Key: t})
