@@ -24,7 +24,6 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
@@ -70,7 +69,7 @@ func init() {
 	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
-	flaggy.StringSlice(&tolerations, "t", "tolerations", "Pass in a comma separated list of taints to tolerate.")
+	flaggy.StringSlice(&tolerations, "t", "tolerate", "Pass one toleration flag per taint to tolerate as a static list. By default, all cluster taints are tolerated.")
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
 	flaggy.Parse()
 
@@ -98,20 +97,10 @@ func init() {
 	}
 
 	// if tolerations are passed in, format them for use in the daemon set
-	if tolerations != nil {
+	if len(tolerations) >= 0 {
+		log.Infoln("Using tolerations passed in via flag.")
 		for _, t := range tolerations {
 			formattedTolerations = append(formattedTolerations, apiv1.Toleration{Key: t})
-		}
-	}
-	// if we arent passing a list of tolerations, generate our own
-	if tolerations == nil {
-		client, err := kubeClient.Create(kubeConfigFile)
-		if err != nil {
-			log.Warningln("Unable to create client to generate the list of pod scheduling tolerations", err)
-		}
-		formattedTolerations, err = daemonSet.FindAllUniqueTaints(client)
-		if err != nil {
-			log.Warningln("Unable to generate list of pod scheduling tolerations", err)
 		}
 	}
 
