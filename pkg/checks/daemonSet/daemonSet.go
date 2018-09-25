@@ -40,9 +40,10 @@ type Checker struct {
 }
 
 // New creates a new Checker object
-func New(tolerations []apiv1.Toleration) (*Checker, error) {
+func New() (*Checker, error) {
 
 	hostname := getHostname()
+	var tolerations []apiv1.Toleration
 
 	testDS := Checker{
 		ErrorMessages: []string{},
@@ -60,13 +61,11 @@ func (dsc *Checker) generateDaemonSetSpec() {
 
 	terminationGracePeriod := int64(1)
 
-	// if we didnt pass in a list of tolerations, generate our own
-	if len(dsc.tolerations) < 1 {
-		var err error
-		dsc.tolerations, err = findAllUniqueTolerations(dsc.client)
-		if err != nil {
-			log.Warningln("Unable to generate list of pod scheduling tolerations", err)
-		}
+	// find all the taints in the cluster and create a toleration for each
+	var err error
+	dsc.tolerations, err = findAllUniqueTolerations(dsc.client)
+	if err != nil {
+		log.Warningln("Unable to generate list of pod scheduling tolerations", err)
 	}
 
 	//create the DS object
@@ -100,12 +99,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 				},
 				Spec: apiv1.PodSpec{
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
-					Tolerations: []apiv1.Toleration{
-						apiv1.Toleration{
-							Key:    "node-role.kubernetes.io/master",
-							Effect: "NoSchedule",
-						},
-					},
+					Tolerations:                   []apiv1.Toleration{},
 					Containers: []apiv1.Container{
 						apiv1.Container{
 							Name:  "sleep",
@@ -125,6 +119,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 
 	// Add our generated list of tolerations or any the user input via flag
 	dsc.DaemonSet.Spec.Template.Spec.Tolerations = append(dsc.DaemonSet.Spec.Template.Spec.Tolerations, dsc.tolerations...)
+	log.Infoln("Deploying daemon set with tolerations: ", dsc.DaemonSet.Spec.Template.Spec.Tolerations)
 }
 
 // Name returns the name of this checker
@@ -177,12 +172,12 @@ func (dsc *Checker) Shutdown() error {
 // we construct the testDS in New() and pass them into New()
 func findAllUniqueTolerations(client *kubernetes.Clientset) ([]apiv1.Toleration, error) {
 
-	var uniqueTaints []apiv1.Toleration
+	var uniqueTolerations []apiv1.Toleration
 
 	// get a list of all the nodes in the cluster
 	nodes, err := client.CoreV1().Nodes().List(metav1.ListOptions{})
 	if err != nil {
-		return uniqueTaints, err
+		return uniqueTolerations, err
 	}
 	log.Infoln("Searching for unique taints on the cluster.")
 	// this keeps track of the unique taint values
@@ -193,14 +188,14 @@ func findAllUniqueTolerations(client *kubernetes.Clientset) ([]apiv1.Toleration,
 			// only add unique entries to the slice
 			if _, value := keys[t.Value]; !value {
 				keys[t.Value] = true
-				// add the taints in with formatting so we can slot them right into
+				// Add the taints to the list as tolerations
 				// daemonset.spec.template.spec.tolerations
-				uniqueTaints = append(uniqueTaints, apiv1.Toleration{Key: t.Key})
+				uniqueTolerations = append(uniqueTolerations, apiv1.Toleration{Key: t.Key, Value: t.Value, Effect: t.Effect})
 			}
 		}
 	}
-	log.Infoln("Found taints to tolerate:", uniqueTaints)
-	return uniqueTaints, nil
+	log.Infoln("Found taints to tolerate:", uniqueTolerations)
+	return uniqueTolerations, nil
 }
 
 // CurrentStatus returns the status of the check as of right now
@@ -658,19 +653,12 @@ func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
 		// check the number of nodes in the cluster.  Make sure we have that many
 		// pods scheduled.
 
-		// get a list of all the nodes in the cluster
-		nodes, err := dsc.client.CoreV1().Nodes().List(metav1.ListOptions{})
-		if err != nil {
-			return err
-		}
-
 		// find nodes missing pods from this daemonset
-		nodesMissingDSPod, err = dsc.getNodesMissingDSPod()
+		nodesMissingDSPod, err := dsc.getNodesMissingDSPod()
 		if err != nil {
 			log.Warningln(dsc.Name(), "Error determining which node was unschedulable. Retrying.", err)
 			continue
 		}
-		log.Infoln(dsc.Name(), "Daemonset check waiting for pods to come up.", len(nodesMissingDSPod), "/", len(nodes.Items))
 
 		// We want to ensure all the DS pods are up and healthy for at least 5 seconds
 		// before moving on. This is to help verify that the DS is _actually_ healthy
@@ -678,18 +666,24 @@ func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
 		// were _just_ created
 
 		// The DS must not have any nodes missing pods for five iterations in a row
-		if len(nodesMissingDSPod) > 0 {
+		readySeconds := 5
+		if len(nodesMissingDSPod) <= 0 {
 			counter++
-			if counter >= 5 {
+			log.Infoln("All daemonset pods have been ready for", counter, "/", readySeconds, "seconds.")
+			if counter >= readySeconds {
 				log.Infoln(dsc.Name(), "Daemonset "+dsc.DaemonSetName+" done deploying pods.")
 				return nil
 			}
-		} else {
-			if counter > 0 {
-				log.Infoln(dsc.Name(), "Daemonset "+dsc.DaemonSetName+" was ready for", counter, "out of 5 seconds but has left the ready state. Restarting 5 second timer.")
-				counter = 0
-			}
+			continue
 		}
+		// else if we've started counting up but there is a DS pod that went unready
+		// reset the counter
+		if counter > 0 {
+			log.Infoln(dsc.Name(), "Daemonset "+dsc.DaemonSetName+" was ready for", counter, "out of 5 seconds but has left the ready state. Restarting 5 second timer.")
+			counter = 0
+		}
+		// If the counter isnt iterating up or being reset, we are still waiting for pods to come online
+		log.Infoln(dsc.Name(), "Daemonset check waiting for", len(nodesMissingDSPod), "pods to come up on nodes", nodesMissingDSPod)
 	}
 }
 
@@ -715,10 +709,13 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 	}
 
 	// populate a node status map. default status is "false", meaning there is
-	// not a pod deployed to that node.
+	// not a pod deployed to that node.  We are only adding nodes that tolerate
+	// our list of dsc.tolerations
 	nodeStatuses := make(map[string]bool)
 	for _, n := range nodes.Items {
-		nodeStatuses[n.Name] = false
+		if taintsAreTolerated(n.Spec.Taints, dsc.tolerations) {
+			nodeStatuses[n.Name] = false
+		}
 	}
 
 	// Look over all daemonset pods.  Mark any hosts that host one of the pods
@@ -761,7 +758,7 @@ func taintsAreTolerated(taints []apiv1.Taint, tolerations []apiv1.Toleration) bo
 	for _, taint := range taints {
 		var taintIsTolerated bool
 		for _, toleration := range tolerations {
-			if taint.Key == toleration.Key {
+			if taint.Key == toleration.Key && taint.Value == toleration.Value {
 				taintIsTolerated = true
 				break
 			}
@@ -771,7 +768,7 @@ func taintsAreTolerated(taints []apiv1.Taint, tolerations []apiv1.Toleration) bo
 			return false
 		}
 	}
-	// if all taints have a matchin toleration, return true
+	// if all taints have a matching toleration, return true
 	return true
 }
 
