@@ -11,7 +11,7 @@
 */
 
 // Kuberhealthy is an enhanced health check for Kubernetes clusters.
-package main
+package main // github.com/Comcast/kuberhealthy
 
 import (
 	"os"
