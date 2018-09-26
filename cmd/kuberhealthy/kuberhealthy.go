@@ -103,10 +103,8 @@ func (k *Kuberhealthy) Start() {
 	for {
 		select {
 		case <-becameMasterChan:
-			log.Infoln("Became master. Starting checks.")
 			k.StartChecks()
 		case <-lostMasterChan:
-			log.Infoln("Lost master. Stopping checks.")
 			k.StopChecks()
 		}
 	}
