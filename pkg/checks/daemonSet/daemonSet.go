@@ -679,7 +679,7 @@ func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
 		// else if we've started counting up but there is a DS pod that went unready
 		// reset the counter
 		if counter > 0 {
-			log.Infoln(dsc.Name(), "Daemonset "+dsc.DaemonSetName+" was ready for", counter, "out of 5 seconds but has left the ready state. Restarting 5 second timer.")
+			log.Infoln(dsc.Name(), "Daemonset "+dsc.DaemonSetName+" was ready for", counter, "out of,", readySeconds, "seconds but has left the ready state. Restarting", readySeconds, "second timer.")
 			counter = 0
 		}
 		// If the counter isnt iterating up or being reset, we are still waiting for pods to come online
