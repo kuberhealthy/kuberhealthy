@@ -8,25 +8,22 @@ Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supple
 
 ## Installation
 
+A [Helm](https://helm.sh) template is available for installation as well as some basic `.yaml` configurations.  By default, Prometheus endpoints are annotated and made available.  Use one of the below methods to deploy Kuberhealthy in your cluster.
+
+After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you must edit (`kubectl -n kuberhealthy edit service kuberhealthy`) the service and set `Type: LoadBalancer`.
+
+RBAC configurations are included.  All configurations attempt to create a namespace named Kuberhealthy.
+
 #### Helm Install
 
-Installation via `helm template` and `kubectl apply -f -` is recommended.  You can use the following command to download the Kuberhealthy chart and install it to your default `kubectl` context.
+Installation via `helm template | kubectl apply -f -` is recommended.  You can use the following command to download the Kuberhealthy chart and install it to your default `kubectl` context.
 
-_If you do not have prometheus enabled in your cluster, make sure you set `prometheus.enabled=false` in the following command._
+`wget https://github.com/Comcast/kuberhealthy/raw/master/deploy/helm/kuberhealthy-latest.tgz && helm template --set prometheus.enabled=true kuberhealthy-latest.tgz | kubectl apply -f -`
 
-`wget https://github.com/Comcast/kuberhealthy/raw/master/helm/kuberhealthy-0.1.1.tgz && helm template --set prometheus.enabled=true kuberhealthy-0.1.1.tgz | kubectl apply -f -`
 
-##### Service Exposure
+#### Basic Spec Deployment
 
-After installation, Kuberhealthy will only be available from within the cluster (service `Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you must edit (`kubectl -n kuberhealthy edit service kuberhealthy`) the service to set `Type: LoadBalancer`.
-
-##### Helm Template Tweaks
-
-If you need more options, or want to customize the helm chart, you can edit the helm chart and manually make updates:
-
-`helm template https://github.com/Comcast/kuberhealthy/raw/master/helm/kuberhealthy-0.1.1.tgz > kubernetes.yaml`
-
-Alternatively, you can tweak the helm `values.yaml` file by cloning the repository and visiting the `helm/kuberhealthy` directory.
+Installation without Helm is easy.  Download the `deploy/kuberhealthy.yaml` spec from this repository and apply it with `kubectl apply -f`.
 
 
 ## What is Kuberhealthy?
