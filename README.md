@@ -20,6 +20,8 @@ Installation via `helm template | kubectl apply -f -` is recommended.  You can u
 
 `wget https://github.com/Comcast/kuberhealthy/raw/master/deploy/helm/kuberhealthy-latest.tgz && helm template --set prometheus.enabled=true kuberhealthy-latest.tgz | kubectl apply -f -`
 
+If you see an error about `no matches for monitoring.coreos.com/`, then you do not have Prometheus installed.  Because this spec comes last in the yaml, you can safely ignore this error.
+
 
 #### Basic Spec Deployment
 
