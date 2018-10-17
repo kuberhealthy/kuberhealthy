@@ -14,14 +14,14 @@ After installation, Kuberhealthy will only be available from within the cluster 
 
 RBAC configurations are included.  All configurations attempt to create a namespace named Kuberhealthy.
 
-#### Helm Install
+### Helm Install _(Recommended)_
 
 Installation via `helm template | kubectl apply -f -` is recommended.  You can use the following command to download the Kuberhealthy chart and install it to your default `kubectl` context.
 
 `wget https://github.com/Comcast/kuberhealthy/raw/master/deploy/helm/kuberhealthy-latest.tgz && helm template --set prometheus.enabled=true kuberhealthy-latest.tgz | kubectl apply -f -`
 
 
-#### Basic Spec Deployment
+### Basic Spec Deployment
 
 Installation without Helm is easy.  Download the `deploy/kuberhealthy.yaml` spec from this repository and apply it with `kubectl apply -f`.
 
