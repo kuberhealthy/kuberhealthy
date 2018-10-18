@@ -22,7 +22,7 @@ Installation via `helm template | kubectl apply -f -` is recommended.  You can u
 
 ### Basic Spec Deployment
 
-Installation without Helm is easy.  Download the [deploy/kuberhealthy.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/kuberhealthy.yaml) spec from this repository and apply it with `kubectl apply -f`.
+Download the [deploy/kuberhealthy.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/kuberhealthy.yaml) spec from this repository and apply it with `kubectl apply -f`.
 
 ### Prometheus Alerts
 
