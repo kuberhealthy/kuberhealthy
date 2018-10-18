@@ -1,4 +1,4 @@
-# Kuberhealthy
+<center><img src="https://github.com/Comcast/kuberhealthy/blob/master/images/kuberhealthy.png?raw=true"></center><br />
 
 Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supplements other solutions like [prometheus](https://prometheus.io/) nicely.
 
