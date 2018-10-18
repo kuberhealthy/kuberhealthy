@@ -55,10 +55,6 @@ cd helm
 helm install .
 ```
 
-##### Prometheus Integration
-
-If you wish for Kuberhealthy's checks to write metrics for Prometheus to collect and alert on, this is already available and configured with an annotation after installing the helm chart.  Alertmanager configuration examples are available.
-
 ##### Status Page
 
 If you choose to alert from the JSON status page, you can access the status on `http://kuberhealthy.kuberhealthy.svc.cluster.local`.  The status page displays server status in the format shown below.  The boolean `OK` field can be used to indicate up/down status, while the `Errors` array will contain a list of potential error descriptions.  Granular, per-check information, including the last time a check was run, and the Kuberhealthy pod that ran that specific check is available under the `CheckDetails` object.
