@@ -22,11 +22,11 @@ Installation via `helm template | kubectl apply -f -` is recommended.  You can u
 
 ### Basic Spec Deployment
 
-Installation without Helm is easy.  Download the [deploy/kuberhealthy.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/gh-pages/deploy/kuberhealthy.yaml) spec from this repository and apply it with `kubectl apply -f`.
+Installation without Helm is easy.  Download the [deploy/kuberhealthy.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/kuberhealthy.yaml) spec from this repository and apply it with `kubectl apply -f`.
 
 ### Prometheus Alerts
 
-A `ServiceMonitor` configuration is available at [deploy/servicemonitor.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/gh-pages/deploy/servicemonitor.yaml).
+A `ServiceMonitor` configuration is available at [deploy/servicemonitor.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/servicemonitor.yaml).
 
 
 ## What is Kuberhealthy?
