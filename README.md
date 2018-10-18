@@ -22,6 +22,7 @@ After installation, Kuberhealthy will only be available from within the cluster 
 
 ##### Helm Template Tweaks
 
+
 If you need more options, or want to customize the helm chart, you can edit the helm chart and manually make updates:
 
 `helm template https://github.com/Comcast/kuberhealthy/raw/master/helm/kuberhealthy-0.1.1.tgz > kubernetes.yaml`
