@@ -1,6 +1,6 @@
 <center><img src="https://github.com/Comcast/kuberhealthy/blob/master/images/kuberhealthy.png?raw=true"></center><br />
 
-Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supplements other solutions like [prometheus](https://prometheus.io/) nicely.
+Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supplements other solutions like [Prometheus](https://prometheus.io/) nicely.
 
 [![Docker Repository on Quay](https://quay.io/repository/comcast/kuberhealthy/status "Kuberhealthy Docker Repository on Quay")](https://quay.io/repository/comcast/kuberhealthy)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -55,10 +55,6 @@ Deploying Kuberhealthy is as simple as applying the [helm](https://helm.sh/) cha
 cd helm
 helm install .
 ```
-
-##### Prometheus Integration
-
-If you wish for Kuberhealthy's checks to write metrics for Prometheus to collect and alert on, this is already available and configured with an annotation after installing the helm chart.  Alertmanager configuration examples are available.
 
 ##### Status Page
 
