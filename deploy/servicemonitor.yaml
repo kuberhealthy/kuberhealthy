@@ -1,0 +1,22 @@
+---
+# Source: kuberhealthy/templates/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    component: kuberhealthy
+    prometheus: prometheus
+  name: kuberhealthy
+spec:
+  jobLabel: component
+  selector:
+    matchLabels:
+      component: kuberhealthy
+      app: kuberhealthy
+  namespaceSelector:
+    matchNames:
+      - "kuberhealthy"
+  endpoints:
+  - port: http
+    interval: 15s
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
