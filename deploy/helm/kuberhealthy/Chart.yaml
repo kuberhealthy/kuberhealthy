@@ -4,6 +4,11 @@ home: https://comcast.github.io/kuberhealthy/
 description: The official Helm chart for Kuberhealthy.
 name: kuberhealthy
 version: 0.1.1
+maintainers:
+  - name: Eric Greer
+    email: eric.greer@comcast.com
+  - name: Jake Martin
+    email: jacob.martin@comcast.com
 keywords:
 - kuberhealthy
 - kubernetes
