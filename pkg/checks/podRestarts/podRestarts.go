@@ -3,7 +3,7 @@
 
 // TODO - implement kuberhealthy check Interface
 
-package podRestarts
+package podRestarts // import "github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
 
 import (
 	"errors"

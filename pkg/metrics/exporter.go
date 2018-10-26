@@ -10,7 +10,7 @@
    limitations under the License.
 */
 
-package metrics
+package metrics // import "github.com/Comcast/kuberhealthy/pkg/metrics"
 
 import (
 	"fmt"
