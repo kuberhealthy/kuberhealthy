@@ -91,7 +91,6 @@ func init() {
 		log.Infoln("Enabling forced master mode")
 		masterCalculation.DebugAlwaysMasterOn()
 	}
-
 }
 
 func main() {
