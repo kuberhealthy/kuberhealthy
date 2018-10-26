@@ -369,7 +369,7 @@ func (dsc *Checker) getAllPods() ([]apiv1.Pod, error) {
 	var cont string
 
 	// fetch the pod objects created by kuberhealthy
-	fetchPodList := func() error {
+	for {
 		var podList *apiv1.PodList
 		podList, err := dsc.client.Core().Pods(dsc.Namespace).List(metav1.ListOptions{
 			LabelSelector: "source=kuberhealthy",
@@ -384,18 +384,10 @@ func (dsc *Checker) getAllPods() ([]apiv1.Pod, error) {
 			allPods = append(allPods, p)
 		}
 
-		return nil
-	}
-
-	// fech the pod list
-	err := fetchPodList()
-	if err != nil {
-		return allPods, err
-	}
-
-	// while continue is set, keep fetching items
-	for len(cont) > 0 {
-		fetchPodList()
+		// while continue is set, keep fetching items
+		if len(cont) == 0 {
+			break
+		}
 	}
 
 	return allPods, nil
@@ -410,7 +402,7 @@ func (dsc *Checker) getAllDaemonsets() ([]betaapiv1.DaemonSet, error) {
 	var err error
 
 	// fetch the ds objects created by kuberhealthy
-	fetchDSList := func() {
+	for {
 		var dsList *betaapiv1.DaemonSetList
 		dsClient := dsc.getDaemonSetClient()
 		dsList, err = dsClient.List(metav1.ListOptions{
@@ -425,17 +417,11 @@ func (dsc *Checker) getAllDaemonsets() ([]betaapiv1.DaemonSet, error) {
 		for _, ds := range dsList.Items {
 			allDS = append(allDS, ds)
 		}
-	}
 
-	// fech the ds list
-	fetchDSList()
-	if err != nil {
-		return allDS, err
-	}
-
-	// while continue is set, keep fetching items
-	for len(cont) > 0 {
-		fetchDSList()
+		// while continue is set, keep fetching items
+		if len(cont) == 0 {
+			break
+		}
 	}
 
 	return allDS, nil
