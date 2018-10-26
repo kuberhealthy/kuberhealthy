@@ -1,7 +1,7 @@
 // Package podStatus implements a pod health checker for Kuberhealthy.  Pods are checked
 // to ensure they are not restarting too much and are in a healthy lifecycle
 // phase.
-package podStatus // import "github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
+package podStatus // import "github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 
 import (
 	"errors"
