@@ -9,7 +9,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-package kubeClient
+package kubeClient // import "github.com/Comcast/kuberhealthy/pkg/kubeClient"
 
 import (
 	"k8s.io/client-go/kubernetes"
