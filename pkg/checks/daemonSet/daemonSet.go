@@ -319,24 +319,31 @@ func (dsc *Checker) getAllPods() ([]apiv1.Pod, error) {
 
 	var allPods []apiv1.Pod
 	var cont string
-	var err error
 
 	// fetch the pod objects created by kuberhealthy
-	fetchPodList := func() {
+	fetchPodList := func() error {
 		var podList *apiv1.PodList
-		podList, err = dsc.client.Core().Pods(dsc.Namespace).List(metav1.ListOptions{
+		podList, err := dsc.client.Core().Pods(dsc.Namespace).List(metav1.ListOptions{
 			LabelSelector: "source=kuberhealthy",
 		})
+		if err != nil {
+			return err
+		}
 		cont = podList.Continue
 
 		// pick the items out and add them to our end results
 		for _, p := range podList.Items {
 			allPods = append(allPods, p)
 		}
+
+		return nil
 	}
 
 	// fech the pod list
-	fetchPodList()
+	err := fetchPodList()
+	if err != nil {
+		return allPods, err
+	}
 
 	// while continue is set, keep fetching items
 	for len(cont) > 0 {
@@ -361,6 +368,9 @@ func (dsc *Checker) getAllDaemonsets() ([]betaapiv1.DaemonSet, error) {
 		dsList, err = dsClient.List(metav1.ListOptions{
 			LabelSelector: "source=kuberhealthy",
 		})
+		if err != nil {
+			return
+		}
 		cont = dsList.Continue
 
 		// pick the items out and add them to our end results
@@ -371,6 +381,9 @@ func (dsc *Checker) getAllDaemonsets() ([]betaapiv1.DaemonSet, error) {
 
 	// fech the ds list
 	fetchDSList()
+	if err != nil {
+		return allDS, err
+	}
 
 	// while continue is set, keep fetching items
 	for len(cont) > 0 {
@@ -654,8 +667,15 @@ func (dsc *Checker) remove() error {
 
 // waitForPodRemoval waits for the daemonset to finish removal
 func (dsc *Checker) waitForPodRemoval(ctx context.Context) error {
-	// loop until all our daemonset pods are deleted
+
 	podsClient := dsc.client.CoreV1().Pods(dsc.Namespace)
+
+	// as a fix for kuberhealthy #74 we routinely ask the pods to remove.
+	// this is a workaround for a race in kubernetes that sometimes leaves
+	// daemonset pods in a 'Ready' state after the daemonset has been deleted
+	deleteTicker := time.NewTicker(time.Second * 30)
+
+	// loop until all our daemonset pods are deleted
 	for {
 		// check for our context to expire to break the loop
 		ctxErr := ctx.Err()
@@ -672,6 +692,21 @@ func (dsc *Checker) waitForPodRemoval(ctx context.Context) error {
 		}
 
 		log.Infoln(dsc.Name(), "using LabelSelector: app="+dsc.DaemonSetName+",source=kuberhealthy")
+
+		// if the delete ticker has ticked, then issue a repeat request
+		// for pods to be deleted.  See kuberhealthy issue #74
+		select {
+		case <-deleteTicker.C:
+			log.Infoln(dsc.Name(), "Re-issuing a pod delete command for daemonset checkers.")
+			err = podsClient.DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
+				IncludeUninitialized: true,
+				LabelSelector:        "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
+			})
+			if err != nil {
+				return err
+			}
+		default:
+		}
 
 		// check all pods for any kuberhealthy test daemonset pods that still exist
 		log.Infoln(dsc.Name(), "Daemonset check waiting for", len(pods.Items), "pods to delete")
