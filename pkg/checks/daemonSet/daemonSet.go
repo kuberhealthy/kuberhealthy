@@ -2,7 +2,7 @@
 // a daemonset to a cluster.  Includes validation of cleanup as well.  This
 // check provides a high level of confidence that the cluster is operating
 // normally.
-package daemonSet
+package daemonSet // import "github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
 
 import (
 	"context"
