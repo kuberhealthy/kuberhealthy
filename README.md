@@ -35,9 +35,9 @@ Kuberhealthy performs stynthetic tests from within Kubernetes clusters in order 
 
 Some examples of errors Kuberhealthy has detected in production:
 
-- Pods stuck in `Terminating` due to CNI communication failures
-- Pods stuck in `ContainerCreating` due to disk scheduler errors
-- Pods stuck in `Pending` due to Docker daemon errors
+- Nodes where new pods get stuck in `Terminating` due to CNI communication failures
+- Nodes where new pods get stuck in `ContainerCreating` due to disk scheduler errors
+- Nodes where new pods get stuck in `Pending` due to Docker daemon errors
 - A node that can not provision or terminate pods quickly enough due to high IO wait
 - A pod in the `kube-system` namespace that is restarting too quickly
 - A [Kubernetes component](https://kubernetes.io/docs/concepts/overview/components/) that is in a non-ready state
