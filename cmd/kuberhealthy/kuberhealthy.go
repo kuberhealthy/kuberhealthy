@@ -215,7 +215,7 @@ func (k *Kuberhealthy) runCheck(stopChan chan bool, c KuberhealthyCheck) {
 		// break out if check channel is supposed to stop
 		select {
 		case <-stopChan:
-			log.Debugln("Check", c.Name(), "stop signal recieved. Stopping check.")
+			log.Debugln("Check", c.Name(), "stop signal received. Stopping check.")
 			err := c.Shutdown()
 			if err != nil {
 				log.Errorln("Error stopping check", c.Name(), err)
@@ -365,7 +365,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 		return state, err
 	}
 
-	// caculate the current master and apply it to the status output
+	// calculate the current master and apply it to the status output
 	currentMaster, err := masterCalculation.CalculateMaster(kubeClient)
 	state.CurrentMaster = currentMaster
 	if err != nil {
