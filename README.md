@@ -38,12 +38,13 @@ Some examples of errors Kuberhealthy has detected in production:
 - Nodes where new pods get stuck in `Terminating` due to CNI communication failures
 - Nodes where new pods get stuck in `ContainerCreating` due to disk scheduler errors
 - Nodes where new pods get stuck in `Pending` due to Docker daemon errors
+- Nodes where Docker or Kubelet crashes or has restarted
 - A node that can not provision or terminate pods quickly enough due to high IO wait
 - A pod in the `kube-system` namespace that is restarting too quickly
 - A [Kubernetes component](https://kubernetes.io/docs/concepts/overview/components/) that is in a non-ready state
 - Intermittent failures to access or create custom resources
 - Kubernetes system services remaining technically "healthy" while their underlying pods are crashing too much
-  - kue-scheduler
+  - kube-scheduler
   - kube-apiserver
   - kube-dns
 
