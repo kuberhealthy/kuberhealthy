@@ -12,6 +12,8 @@
 package khstatecrd
 
 import (
+	"os"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
