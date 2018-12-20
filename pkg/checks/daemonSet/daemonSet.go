@@ -5,8 +5,8 @@
 package daemonSet
 
 import (
-	"os"
 	"context"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -24,6 +24,7 @@ import (
 
 // TODO - ingest daemonset name and namespace with flags?
 const daemonSetBaseName = "daemonset-test"
+
 var namespace = os.Getenv("POD_NAMESPACE")
 
 // Checker implements a KuberhealthyCheck for daemonset
