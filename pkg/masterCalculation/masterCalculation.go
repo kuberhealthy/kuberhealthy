@@ -27,8 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const namespace = "kuberhealthy"
-
+var namespace = os.Getenv("POD_NAMESPACE")
 var enableForceMaster bool // indicates we should always report as master for debugging
 
 // DebugAlwaysMasterOn makes all master queries return true without logic
