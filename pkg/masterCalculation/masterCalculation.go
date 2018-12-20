@@ -27,8 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const namespace = "kuberhealthy"
-
+var namespace = os.Getenv("POD_NAMESPACE")
 var enableForceMaster bool // indicates we should always report as master for debugging
 
 // DebugAlwaysMasterOn makes all master queries return true without logic
@@ -97,7 +96,7 @@ func IAmMaster(client *kubernetes.Clientset) (bool, error) {
 
 	// get name of the pod running this check from an environment variable we set
 	// in the pod spec
-	myPod, err := getEnvVar("MY_POD_NAME")
+	myPod, err := getEnvVar("POD_NAME")
 	log.Debugln("My pod hostname is: " + myPod)
 	if err != nil {
 		log.Errorln(err)
