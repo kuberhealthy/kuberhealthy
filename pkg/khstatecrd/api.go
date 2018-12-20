@@ -19,7 +19,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var namespace = "kuberhealthy"
+var namespace = os.Getenv("POD_NAMESPACE")
 
 const resource = "khstates"
 const group = "comcast.github.io"
