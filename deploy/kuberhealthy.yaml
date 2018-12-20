@@ -251,11 +251,11 @@ spec:
           timeoutSeconds: 1
         name: kuberhealthy
         env:
-          - name: MY_POD_NAME
+          - name: POD_NAME
             valueFrom:
               fieldRef:
                 fieldPath: metadata.name
-          - name: MY_POD_NAMESPACE
+          - name: POD_NAMESPACE
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
