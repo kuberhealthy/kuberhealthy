@@ -37,7 +37,7 @@ func setCheckCRDState(checkName string, client *khstatecrd.KuberhealthyStateClie
 	resourceVersion := existingState.GetResourceVersion()
 
 	// set ourselves as the authorative pod here
-	myName, err := getEnvVar("MY_POD_NAME")
+	myName, err := getEnvVar("POD_NAME")
 	if err != nil {
 		return err
 	}
