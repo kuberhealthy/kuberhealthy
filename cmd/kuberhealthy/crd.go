@@ -37,7 +37,7 @@ func setCheckCRDState(checkName string, client *khstatecrd.KuberhealthyStateClie
 	resourceVersion := existingState.GetResourceVersion()
 
 	// set ourselves as the authorative pod here
-	myName, err := getEnvVar("MY_POD_NAME")
+	myName, err := getEnvVar("POD_NAME")
 	if err != nil {
 		return err
 	}
@@ -111,8 +111,8 @@ func getCheckCRDState(c KuberhealthyCheck, client *khstatecrd.KuberhealthyStateC
 	log.Debugln("Retreiving CRD for:", name)
 	khstate, err := client.Get(metav1.GetOptions{}, CRDResource, name)
 	if err != nil {
-		return state, errors.New("Error retreiving CRD: " + name + " " + err.Error())
+		return state, errors.New("Error retrieving CRD: " + name + " " + err.Error())
 	}
-	log.Debugln("Sucessfully retrieved CRD:", name)
+	log.Debugln("Successfully retrieved CRD:", name)
 	return khstate.Spec, nil
 }

@@ -27,8 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const namespace = "kuberhealthy"
-
+var namespace = os.Getenv("POD_NAMESPACE")
 var enableForceMaster bool // indicates we should always report as master for debugging
 
 // DebugAlwaysMasterOn makes all master queries return true without logic
@@ -41,7 +40,7 @@ func EnableDebug() {
 	log.SetLevel(log.DebugLevel)
 }
 
-// getEnvVar attempts to retreive and then validates an environmental variable
+// getEnvVar attempts to retrieve and then validates an environmental variable
 func getEnvVar(v string) (string, error) {
 	var err error
 	envVar := os.Getenv(v)
@@ -82,7 +81,7 @@ func CalculateMaster(client *kubernetes.Clientset) (string, error) {
 	return master, err
 }
 
-// IAmMaster determines if the executing pod is the cluster master ot not
+// IAmMaster determines if the executing pod is the cluster master or not
 func IAmMaster(client *kubernetes.Clientset) (bool, error) {
 
 	// if we are in debug enable master always, then just return true
@@ -97,13 +96,13 @@ func IAmMaster(client *kubernetes.Clientset) (bool, error) {
 
 	// get name of the pod running this check from an environment variable we set
 	// in the pod spec
-	myPod, err := getEnvVar("MY_POD_NAME")
+	myPod, err := getEnvVar("POD_NAME")
 	log.Debugln("My pod hostname is: " + myPod)
 	if err != nil {
 		log.Errorln(err)
 	}
 
-	// if our pod name matches the calulated master pod name, we are the master
+	// if our pod name matches the calculated master pod name, we are the master
 	if strings.ToLower(myPod) == strings.ToLower(master) {
 		log.Debugln("I am master")
 		return true, err

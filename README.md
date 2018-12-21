@@ -33,17 +33,18 @@ A `ServiceMonitor` configuration is available at [deploy/servicemonitor.yaml](ht
 
 Kuberhealthy performs stynthetic tests from within Kubernetes clusters in order to catch issues that would otherwise go unnoticed.  Instead of trying to identify all the things that could potentially go wrong, Kuberhealthy replicates real workflow and watches carefully for the expected Kubernetes behavior to occur.  Kuberhealthy serves both a JSON status page and a [Prometheus](https://prometheus.io/) metrics endpoint for integration into your choice of alerting solution.  More checks will be added in future versions to better cover [service provisioning](https://github.com/Comcast/kuberhealthy/issues/11), [DNS resolution](https://github.com/Comcast/kuberhealthy/issues/16), [disk provisioning](https://github.com/Comcast/kuberhealthy/issues/9), and more.
 
-Some examples of errors Kuberhealthy would detect:
+Some examples of errors Kuberhealthy has detected in production:
 
-- Pods stuck in `Terminating` due to CNI communication failures
-- Pods stuck in `ContainerCreating` due to disk scheduler errors
-- Pods stuck in `Pending` due to Docker daemon errors
-- A node that can not provision or terminate pods for any reason
+- Nodes where new pods get stuck in `Terminating` due to CNI communication failures
+- Nodes where new pods get stuck in `ContainerCreating` due to disk scheduler errors
+- Nodes where new pods get stuck in `Pending` due to Docker daemon errors
+- Nodes where Docker or Kubelet crashes or has restarted
+- A node that can not provision or terminate pods quickly enough due to high IO wait
 - A pod in the `kube-system` namespace that is restarting too quickly
-- A cluster component that is in a non-ready state
+- A [Kubernetes component](https://kubernetes.io/docs/concepts/overview/components/) that is in a non-ready state
 - Intermittent failures to access or create custom resources
-- Kubernetes system services remaining technically "healthy" while their underlying pods are crashing
-  - kue-scheduler
+- Kubernetes system services remaining technically "healthy" while their underlying pods are crashing too much
+  - kube-scheduler
   - kube-apiserver
   - kube-dns
 
