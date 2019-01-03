@@ -218,8 +218,8 @@ func (prc *Checker) IdentifyRestartProblems() []string {
 	for i, p := range prc.RestartObservations {
 		var min int32 = 2147483647 // set this to the max int32 value so when we assign it later, non 0 restart counts can be assigned
 		var max int32
-		// each resrtart observation check is evaluated to find the highest
-		// and lowest count of restarts amongh all samplings of this pod
+		// each restart observation check is evaluated to find the highest
+		// and lowest count of restarts among all samplings of this pod
 		for _, c := range p {
 			if c.Count < min {
 				min = c.Count

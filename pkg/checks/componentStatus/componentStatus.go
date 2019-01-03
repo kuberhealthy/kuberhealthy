@@ -53,7 +53,7 @@ func (csc *Checker) Timeout() time.Duration {
 	return time.Minute * 1
 }
 
-// Shutdown is implemented to satsify the KuberhealthyCheck interface, but
+// Shutdown is implemented to satisfy the KuberhealthyCheck interface, but
 // no action is necessary.
 func (csc *Checker) Shutdown() error {
 	return nil
