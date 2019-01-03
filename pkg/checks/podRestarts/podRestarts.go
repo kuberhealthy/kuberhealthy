@@ -193,8 +193,6 @@ func (prc *Checker) reapPodRestartChecks(currentPods *v1.PodList) {
 				if observation != mostRecentObservation {
 					// delete all the old entries
 					prc.RestartObservations[podName] = deleteFromSlice(i, prc.RestartObservations[podName])
-					// re-add the most recent one
-					prc.RestartObservations[podName] = append(prc.RestartObservations[PodName], observation)
 				}
 			}
 		}
