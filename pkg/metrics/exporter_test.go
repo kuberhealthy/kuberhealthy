@@ -142,7 +142,7 @@ func TestWriteMetricError(t *testing.T) {
 	}
 	err := WriteMetricError(recorder, state)
 	if err != nil {
-		t.Fatal("Error ocurred writing metric error: ", err)
+		t.Fatal("Error occurred writing metric error: ", err)
 	}
 	if recorder.Body.String() != ErrorStateMetrics(state) {
 		t.Fatal("Error Metric does not match actual error metric function")
@@ -151,7 +151,7 @@ func TestWriteMetricError(t *testing.T) {
 	state = health.State{}
 	err = WriteMetricError(recorder, state)
 	if err != nil {
-		t.Fatal("Error ocurred writing metric error: ", err)
+		t.Fatal("Error occurred writing metric error: ", err)
 	}
 	if recorder.Body.String() != ErrorStateMetrics(state) {
 		t.Fatal("Error Metric does not match actual error metric function")

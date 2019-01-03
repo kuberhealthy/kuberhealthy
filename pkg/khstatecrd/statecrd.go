@@ -26,7 +26,7 @@ type KuberhealthyState struct {
 	Spec              health.CheckDetails `json:"spec"`
 }
 
-// String satisifes the stringer interface for cleaner output when printing
+// String satisfies the stringer interface for cleaner output when printing
 func (h KuberhealthyState) String() string {
 	b, err := json.MarshalIndent(&h, "", "\t")
 	if err != nil {
