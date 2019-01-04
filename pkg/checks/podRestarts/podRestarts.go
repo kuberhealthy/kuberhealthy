@@ -159,6 +159,8 @@ func (prc *Checker) doChecks() error {
 
 // ReapPodRestartChecks reaps old data from PodRestartCheck samplings
 func (prc *Checker) reapPodRestartChecks(currentPods *v1.PodList) {
+	var mostRecentObservation RestartCountObservation
+	var secondMostRecentObservation RestartCountObservation
 	for podName, restartObservations := range prc.RestartObservations {
 		// if the pod no longer exists, then delete its observations
 		if !podInPodList(podName, currentPods) {
@@ -170,6 +172,28 @@ func (prc *Checker) reapPodRestartChecks(currentPods *v1.PodList) {
 			// TODO: Take time range as an input rather than hard coding to an hour
 			if observation.Time.Before(time.Now().Add(-time.Hour)) {
 				prc.RestartObservations[podName] = deleteFromSlice(i, prc.RestartObservations[podName])
+			}
+			// Find the most recent PRC observation
+			if observation.Time.After(mostRecentObservation.Time) {
+				mostRecentObservation = observation
+			}
+			// Find the second most recent PRC observation
+			if observation.Time != time.isZero() && observation.Time != mostRecentObservation.Time && observation.Time.After(secondMostRecentObservation.Time) {
+				secondMostRecentObservation = observation
+			}
+		}
+	}
+	// If the most recent observation restart count is less than the previous observation restart count, delete all the
+	// entries that arent the most recent one, assuming that the pod was restarted but still has the same name.  This is a new
+	// pod with a reset restart counter but has the same exact name as the previous pod that existed but was deleted
+ 	// we see this in stateful sets
+	if mostRecentObservation.Count < secondMostRecentObservation.Count {
+		for podName, restartObservations := range prc.RestartObservations {
+			for i, observation := range restartObservations{
+				if observation != mostRecentObservation {
+					// delete all the old entries
+					prc.RestartObservations[podName] = deleteFromSlice(i, prc.RestartObservations[podName])
+				}
 			}
 		}
 	}
