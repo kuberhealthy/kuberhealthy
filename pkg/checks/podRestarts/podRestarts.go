@@ -178,7 +178,7 @@ func (prc *Checker) reapPodRestartChecks(currentPods *v1.PodList) {
 				mostRecentObservation = observation
 			}
 			// Find the second most recent PRC observation
-			if observation.Time != time.isZero() && observation.Time != mostRecentObservation.Time && observation.Time.After(secondMostRecentObservation.Time) {
+			if !observation.Time.IsZero() && observation.Time != mostRecentObservation.Time && observation.Time.After(secondMostRecentObservation.Time) {
 				secondMostRecentObservation = observation
 			}
 		}
