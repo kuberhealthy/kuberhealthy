@@ -17,24 +17,20 @@ import (
 type Checker struct {
 	FailureTimeStamp map[string]time.Time
 	Errors           []string
-	MaxTimeInFailure float64 // TODO - make configurable
 	client           *kubernetes.Clientset
-	Endpoints        []string // TODO - Make configurable
+	Endpoints        []string
 }
 
 // New returns a new Checker
 func New(endpoints []string) *Checker {
 	defaultEndpoints := []string{
 		"kubernetes.default",
-		"cloud.google.com",
-		"aws.amazon.com",
 	}
 	if len(endpoints) == 0 {
 		endpoints = defaultEndpoints
 	}
 	return &Checker{
 		FailureTimeStamp: make(map[string]time.Time),
-		MaxTimeInFailure: 300,
 		Errors:           []string{},
 		Endpoints:        endpoints,
 	}

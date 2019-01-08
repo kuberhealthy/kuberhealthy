@@ -36,7 +36,7 @@ import (
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var listenAddress = ":8080"
 var podCheckNamespaces = "kube-system"
-var dnsEndpoints = ""
+var dnsEndpoints = []string{}
 
 // shutdown signal handling
 var sigChan chan os.Signal
@@ -73,7 +73,7 @@ func init() {
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
-	flaggy.String(&dnsEndpoints, "", "dnsEndpoints", "The comma separated list of dns endpoints to check, if enabled. Defaults to kubernetes.default,cloud.google.com,aws.amazon.com")
+	flaggy.StringSlice(&dnsEndpoints, "", "dnsEndpoints", "The comma separated list of dns endpoints to check, if enabled. Defaults to kubernetes.default")
 	flaggy.Parse()
 
 	// log to stdout and set the level to info by default
@@ -119,9 +119,6 @@ func main() {
 	// Split the podCheckNamespaces into a []string
 	namespaces := strings.Split(podCheckNamespaces, ",")
 
-	// Split the dnsEndpoints into a []string
-	dns := strings.Split(dnsEndpoints, ",")
-
 	// Add enabled checks into Kuberhealthy
 
 	// componentstatus checking
@@ -159,7 +156,7 @@ func main() {
 	}
 
 	if enableDnsStatusChecks {
-		kuberhealthy.AddCheck(dnsStatus.New(dns))
+		kuberhealthy.AddCheck(dnsStatus.New(dnsEndpoints))
 	}
 
 	// Tell Kuberhealthy to start all checks and master change monitoring
