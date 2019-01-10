@@ -36,7 +36,7 @@ import (
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var listenAddress = ":8080"
 var podCheckNamespaces = "kube-system"
-var dnsEndpoints = []string{}
+var dnsEndpoints []string
 
 // shutdown signal handling
 var sigChan chan os.Signal
