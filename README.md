@@ -156,8 +156,8 @@ Checks for failures with DNS, including resolving within the cluster and outside
 A command-line flag exists `--dnsEndpoints` which can optionally include a comma separated list of DNS endpoints to test. 
 
 - Timeout: 1 minutes
-- Check Interval: 2 minutes
-- Error state toleration: 5 minutes
+- Check Interval: 30 seconds
+- Error state toleration: 1 minute
 - Check name: `dnsStatus`
 
 

@@ -13,11 +13,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+const maxTimeInFailure = 60
+
 // Checker validates that DNS is functioning correctly
 type Checker struct {
 	FailureTimeStamp map[string]time.Time
 	Errors           []string
 	client           *kubernetes.Clientset
+	MaxTimeInFailure float64
 	Endpoints        []string
 }
 
@@ -33,6 +36,7 @@ func New(endpoints []string) *Checker {
 		FailureTimeStamp: make(map[string]time.Time),
 		Errors:           []string{},
 		Endpoints:        endpoints,
+		MaxTimeInFailure: maxTimeInFailure,
 	}
 }
 
@@ -48,7 +52,7 @@ func (dc *Checker) CheckNamespace() string {
 
 // Interval returns the interval at which this check runs
 func (dc *Checker) Interval() time.Duration {
-	return time.Minute * 2
+	return time.Second * 30
 }
 
 // Timeout returns the maximum run time for this check before it times out
@@ -101,12 +105,27 @@ func (dc *Checker) Run(client *kubernetes.Clientset) error {
 
 // doChecks does validations on DNS calls to various endpoints
 func (dc *Checker) doChecks() error {
-	dc.clearErrors()
+	dnsErrors := []string{}
 	for _, address := range dc.Endpoints {
 		_, err := net.LookupHost(address)
-		if err != nil {
-			dc.Errors = append(dc.Errors, err.Error())
+		if err == nil {
+			delete(dc.FailureTimeStamp, address)
+			continue
 		}
+		timestamp, exists := dc.FailureTimeStamp[address]
+		if !exists {
+			dc.FailureTimeStamp[address] = time.Now()
+			continue
+		}
+		if time.Now().Sub(timestamp).Seconds() > dc.MaxTimeInFailure {
+			dnsErrors = append(dnsErrors, err.Error())
+		}
+
+	}
+	if len(dnsErrors) > 0 {
+		dc.Errors = dnsErrors
+	} else {
+		dc.clearErrors()
 	}
 	return nil
 }
