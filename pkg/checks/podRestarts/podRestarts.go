@@ -197,7 +197,6 @@ func (prc *Checker) reapPodRestartChecks(currentPods *v1.PodList) {
 		// we see this in stateful sets
 		if mostRecentObservation.Count < secondMostRecentObservation.Count {
 			// delete all the observations
-			fmt.Println(podName, "was reset to the most recent observation because it has been recreated.")
 			delete(prc.RestartObservations, podName)
 			//Add back in the most recent observation
 			prc.RestartObservations[podName] = append(prc.RestartObservations[podName], mostRecentObservation)
