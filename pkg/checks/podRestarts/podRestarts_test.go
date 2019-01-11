@@ -1,14 +1,15 @@
 package podRestarts
 
 import (
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func pod(namespace, image string) *v1.Pod {
@@ -22,9 +23,9 @@ func TestDoChecks(t *testing.T) {
 	c.client = client
 
 	ticker := 1
-	d := time.Second*1
-	for ticker >0 {
-	 	err = c.doChecks()
+	d := time.Second * 1
+	for ticker > 0 {
+		err = c.doChecks()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -37,7 +38,7 @@ func TestDoChecks(t *testing.T) {
 	}
 }
 
-func TestReapPodRestartChecks(t *testing.T){
+func TestReapPodRestartChecks(t *testing.T) {
 
 	//Create a new check object for input
 	i := New("namespace")
@@ -48,52 +49,50 @@ func TestReapPodRestartChecks(t *testing.T){
 	//Generate now so we can have the same time base for every object
 	rightNow := time.Now()
 
-
 	//Input
 	//Simulate an old observation on a normal pod with a reset count - unlikely to ever actually occur
-	i.RestartObservations["normalPod"] = append(i.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-80)*time.Minute), 0})
+	i.RestartObservations["normalPod"] = append(i.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-80) * time.Minute), 0})
 	//Simulate an old observation on a normal pod
-	i.RestartObservations["normalPod"] = append(i.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-70)*time.Minute), 1})
+	i.RestartObservations["normalPod"] = append(i.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-70) * time.Minute), 1})
 	//Simulate a normal observation on a normal pod
-	i.RestartObservations["normalPod"] = append(i.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-3)*time.Minute), 2})
-	i.RestartObservations["normalPod"] = append(i.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-2)*time.Minute), 3})
-	i.RestartObservations["normalPod"] = append(i.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-1)*time.Minute), 4})
+	i.RestartObservations["normalPod"] = append(i.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-3) * time.Minute), 2})
+	i.RestartObservations["normalPod"] = append(i.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-2) * time.Minute), 3})
+	i.RestartObservations["normalPod"] = append(i.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-1) * time.Minute), 4})
 	i.RestartObservations["normalPod"] = append(i.RestartObservations["normalPod"], RestartCountObservation{rightNow, 5})
 
 	//Simulate a statefulset pod that has been deleted and recreated with the same name
-	i.RestartObservations["ssPod"] = append(i.RestartObservations["ssPod"], RestartCountObservation{rightNow.Add(time.Duration(-3)*time.Minute), 25})
-	i.RestartObservations["ssPod"] = append(i.RestartObservations["ssPod"], RestartCountObservation{rightNow.Add(time.Duration(-2)*time.Minute), 26})
-	i.RestartObservations["ssPod"] = append(i.RestartObservations["ssPod"], RestartCountObservation{rightNow.Add(time.Duration(-1)*time.Minute), 27})
+	i.RestartObservations["ssPod"] = append(i.RestartObservations["ssPod"], RestartCountObservation{rightNow.Add(time.Duration(-3) * time.Minute), 25})
+	i.RestartObservations["ssPod"] = append(i.RestartObservations["ssPod"], RestartCountObservation{rightNow.Add(time.Duration(-2) * time.Minute), 26})
+	i.RestartObservations["ssPod"] = append(i.RestartObservations["ssPod"], RestartCountObservation{rightNow.Add(time.Duration(-1) * time.Minute), 27})
 	i.RestartObservations["ssPod"] = append(i.RestartObservations["ssPod"], RestartCountObservation{rightNow, 0})
 
 	//Simulate a deleted pod
 	i.RestartObservations["deletedPod"] = append(i.RestartObservations["deletedPod"], RestartCountObservation{rightNow, 0})
 
 	//Simulate an old observation on another normal pod
-	i.RestartObservations["anotherPod"] = append(i.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-70)*time.Minute), 15})
-	i.RestartObservations["anotherPod"] = append(i.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-62)*time.Minute), 16})
-	i.RestartObservations["anotherPod"] = append(i.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-61)*time.Minute), 16})
+	i.RestartObservations["anotherPod"] = append(i.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-70) * time.Minute), 15})
+	i.RestartObservations["anotherPod"] = append(i.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-62) * time.Minute), 16})
+	i.RestartObservations["anotherPod"] = append(i.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-61) * time.Minute), 16})
 	//Simulate a normal observation on a another normal pod
-	i.RestartObservations["anotherPod"] = append(i.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-3)*time.Minute), 17})
-	i.RestartObservations["anotherPod"] = append(i.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-2)*time.Minute), 18})
-	i.RestartObservations["anotherPod"] = append(i.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-1)*time.Minute), 19})
+	i.RestartObservations["anotherPod"] = append(i.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-3) * time.Minute), 17})
+	i.RestartObservations["anotherPod"] = append(i.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-2) * time.Minute), 18})
+	i.RestartObservations["anotherPod"] = append(i.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-1) * time.Minute), 19})
 	i.RestartObservations["anotherPod"] = append(i.RestartObservations["anotherPod"], RestartCountObservation{rightNow, 20})
-
 
 	//Output
 	//normalPod
-	o.RestartObservations["normalPod"] = append(o.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-3)*time.Minute), 2})
-	o.RestartObservations["normalPod"] = append(o.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-2)*time.Minute), 3})
-	o.RestartObservations["normalPod"] = append(o.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-1)*time.Minute), 4})
+	o.RestartObservations["normalPod"] = append(o.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-3) * time.Minute), 2})
+	o.RestartObservations["normalPod"] = append(o.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-2) * time.Minute), 3})
+	o.RestartObservations["normalPod"] = append(o.RestartObservations["normalPod"], RestartCountObservation{rightNow.Add(time.Duration(-1) * time.Minute), 4})
 	o.RestartObservations["normalPod"] = append(o.RestartObservations["normalPod"], RestartCountObservation{rightNow, 5})
-	
+
 	//ssPod
 	o.RestartObservations["ssPod"] = append(o.RestartObservations["ssPod"], RestartCountObservation{rightNow, 0})
-	
+
 	//anotherPod
-	o.RestartObservations["anotherPod"] = append(o.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-3)*time.Minute), 17})
-	o.RestartObservations["anotherPod"] = append(o.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-2)*time.Minute), 18})
-	o.RestartObservations["anotherPod"] = append(o.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-1)*time.Minute), 19})
+	o.RestartObservations["anotherPod"] = append(o.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-3) * time.Minute), 17})
+	o.RestartObservations["anotherPod"] = append(o.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-2) * time.Minute), 18})
+	o.RestartObservations["anotherPod"] = append(o.RestartObservations["anotherPod"], RestartCountObservation{rightNow.Add(time.Duration(-1) * time.Minute), 19})
 	o.RestartObservations["anotherPod"] = append(o.RestartObservations["anotherPod"], RestartCountObservation{rightNow, 20})
 
 	//Simulate a list of existing pods returned from a pod list
