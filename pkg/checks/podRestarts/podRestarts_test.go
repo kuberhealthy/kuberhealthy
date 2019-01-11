@@ -133,12 +133,9 @@ func TestReapPodRestartChecks(t *testing.T) {
 			}
 		}
 	}
-<<<<<<< HEAD
 	//Compare the entire maps so we catch deleted pod reaping failures and any other possible issues
 	if !reflect.DeepEqual(o.RestartObservations, i.RestartObservations) {
 		t.Log("Test failed, reaper failed to generate expected output.")
 		t.Fail()
 	}
-=======
 }
->>>>>>> 3ff48eafe7e0f6bc97ef24c5386a9a77cd93405d
