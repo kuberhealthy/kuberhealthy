@@ -155,8 +155,6 @@ func (prc *Checker) doChecks() error {
 // ReapPodRestartChecks reaps old data from PodRestartCheck samplings
 func (prc *Checker) reapPodRestartChecks(currentPods *v1.PodList) {
 
-
-
 	for podName, restartObservations := range prc.RestartObservations {
 		// if the pod no longer exists, then delete its observations
 		if !podInPodList(podName, currentPods) {
@@ -201,8 +199,6 @@ func (prc *Checker) reapPodRestartChecks(currentPods *v1.PodList) {
 		}
 	}
 }
-
-
 
 // podInPodList determines if the specified pod is in a listing of pods
 func podInPodList(podName string, l *v1.PodList) bool {
