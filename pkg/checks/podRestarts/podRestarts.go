@@ -155,8 +155,6 @@ func (prc *Checker) doChecks() error {
 // ReapPodRestartChecks reaps old data from PodRestartCheck samplings
 func (prc *Checker) reapPodRestartChecks(currentPods *v1.PodList) {
 
-
-
 	for podName, restartObservations := range prc.RestartObservations {
 		// if the pod no longer exists, then delete its observations
 		if !podInPodList(podName, currentPods) {
@@ -189,8 +187,6 @@ func (prc *Checker) reapPodRestartChecks(currentPods *v1.PodList) {
 				secondMostRecentObservation = observation
 			}
 		}
-		fmt.Println(podName, "most recent", mostRecentObservation)
-		fmt.Println(podName, "second most recent", secondMostRecentObservation)
 		// If the most recent observation restart count is less than the previous observation restart count, delete all the
 		// entries that arent the most recent one, assuming that the pod was restarted but still has the same name.  This is a new
 		// pod with a reset restart counter but has the same exact name as the previous pod that existed but was deleted
@@ -203,8 +199,6 @@ func (prc *Checker) reapPodRestartChecks(currentPods *v1.PodList) {
 		}
 	}
 }
-
-
 
 // podInPodList determines if the specified pod is in a listing of pods
 func podInPodList(podName string, l *v1.PodList) bool {
