@@ -189,8 +189,6 @@ func (prc *Checker) reapPodRestartChecks(currentPods *v1.PodList) {
 				secondMostRecentObservation = observation
 			}
 		}
-		fmt.Println(podName, "most recent", mostRecentObservation)
-		fmt.Println(podName, "second most recent", secondMostRecentObservation)
 		// If the most recent observation restart count is less than the previous observation restart count, delete all the
 		// entries that arent the most recent one, assuming that the pod was restarted but still has the same name.  This is a new
 		// pod with a reset restart counter but has the same exact name as the previous pod that existed but was deleted
