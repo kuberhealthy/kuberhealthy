@@ -122,14 +122,20 @@ func TestReapPodRestartChecks(t *testing.T) {
 	// Compare the pod lists of the input and output data and verify they are the same aka expected
 	t.Log("After")
 	for outPodName, _ := range o.RestartObservations {
-		t.Log(outPodName)
 		for inPodName, _ := range i.RestartObservations {
 			if outPodName == inPodName {
+				// Compare the values of the pod observation slices and look for differences so we can specifically call out
+				// which pods were improperly reaped
 				if !reflect.DeepEqual(o.RestartObservations[inPodName], i.RestartObservations[outPodName]) {
 					t.Log("Test failed, reaper failed to generate expected output for pod:", inPodName)
 					t.Fail()
 				}
 			}
 		}
+	}
+	//Compare the entire maps so we catch deleted pod reaping failures and any other possible issues
+	if !reflect.DeepEqual(o.RestartObservations, i.RestartObservations) {
+		t.Log("Test failed, reaper failed to generate expected output.")
+		t.Fail()
 	}
 }
