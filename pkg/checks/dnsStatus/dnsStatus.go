@@ -52,7 +52,7 @@ func (dc *Checker) CheckNamespace() string {
 
 // Interval returns the interval at which this check runs
 func (dc *Checker) Interval() time.Duration {
-	return time.Second * 30
+	return time.Second * 15
 }
 
 // Timeout returns the maximum run time for this check before it times out
