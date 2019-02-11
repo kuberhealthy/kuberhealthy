@@ -3,7 +3,7 @@
 
 // TODO - implement kuberhealthy check Interface
 
-package podRestarts
+package podRestarts // import "github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
 
 import (
 	"errors"
@@ -27,6 +27,12 @@ type Checker struct {
 	Namespace           string
 	MaxFailuresAllowed  int
 	client              *kubernetes.Clientset
+}
+
+// RestartCountObservation keeps track of the number of restarts for a given pod
+type RestartCountObservation struct {
+	Time  time.Time
+	Count int32
 }
 
 // New creates a new pod restart checker for a specific namespace, ready to use.
@@ -104,17 +110,6 @@ func (prc *Checker) clearErrors() {
 	prc.Errors = []string{}
 }
 
-// RestartCountObservation keeps track of the number of restarts for a given pod
-type RestartCountObservation struct {
-	Time  time.Time
-	Count int32
-}
-
-// deleteFromSlice removes a key from a given slice
-func deleteFromSlice(key int, slice []RestartCountObservation) []RestartCountObservation {
-	return append(slice[:key], slice[key+1:]...)
-}
-
 // UpdatePodRestartCheckCount adds new data to PodRestartCheck
 func (p *RestartCountObservation) UpdatePodRestartCheckCount(r int32) {
 	p.Time = time.Now()
@@ -159,18 +154,48 @@ func (prc *Checker) doChecks() error {
 
 // ReapPodRestartChecks reaps old data from PodRestartCheck samplings
 func (prc *Checker) reapPodRestartChecks(currentPods *v1.PodList) {
+
 	for podName, restartObservations := range prc.RestartObservations {
 		// if the pod no longer exists, then delete its observations
 		if !podInPodList(podName, currentPods) {
 			delete(prc.RestartObservations, podName)
 			continue
 		}
-		// delete observations that are too old to matter
-		for i, observation := range restartObservations {
+		var s []RestartCountObservation
+		for _, observation := range restartObservations {
+			// delete observations that are too old to matter
 			// TODO: Take time range as an input rather than hard coding to an hour
-			if observation.Time.Before(time.Now().Add(-time.Hour)) {
-				prc.RestartObservations[podName] = deleteFromSlice(i, prc.RestartObservations[podName])
+			if observation.Time.After(time.Now().Add(-time.Hour)) {
+				s = append(s, observation)
 			}
+		}
+		prc.RestartObservations[podName] = s
+	}
+	for podName, restartObservations := range prc.RestartObservations {
+		var mostRecentObservation RestartCountObservation
+		var secondMostRecentObservation RestartCountObservation
+		// Find the most recent PRC observation
+		for _, observation := range restartObservations {
+			if observation.Time.After(mostRecentObservation.Time) {
+				mostRecentObservation = observation
+			}
+
+		}
+		// Find the second most recent PRC observation
+		for _, observation := range restartObservations {
+			if observation.Time.Before(mostRecentObservation.Time) && observation.Time.After(secondMostRecentObservation.Time) {
+				secondMostRecentObservation = observation
+			}
+		}
+		// If the most recent observation restart count is less than the previous observation restart count, delete all the
+		// entries that arent the most recent one, assuming that the pod was restarted but still has the same name.  This is a new
+		// pod with a reset restart counter but has the same exact name as the previous pod that existed but was deleted
+		// we see this in stateful sets
+		if mostRecentObservation.Count < secondMostRecentObservation.Count {
+			// delete all the observations
+			delete(prc.RestartObservations, podName)
+			//Add back in the most recent observation
+			prc.RestartObservations[podName] = append(prc.RestartObservations[podName], mostRecentObservation)
 		}
 	}
 }
