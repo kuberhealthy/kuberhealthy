@@ -12,7 +12,7 @@
 
 // Package masterCalculation determines the master pod in multi pod
 // kuberhealthy deployments
-package masterCalculation
+package masterCalculation // import "github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 
 import (
 	"errors"

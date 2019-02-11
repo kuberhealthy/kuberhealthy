@@ -1,5 +1,5 @@
 // Package componentStatus implements a componentstatus checker.
-package componentStatus
+package componentStatus // import "github.com/Comcast/kuberhealthy/pkg/checks/componentStatus"
 
 import (
 	"errors"

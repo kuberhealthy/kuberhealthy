@@ -34,14 +34,17 @@ type Kuberhealthy struct {
 	Checks                []KuberhealthyCheck
 	ListenAddr            string               // the listen address, such as ":80"
 	checkShutdownChannels map[string]chan bool // a slice of channels used to signal shutdowns to checks
-	client                *kubernetes.Clientset
+}
+
+// NewKubeClient creates an returns a new kubernetes clientset
+func (k *Kuberhealthy) NewKubeClient() (*kubernetes.Clientset, error) {
+	return kubeClient.Create(kubeConfigFile)
 }
 
 // NewKuberhealthy creates a new kuberhealthy checker instance
-func NewKuberhealthy(client *kubernetes.Clientset) *Kuberhealthy {
+func NewKuberhealthy() *Kuberhealthy {
 	kh := &Kuberhealthy{}
 	kh.checkShutdownChannels = make(map[string]chan bool)
-	kh.client = client
 	return kh
 }
 
@@ -225,10 +228,17 @@ func (k *Kuberhealthy) runCheck(stopChan chan bool, c KuberhealthyCheck) {
 		}
 
 		log.Infoln("Running check:", c.Name())
-		err := c.Run(k.client)
-
-		// set any check run errors in the CRD
+		client, err := k.NewKubeClient()
 		if err != nil {
+			log.Errorln("Error creating Kubernetes client for check"+c.Name()+":", err)
+			<-ticker.C
+			continue
+		}
+
+		// Run the check
+		err = c.Run(client)
+		if err != nil {
+			// set any check run errors in the CRD
 			k.setCheckExecutionError(c.Name(), err)
 			log.Errorln("Error running check:", c.Name(), err)
 			<-ticker.C

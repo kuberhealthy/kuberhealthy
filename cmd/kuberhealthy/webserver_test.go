@@ -17,25 +17,16 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/Comcast/kuberhealthy/pkg/health"
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 	"github.com/Pallinder/go-randomdata"
 )
 
-func makeTestKuberhealthhy(t *testing.T) *Kuberhealthy {
-	// create a client, then start checking
-	kubeConfigFile := filepath.Join(os.Getenv("HOME"), ".kube", "config")
-	client, err := kubeClient.Create(kubeConfigFile)
-	if err != nil {
-		t.Fatal("Failed to create client:", err)
-	}
+func makeTestKuberhealthy(t *testing.T) *Kuberhealthy {
 
-	kh := NewKuberhealthy(client)
+	kh := NewKuberhealthy()
 	return kh
 }
 
@@ -43,7 +34,7 @@ func makeTestKuberhealthhy(t *testing.T) *Kuberhealthy {
 func TestWebServer(t *testing.T) {
 
 	// create a new kuberhealthy
-	kh := makeTestKuberhealthhy(t)
+	kh := makeTestKuberhealthy(t)
 
 	// add a fake check to it
 	fc := NewFakeCheck()
@@ -84,7 +75,7 @@ func TestWebServer(t *testing.T) {
 func TestWebServerNotOK(t *testing.T) {
 
 	// create a new kuberhealthy
-	kh := makeTestKuberhealthhy(t)
+	kh := makeTestKuberhealthy(t)
 
 	// add a fake check to it with a not ok return
 	fc := NewFakeCheck()
