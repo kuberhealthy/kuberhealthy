@@ -21,6 +21,8 @@ After installation, Kuberhealthy will only be available from within the cluster 
 
 RBAC bindings and roles are included in all configurations.
 
+Kuberhealthy is currently tested on Kubernetes `1.9.x`, `1.10.x`, and `1.11.x`.
+
 ### Prometheus Alerts
 
 A `ServiceMonitor` configuration is available at [deploy/servicemonitor.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/servicemonitor.yaml).
