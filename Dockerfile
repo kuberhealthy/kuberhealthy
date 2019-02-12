@@ -4,9 +4,10 @@ LABEL DESCRIPTION="Kuberhealthy - Check and expose kubernetes cluster health in 
 ADD ./ /go/src/github.com/Comcast/kuberhealthy/
 WORKDIR /go/src/github.com/Comcast/kuberhealthy/cmd/kuberhealthy
 RUN go get -v
+RUN go test -v
 RUN go build -v -o kuberhealthy
 RUN mkdir /kuberhealthy
-RUN cp kuberhealthy /kuberhealthy/kuberhealthy
+RUN mv kuberhealthy /kuberhealthy/kuberhealthy
 
 FROM golang
 RUN apt-get update
