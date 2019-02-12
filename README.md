@@ -12,7 +12,10 @@ To install with the [Helm](https://helm.sh) chart *without* Prometheus:
 `helm install stable/kuberhealthy`
 
 To install the [Helm](https://helm.sh) chart *with* Prometheus:
-`helm install stable/kuberhealthy --set prometheus.enabled=true `
+`helm install stable/kuberhealthy --set prometheus.enabled=true`
+
+To install the [Helm](https://helm.sh) chart *with* Prometheus Operator:
+`helm install stable/kuberhealthy --set prometheus.enabled=true --set prometheus.serviceMonitor=true 
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you must edit the service `kuberhealthy` and set `Type: LoadBalancer`.
 
