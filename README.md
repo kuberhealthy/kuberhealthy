@@ -10,22 +10,57 @@ Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supple
 
 A [Helm](https://helm.sh) template is available for installation as well as some basic `.yaml` configurations.  By default, Prometheus endpoints are annotated and made available.
 
-To install with the Helm template:
+To install with the Helm chart *without* Prometheus:
 `helm install stable/kuberhealthy`
+
+To install the Helm chart *with* Prometheus:
+`helm install stable/kuberhealthy --set prometheus.enabled=true `
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you must edit the service `kuberhealthy` and set `Type: LoadBalancer`.
 
 RBAC bindings and roles are included in all configurations.
 
-### Helm Install _(Recommended)_
+If you want prometheus, you will need to 
 
-Installation via `helm template | kubectl apply -f -` is recommended.  You can use the following command to download the Kuberhealthy chart and install it to your default `kubectl` context.
+Kuberhealty will serve a status page that looks like this:
 
-`wget https://github.com/Comcast/kuberhealthy/raw/master/deploy/helm/kuberhealthy-latest.tgz && helm template kuberhealthy-latest.tgz | kubectl apply -f -`
-
-### Basic Spec Deployment
-
-Download the [deploy/kuberhealthy.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/kuberhealthy.yaml) spec from this repository and apply it with `kubectl apply -f`.
+```json
+{
+  "OK": true,
+  "Errors": [],
+  "CheckDetails": {
+    "ComponentStatusChecker": {
+      "OK": true,
+      "Errors": [],
+      "Namespace": "",
+      "LastRun": "2019-02-12T02:46:09.058658324Z",
+      "AuthorativePod": "kuberhealthy-6d9cbd9d48-djq6l"
+    },
+    "DaemonSetChecker": {
+      "OK": true,
+      "Errors": [],
+      "Namespace": "kuberhealthy",
+      "LastRun": "2019-02-12T02:36:38.420536362Z",
+      "AuthorativePod": "kuberhealthy-6d9cbd9d48-djq6l"
+    },
+    "PodRestartChecker namespace kube-system": {
+      "OK": true,
+      "Errors": [],
+      "Namespace": "kube-system",
+      "LastRun": "2019-02-12T02:46:08.891399638Z",
+      "AuthorativePod": "kuberhealthy-6d9cbd9d48-djq6l"
+    },
+    "PodStatusChecker namespace kube-system": {
+      "OK": true,
+      "Errors": [],
+      "Namespace": "kube-system",
+      "LastRun": "2019-02-12T02:46:08.888765413Z",
+      "AuthorativePod": "kuberhealthy-6d9cbd9d48-djq6l"
+    }
+  },
+  "CurrentMaster": "kuberhealthy-6d9cbd9d48-djq6l"
+}
+```
 
 ### Prometheus Alerts
 
