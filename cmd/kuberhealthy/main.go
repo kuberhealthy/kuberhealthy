@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
+
 	"github.com/Comcast/kuberhealthy/pkg/checks/componentStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
@@ -33,6 +35,7 @@ import (
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var listenAddress = ":8080"
 var podCheckNamespaces = "kube-system"
+var dnsEndpoints []string
 
 // shutdown signal handling
 var sigChan chan os.Signal
@@ -44,6 +47,7 @@ var enableComponentStatusChecks = true // do componentstatus checking
 var enableDaemonSetChecks = true       // do daemon set restart checking
 var enablePodRestartChecks = true      // do pod restart checking
 var enablePodStatusChecks = true       // do pod status checking
+var enableDnsStatusChecks = true       // do pod status checking
 var enableForceMaster bool             // force master mode - for debugging
 var enableDebug bool                   // enable deubug logging
 
@@ -64,9 +68,11 @@ func init() {
 	flaggy.Bool(&enableDaemonSetChecks, "", "daemonsetChecks", "Set to false to disable cluster daemonset deployment and termination checking.")
 	flaggy.Bool(&enablePodRestartChecks, "", "podRestartChecks", "Set to false to disable pod restart checking.")
 	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
+	flaggy.Bool(&enableDnsStatusChecks, "", "dnsStatusChecks", "Set to false to disable DNS checks.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
+	flaggy.StringSlice(&dnsEndpoints, "", "dnsEndpoints", "The comma separated list of dns endpoints to check, if enabled. Defaults to kubernetes.default")
 	flaggy.Parse()
 
 	// log to stdout and set the level to info by default
@@ -138,6 +144,10 @@ func main() {
 				kuberhealthy.AddCheck(podStatus.New(n))
 			}
 		}
+	}
+
+	if enableDnsStatusChecks {
+		kuberhealthy.AddCheck(dnsStatus.New(dnsEndpoints))
 	}
 
 	// Tell Kuberhealthy to start all checks and master change monitoring

@@ -152,6 +152,18 @@ A command line flag exists `--podCheckNamespaces` which can optionally contain a
 - Error state toleration: 5 minutes
 - Check name: `podStatus`
 
+#### DNS
+
+Checks for failures with DNS, including resolving within the cluster and outside of the cluster. Default endpoints to resolve: kubernetes.default, aws.amazon.com, cloud.dns.com
+
+A command-line flag exists `--dnsEndpoints` which can optionally include a comma separated list of DNS endpoints to test. 
+
+- Timeout: 1 minutes
+- Check Interval: 30 seconds
+- Error state toleration: 1 minute
+- Check name: `dnsStatus`
+
+
 ### Security Considerations
 
 By default, Kuberhealthy exposes an insecure (non-HTTPS) status endpoint without authentication. You should never expose this endpoint to the public internet. Exposing Kuberhealthy's status page to the public internet could result in private cluster information being exposed to the public internet when errors occur and are displayed on the page.
