@@ -10,22 +10,15 @@ Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supple
 
 A [Helm](https://helm.sh) template is available for installation as well as some basic `.yaml` configurations.  By default, Prometheus endpoints are annotated and made available.
 
-To install with the Helm template:
+To install with the Helm chart *without* Prometheus:
 `helm install stable/kuberhealthy`
+
+To install the Helm chart *with* Prometheus:
+`helm install stable/kuberhealthy --set prometheus.enabled=true `
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you must edit the service `kuberhealthy` and set `Type: LoadBalancer`.
 
 RBAC bindings and roles are included in all configurations.
-
-### Helm Install _(Recommended)_
-
-Installation via `helm template | kubectl apply -f -` is recommended.  You can use the following command to download the Kuberhealthy chart and install it to your default `kubectl` context.
-
-`wget https://github.com/Comcast/kuberhealthy/raw/master/deploy/helm/kuberhealthy-latest.tgz && helm template kuberhealthy-latest.tgz | kubectl apply -f -`
-
-### Basic Spec Deployment
-
-Download the [deploy/kuberhealthy.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/kuberhealthy.yaml) spec from this repository and apply it with `kubectl apply -f`.
 
 ### Prometheus Alerts
 
