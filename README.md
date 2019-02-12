@@ -8,12 +8,10 @@ Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supple
 
 ## Installation
 
-A [Helm](https://helm.sh) template is available for installation as well as some basic `.yaml` configurations.  By default, Prometheus endpoints are annotated and made available.
-
-To install with the Helm chart *without* Prometheus:
+To install with the [Helm](https://helm.sh) chart *without* Prometheus:
 `helm install stable/kuberhealthy`
 
-To install the Helm chart *with* Prometheus:
+To install the [Helm](https://helm.sh) chart *with* Prometheus:
 `helm install stable/kuberhealthy --set prometheus.enabled=true `
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you must edit the service `kuberhealthy` and set `Type: LoadBalancer`.
