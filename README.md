@@ -20,48 +20,6 @@ After installation, Kuberhealthy will only be available from within the cluster 
 
 RBAC bindings and roles are included in all configurations.
 
-If you want prometheus, you will need to 
-
-Kuberhealty will serve a status page that looks like this:
-
-```json
-{
-  "OK": true,
-  "Errors": [],
-  "CheckDetails": {
-    "ComponentStatusChecker": {
-      "OK": true,
-      "Errors": [],
-      "Namespace": "",
-      "LastRun": "2019-02-12T02:46:09.058658324Z",
-      "AuthorativePod": "kuberhealthy-6d9cbd9d48-djq6l"
-    },
-    "DaemonSetChecker": {
-      "OK": true,
-      "Errors": [],
-      "Namespace": "kuberhealthy",
-      "LastRun": "2019-02-12T02:36:38.420536362Z",
-      "AuthorativePod": "kuberhealthy-6d9cbd9d48-djq6l"
-    },
-    "PodRestartChecker namespace kube-system": {
-      "OK": true,
-      "Errors": [],
-      "Namespace": "kube-system",
-      "LastRun": "2019-02-12T02:46:08.891399638Z",
-      "AuthorativePod": "kuberhealthy-6d9cbd9d48-djq6l"
-    },
-    "PodStatusChecker namespace kube-system": {
-      "OK": true,
-      "Errors": [],
-      "Namespace": "kube-system",
-      "LastRun": "2019-02-12T02:46:08.888765413Z",
-      "AuthorativePod": "kuberhealthy-6d9cbd9d48-djq6l"
-    }
-  },
-  "CurrentMaster": "kuberhealthy-6d9cbd9d48-djq6l"
-}
-```
-
 ### Prometheus Alerts
 
 A `ServiceMonitor` configuration is available at [deploy/servicemonitor.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/servicemonitor.yaml).
