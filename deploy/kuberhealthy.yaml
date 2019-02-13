@@ -153,7 +153,6 @@ kind: Service
 metadata:
   labels:
     app: kuberhealthy
-    release: RELEASE-NAME
   name: kuberhealthy
 spec:
   type: ClusterIP
@@ -163,7 +162,6 @@ spec:
     targetPort: 8080
   selector:
     app: kuberhealthy
-    release: RELEASE-NAME
 
 ---
 # Source: kuberhealthy/templates/deployment.yaml
@@ -174,14 +172,11 @@ metadata:
   labels:
     app: kuberhealthy
     chart: kuberhealthy
-    release: RELEASE-NAME
-    heritage: Tiller
 spec:
   replicas: 2
   selector:
     matchLabels:
       app: kuberhealthy
-      release: RELEASE-NAME
   strategy:
     rollingUpdate:
       maxSurge: 0
@@ -192,8 +187,6 @@ spec:
       labels:
         app: kuberhealthy
         chart: kuberhealthy
-        release: RELEASE-NAME
-        heritage: Tiller
     spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
@@ -244,8 +237,6 @@ spec:
     matchLabels:
       app: kuberhealthy
       chart: kuberhealthy
-      release: RELEASE-NAME
-      heritage: Tiller
 
 ---
 # Source: kuberhealthy/templates/configmap.yaml
