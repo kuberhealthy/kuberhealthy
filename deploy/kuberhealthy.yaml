@@ -35,6 +35,7 @@ rules:
     - pods
     - namespaces
     - componentstatuses
+    - nodes
     verbs:
     - get
     - list
