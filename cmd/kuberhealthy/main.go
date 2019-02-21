@@ -48,9 +48,13 @@ var enableDebug bool                   // enable deubug logging
 
 var kuberhealthy *Kuberhealthy
 
-// values for CRD interaction
+// CRDGroup is a custom resource group name
 const CRDGroup = "comcast.github.io"
+
+// CRDVersion is a custom resource version
 const CRDVersion = "v1"
+
+// CRDResource is a custom resource name
 const CRDResource = "khstates"
 
 var masterCalculationInterval = time.Second * 10
