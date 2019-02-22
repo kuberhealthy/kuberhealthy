@@ -61,9 +61,6 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, exErr error) {
 	}
 	details.OK = false
 
-	if exErr == nil {
-		exErr.Error() = "Unable to determine execution error, but something bad has happened."
-	}
 	details.Errors = []string{"Check execution error: " + exErr.Error()}
 	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors)
 
