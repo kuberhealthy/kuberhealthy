@@ -8,42 +8,48 @@ Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supple
 
 ## Installation
 
-A [Helm](https://helm.sh) template is available for installation as well as some basic `.yaml` configurations.  By default, Prometheus endpoints are annotated and made available.
+To install with the [Helm](https://helm.sh) chart *without* Prometheus:
+`helm install stable/kuberhealthy`
+
+To install the [Helm](https://helm.sh) chart *with* Prometheus:
+`helm install stable/kuberhealthy --set prometheus.enabled=true`
+
+To install the [Helm](https://helm.sh) chart *with* Prometheus Operator:
+`helm install stable/kuberhealthy --set prometheus.enabled=true --set prometheus.serviceMonitor=true`
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you must edit the service `kuberhealthy` and set `Type: LoadBalancer`.
 
 RBAC bindings and roles are included in all configurations.
 
-### Helm Install _(Recommended)_
-
-Installation via `helm template | kubectl apply -f -` is recommended.  You can use the following command to download the Kuberhealthy chart and install it to your default `kubectl` context.
-
-`wget https://github.com/Comcast/kuberhealthy/raw/master/deploy/helm/kuberhealthy-latest.tgz && helm template kuberhealthy-latest.tgz | kubectl apply -f -`
-
-### Basic Spec Deployment
-
-Download the [deploy/kuberhealthy.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/kuberhealthy.yaml) spec from this repository and apply it with `kubectl apply -f`.
+Kuberhealthy is currently tested on Kubernetes `1.9.x`, `1.10.x`, and `1.11.x`.
 
 ### Prometheus Alerts
 
 A `ServiceMonitor` configuration is available at [deploy/servicemonitor.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/servicemonitor.yaml).
 
 
+### Grafana Dashboard
+
+A `Grafana` dashboard is available at [deploy/grafana/dashboard.json](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/grafana/dashboard.json)
+
+To install this dashboard, follow the instructions [here](http://docs.grafana.org/reference/export_import/#importing-a-dashboard).
+
 ## What is Kuberhealthy?
 
-Kuberhealthy performs stynthetic tests from within Kubernetes clusters in order to catch issues that would otherwise go unnoticed.  Instead of trying to identify all the things that could potentially go wrong, Kuberhealthy replicates real workflow and watches carefully for the expected Kubernetes behavior to occur.  Kuberhealthy serves both a JSON status page and a [Prometheus](https://prometheus.io/) metrics endpoint for integration into your choice of alerting solution.  More checks will be added in future versions to better cover [service provisioning](https://github.com/Comcast/kuberhealthy/issues/11), [DNS resolution](https://github.com/Comcast/kuberhealthy/issues/16), [disk provisioning](https://github.com/Comcast/kuberhealthy/issues/9), and more.
+Kuberhealthy performs synthetic tests from within Kubernetes clusters in order to catch issues that would otherwise go unnoticed.  Instead of trying to identify all the things that could potentially go wrong, Kuberhealthy replicates real workflow and watches carefully for the expected Kubernetes behavior to occur.  Kuberhealthy serves both a JSON status page and a [Prometheus](https://prometheus.io/) metrics endpoint for integration into your choice of alerting solution.  More checks will be added in future versions to better cover [service provisioning](https://github.com/Comcast/kuberhealthy/issues/11), [DNS resolution](https://github.com/Comcast/kuberhealthy/issues/16), [disk provisioning](https://github.com/Comcast/kuberhealthy/issues/9), and more.
 
-Some examples of errors Kuberhealthy would detect:
+Some examples of errors Kuberhealthy has detected in production:
 
-- Pods stuck in `Terminating` due to CNI communication failures
-- Pods stuck in `ContainerCreating` due to disk scheduler errors
-- Pods stuck in `Pending` due to Docker daemon errors
-- A node that can not provision or terminate pods for any reason
+- Nodes where new pods get stuck in `Terminating` due to CNI communication failures
+- Nodes where new pods get stuck in `ContainerCreating` due to disk scheduler errors
+- Nodes where new pods get stuck in `Pending` due to Docker daemon errors
+- Nodes where Docker or Kubelet crashes or has restarted
+- A node that cannot provision or terminate pods quickly enough due to high IO wait
 - A pod in the `kube-system` namespace that is restarting too quickly
-- A cluster component that is in a non-ready state
+- A [Kubernetes component](https://kubernetes.io/docs/concepts/overview/components/) that is in a non-ready state
 - Intermittent failures to access or create custom resources
-- Kubernetes system services remaining technically "healthy" while their underlying pods are crashing
-  - kue-scheduler
+- Kubernetes system services remaining technically "healthy" while their underlying pods are crashing too much
+  - kube-scheduler
   - kube-apiserver
   - kube-dns
 

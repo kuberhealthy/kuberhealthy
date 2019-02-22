@@ -8,7 +8,7 @@ RUN go version
 #RUN go test -v
 RUN go build -v -o kuberhealthy
 RUN mkdir /kuberhealthy
-RUN cp kuberhealthy /kuberhealthy/kuberhealthy
+RUN mv kuberhealthy /kuberhealthy/kuberhealthy
 
 FROM golang
 RUN apt-get update

@@ -1,14 +1,14 @@
-/* Copyright 2018 Comcast Cable Communications Management, LLC
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-       http://www.apache.org/licenses/LICENSE-2.0
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*/
+// Copyright 2018 Comcast Cable Communications Management, LLC
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//     http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
@@ -37,7 +37,7 @@ func setCheckCRDState(checkName string, client *khstatecrd.KuberhealthyStateClie
 	resourceVersion := existingState.GetResourceVersion()
 
 	// set ourselves as the authorative pod here
-	myName, err := getEnvVar("MY_POD_NAME")
+	myName, err := getEnvVar("POD_NAME")
 	if err != nil {
 		return err
 	}
@@ -111,8 +111,8 @@ func getCheckCRDState(c KuberhealthyCheck, client *khstatecrd.KuberhealthyStateC
 	log.Debugln("Retreiving CRD for:", name)
 	khstate, err := client.Get(metav1.GetOptions{}, CRDResource, name)
 	if err != nil {
-		return state, errors.New("Error retreiving CRD: " + name + " " + err.Error())
+		return state, errors.New("Error retrieving CRD: " + name + " " + err.Error())
 	}
-	log.Debugln("Sucessfully retrieved CRD:", name)
+	log.Debugln("Successfully retrieved CRD:", name)
 	return khstate.Spec, nil
 }
