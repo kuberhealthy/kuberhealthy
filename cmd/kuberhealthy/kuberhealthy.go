@@ -50,7 +50,7 @@ func NewKuberhealthy() *Kuberhealthy {
 
 // setCheckExecutionError sets an execution error for a check name in
 // its crd status
-func (k *Kuberhealthy) setCheckExecutionError(checkName string, err error) {
+func (k *Kuberhealthy) setCheckExecutionError(checkName string, exErr error) {
 	details := health.NewCheckDetails()
 	check, err := k.getCheck(checkName)
 	if err != nil {
@@ -60,7 +60,11 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, err error) {
 		details.Namespace = check.CheckNamespace()
 	}
 	details.OK = false
-	details.Errors = []string{"Check execution error: " + err.Error()}
+
+	if exErr == nil {
+		exErr.Error() = "Unable to determine execution error, but something bad has happened."
+	}
+	details.Errors = []string{"Check execution error: " + exErr.Error()}
 	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors)
 
 	// store the check state with the CRD
