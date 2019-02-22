@@ -1,4 +1,33 @@
 ---
+# Source: kuberhealthy/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: "prometheus"
+    prometheus: prometheus
+    role: alert-rules
+  name: kuberhealthy
+data:
+  kuberhealthy.rules: |-
+    groups:
+    - name: ./kuberhealthy.rules
+      rules:
+      - alert: KuberhealthyError
+        expr: kuberhealthy_running < 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          description: Kuberhealthy is not healthy
+      - alert: ClusterUnhealthy
+        expr: kuberhealthy_cluster_state < 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          description: Kuberhealthy shows that the cluster is not healthy
+---
 # Source: kuberhealthy/templates/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -35,7 +64,6 @@ rules:
     - pods
     - namespaces
     - componentstatuses
-    - nodes
     verbs:
     - get
     - list
@@ -154,6 +182,10 @@ kind: Service
 metadata:
   labels:
     app: kuberhealthy
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "80"
+    prometheus.io/path: "/metrics"
   name: kuberhealthy
 spec:
   type: ClusterIP
@@ -238,10 +270,4 @@ spec:
     matchLabels:
       app: kuberhealthy
       chart: kuberhealthy
-
 ---
-# Source: kuberhealthy/templates/configmap.yaml
-
----
-# Source: kuberhealthy/templates/servicemonitor.yaml
-

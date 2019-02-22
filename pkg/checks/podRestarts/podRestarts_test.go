@@ -121,8 +121,8 @@ func TestReapPodRestartChecks(t *testing.T) {
 
 	// Compare the pod lists of the input and output data and verify they are the same aka expected
 	t.Log("After")
-	for outPodName, _ := range o.RestartObservations {
-		for inPodName, _ := range i.RestartObservations {
+	for outPodName := range o.RestartObservations {
+		for inPodName := range i.RestartObservations {
 			if outPodName == inPodName {
 				// Compare the values of the pod observation slices and look for differences so we can specifically call out
 				// which pods were improperly reaped
