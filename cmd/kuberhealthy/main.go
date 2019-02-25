@@ -44,7 +44,8 @@ var enableDaemonSetChecks = true       // do daemon set restart checking
 var enablePodRestartChecks = true      // do pod restart checking
 var enablePodStatusChecks = true       // do pod status checking
 var enableForceMaster bool             // force master mode - for debugging
-var enableDebug bool                   // enable deubug logging
+var enableDebug bool                   // enable debug logging
+var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
 
 var kuberhealthy *Kuberhealthy
 
@@ -69,6 +70,7 @@ func init() {
 	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
+	flaggy.String(&DSPauseContainerImageOverride,  "",  "", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
 	flaggy.Parse()
 
@@ -117,6 +119,10 @@ func main() {
 	// daemonset checking
 	if enableDaemonSetChecks {
 		dsc, err := daemonSet.New()
+		// allow the user to override the image used by the DSC - see #114
+		if len(DSPauseContainerImageOverride) > 1 {
+			dsc.PauseContainerImage = DSPauseContainerImageOverride
+		}
 		if err != nil {
 			log.Fatalln("unable to create daemonset checker:", err)
 		}
