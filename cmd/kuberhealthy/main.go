@@ -70,7 +70,7 @@ func init() {
 	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
-	flaggy.String(&DSPauseContainerImageOverride,  "",  "", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
+	flaggy.String(&DSPauseContainerImageOverride,  "",  "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
 	flaggy.Parse()
 
