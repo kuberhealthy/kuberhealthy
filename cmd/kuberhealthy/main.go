@@ -149,6 +149,7 @@ func main() {
 		}
 	}
 
+	// dns resolution checking
 	if enableDnsStatusChecks {
 		kuberhealthy.AddCheck(dnsStatus.New(dnsEndpoints))
 	}
