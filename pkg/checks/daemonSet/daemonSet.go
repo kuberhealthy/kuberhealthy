@@ -36,6 +36,7 @@ type Checker struct {
 	shuttingDown      bool
 	DaemonSetDeployed bool
 	DaemonSetName     string
+	PauseContainerImage string
 	hostname          string
 	tolerations       []apiv1.Toleration
 	client            *kubernetes.Clientset
@@ -52,6 +53,7 @@ func New() (*Checker, error) {
 		Namespace:     namespace,
 		DaemonSetName: daemonSetBaseName + "-" + hostname + "-" + strconv.Itoa(int(time.Now().Unix())),
 		hostname:      hostname,
+		PauseContainerImage: "gcr.io/google_containers/pause:0.8.0",
 		tolerations:   tolerations,
 	}
 
@@ -62,6 +64,8 @@ func New() (*Checker, error) {
 func (dsc *Checker) generateDaemonSetSpec() {
 
 	terminationGracePeriod := int64(1)
+	runAsUser := int64(1000)
+	log.Debug("Running daemon set as user 1000.")
 
 	// find all the taints in the cluster and create a toleration for each
 	var err error
@@ -105,7 +109,10 @@ func (dsc *Checker) generateDaemonSetSpec() {
 					Containers: []apiv1.Container{
 						apiv1.Container{
 							Name:  "sleep",
-							Image: "gcr.io/google_containers/pause:0.8.0",
+							Image: dsc.PauseContainerImage,
+							SecurityContext: &apiv1.SecurityContext{
+								RunAsUser: &runAsUser,
+							},
 							Resources: apiv1.ResourceRequirements{
 								Requests: apiv1.ResourceList{
 									apiv1.ResourceCPU:    resource.MustParse("0"),
