@@ -120,7 +120,8 @@ func main() {
 	if enableDaemonSetChecks {
 		dsc, err := daemonSet.New()
 		// allow the user to override the image used by the DSC - see #114
-		if len(DSPauseContainerImageOverride) > 1 {
+		if len(DSPauseContainerImageOverride) > 0 {
+			log.Info("Setting DS pause container override image to:", DSPauseContainerImageOverride)
 			dsc.PauseContainerImage = DSPauseContainerImageOverride
 		}
 		if err != nil {
