@@ -36,6 +36,27 @@ func TestCleanupOrphans(t *testing.T) {
 	}
 }
 
+func TestPauseContainerOverride(t *testing.T) {
+	// verify that we are getting the expected default value from a new dsc
+	dsc, err := New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dsc.PauseContainerImage != "gcr.io/google_containers/pause:0.8.0" {
+		t.Fatal("Default Pause Container Image is not set or an unexpected value, actual value:", dsc.PauseContainerImage)
+	}
+
+	dscO, err := New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Silly, yes, but this mimics how the program is setting the override value
+	dscO.PauseContainerImage = "another-image-repo/pause:0.8.0"
+	if dscO.PauseContainerImage != "another-image-repo/pause:0.8.0" {
+		t.Fatal("Overridden Pause Container Image is not set or an unexpected value, actual value:", dscO.PauseContainerImage)
+	}
+}
+
 func TestGetAllDaemonsets(t *testing.T) {
 	checker, err := New()
 	if err != nil {
