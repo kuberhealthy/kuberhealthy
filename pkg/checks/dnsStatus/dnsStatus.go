@@ -71,8 +71,10 @@ func (dc *Checker) Shutdown() error {
 // CurrentStatus returns the status of the check as of right now
 func (dc *Checker) CurrentStatus() (bool, []string) {
 	if len(dc.Errors) > 0 {
+		log.Debug("DNS check returning current status of FALSE.", len(dc.Errors), "errors")
 		return false, dc.Errors
 	}
+	log.Debug("DNS check returning current status of FALSE.", len(dc.Errors), "errors")
 	return true, dc.Errors
 }
 
@@ -83,6 +85,7 @@ func (dc *Checker) clearErrors() {
 
 // Run implements the entrypoint for check execution
 func (dc *Checker) Run(client *kubernetes.Clientset) error {
+	log.Infoln("Running DNS checker")
 	doneChan := make(chan error)
 
 	dc.client = client

@@ -5,7 +5,7 @@ ADD ./ /go/src/github.com/Comcast/kuberhealthy/
 WORKDIR /go/src/github.com/Comcast/kuberhealthy/cmd/kuberhealthy
 ENV GO111MODULE=on
 RUN go version
-#RUN go test -v
+RUN go test -v -short -- --debug --forceMaster
 RUN go build -v -o kuberhealthy
 RUN mkdir /kuberhealthy
 RUN mv kuberhealthy /kuberhealthy/kuberhealthy
