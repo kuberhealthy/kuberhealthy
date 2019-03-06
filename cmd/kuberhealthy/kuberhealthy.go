@@ -34,10 +34,19 @@ type Kuberhealthy struct {
 	Checks                []KuberhealthyCheck
 	ListenAddr            string               // the listen address, such as ":80"
 	checkShutdownChannels map[string]chan bool // a slice of channels used to signal shutdowns to checks
+	overrideKubeClient    *kubernetes.Clientset
 }
 
-// NewKubeClient creates an returns a new kubernetes clientset
-func (k *Kuberhealthy) NewKubeClient() (*kubernetes.Clientset, error) {
+// newKubeClient sets up a new kuberhealthy client if it does not exist
+// yet
+func (k *Kuberhealthy) KubeClient() (*kubernetes.Clientset, error) {
+
+	// fetch a client if it does not exist
+	if k.overrideKubeClient != nil {
+		return k.overrideKubeClient, nil
+	}
+
+	// make a client if one does not exist
 	return kubeClient.Create(kubeConfigFile)
 }
 
@@ -169,10 +178,9 @@ func (k *Kuberhealthy) masterStatusMonitor(becameMasterChan chan bool, lostMaste
 
 	for {
 
-		client, err := kubeClient.Create(kubeConfigFile)
+		client, err := k.KubeClient()
 		if err != nil {
-			log.Errorln(err)
-			continue
+			log.Warnln(err)
 		}
 
 		// determine if we are currently master or not
@@ -229,7 +237,7 @@ func (k *Kuberhealthy) runCheck(stopChan chan bool, c KuberhealthyCheck) {
 		}
 
 		log.Infoln("Running check:", c.Name())
-		client, err := k.NewKubeClient()
+		client, err := k.KubeClient()
 		if err != nil {
 			log.Errorln("Error creating Kubernetes client for check"+c.Name()+":", err)
 			<-ticker.C
@@ -371,7 +379,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	}
 
 	// fetch a client for the master calculation
-	kubeClient, err := kubeClient.Create(kubeConfigFile)
+	kubeClient, err := k.KubeClient()
 	if err != nil {
 		return state, err
 	}
