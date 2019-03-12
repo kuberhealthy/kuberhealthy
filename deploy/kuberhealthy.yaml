@@ -191,6 +191,16 @@ spec:
     spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - kuberhealthy
+            topologyKey: "kubernetes.io/hostname"
       containers:
       - image: quay.io/comcast/kuberhealthy:v1.0.2
         imagePullPolicy: IfNotPresent
