@@ -6,6 +6,9 @@ Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supple
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Comcast/kuberhealthy)](https://goreportcard.com/report/github.com/Comcast/kuberhealthy)
 
+## Community
+You can reach out to us on the [Kubernetes Slack](http://slack.k8s.io/) in the [#kuberhealthy channel](https://kubernetes.slack.com/messages/CB9G7HWTE).
+
 ## Installation
 
 To install with the [Helm](https://helm.sh) chart *without* Prometheus:
