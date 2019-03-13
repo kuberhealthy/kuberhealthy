@@ -7,18 +7,21 @@ Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supple
 [![Go Report Card](https://goreportcard.com/badge/github.com/Comcast/kuberhealthy)](https://goreportcard.com/report/github.com/Comcast/kuberhealthy)
 
 ## Community
+
 You can reach out to us on the [Kubernetes Slack](http://slack.k8s.io/) in the [#kuberhealthy channel](https://kubernetes.slack.com/messages/CB9G7HWTE).
 
 ## Installation
 
-To install with the [Helm](https://helm.sh) chart *without* Prometheus:
+To install using [Helm](https://helm.sh) *without* Prometheus:
 `helm install stable/kuberhealthy`
 
-To install the [Helm](https://helm.sh) chart *with* Prometheus:
+To install using [Helm](https://helm.sh) *with* Prometheus:
 `helm install stable/kuberhealthy --set prometheus.enabled=true`
 
-To install the [Helm](https://helm.sh) chart *with* Prometheus Operator:
+To install using [Helm](https://helm.sh) *with* Prometheus Operator:
 `helm install stable/kuberhealthy --set prometheus.enabled=true --set prometheus.serviceMonitor=true`
+
+To install using flat yaml spec files, see the [deploy directory](https://github.com/Comcast/kuberhealthy/tree/master/deploy).
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you must edit the service `kuberhealthy` and set `Type: LoadBalancer`.
 
@@ -44,30 +47,22 @@ Kuberhealthy performs synthetic tests from within Kubernetes clusters in order t
 Some examples of errors Kuberhealthy has detected in production:
 
 - Nodes where new pods get stuck in `Terminating` due to CNI communication failures
-- Nodes where new pods get stuck in `ContainerCreating` due to disk scheduler errors
-- Nodes where new pods get stuck in `Pending` due to Docker daemon errors
+- Nodes where new pods get stuck in `ContainerCreating` due to disk provisoning errors
+- Nodes where new pods get stuck in `Pending` due to container runtime errors
 - Nodes where Docker or Kubelet crashes or has restarted
-- A node that cannot provision or terminate pods quickly enough due to high IO wait
+- Nodes that are unable to properly communicate with the api server due to kube-api request limiting
+- Nodes that cannot provision or terminate pods quickly enough due to high I/O wait
 - A pod in the `kube-system` namespace that is restarting too quickly
 - A [Kubernetes component](https://kubernetes.io/docs/concepts/overview/components/) that is in a non-ready state
-- Intermittent failures to access or create custom resources
+- Intermittent failures to access or create [custom resources](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
 - Kubernetes system services remaining technically "healthy" while their underlying pods are crashing too much
   - kube-scheduler
   - kube-apiserver
   - kube-dns
 
-#### Deployment and Status Page
-
-Deploying Kuberhealthy is as simple as applying the [helm](https://helm.sh/) chart file in this repository:
-
-```
-cd helm
-helm install .
-```
-
 ##### Status Page
 
-If you choose to alert from the JSON status page, you can access the status on `http://kuberhealthy.kuberhealthy.svc.cluster.local`.  The status page displays server status in the format shown below.  The boolean `OK` field can be used to indicate up/down status, while the `Errors` array will contain a list of potential error descriptions.  Granular, per-check information, including the last time a check was run, and the Kuberhealthy pod that ran that specific check is available under the `CheckDetails` object.
+If you choose to alert from the JSON status page, you can access the status on `http://kuberhealthy.kuberhealthy`.  The status page displays server status in the format shown below.  The boolean `OK` field can be used to indicate up/down status, while the `Errors` array will contain a list of potential error descriptions.  Granular, per-check information, including the last time a check was run, and the Kuberhealthy pod that ran that specific check is available under the `CheckDetails` object.
 
 ```json
   {
