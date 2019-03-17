@@ -58,6 +58,7 @@ var enableInflux = false
 var influxUrl = ""
 var influxUsername = ""
 var influxPassword = ""
+var influxDB = "http://localhost:8086"
 
 var kuberhealthy *Kuberhealthy
 
@@ -89,6 +90,7 @@ func init() {
 	flaggy.String(&influxUsername, "", "influxUser", "Username for the InfluxDB instance")
 	flaggy.String(&influxPassword, "", "influxPassword", "Password for the InfluxDB instance")
 	flaggy.String(&influxUrl, "", "influxUrl", "Address for the InfluxDB instance")
+	flaggy.String(&influxDB, "", "influxDB", "Name of the InfluxDB database")
 	flaggy.Bool(&enableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
 	flaggy.Parse()
 
@@ -130,9 +132,12 @@ func main() {
 			log.Fatalln("Unable to parse influxUrl", err)
 		}
 		metricClient, err = metrics.NewInfluxClient(metrics.InfluxClientInput{
-			URL:      *influxUrlParsed,
-			Password: influxPassword,
-			Username: influxUsername,
+			Config: metrics.InfluxConfig{
+				URL:      *influxUrlParsed,
+				Password: influxPassword,
+				Username: influxUsername,
+			},
+			Database: influxDB,
 		})
 		if err != nil {
 			log.Fatalln("Unable to parse initialize connection with InfluxDB", err)
