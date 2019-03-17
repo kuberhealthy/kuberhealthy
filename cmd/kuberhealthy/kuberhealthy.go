@@ -262,17 +262,19 @@ func (k *Kuberhealthy) runCheck(stopChan chan bool, c KuberhealthyCheck) {
 		details.Namespace = c.CheckNamespace()
 		details.OK, details.Errors = c.CurrentStatus()
 
-		checkStatus := 0
-		if details.OK {
-			checkStatus = 1
+		if k.MetricForwarder != nil {
+			checkStatus := 0
+			if details.OK {
+				checkStatus = 1
+			}
+			influxTags := map[string]string{
+				"KuberhealthyPod": details.AuthorativePod,
+				"Namespace":       c.CheckNamespace(),
+				"Name":            c.Name(),
+				"Errors":          strings.Join(details.Errors, ","),
+			}
+			k.MetricForwarder.Push(c.Name()+"_status", checkStatus, influxTags)
 		}
-		influxTags := map[string]string{
-			"KuberhealthyPod": details.AuthorativePod,
-			"Namespace":       c.CheckNamespace(),
-			"Name":            c.Name(),
-			"Errors":          strings.Join(details.Errors, ","),
-		}
-		k.MetricForwarder.Push(c.Name()+"_status", checkStatus, influxTags)
 
 		log.Infoln("Setting state of check", c.Name(), "to", details.OK, details.Errors)
 
