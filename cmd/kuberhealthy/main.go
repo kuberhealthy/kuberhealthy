@@ -14,11 +14,14 @@
 package main
 
 import (
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/Comcast/kuberhealthy/pkg/metrics"
 
 	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 
@@ -51,6 +54,12 @@ var enableDnsStatusChecks = true       // do pod status checking
 var enableForceMaster bool             // force master mode - for debugging
 var enableDebug bool                   // enable deubug logging
 
+// InfluxDB flags
+var enableInflux = false
+var influxUrl = ""
+var influxUsername = ""
+var influxPassword = ""
+
 var kuberhealthy *Kuberhealthy
 
 // values for CRD interaction
@@ -73,6 +82,11 @@ func init() {
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
 	flaggy.StringSlice(&dnsEndpoints, "", "dnsEndpoints", "The comma separated list of dns endpoints to check, if enabled. Defaults to kubernetes.default")
+	// Influx flags
+	flaggy.String(&influxUsername, "", "influxUser", "Username for the InfluxDB instance")
+	flaggy.String(&influxPassword, "", "influxPassword", "Password for the InfluxDB instance")
+	flaggy.String(&influxUrl, "", "influxUrl", "Address for the InfluxDB instance")
+	flaggy.Bool(&enableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
 	flaggy.Parse()
 
 	// log to stdout and set the level to info by default
@@ -106,6 +120,22 @@ func main() {
 	// Create a new Kuberhealthy struct
 	kuberhealthy = NewKuberhealthy()
 	kuberhealthy.ListenAddr = listenAddress
+	var metricClient metrics.Client
+	if enableInflux {
+		influxUrlParsed, err := url.Parse(influxUrl)
+		if err != nil {
+			log.Fatalln("Unable to parse influxUrl", err)
+		}
+		metricClient, err = metrics.NewInfluxClient(metrics.InfluxClientInput{
+			URL:      *influxUrlParsed,
+			Password: influxPassword,
+			Username: influxUsername,
+		})
+		if err != nil {
+			log.Fatalln("Unable to parse initialize connection with InfluxDB", err)
+		}
+	}
+	kuberhealthy.MetricForwarder = metricClient
 
 	// Split the podCheckNamespaces into a []string
 	namespaces := strings.Split(podCheckNamespaces, ",")
