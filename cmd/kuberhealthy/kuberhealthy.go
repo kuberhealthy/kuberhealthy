@@ -1,14 +1,14 @@
-/* Copyright 2018 Comcast Cable Communications Management, LLC
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-       http://www.apache.org/licenses/LICENSE-2.0
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*/
+// Copyright 2018 Comcast Cable Communications Management, LLC
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//     http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
@@ -36,10 +36,19 @@ type Kuberhealthy struct {
 	ListenAddr            string               // the listen address, such as ":80"
 	checkShutdownChannels map[string]chan bool // a slice of channels used to signal shutdowns to checks
 	MetricForwarder       metrics.Client
+	overrideKubeClient    *kubernetes.Clientset
 }
 
-// NewKubeClient creates an returns a new kubernetes clientset
-func (k *Kuberhealthy) NewKubeClient() (*kubernetes.Clientset, error) {
+// newKubeClient sets up a new kuberhealthy client if it does not exist
+// yet
+func (k *Kuberhealthy) KubeClient() (*kubernetes.Clientset, error) {
+
+	// fetch a client if it does not exist
+	if k.overrideKubeClient != nil {
+		return k.overrideKubeClient, nil
+	}
+
+	// make a client if one does not exist
 	return kubeClient.Create(kubeConfigFile)
 }
 
@@ -52,7 +61,7 @@ func NewKuberhealthy() *Kuberhealthy {
 
 // setCheckExecutionError sets an execution error for a check name in
 // its crd status
-func (k *Kuberhealthy) setCheckExecutionError(checkName string, err error) {
+func (k *Kuberhealthy) setCheckExecutionError(checkName string, exErr error) {
 	details := health.NewCheckDetails()
 	check, err := k.getCheck(checkName)
 	if err != nil {
@@ -62,7 +71,8 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, err error) {
 		details.Namespace = check.CheckNamespace()
 	}
 	details.OK = false
-	details.Errors = []string{"Check execution error: " + err.Error()}
+
+	details.Errors = []string{"Check execution error: " + exErr.Error()}
 	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors)
 
 	// store the check state with the CRD
@@ -170,10 +180,9 @@ func (k *Kuberhealthy) masterStatusMonitor(becameMasterChan chan bool, lostMaste
 
 	for {
 
-		client, err := kubeClient.Create(kubeConfigFile)
+		client, err := k.KubeClient()
 		if err != nil {
-			log.Errorln(err)
-			continue
+			log.Warnln(err)
 		}
 
 		// determine if we are currently master or not
@@ -230,7 +239,7 @@ func (k *Kuberhealthy) runCheck(stopChan chan bool, c KuberhealthyCheck) {
 		}
 
 		log.Infoln("Running check:", c.Name())
-		client, err := k.NewKubeClient()
+		client, err := k.KubeClient()
 		if err != nil {
 			log.Errorln("Error creating Kubernetes client for check"+c.Name()+":", err)
 			<-ticker.C
@@ -385,7 +394,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	}
 
 	// fetch a client for the master calculation
-	kubeClient, err := kubeClient.Create(kubeConfigFile)
+	kubeClient, err := k.KubeClient()
 	if err != nil {
 		return state, err
 	}

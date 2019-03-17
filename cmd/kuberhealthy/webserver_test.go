@@ -1,14 +1,14 @@
-/* Copyright 2018 Comcast Cable Communications Management, LLC
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-       http://www.apache.org/licenses/LICENSE-2.0
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*/
+// Copyright 2018 Comcast Cable Communications Management, LLC
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//     http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
@@ -22,30 +22,52 @@ import (
 
 	"github.com/Comcast/kuberhealthy/pkg/health"
 	"github.com/Pallinder/go-randomdata"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
+// makeTestKuberhealthy makes a test kuberhealthy client
+// that has no actual kube configuration
 func makeTestKuberhealthy(t *testing.T) *Kuberhealthy {
+	if testing.Short() {
+		t.Skip()
+	}
 
 	kh := NewKuberhealthy()
+
+	// override the client with a blank config
+	config := &rest.Config{}
+	client, _ := kubernetes.NewForConfig(config)
+	kh.overrideKubeClient = client
+
 	return kh
 }
 
 // TestWebServer tests the web server status page functionality
 func TestWebServer(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 
 	// create a new kuberhealthy
+	t.Log("Making fake check")
 	kh := makeTestKuberhealthy(t)
 
 	// add a fake check to it
 	fc := NewFakeCheck()
+	t.Log("Adding fake check")
 	kh.AddCheck(fc)
 
+	t.Log("Starting Kuberhealthy checks")
 	go kh.Start()
 	// give the checker time to make CRDs
+	t.Log("Waiting for checks to run")
 	time.Sleep(time.Second * 2)
+	t.Log("Stopping Kuberhealthy checks")
 	kh.StopChecks()
 
 	// now run our test against the web server handler
+	t.Log("Simulating web request")
 	recorder := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/", bytes.NewBufferString(""))
 	if err != nil {
@@ -57,11 +79,13 @@ func TestWebServer(t *testing.T) {
 	}
 
 	// check the http status from the server
+	t.Log("Checking status code")
 	if recorder.Code != http.StatusOK {
 		t.Fatal("Bad response from handler", recorder.Code)
 	}
 
 	// output the response from the server
+	t.Log("Reading reponse body")
 	b, err := ioutil.ReadAll(recorder.Body)
 	if err != nil {
 		t.Fatal("Error reading response body", err)

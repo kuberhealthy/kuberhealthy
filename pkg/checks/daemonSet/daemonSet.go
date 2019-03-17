@@ -595,6 +595,7 @@ func (dsc *Checker) doDeploy(ctx context.Context) error {
 	dsc.DaemonSetDeployed = true
 	err := dsc.deploy()
 	if err != nil {
+		log.Error("Something went wrong with daemonset deployment, cleaning things up...")
 		dsc.doRemove(ctx)
 		return err
 	}
@@ -774,6 +775,9 @@ func (dsc *Checker) deploy() error {
 	//Generate DS client and create the set with the template we just generated
 	daemonSetClient := dsc.getDaemonSetClient()
 	_, err := daemonSetClient.Create(dsc.DaemonSet)
+	if err != nil {
+		log.Error("Failed to create daemon set:", err)
+	}
 	dsc.DaemonSetDeployed = true
 	return err
 }
@@ -797,6 +801,7 @@ func (dsc *Checker) remove() error {
 	daemonSetClient := dsc.getDaemonSetClient()
 	err = daemonSetClient.Delete(dsc.DaemonSetName, &metav1.DeleteOptions{})
 	if err != nil {
+		log.Error("Failed to delete daemonset:", err)
 		return err
 	}
 
@@ -808,6 +813,7 @@ func (dsc *Checker) remove() error {
 		LabelSelector:        "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
 	})
 	if err != nil {
+		log.Error("Failed to delete daemonset pods:", err)
 		return err
 	}
 	dsc.DaemonSetDeployed = false
@@ -874,5 +880,6 @@ func (dsc *Checker) waitForPodRemoval(ctx context.Context) error {
 
 // getDaemonSetClient returns a daemon set client, useful for interacting with daemonsets
 func (dsc *Checker) getDaemonSetClient() v1beta1.DaemonSetInterface {
+	log.Debug("Creating Daemonset client.")
 	return dsc.client.ExtensionsV1beta1().DaemonSets(dsc.Namespace)
 }

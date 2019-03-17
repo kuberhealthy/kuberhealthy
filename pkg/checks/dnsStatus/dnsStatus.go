@@ -7,24 +7,27 @@ import (
 	"net"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	// required for oidc kubectl testing
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	"k8s.io/client-go/kubernetes"
 )
 
-const maxTimeInFailure = 60
+const maxTimeInFailure = time.Duration(60 * time.Second)
 
 // Checker validates that DNS is functioning correctly
 type Checker struct {
 	FailureTimeStamp map[string]time.Time
 	Errors           []string
 	client           *kubernetes.Clientset
-	MaxTimeInFailure float64
+	MaxTimeInFailure time.Duration
 	Endpoints        []string
 }
 
-// New returns a new Checker
+// New returns a new Checker.  Pass in a blank slice to use the default
+//
 func New(endpoints []string) *Checker {
 	defaultEndpoints := []string{
 		"kubernetes.default",
@@ -68,8 +71,10 @@ func (dc *Checker) Shutdown() error {
 // CurrentStatus returns the status of the check as of right now
 func (dc *Checker) CurrentStatus() (bool, []string) {
 	if len(dc.Errors) > 0 {
+		log.Debug("DNS check returning current status of FALSE.", len(dc.Errors), "errors")
 		return false, dc.Errors
 	}
+	log.Debug("DNS check returning current status of FALSE.", len(dc.Errors), "errors")
 	return true, dc.Errors
 }
 
@@ -80,6 +85,7 @@ func (dc *Checker) clearErrors() {
 
 // Run implements the entrypoint for check execution
 func (dc *Checker) Run(client *kubernetes.Clientset) error {
+	log.Infoln("Running DNS checker")
 	doneChan := make(chan error)
 
 	dc.client = client
@@ -107,24 +113,30 @@ func (dc *Checker) Run(client *kubernetes.Clientset) error {
 func (dc *Checker) doChecks() error {
 	dnsErrors := []string{}
 	for _, address := range dc.Endpoints {
+		log.Infoln("DNS Checker testing", address)
 		_, err := net.LookupHost(address)
 		if err == nil {
+			log.Infoln("DNS Checker determined that", address, "was OK.")
 			delete(dc.FailureTimeStamp, address)
 			continue
 		}
 		timestamp, exists := dc.FailureTimeStamp[address]
 		if !exists {
+			log.Warningln("DNS Checker determined that", address, "was DOWN.")
 			dc.FailureTimeStamp[address] = time.Now()
 			continue
 		}
-		if time.Now().Sub(timestamp).Seconds() > dc.MaxTimeInFailure {
+		if time.Now().Sub(timestamp).Seconds() > dc.MaxTimeInFailure.Seconds() {
+			log.Warningln("DNS Checker determined that", address, "was DOWN for too long and is now indicating a check ERROR:", err)
 			dnsErrors = append(dnsErrors, err.Error())
 		}
 
 	}
 	if len(dnsErrors) > 0 {
+		log.Debugln("Setting errors to", dnsErrors)
 		dc.Errors = dnsErrors
 	} else {
+		log.Debugln("Clearing DNS errors")
 		dc.clearErrors()
 	}
 	return nil
