@@ -38,7 +38,7 @@ func TestCreate(t *testing.T) {
 	}
 	state := health.NewState()
 	checkDetail := health.NewCheckDetails()
-	checkDetail.AuthorativePod = "TestCreatePod"
+	checkDetail.AuthoritativePod = "TestCreatePod"
 	checkDetail.LastRun = time.Now()
 	state.CheckDetails["TestCheck"] = checkDetail
 	status := NewKuberhealthyState("gotest", checkDetail)
@@ -87,7 +87,7 @@ func TestUpdate(t *testing.T) {
 	t.Logf("%+v", status)
 	randomString := randomdata.SillyName()
 	checkDetail := health.NewCheckDetails()
-	checkDetail.AuthorativePod = randomString
+	checkDetail.AuthoritativePod = randomString
 	checkDetail.LastRun = time.Now()
 	checkDetail.OK = true
 	checkDetail.Errors = []string{"1", "2", "3"}
@@ -103,12 +103,12 @@ func TestUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if result.Spec.AuthorativePod != randomString {
-		t.Log("Incorrect name after updating and fetching CRD.  Wanted", randomString, "but got", result.Spec.AuthorativePod)
+	if result.Spec.AuthoritativePod != randomString {
+		t.Log("Incorrect name after updating and fetching CRD.  Wanted", randomString, "but got", result.Spec.AuthoritativePod)
 		t.Fail()
 	}
 	if result.Spec.OK != true {
-		t.Log("Incorrect OK state after updating and fetching CRD.  Wanted", true, "but got", result.Spec.AuthorativePod)
+		t.Log("Incorrect OK state after updating and fetching CRD.  Wanted", true, "but got", result.Spec.AuthoritativePod)
 		t.Fail()
 	}
 

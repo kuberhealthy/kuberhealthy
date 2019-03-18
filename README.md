@@ -73,25 +73,25 @@ If you choose to alert from the JSON status page, you can access the status on `
       "OK": true,
       "Errors": [],
       "LastRun": "2018-06-21T17:32:16.921733843Z",
-      "AuthorativePod": "kuberhealthy-7cf79bdc86-m78qr"
+      "AuthoritativePod": "kuberhealthy-7cf79bdc86-m78qr"
     },
     "DaemonSetChecker": {
       "OK": true,
       "Errors": [],
       "LastRun": "2018-06-21T17:31:33.845218901Z",
-      "AuthorativePod": "kuberhealthy-7cf79bdc86-m78qr"
+      "AuthoritativePod": "kuberhealthy-7cf79bdc86-m78qr"
     },
     "PodRestartChecker namespace kube-system": {
       "OK": true,
       "Errors": [],
       "LastRun": "2018-06-21T17:31:16.45395092Z",
-      "AuthorativePod": "kuberhealthy-7cf79bdc86-m78qr"
+      "AuthoritativePod": "kuberhealthy-7cf79bdc86-m78qr"
     },
     "PodStatusChecker namespace kube-system": {
       "OK": true,
       "Errors": [],
       "LastRun": "2018-06-21T17:32:16.453911089Z",
-      "AuthorativePod": "kuberhealthy-7cf79bdc86-m78qr"
+      "AuthoritativePod": "kuberhealthy-7cf79bdc86-m78qr"
     }
   },
   "CurrentMaster": "kuberhealthy-7cf79bdc86-m78qr"

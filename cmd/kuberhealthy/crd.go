@@ -36,12 +36,12 @@ func setCheckCRDState(checkName string, client *khstatecrd.KuberhealthyStateClie
 	}
 	resourceVersion := existingState.GetResourceVersion()
 
-	// set ourselves as the authorative pod here
+	// set ourselves as the authoritative pod here
 	myName, err := getEnvVar("POD_NAME")
 	if err != nil {
 		return err
 	}
-	state.AuthorativePod = myName
+	state.AuthoritativePod = myName
 	state.LastRun = time.Now()
 
 	// TODO - if "try again" message found in error, then try again
