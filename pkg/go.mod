@@ -398,9 +398,9 @@ require (
 	gopkg.in/urfave/cli.v1 v1.20.0 // indirect
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0 // indirect
 	istio.io/gogo-genproto v0.0.0-20190124151557-6d926a6e6feb // indirect
-	k8s.io/api v0.0.0-20190111032252-67edc246be36
-	k8s.io/apimachinery v0.0.0-20190313115320-c9defaaddf6f
-	k8s.io/client-go v10.0.0+incompatible
+	k8s.io/api v0.0.0-20181128191700-6db15a15d2d3
+	k8s.io/apimachinery v0.0.0-20190118094746-1525e4dadd2d
+	k8s.io/client-go v8.0.0+incompatible
 	k8s.io/gengo v0.0.0-20190319205223-bc9033e9ec9e // indirect
 	k8s.io/klog v0.2.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372 // indirect
