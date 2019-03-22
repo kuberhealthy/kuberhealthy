@@ -50,20 +50,24 @@ func NewInfluxClient(input InfluxClientInput) (*InfluxClient, error) {
 	}, nil
 }
 
-// Push pushes a metric of name string and value of any type
-func (i *InfluxClient) Push(name string, value interface{}, tags map[string]string) error {
-	measurementName := strings.Replace(name, " ", "_", -1)
+// Push accepts a list of metrics, with a metric being defined as a map of string (name) to interface (value)
+func (i *InfluxClient) Push(points Metric, tags map[string]string) error {
+	influxPoints := []influx.Point{}
+	for _, p := range points {
+		for key, val := range p {
+			measurementName := strings.Replace(key, " ", "_", -1)
+			influxPoints = append(influxPoints, influx.Point{
+				Measurement: measurementName,
+				Fields: map[string]interface{}{
+					"value": val,
+				},
+			})
+		}
+	}
 	batch := influx.BatchPoints{
 		Database: i.db,
 		Tags:     tags,
-		Points: []influx.Point{
-			influx.Point{
-				Measurement: measurementName,
-				Fields: map[string]interface{}{
-					"value": value,
-				},
-			},
-		},
+		Points:   influxPoints,
 	}
 	_, err := i.client.Write(batch)
 	return err

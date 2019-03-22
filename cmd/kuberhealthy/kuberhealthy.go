@@ -267,13 +267,17 @@ func (k *Kuberhealthy) runCheck(stopChan chan bool, c KuberhealthyCheck) {
 			if details.OK {
 				checkStatus = 1
 			}
+
 			tags := map[string]string{
 				"KuberhealthyPod": details.AuthorativePod,
 				"Namespace":       c.CheckNamespace(),
 				"Name":            c.Name(),
 				"Errors":          strings.Join(details.Errors, ","),
 			}
-			err := k.MetricForwarder.Push(c.Name()+"_status", checkStatus, tags)
+			metric := metrics.Metric{
+				{c.Name() + "_status": checkStatus},
+			}
+			err := k.MetricForwarder.Push(metric, tags)
 			if err != nil {
 				log.Errorln("Error forwarding metrics", err)
 			}
