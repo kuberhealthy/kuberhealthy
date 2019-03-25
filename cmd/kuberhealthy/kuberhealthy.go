@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,6 +35,7 @@ type Kuberhealthy struct {
 	Checks                []KuberhealthyCheck
 	ListenAddr            string               // the listen address, such as ":80"
 	checkShutdownChannels map[string]chan bool // a slice of channels used to signal shutdowns to checks
+	MetricForwarder       metrics.Client
 	overrideKubeClient    *kubernetes.Clientset
 }
 
@@ -259,6 +261,28 @@ func (k *Kuberhealthy) runCheck(stopChan chan bool, c KuberhealthyCheck) {
 		details := health.NewCheckDetails()
 		details.Namespace = c.CheckNamespace()
 		details.OK, details.Errors = c.CurrentStatus()
+
+		if k.MetricForwarder != nil {
+			checkStatus := 0
+			if details.OK {
+				checkStatus = 1
+			}
+
+			tags := map[string]string{
+				"KuberhealthyPod": details.AuthorativePod,
+				"Namespace":       c.CheckNamespace(),
+				"Name":            c.Name(),
+				"Errors":          strings.Join(details.Errors, ","),
+			}
+			metric := metrics.Metric{
+				{c.Name() + "_status": checkStatus},
+			}
+			err := k.MetricForwarder.Push(metric, tags)
+			if err != nil {
+				log.Errorln("Error forwarding metrics", err)
+			}
+		}
+
 		log.Infoln("Setting state of check", c.Name(), "to", details.OK, details.Errors)
 
 		// store the check state with the CRD
