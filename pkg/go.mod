@@ -8,9 +8,7 @@ replace google.golang.org/cloud => cloud.google.com/go v0.37.0
 
 replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.3.0
 
-replace git.apache.org/thrift.git/test/go/src/bin/stress => github.com/apache/thrift/test/go/src/bin/stress v0.12.0
-
-replace gen/stress => github.com/apache/thrift/test/go/src/bin/stress v0.12.0
+replace github.com/testcontainers/testcontainer-go => github.com/testcontainers/testcontainers-go v0.0.0-20190108154635-47c0da630f72
 
 require (
 	bitbucket.org/creachadair/shell v0.0.4 // indirect
@@ -27,6 +25,7 @@ require (
 	github.com/JamesClonk/vultr v0.0.0-20190309094801-81b0bf41555e // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/OpenDNS/vegadns2client v0.0.0-20180418235048-a3fa4a771d87 // indirect
+	github.com/Pallinder/go-randomdata v1.1.0
 	github.com/RackSec/srslog v0.0.0-20180709174129-a4725f04ec91 // indirect
 	github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d // indirect
 	github.com/Shopify/sarama v1.21.0 // indirect
@@ -340,6 +339,7 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tchap/go-patricia v2.3.0+incompatible // indirect
+	github.com/testcontainers/testcontainers-go v0.0.2 // indirect
 	github.com/theupdateframework/notary v0.6.1 // indirect
 	github.com/thinkerou/favicon v0.1.0 // indirect
 	github.com/timewasted/linode v0.0.0-20160829202747-37e84520dcf7 // indirect
