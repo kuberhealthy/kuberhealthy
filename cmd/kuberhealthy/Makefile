@@ -3,3 +3,6 @@ test:
 run:
 	go build
 	POD_NAME="kuberhealthy-test" ./kuberhealthy -debug -forceMaster
+run-influx:
+	go build
+	POD_NAME="kuberhealthy-test" ./kuberhealthy -debug -forceMaster -enableInflux -influxUrl=http://localhost:8086 -influxDB=kuberhealthy
