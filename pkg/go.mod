@@ -1,14 +1,6 @@
 module github.com/Comcast/kuberhealthy/pkg
 
-replace github.com/golang/lint => github.com/golang/lint v0.0.0-20190227174305-8f45f776aaf1
-
-replace github.com/go-resty/resty => gopkg.in/resty.v1 v1.10.0
-
-replace google.golang.org/cloud => cloud.google.com/go v0.37.0
-
 replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.3.0
-
-replace github.com/testcontainers/testcontainer-go => github.com/testcontainers/testcontainers-go v0.0.0-20190108154635-47c0da630f72
 
 require (
 	github.com/Pallinder/go-randomdata v1.1.0
@@ -38,7 +30,9 @@ require (
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.2.2 // indirect
-	k8s.io/api v0.0.0-20181128191700-6db15a15d2d3
-	k8s.io/apimachinery v0.0.0-20190118094746-1525e4dadd2d
-	k8s.io/client-go v8.0.0+incompatible
+	k8s.io/api v0.0.0-20190222213804-5cb15d344471
+	k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
+	k8s.io/client-go v10.0.0+incompatible
+	k8s.io/klog v0.2.0 // indirect
+	sigs.k8s.io/yaml v1.1.0 // indirect
 )
