@@ -4,6 +4,7 @@ LABEL DESCRIPTION="Kuberhealthy - Check and expose kubernetes cluster health in 
 ADD ./ /go/src/github.com/Comcast/kuberhealthy/
 WORKDIR /go/src/github.com/Comcast/kuberhealthy/cmd/kuberhealthy
 ENV GO111MODULE=on
+ENV CGO_ENABLED=0
 RUN go version
 #RUN go test -v
 RUN go build -v -o kuberhealthy
