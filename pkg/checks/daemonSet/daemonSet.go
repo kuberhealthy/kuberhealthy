@@ -26,7 +26,6 @@ import (
 const daemonSetBaseName = "daemonset-test"
 
 var namespace = os.Getenv("POD_NAMESPACE")
-var checkEnabled = os.Getenv("DAEMON_SET_CHECK")
 
 // Checker implements a KuberhealthyCheck for daemonset
 // deployment and teardown checking.

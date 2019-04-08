@@ -20,8 +20,6 @@ import (
 
 const maxFailuresAllowed = 5
 
-var checkEnabled = os.Getenv("POD_RESTARTS_CHECK")
-
 // Checker represents a long running pod restart checker.
 type Checker struct {
 	RestartObservations map[string][]RestartCountObservation
