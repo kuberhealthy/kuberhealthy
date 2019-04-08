@@ -16,6 +16,8 @@ import (
 func init() {
 }
 
+var checkEnabled = os.Getenv("COMPONENT_STATUS_CHECK")
+
 // Checker validates componentstatus objects within the cluster.
 type Checker struct {
 	Errors           []string

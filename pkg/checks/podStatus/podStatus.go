@@ -17,6 +17,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+var checkEnabled = os.Getenv("POD_STATUS_CHECK")
+
 // Checker validates that pods within a namespace are in a healthy state
 type Checker struct {
 	FailureTimeStamp map[string]time.Time

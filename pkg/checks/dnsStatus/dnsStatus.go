@@ -17,6 +17,8 @@ import (
 
 const maxTimeInFailure = time.Duration(60 * time.Second)
 
+var checkEnabled = os.Getenv("DNS_STATUS_CHECK")
+
 // Checker validates that DNS is functioning correctly
 type Checker struct {
 	FailureTimeStamp map[string]time.Time
