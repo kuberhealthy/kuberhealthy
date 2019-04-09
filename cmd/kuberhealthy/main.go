@@ -45,11 +45,11 @@ var doneChan chan bool
 var terminationGracePeriodSeconds = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
 // flags indicating that checks of specific types should be used
-var enableComponentStatusChecks = true // do componentstatus checking
-var enableDaemonSetChecks = true       // do daemon set restart checking
-var enablePodRestartChecks = true      // do pod restart checking
-var enablePodStatusChecks = true       // do pod status checking
-var enableDnsStatusChecks = true       // do pod status checking
+var enableComponentStatusChecks = os.Getenv("COMPONENT_STATUS_CHECK")    // do componentstatus checking
+var enableDaemonSetChecks = os.Getenv("DAEMON_SET_CHECK")                // do daemon set restart checking
+var enablePodRestartChecks = os.Getenv("POD_RESTARTS_CHECK")             // do pod restart checking
+var enablePodStatusChecks = os.Getenv("POD_STATUS_CHECK")                // do pod status checking
+var enableDnsStatusChecks = os.Getenv("DNS_STATUS_CHECK")                // do pod status checking
 var enableForceMaster bool             // force master mode - for debugging
 var enableDebug bool                   // enable deubug logging
 
