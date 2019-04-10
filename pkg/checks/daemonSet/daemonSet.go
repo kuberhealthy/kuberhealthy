@@ -30,15 +30,16 @@ var namespace = os.Getenv("POD_NAMESPACE")
 // Checker implements a KuberhealthyCheck for daemonset
 // deployment and teardown checking.
 type Checker struct {
-	Namespace         string
-	DaemonSet         *betaapiv1.DaemonSet
-	ErrorMessages     []string
-	shuttingDown      bool
-	DaemonSetDeployed bool
-	DaemonSetName     string
-	hostname          string
-	tolerations       []apiv1.Toleration
-	client            *kubernetes.Clientset
+	Namespace           string
+	DaemonSet           *betaapiv1.DaemonSet
+	ErrorMessages       []string
+	shuttingDown        bool
+	DaemonSetDeployed   bool
+	DaemonSetName       string
+	PauseContainerImage string
+	hostname            string
+	tolerations         []apiv1.Toleration
+	client              *kubernetes.Clientset
 }
 
 // New creates a new Checker object
@@ -48,11 +49,12 @@ func New() (*Checker, error) {
 	var tolerations []apiv1.Toleration
 
 	testDS := Checker{
-		ErrorMessages: []string{},
-		Namespace:     namespace,
-		DaemonSetName: daemonSetBaseName + "-" + hostname + "-" + strconv.Itoa(int(time.Now().Unix())),
-		hostname:      hostname,
-		tolerations:   tolerations,
+		ErrorMessages:       []string{},
+		Namespace:           namespace,
+		DaemonSetName:       daemonSetBaseName + "-" + hostname + "-" + strconv.Itoa(int(time.Now().Unix())),
+		hostname:            hostname,
+		PauseContainerImage: "gcr.io/google_containers/pause:0.8.0",
+		tolerations:         tolerations,
 	}
 
 	return &testDS, nil
@@ -62,6 +64,8 @@ func New() (*Checker, error) {
 func (dsc *Checker) generateDaemonSetSpec() {
 
 	terminationGracePeriod := int64(1)
+	runAsUser := int64(1000)
+	log.Debug("Running daemon set as user 1000.")
 
 	// find all the taints in the cluster and create a toleration for each
 	var err error
@@ -103,9 +107,12 @@ func (dsc *Checker) generateDaemonSetSpec() {
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
 					Tolerations:                   []apiv1.Toleration{},
 					Containers: []apiv1.Container{
-						apiv1.Container{
+						{
 							Name:  "sleep",
-							Image: "gcr.io/google_containers/pause:0.8.0",
+							Image: dsc.PauseContainerImage,
+							SecurityContext: &apiv1.SecurityContext{
+								RunAsUser: &runAsUser,
+							},
 							Resources: apiv1.ResourceRequirements{
 								Requests: apiv1.ResourceList{
 									apiv1.ResourceCPU:    resource.MustParse("0"),
