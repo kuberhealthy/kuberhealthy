@@ -13,6 +13,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -39,13 +40,14 @@ var doneChan chan bool
 var terminationGracePeriodSeconds = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
 // flags indicating that checks of specific types should be used
-var enableComponentStatusChecks = true // do componentstatus checking
-var enableDaemonSetChecks = true       // do daemon set restart checking
-var enablePodRestartChecks = true      // do pod restart checking
-var enablePodStatusChecks = true       // do pod status checking
-var enableForceMaster bool             // force master mode - for debugging
-var enableDebug bool                   // enable debug logging
+var enableComponentStatusChecks = true   // do componentstatus checking
+var enableDaemonSetChecks = true         // do daemon set restart checking
+var enablePodRestartChecks = true        // do pod restart checking
+var enablePodStatusChecks = true         // do pod status checking
+var enableForceMaster bool               // force master mode - for debugging
+var enableDebug bool                     // enable debug logging
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
+var logLevel = "info"
 
 var kuberhealthy *Kuberhealthy
 
@@ -60,6 +62,15 @@ const CRDResource = "khstates"
 
 var masterCalculationInterval = time.Second * 10
 
+func getAllLogLevel() string {
+	levelStrings := []string{}
+	for _, level := range log.AllLevels {
+		levelStrings = append(levelStrings, level.String())
+	}
+
+	return strings.Join(levelStrings, ",")
+}
+
 func init() {
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
@@ -70,13 +81,19 @@ func init() {
 	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
-	flaggy.String(&DSPauseContainerImageOverride,  "",  "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
+	flaggy.String(&DSPauseContainerImageOverride, "", "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
+	flaggy.String(&logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
 	flaggy.Parse()
+
+	parsedLogLevel, err := log.ParseLevel(logLevel)
+	if err != nil {
+		log.Fatalln("Unable to parse log-level flag: ", err)
+	}
 
 	// log to stdout and set the level to info by default
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(parsedLogLevel)
 	log.Infoln("Startup Arguments:", os.Args)
 
 	// handle debug logging
