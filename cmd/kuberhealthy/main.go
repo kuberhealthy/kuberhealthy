@@ -14,11 +14,16 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/Comcast/kuberhealthy/pkg/metrics"
+
+	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 
 	"github.com/Comcast/kuberhealthy/pkg/checks/componentStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
@@ -33,6 +38,7 @@ import (
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var listenAddress = ":8080"
 var podCheckNamespaces = "kube-system"
+var dnsEndpoints []string
 
 // shutdown signal handling
 var sigChan chan os.Signal
@@ -40,14 +46,24 @@ var doneChan chan bool
 var terminationGracePeriodSeconds = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
 // flags indicating that checks of specific types should be used
-var enableComponentStatusChecks = true   // do componentstatus checking
-var enableDaemonSetChecks = true         // do daemon set restart checking
-var enablePodRestartChecks = true        // do pod restart checking
-var enablePodStatusChecks = true         // do pod status checking
 var enableForceMaster bool               // force master mode - for debugging
 var enableDebug bool                     // enable debug logging
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
 var logLevel = "info"
+var enableComponentStatusChecks = os.Getenv("COMPONENT_STATUS_CHECK")    // do componentstatus checking
+var enableDaemonSetChecks = os.Getenv("DAEMON_SET_CHECK")                // do daemon set restart checking
+var enablePodRestartChecks = os.Getenv("POD_RESTARTS_CHECK")             // do pod restart checking
+var enablePodStatusChecks = os.Getenv("POD_STATUS_CHECK")                // do pod status checking
+var enableDnsStatusChecks = os.Getenv("DNS_STATUS_CHECK")                // do pod status checking
+var enableForceMaster bool             // force master mode - for debugging
+var enableDebug bool                   // enable deubug logging
+
+// InfluxDB flags
+var enableInflux = false
+var influxUrl = ""
+var influxUsername = ""
+var influxPassword = ""
+var influxDB = "http://localhost:8086"
 
 var kuberhealthy *Kuberhealthy
 
@@ -79,11 +95,19 @@ func init() {
 	flaggy.Bool(&enableDaemonSetChecks, "", "daemonsetChecks", "Set to false to disable cluster daemonset deployment and termination checking.")
 	flaggy.Bool(&enablePodRestartChecks, "", "podRestartChecks", "Set to false to disable pod restart checking.")
 	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
+	flaggy.Bool(&enableDnsStatusChecks, "", "dnsStatusChecks", "Set to false to disable DNS checks.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
 	flaggy.String(&DSPauseContainerImageOverride, "", "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
 	flaggy.String(&logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
+	flaggy.StringSlice(&dnsEndpoints, "", "dnsEndpoints", "The comma separated list of dns endpoints to check, if enabled. Defaults to kubernetes.default")
+	// Influx flags
+	flaggy.String(&influxUsername, "", "influxUser", "Username for the InfluxDB instance")
+	flaggy.String(&influxPassword, "", "influxPassword", "Password for the InfluxDB instance")
+	flaggy.String(&influxUrl, "", "influxUrl", "Address for the InfluxDB instance")
+	flaggy.String(&influxDB, "", "influxDB", "Name of the InfluxDB database")
+	flaggy.Bool(&enableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
 	flaggy.Parse()
 
 	parsedLogLevel, err := log.ParseLevel(logLevel)
@@ -122,6 +146,25 @@ func main() {
 	// Create a new Kuberhealthy struct
 	kuberhealthy = NewKuberhealthy()
 	kuberhealthy.ListenAddr = listenAddress
+	var metricClient metrics.Client
+	if enableInflux {
+		influxUrlParsed, err := url.Parse(influxUrl)
+		if err != nil {
+			log.Fatalln("Unable to parse influxUrl", err)
+		}
+		metricClient, err = metrics.NewInfluxClient(metrics.InfluxClientInput{
+			Config: metrics.InfluxConfig{
+				URL:      *influxUrlParsed,
+				Password: influxPassword,
+				Username: influxUsername,
+			},
+			Database: influxDB,
+		})
+		if err != nil {
+			log.Fatalln("Unable to parse initialize connection with InfluxDB", err)
+		}
+	}
+	kuberhealthy.MetricForwarder = metricClient
 
 	// Split the podCheckNamespaces into a []string
 	namespaces := strings.Split(podCheckNamespaces, ",")
@@ -165,6 +208,11 @@ func main() {
 				kuberhealthy.AddCheck(podStatus.New(n))
 			}
 		}
+	}
+
+	// dns resolution checking
+	if enableDnsStatusChecks {
+		kuberhealthy.AddCheck(dnsStatus.New(dnsEndpoints))
 	}
 
 	// Tell Kuberhealthy to start all checks and master change monitoring
