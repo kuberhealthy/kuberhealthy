@@ -15,11 +15,11 @@ import "time"
 
 // CheckDetails contains details about a single check's current status
 type CheckDetails struct {
-	OK             bool
-	Errors         []string
-	Namespace      string
-	LastRun        time.Time // the time the check last was last run
-	AuthorativePod string    // the pod that last ran the check
+	OK               bool
+	Errors           []string
+	Namespace        string
+	LastRun          time.Time // the time the check last was last run
+	AuthoritativePod string    // the pod that last ran the check
 }
 
 // NewCheckDetails creates a new CheckDetails struct

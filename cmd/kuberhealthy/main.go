@@ -13,6 +13,7 @@
 package main
 
 import (
+	"fmt"
 	"net/url"
 	"os"
 	"os/signal"
@@ -45,6 +46,10 @@ var doneChan chan bool
 var terminationGracePeriodSeconds = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
 // flags indicating that checks of specific types should be used
+var enableForceMaster bool               // force master mode - for debugging
+var enableDebug bool                     // enable debug logging
+var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
+var logLevel = "info"
 var enableComponentStatusChecks = os.Getenv("COMPONENT_STATUS_CHECK")    // do componentstatus checking
 var enableDaemonSetChecks = os.Getenv("DAEMON_SET_CHECK")                // do daemon set restart checking
 var enablePodRestartChecks = os.Getenv("POD_RESTARTS_CHECK")             // do pod restart checking
@@ -73,6 +78,15 @@ const CRDResource = "khstates"
 
 var masterCalculationInterval = time.Second * 10
 
+func getAllLogLevel() string {
+	levelStrings := []string{}
+	for _, level := range log.AllLevels {
+		levelStrings = append(levelStrings, level.String())
+	}
+
+	return strings.Join(levelStrings, ",")
+}
+
 func init() {
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
@@ -84,7 +98,9 @@ func init() {
 	flaggy.Bool(&enableDnsStatusChecks, "", "dnsStatusChecks", "Set to false to disable DNS checks.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
+	flaggy.String(&DSPauseContainerImageOverride, "", "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
+	flaggy.String(&logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
 	flaggy.StringSlice(&dnsEndpoints, "", "dnsEndpoints", "The comma separated list of dns endpoints to check, if enabled. Defaults to kubernetes.default")
 	// Influx flags
 	flaggy.String(&influxUsername, "", "influxUser", "Username for the InfluxDB instance")
@@ -94,9 +110,14 @@ func init() {
 	flaggy.Bool(&enableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
 	flaggy.Parse()
 
+	parsedLogLevel, err := log.ParseLevel(logLevel)
+	if err != nil {
+		log.Fatalln("Unable to parse log-level flag: ", err)
+	}
+
 	// log to stdout and set the level to info by default
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(parsedLogLevel)
 	log.Infoln("Startup Arguments:", os.Args)
 
 	// handle debug logging
@@ -158,6 +179,11 @@ func main() {
 	// daemonset checking
 	if enableDaemonSetChecks {
 		dsc, err := daemonSet.New()
+		// allow the user to override the image used by the DSC - see #114
+		if len(DSPauseContainerImageOverride) > 0 {
+			log.Info("Setting DS pause container override image to:", DSPauseContainerImageOverride)
+			dsc.PauseContainerImage = DSPauseContainerImageOverride
+		}
 		if err != nil {
 			log.Fatalln("unable to create daemonset checker:", err)
 		}
