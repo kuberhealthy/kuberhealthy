@@ -50,13 +50,11 @@ var enableForceMaster bool               // force master mode - for debugging
 var enableDebug bool                     // enable debug logging
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
 var logLevel = "info"
-var enableComponentStatusChecks = os.Getenv("COMPONENT_STATUS_CHECK")    // do componentstatus checking
-var enableDaemonSetChecks = os.Getenv("DAEMON_SET_CHECK")                // do daemon set restart checking
-var enablePodRestartChecks = os.Getenv("POD_RESTARTS_CHECK")             // do pod restart checking
-var enablePodStatusChecks = os.Getenv("POD_STATUS_CHECK")                // do pod status checking
-var enableDnsStatusChecks = os.Getenv("DNS_STATUS_CHECK")                // do pod status checking
-var enableForceMaster bool             // force master mode - for debugging
-var enableDebug bool                   // enable deubug logging
+var enableComponentStatusChecks = true
+var enableDaemonSetChecks = true
+var enablePodRestartChecks = true
+var enablePodStatusChecks = true
+var enableDnsStatusChecks = true
 
 // InfluxDB flags
 var enableInflux = false
