@@ -30,16 +30,16 @@ var namespace = os.Getenv("POD_NAMESPACE")
 // Checker implements a KuberhealthyCheck for daemonset
 // deployment and teardown checking.
 type Checker struct {
-	Namespace         string
-	DaemonSet         *betaapiv1.DaemonSet
-	ErrorMessages     []string
-	shuttingDown      bool
-	DaemonSetDeployed bool
-	DaemonSetName     string
+	Namespace           string
+	DaemonSet           *betaapiv1.DaemonSet
+	ErrorMessages       []string
+	shuttingDown        bool
+	DaemonSetDeployed   bool
+	DaemonSetName       string
 	PauseContainerImage string
-	hostname          string
-	tolerations       []apiv1.Toleration
-	client            *kubernetes.Clientset
+	hostname            string
+	tolerations         []apiv1.Toleration
+	client              *kubernetes.Clientset
 }
 
 // New creates a new Checker object
@@ -49,12 +49,12 @@ func New() (*Checker, error) {
 	var tolerations []apiv1.Toleration
 
 	testDS := Checker{
-		ErrorMessages: []string{},
-		Namespace:     namespace,
-		DaemonSetName: daemonSetBaseName + "-" + hostname + "-" + strconv.Itoa(int(time.Now().Unix())),
-		hostname:      hostname,
+		ErrorMessages:       []string{},
+		Namespace:           namespace,
+		DaemonSetName:       daemonSetBaseName + "-" + hostname + "-" + strconv.Itoa(int(time.Now().Unix())),
+		hostname:            hostname,
 		PauseContainerImage: "gcr.io/google_containers/pause:0.8.0",
-		tolerations:   tolerations,
+		tolerations:         tolerations,
 	}
 
 	return &testDS, nil
@@ -107,7 +107,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
 					Tolerations:                   []apiv1.Toleration{},
 					Containers: []apiv1.Container{
-						apiv1.Container{
+						{
 							Name:  "sleep",
 							Image: dsc.PauseContainerImage,
 							SecurityContext: &apiv1.SecurityContext{
