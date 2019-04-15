@@ -131,13 +131,13 @@ func makeOrphan(dsc *Checker) error {
 				Spec: apiv1.PodSpec{
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
 					Tolerations: []apiv1.Toleration{
-						apiv1.Toleration{
+						{
 							Key:    "node-role.kubernetes.io/master",
 							Effect: "NoSchedule",
 						},
 					},
 					Containers: []apiv1.Container{
-						apiv1.Container{
+						{
 							Name:  "sleep",
 							Image: "gcr.io/google_containers/pause:0.8.0",
 							Resources: apiv1.ResourceRequirements{
