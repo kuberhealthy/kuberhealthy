@@ -22,9 +22,7 @@ import (
 	"time"
 
 	"github.com/Comcast/kuberhealthy/pkg/metrics"
-
 	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
-
 	"github.com/Comcast/kuberhealthy/pkg/checks/componentStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
