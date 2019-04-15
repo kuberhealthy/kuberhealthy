@@ -62,7 +62,6 @@ var influxUrl = ""
 var influxUsername = ""
 var influxPassword = ""
 var influxDB = "http://localhost:8086"
-
 var kuberhealthy *Kuberhealthy
 
 // CRDGroup is a custom resource group name
@@ -96,7 +95,11 @@ func init() {
 	flaggy.Bool(&enableDnsStatusChecks, "", "dnsStatusChecks", "Set to false to disable DNS checks.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
+<<<<<<< HEAD
 	flaggy.String(&DSPauseContainerImageOverride, "", "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
+=======
+	flaggy.String(&DSPauseContainerImageOverride,  "",  "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
+>>>>>>> master
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
 	flaggy.String(&logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
 	flaggy.StringSlice(&dnsEndpoints, "", "dnsEndpoints", "The comma separated list of dns endpoints to check, if enabled. Defaults to kubernetes.default")
