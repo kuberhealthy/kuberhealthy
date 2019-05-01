@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -48,11 +49,12 @@ var enableForceMaster bool               // force master mode - for debugging
 var enableDebug bool                     // enable debug logging
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
 var logLevel = "info"
-var enableComponentStatusChecks = true
-var enableDaemonSetChecks = true
-var enablePodRestartChecks = true
-var enablePodStatusChecks = true
-var enableDnsStatusChecks = true
+
+var enableComponentStatusChecks = determineCheckStateFromEnvVar("COMPONENT_STATUS_CHECK")
+var enableDaemonSetChecks = determineCheckStateFromEnvVar("DAEMON_SET_CHECK")
+var enablePodRestartChecks = determineCheckStateFromEnvVar("POD_RESTARTS_CHECK")
+var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
+var enableDnsStatusChecks = determineCheckStateFromEnvVar("DNS_STATUS_CHECK")
 
 // InfluxDB flags
 var enableInflux = false
@@ -238,33 +240,13 @@ func listenForInterrupts() {
 	os.Exit(0)
 }
 
-// parseCheckBools parses bools that enable/disable checks from environment variables
-func parseCheckBools() {
-	var err error
-
-	enableComponentStatusChecks, err = parseBoolEnvVar("COMPONENT_STATUS_CHECK")
+// determineCheckStateFromEnvVar determines a check's enabled state based on
+// the supplied environment variable
+func determineCheckStateFromEnvVar(envVarName string) bool {
+	enabledState, err := strconv.ParseBool(os.Getenv(envVarName))
 	if err != nil {
-		log.Warnln("Had an error parsing the environment variable", "COMPONENT_STATUS_CHECK")
+		log.Debugln("Had an error parsing the environment variable", envVarName, err)
+		return true // by default, the check is on
 	}
-
-	enableDaemonSetChecks, err = parseBoolEnvVar("DAEMON_SET_CHECK")
-	if err != nil {
-		log.Warnln("Had an error parsing the environment variable", "DAEMON_SET_CHECK")
-	}
-
-	enableDnsStatusChecks, err = parseBoolEnvVar("DNS_STATUS_CHECK")
-	if err != nil {
-		log.Warnln("Had an error parsing the environment variable", "DNS_STATUS_CHECK")
-	}
-
-	enablePodRestartChecks, err = parseBoolEnvVar("POD_RESTARTS_CHECK")
-	if err != nil {
-		log.Warnln("Had an error parsing the environment variable", "POD_RESTARTS_CHECK")
-	}
-
-	enablePodStatusChecks, err = parseBoolEnvVar("POD_STATUS_CHECK")
-	if err != nil {
-		log.Warnln("Had an error parsing the environment variable", "POD_STATUS_CHECK")
-	}
-
+	return enabledState
 }
