@@ -21,13 +21,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/pkg/metrics"
-	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/componentStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
+	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
+	"github.com/Comcast/kuberhealthy/pkg/metrics"
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
 )
@@ -83,6 +83,8 @@ func getAllLogLevel() string {
 }
 
 func init() {
+
+	// setup flaggy
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
 	flaggy.String(&listenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
@@ -234,4 +236,35 @@ func listenForInterrupts() {
 		log.Errorln("Shutdown took too long.  Shutting down forcefully!")
 	}
 	os.Exit(0)
+}
+
+// parseCheckBools parses bools that enable/disable checks from environment variables
+func parseCheckBools() {
+	var err error
+
+	enableComponentStatusChecks, err = parseBoolEnvVar("COMPONENT_STATUS_CHECK")
+	if err != nil {
+		log.Warnln("Had an error parsing the environment variable", "COMPONENT_STATUS_CHECK")
+	}
+
+	enableDaemonSetChecks, err = parseBoolEnvVar("DAEMON_SET_CHECK")
+	if err != nil {
+		log.Warnln("Had an error parsing the environment variable", "DAEMON_SET_CHECK")
+	}
+
+	enableDnsStatusChecks, err = parseBoolEnvVar("DNS_STATUS_CHECK")
+	if err != nil {
+		log.Warnln("Had an error parsing the environment variable", "DNS_STATUS_CHECK")
+	}
+
+	enablePodRestartChecks, err = parseBoolEnvVar("POD_RESTARTS_CHECK")
+	if err != nil {
+		log.Warnln("Had an error parsing the environment variable", "POD_RESTARTS_CHECK")
+	}
+
+	enablePodStatusChecks, err = parseBoolEnvVar("POD_STATUS_CHECK")
+	if err != nil {
+		log.Warnln("Had an error parsing the environment variable", "POD_STATUS_CHECK")
+	}
+
 }

@@ -14,6 +14,7 @@ package main
 import (
 	"errors"
 	"os"
+	"strconv"
 )
 
 // getEnvVar attempts to retrieve and then validates an environmental variable
@@ -24,4 +25,11 @@ func getEnvVar(v string) (string, error) {
 		err = errors.New("Could not retrieve Environment variable, or it had no content. " + v)
 	}
 	return envVar, err
+}
+
+// parseBoolEnvVar parses the specified env var as a boolean
+func parseBoolEnvVar(envVarName string) (bool, error) {
+	// parse environment variables
+	envVarString := os.Getenv(envVarName)
+	return strconv.ParseBool(envVarString)
 }
