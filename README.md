@@ -167,3 +167,5 @@ A command-line flag exists `--dnsEndpoints` which can optionally include a comma
 ### Security Considerations
 
 By default, Kuberhealthy exposes an insecure (non-HTTPS) status endpoint without authentication. You should never expose this endpoint to the public internet. Exposing Kuberhealthy's status page to the public internet could result in private cluster information being exposed to the public internet when errors occur and are displayed on the page.
+
+Vulnerabilities or other security related issues should be logged as git issues in this project and immediately reported to The Security Incident Response Team (SIRT) via email at NETO_SIRT@comcast.com.  Please do not post sensitive information in git issues.
