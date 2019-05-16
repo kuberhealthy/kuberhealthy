@@ -14,3 +14,9 @@
 - Add your name to the `CONTRIBUTORS` file
 - Open a pull request from your fork and branch to master on github.com/Comcast/kuberhealthy
 - Celebrate! 🎉
+
+## General Requirements
+
+- The code must be formatted with `go fmt`
+- The change must pass all tests
+- The change must include tests for new functionality created
