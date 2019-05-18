@@ -257,15 +257,15 @@ spec:
               fieldRef:
                 fieldPath: metadata.namespace
           - name: COMPONENT_STATUS_CHECK
-            value: true
+            value: "true"
           - name: DAEMON_SET_CHECK
-            value: true
+            value: "true"
           - name: DNS_STATUS_CHECK
-            value: true
+            value: "true"
           - name: POD_RESTARTS_CHECK
-            value: true
+            value: "true"
           - name: POD_STATUS_CHECK
-            value: true
+            value: "true"
         readinessProbe:
           failureThreshold: 3
           initialDelaySeconds: 2
