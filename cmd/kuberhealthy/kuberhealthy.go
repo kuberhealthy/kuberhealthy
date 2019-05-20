@@ -269,7 +269,7 @@ func (k *Kuberhealthy) runCheck(stopChan chan bool, c KuberhealthyCheck) {
 			}
 
 			tags := map[string]string{
-				"KuberhealthyPod": details.AuthoritativePod,
+				"KuberhealthyPod": details.AuthorativePod,
 				"Namespace":       c.CheckNamespace(),
 				"Name":            c.Name(),
 				"Errors":          strings.Join(details.Errors, ","),
