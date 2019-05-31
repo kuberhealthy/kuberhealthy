@@ -84,6 +84,9 @@ func (dsc *Checker) generateDaemonSetSpec() {
 				"source":           "kuberhealthy",
 				"creatingInstance": dsc.hostname,
 			},
+			Annotations: map[string]string{
+				"cluster-autoscaler.kubernetes.io/safe-to-evict":	"true",
+			},
 		},
 		Spec: betaapiv1.DaemonSetSpec{
 			MinReadySeconds: 2,
