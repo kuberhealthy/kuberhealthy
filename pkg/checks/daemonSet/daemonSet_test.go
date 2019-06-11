@@ -190,7 +190,7 @@ func TestParseTolerationOverride(t *testing.T) {
 			[]apiv1.Toleration{
 			{
 				Key:    "node-role.kubernetes.io/master",
-				Value:  "",
+				Value:  "asdf",
 				Effect: apiv1.TaintEffect("NoSchedule"),
 			},
 			{
@@ -218,14 +218,12 @@ func TestParseTolerationOverride(t *testing.T) {
 
 	for _, tt := range taintTests{
 		actual, err := checker.ParseTolerationOverride(tt.input)
-		t.Log("Success! - Input:", tt.input, "Expected:", tt.expected, "Received:", actual, "Error:", err)
 		if err != nil && err.Error() != tt.err {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(actual, tt.expected) {
-			defer recover()
-			t.Error("Input:", tt.input, "Expected:", tt.expected, "Received:", actual, "Error:", err)
+			t.Error("Failure! - Input:", tt.input, "Expected:", tt.expected, "Received:", actual, "Error:", err)
 		}
-
+		t.Log("Success! - Input:", tt.input, "Expected:", tt.expected, "Received:", actual, "Error:", err)
 	}
 }
