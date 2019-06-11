@@ -54,7 +54,7 @@ func New() (*Checker, error) {
 		Namespace:           namespace,
 		DaemonSetName:       daemonSetBaseName + "-" + hostname + "-" + strconv.Itoa(int(time.Now().Unix())),
 		hostname:            hostname,
-		PauseContainerImage: "gcr.io/google_containers/pause:0.8.0",
+		PauseContainerImage: "gcr.io/google-containers/pause:3.1",
 		Tolerations:         tolerations,
 	}
 
