@@ -223,6 +223,7 @@ func TestParseTolerationOverride(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(actual, tt.expected) {
+			defer recover()
 			t.Error("Input:", tt.input, "Expected:", tt.expected, "Received:", actual, "Error:", err)
 		}
 
