@@ -1,6 +1,7 @@
 package daemonSet
 
 import (
+	"reflect"
 	"strconv"
 	"testing"
 	"time"
@@ -156,4 +157,74 @@ func makeOrphan(dsc *Checker) error {
 	daemonSetClient := dsc.getDaemonSetClient()
 	_, err := daemonSetClient.Create(dsc.DaemonSet)
 	return err
+}
+
+func TestParseTolerationOverride(t *testing.T) {
+	var taintTests = []struct {
+		input 		[]string // input
+		expected 	[]apiv1.Toleration //output
+		err			string
+	}{
+		{[]string{"node-role.kubernetes.io/master,,NoSchedule"},
+			[]apiv1.Toleration{
+			{
+				Key:    "node-role.kubernetes.io/master",
+				Value:  "",
+				Effect: apiv1.TaintEffect("NoSchedule"),
+			},
+		},
+		"",
+		},
+		{
+			[]string{"dedicated,someteam,NoSchedule"},
+			[]apiv1.Toleration{
+			{
+				Key:    "dedicated",
+				Value:  "someteam",
+				Effect: apiv1.TaintEffect("NoSchedule"),
+			},
+		},
+		"",
+		},
+		{[]string{"node-role.kubernetes.io/master,,NoSchedule", "dedicated,someteam,NoSchedule"},
+			[]apiv1.Toleration{
+			{
+				Key:    "node-role.kubernetes.io/master",
+				Value:  "",
+				Effect: apiv1.TaintEffect("NoSchedule"),
+			},
+			{
+				Key:    "dedicated",
+				Value:  "someteam",
+				Effect: apiv1.TaintEffect("NoSchedule"),
+			},
+		},
+		"",
+		},
+		{ []string{"too,much,input,for,this,function"}, []apiv1.Toleration{},
+			"Unable to parse the passed in taint overrides - are they in the correct format?",
+
+		},
+		{ []string{"notenoughinput"}, []apiv1.Toleration{},
+			"Unable to parse the passed in taint overrides - are they in the correct format?",
+
+		},
+	}
+
+	checker, err := New()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tt := range taintTests{
+		actual, err := checker.ParseTolerationOverride(tt.input)
+		t.Log("Success! - Input:", tt.input, "Expected:", tt.expected, "Received:", actual, "Error:", err)
+		if err != nil && err.Error() != tt.err {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(actual, tt.expected) {
+			t.Error("Input:", tt.input, "Expected:", tt.expected, "Received:", actual, "Error:", err)
+		}
+
+	}
 }
