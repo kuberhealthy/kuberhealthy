@@ -190,7 +190,7 @@ func TestParseTolerationOverride(t *testing.T) {
 			[]apiv1.Toleration{
 			{
 				Key:    "node-role.kubernetes.io/master",
-				Value:  "asdf",
+				Value:  "",
 				Effect: apiv1.TaintEffect("NoSchedule"),
 			},
 			{
