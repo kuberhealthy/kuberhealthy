@@ -223,6 +223,7 @@ func TestParseTolerationOverride(t *testing.T) {
 		}
 		if !reflect.DeepEqual(actual, tt.expected) {
 			t.Error("Failure! - Input:", tt.input, "Expected:", tt.expected, "Received:", actual, "Error:", err)
+			continue
 		}
 		t.Log("Success! - Input:", tt.input, "Expected:", tt.expected, "Received:", actual, "Error:", err)
 	}
