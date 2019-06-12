@@ -7,17 +7,25 @@ import (
 	"os"
 	"sync"
 	"time"
+	"errors"
+	"fmt"
 
 	"github.com/prometheus/common/log"
 	"k8s.io/client-go/kubernetes"
-	"errors"
+	"github.com/satori/go.uuid" 
 
 	apiv1 "k8s.io/api/core/v1"
+	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// NamePrefix is the name of this kuberhealthy checker
-var NamePrefix = "external-check"
+// DefaultKuberhealthyReportingURL is the default location that external checks
+// are expected to report into.
+const DefaultKuberhealthyReportingURL = "http://kuberhealthy.kuberhealthy.svc.local"
 
+// NamePrefix is the name of this kuberhealthy checker
+var NamePrefix = DefaultName
+// DefaultName is used when no check name is supplied
 var DefaultName = "external-check"
 
 // namespace indicates the namespace of the kuberhealthy
@@ -43,19 +51,21 @@ type Checker struct {
 	PodDeployedMu sync.Mutex
 	PodName       string // the name of the deployed pod
 	RunID         string // the uuid of the current run
+	KuberhealthyReportingURL string // the URL that the check should want to report results back to
+	Tolerations []apiv1.Toleration // taints that we tolerate when running external checkers
+	NodeSelectors map[string]string // node selectors that we place on the external check pod
 }
 
-// New creates a new Checker object
+// New creates a new external checker 
 func New() (*Checker, error) {
-
-	hostname := getHostname()
-	var tolerations []apiv1.Toleration
 
 	testDS := Checker{
 		ErrorMessages: []string{},
 		Namespace:     namespace,
 		CheckName:          DefaultName,
 		RunInterval:   defaultRunInterval,
+		KuberhealthyReportingURL: DefaultKuberhealthyReportingURL,
+		NodeSelectors: make(map[string]string),
 	}
 
 	return &testDS, nil
@@ -105,24 +115,24 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 
 	// if the pod spec is unspecified, we return an error
 	if ext.PodSpec == nil {
-		return errors.New("Unable to determine pod spec for cheker.  Pod spec was nil.")
+		return errors.New("unable to determine pod spec for cheker  Pod spec was nil")
 	}
 
 // if containers are not set, then we return an error
 	if len(ext.PodSpec.Containers) == 0 && len(ext.PodSpec.InitContainers) == 0 {
-		return errors.New("No containers found in check's PodSpec.")
+		return errors.New("no containers found in checks PodSpec")
 		// TODO - dump detected spec?
 	}
 
 	// ensure that at least one container is defined
 	if len(ext.PodSpec.Containers) == 0 {
-		return errors.New("No containers found in check's PodSpec.")
+		return errors.New("no containers found in checks PodSpec")
 	}
 
 	// ensure that all containers have an image set
 	for _, c := range ext.PodSpec.Containers {
 		if len(c.Image) == 0 {
-		return errors.New("No image found in check's PodSpec for container " + c.Name+".")
+		return errors.New("no image found in check's PodSpec for container " + c.Name+".")
 		}
 	}
 
@@ -131,9 +141,8 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	// create kubernetes job from user's pod spec
 	job := ext.configureUserPodSpec()
 
-	// determine check pod's run UUID and set whitelist in CRD for this check
-
 	// Spawn kubernetes pod (not job)
+	fmt.Println("Creating job:",job)
 
 	// watch for pod to start with a timeout (include time for a new node to be created)
 
@@ -143,7 +152,7 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 
 	// TODO - can we make pods not restart after crashing?
 
-		return nil
+	return nil
 }
 
 // configureUserPodSpec configures a user-specified pod spec with
@@ -159,14 +168,16 @@ func (ext *Checker) configureUserPodSpec() (error) {
 
 	// specify environment variables that need applied
 	overwriteEnvVars := []apiv1.EnvVar{
-	apiv1.EnvVar{
-		Name: "KUBERHEALTHY_URL",
-		Value: "", // TODO
-	},
-	apiv1.EnvVar{
-		Name: "KUBERHEALTHY_CHECK_RUN_ID",
-		Value: "", // TODO
-	},
+		apiv1.EnvVar{
+			Name: "KUBERHEALTHY_URL",
+			Value: ext.KuberhealthyReportingURL,
+		},
+
+		// determine check pod's run UUID and set whitelist in CRD for this check
+		apiv1.EnvVar{
+			Name: "KUBERHEALTHY_CHECK_RUN_ID",
+			Value: ext.createCheckUUID(),
+		},
 	}
 
 
@@ -174,31 +185,45 @@ func (ext *Checker) configureUserPodSpec() (error) {
 	for i := range ext.PodSpec.Containers {
 		ext.PodSpec.Containers[i].Env = append(ext.PodSpec.Containers[i].Env,overwriteEnvVars...)
 	}
+
+	ext.PodSpec.Tolerations = ext.Tolerations
+
+	ext.PodSpec.NodeSelector = ext.NodeSelectors
 		
 	return nil
 		
 }
 
+
+// createCheckUUID creates a UUID that represents a single run of the external check
+func (ext *Checker) createCheckUUID() string {
+	uuid, err := uuid.FromString(ext.CheckName + time.Now().String())
+	if err !=  nil {
+		fmt.Println("External checker had error creating UUID for external check run:",err)
+	}
+	return uuid.String()
+}
+
 // fetchPod fetches the pod for the checker from the api server
 // and returns a bool indicating if it exists or not
 func (ext *Checker) fetchPod() (bool, error) {
-	podClient := ext.GetClient()
+	podClient := ext.getPodClient()
 	var firstQuery bool
 	var more string
 	// pagination
 	for firstQuery || len(more) > 0 {
 		firstQuery = false
-		dsList, err := dsClient.List(metav1.ListOptions{
+		podList, err := podClient.List(metav1.ListOptions{
 			Continue: more,
 		})
 		if err != nil {
 			return false, err
 		}
-		more = dsList.Continue
+		more = podList.Continue
 
-		// check results for our daemonset
-		for _, item := range dsList.Items {
-			if item.GetName() == dsc.DaemonSetName {
+		// check results for our pod
+		for _, item := range podList.Items {
+			if item.GetName() == ext.PodName {
 				// ds does exist, return true
 				return true, nil
 			}
@@ -215,7 +240,7 @@ func (ext *Checker) waitForShutdown(ctx context.Context) error {
 	// is canceled
 	for {
 		time.Sleep(time.Second / 2)
-		exists, err := dsc.fetchDS()
+		exists, err := ext.fetchPod()
 		if err != nil {
 			return err
 		}
@@ -223,12 +248,6 @@ func (ext *Checker) waitForShutdown(ctx context.Context) error {
 			return nil
 		}
 	}
-}
-
-// getPodClient returns a Pod client for kubernetes
-func (ext *Checker) getPodClient() v1beta1.PodInterface {
-	log.Debug("Creating Pod client.")
-	return ext.client.ExtensionsV1beta1().Pods(ext.Namespace)
 }
 
 // Shutdown signals the DS to begin a cleanup
@@ -246,13 +265,26 @@ func (ext *Checker) Shutdown() error {
 
 	// if the pod is deployed, delete it
 	if ext.podDeployed() {
-		ext.remove()
-		ext.waitForPodRemoval(ctx)
+		ext.removePod()
+		ext.waitForPodRemoval()
 	}
 
 	log.Infoln(ext.Name(), "Pod "+ext.PodName+" ready for shutdown.")
 	return nil
 
+}
+
+
+// waitForPodRemoval waits for the external checker pod to be removed
+func (ext *Checker) waitForPodRemoval() error {
+	// TODO
+	return nil
+}
+
+// removePod removes the external checker pod
+func (ext *Checker) removePod() error {
+	// TODO
+	return nil
 }
 
 // clearErrors clears all errors from the checker
@@ -273,4 +305,10 @@ func (ext *Checker) setPodDeployed(status bool) {
 	ext.PodDeployedMu.Lock()
 	defer ext.PodDeployedMu.Unlock()
 	ext.PodDeployed = status
+}
+
+
+// getPodClient returns a client for Kubernetes pods
+func (ext *Checker) getPodClient() typedv1.PodInterface {
+	return ext.kubeClient.CoreV1().Pods(ext.Namespace)
 }
