@@ -22,6 +22,9 @@ import (
 // are expected to report into.
 const DefaultKuberhealthyReportingURL = "http://kuberhealthy.kuberhealthy.svc.local"
 
+// kuberhealthyRunIDLabel is the pod label for the kuberhealthy run id value
+const kuberhealthyRunIDLabel = "kuberhealthy-run-id"
+
 // NamePrefix is the name of this kuberhealthy checker
 var NamePrefix = DefaultName
 
@@ -52,6 +55,7 @@ type Checker struct {
 	PodName                  string             // the name of the deployed pod
 	RunID                    string             // the uuid of the current run
 	KuberhealthyReportingURL string             // the URL that the check should want to report results back to
+	currentCheckUUID string // the UUID of the current external checker running
 }
 
 // New creates a new external checker
@@ -101,6 +105,10 @@ func (ext *Checker) Timeout() time.Duration {
 // Run executes the checker.  This is ran on each "tick" of
 // the RunInterval and is executed by the Kuberhealthy checker
 func (ext *Checker) Run(client *kubernetes.Clientset) error {
+
+	// generate a new UUID for this run:
+	ext.createCheckUUID()
+
 	// TODO
 	// TODO
 	// TODO
@@ -164,10 +172,53 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 }
 
 // waitForPodRunning returns a channel that notifies when the specified pod name is running
-func (ext *Checker) waitForPodRunning(podName string, namespace string) chan struct{}{
-	podClient := ext.kubeClient.CoreV1().Pods(namespace).Watch(metav1.ListOptions{
-		// TODO - watch for pod by unique run label
+func (ext *Checker) waitForPodRunning(ctx context.Context, podName string, namespace string) chan error {
+
+	// make the output channel we will return
+	outChan := make(chan error,2)
+
+	// setup a pod watching client for our current KH pod
+	podClient := ext.kubeClient.CoreV1().Pods(namespace)
+	watcher, err := podClient.Watch(metav1.ListOptions{
+		LabelSelector: "kuberhealthy-run-id=" + ext.currentCheckUUID,
 	})
+
+	// return the watch error as a channel if found
+	if err != nil {
+		outChan <- err
+		return outChan
+	}
+
+	// watch events and return when the pod is in state running
+	for e := range watcher.ResultChan() {
+
+		// try to cast the incoming object to a pod and skip the event if we cant
+		p, ok := e.Object.(*apiv1.Pod)
+		if !ok {
+			continue
+		}
+
+		// make sure the pod coming through the event channel has the right check uuid label
+		if p.Labels[kuberhealthyRunIDLabel] != ext.currentCheckUUID {
+			continue
+		}
+
+		// read the status of this pod (its ours)
+		if p.Status.Phase == apiv1.PodRunning {
+			outChan <- nil
+			return outChan
+		}
+
+		// if the context is done, we break the loop and return
+		select {
+			case <-ctx.Done():
+				return outChan
+			default:
+				// context is not canceled yet
+		}
+	}
+
+	return outChan
 }
 
 // createPod creates the checker pod using the kubernetes API
@@ -176,8 +227,7 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	p.Namespace = ext.Namespace
 	p.Name = ext.PodName
 	p.Spec = *ext.PodSpec
-	_, err := ext.kubeClient.CoreV1().Pods(ext.Namespace).Create(p)
-	return err
+	return ext.kubeClient.CoreV1().Pods(ext.Namespace).Create(p)
 }
 
 // configureUserPodSpec configures a user-specified pod spec with
@@ -205,7 +255,7 @@ func (ext *Checker) configureUserPodSpec() error {
 		},
 		{
 			Name:  "KUBERHEALTHY_RUN_ID",
-			Value: ext.createCheckUUID(),
+			Value: ext.currentCheckUUID,
 		},
 	}
 
@@ -219,13 +269,27 @@ func (ext *Checker) configureUserPodSpec() error {
 	return nil
 }
 
+// addKuberhealthyLabels adds the appropriate labels to a kuberhealthy
+// external checker pod.
+func (ext *Checker) addKuberhealthyLabels(pod *apiv1.Pod) {
+	existingLabels := pod.ObjectMeta.Labels
+	// make the labels map if it does not exist on the pod yet
+	if pod.ObjectMeta.Labels == nil {
+		pod.ObjectMeta.Labels = make(map[string]string)
+	}
+
+	// stack the kuberhealthy run id on top of the existing labels
+	existingLabels["kuberhealthy-run-id"] = ext.currentCheckUUID
+}
+
 // createCheckUUID creates a UUID that represents a single run of the external check
-func (ext *Checker) createCheckUUID() string {
+func (ext *Checker) createCheckUUID() error {
 	uuid, err := uuid.FromString(ext.CheckName + time.Now().String())
 	if err != nil {
-		log.Errorln("External checker had error creating UUID for external check run:", err)
+		return errors.New("external checker had error creating UUID for external check run: " + err.Error())
 	}
-	return uuid.String()
+	ext.currentCheckUUID = uuid.String()
+	return nil
 }
 
 // fetchPod fetches the pod for the checker from the api server
