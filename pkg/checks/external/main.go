@@ -125,19 +125,21 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	}
 
 	// validate the pod spec
-	ext.log("Validating pod spec of external check:", ext.CheckName)
+	ext.log("Validating pod spec of external check")
 	err = ext.validatePodSpec()
 	if err != nil {
 		return err
 	}
 
 	// condition the spec with the required labels and environment variables
+	ext.log("Configuring spec of external check")
 	err = ext.configureUserPodSpec()
 	if err != nil {
 		return errors.New("failed to configure pod spec for Kubernetes from user specified pod spec: " + err.Error())
 	}
 
 	// cleanup all pods from this checker that should not exist right now (all of them)
+	ext.log("Deleting any rogue check pods")
 	err = ext.deletePod()
 	if err != nil {
 		return errors.New("failed to clean up pods before starting external checker: " + err.Error())
@@ -169,6 +171,9 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	case <-ext.waitForPodRunning(ctx):
 		ext.log("External check pod is running:", ext.PodName)
 	}
+
+	// flag the pod as running
+	ext.setPodDeployed(true)
 
 	// the pod has started! Wait for the pod to exit and abort if it takes too long
 	select {
@@ -317,7 +322,6 @@ func (ext *Checker) validatePodSpec() error {
 	// if containers are not set, then we return an error
 	if len(ext.PodSpec.Containers) == 0 && len(ext.PodSpec.InitContainers) == 0 {
 		return errors.New("no containers found in checks PodSpec")
-		// TODO - dump detected spec?
 	}
 
 	// ensure that at least one container is defined
@@ -406,34 +410,24 @@ func (ext *Checker) createCheckUUID() error {
 	return nil
 }
 
-// fetchPod fetches the pod for the checker from the api server
+// podExsts fetches the pod for the checker from the api server
 // and returns a bool indicating if it exists or not
-func (ext *Checker) fetchPod() (bool, error) {
-	podClient := ext.getPodClient()
-	var firstQuery bool
-	var more string
-	// pagination
-	for firstQuery || len(more) > 0 {
-		firstQuery = false
-		podList, err := podClient.List(metav1.ListOptions{
-			Continue: more,
-		})
-		if err != nil {
-			return false, err
-		}
-		more = podList.Continue
+func (ext *Checker) podExists() (bool, error) {
 
-		// check results for our pod
-		for _, item := range podList.Items {
-			if item.GetName() == ext.PodName {
-				// ds does exist, return true
-				return true, nil
-			}
-		}
+	// setup a pod watching client for our current KH pod
+	podClient := ext.kubeClient.CoreV1().Pods(ext.Namespace)
+	p, err := podClient.Get(ext.PodName,metav1.GetOptions{})
+	if err != nil {
+		return false, err
 	}
 
-	// daemonset does not exist, return false
+	// if the pod has a start time that isn't zero, it exists
+	if !p.Status.StartTime.IsZero() && p.Status.Phase != apiv1.PodFailed{
+		return true, nil
+	}
+
 	return false, nil
+
 }
 
 // waitForShutdown waits for the external pod to shut down
@@ -442,17 +436,24 @@ func (ext *Checker) waitForShutdown(ctx context.Context) error {
 	// is canceled
 	for {
 		time.Sleep(time.Second / 2)
-		exists, err := ext.fetchPod()
+		exists, err := ext.podExists()
 		if err != nil {
 			return err
 		}
 		if !exists {
 			return nil
 		}
+
+		// see if the context has expired yet and give up if so
+		select {
+			case <-ctx.Done():
+				return errors.New("timed out when waiting for pod to shutdown")
+		default:
+		}
 	}
 }
 
-// Shutdown signals the DS to begin a cleanup
+// Shutdown signals the checker to begin a shutdown and cleanup
 func (ext *Checker) Shutdown() error {
 
 	// make a context to satisfy pod removal
@@ -472,7 +473,7 @@ func (ext *Checker) Shutdown() error {
 			ext.log("Error deleting pod during shutdown:", err.Error())
 			return err
 		}
-		err = ext.waitForPodRemoval()
+		err = ext.waitForShutdown(ctx)
 		if err != nil {
 			ext.log("Error waiting for pod removal during shutdown:", err.Error())
 			return err
@@ -484,26 +485,20 @@ func (ext *Checker) Shutdown() error {
 
 }
 
-// waitForPodRemoval waits for the external checker pod to be removed
-func (ext *Checker) waitForPodRemoval() error {
-	// TODO
-	return nil
-}
-
 // clearErrors clears all errors from the checker
 func (ext *Checker) clearErrors() {
 	ext.ErrorMessages = []string{}
 }
 
 // podDeployed returns a bool indicating that the pod
-// for this check exists and is deployedj
+// for this check exists and is deployed
 func (ext *Checker) podDeployed() bool {
 	ext.PodDeployedMu.Lock()
 	defer ext.PodDeployedMu.Unlock()
 	return ext.PodDeployed
 }
 
-// setPodDeployedStatus sets the pod deployed state
+// setPodDeployed sets the pod deployed state
 func (ext *Checker) setPodDeployed(status bool) {
 	ext.PodDeployedMu.Lock()
 	defer ext.PodDeployedMu.Unlock()
