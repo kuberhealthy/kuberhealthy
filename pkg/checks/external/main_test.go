@@ -7,7 +7,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/prometheus/common/log"
 	"github.com/ghodss/yaml"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
@@ -15,6 +14,7 @@ import (
 
 	"github.com/Comcast/kuberhealthy/pkg/checks/external"
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
+	log "github.com/sirupsen/logrus"
 
 	apiv1 "k8s.io/api/core/v1"
 	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,6 +23,12 @@ import (
 
 // kubeConfigFile is the config file location for kubernetes
 var kubeConfigFile =  os.Getenv("HOME") + "/.kube/config"
+
+
+func init(){
+	// tests always run with debug logging
+	log.SetLevel(log.DebugLevel)
+}
 
 // loadTestPodSpecFile loads a pod spec yaml from disk in this
 // directory and returns the pod spec struct it represents
@@ -78,23 +84,37 @@ func TestLoadPodSpecTestFile(t *testing.T) {
 
 func TestExternalChecker(t *testing.T) {
 
+	// create a kubernetes clientset
 	client, err := kubeClient.Create(kubeConfigFile)
 	if err != nil {
 		log.Errorln("Unable to create kubernetes client", err)
 	}
 
 	// load the test pod spec file into a pod spec
-	podCheckFile := "basicCheckerPod.yaml"
+	podCheckFile := "test/basicCheckerPod.yaml"
 	p, err := loadTestPodSpecFile(podCheckFile)
 	if err != nil {
 		log.Errorln("Unable to load kubernetes pod spec " + podCheckFile, err)
 	}
 
-	checker, _ := external.New() // external checker does not ever return an error so we drop it
-	checker.PodSpec = p
+	// make a new default checker of this check
+	checker := newTestCheck(p)
 
+	// run the checker with the kube client
 	err = checker.Run(client)
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+
+// newTestCheck creates a new test checker struct with
+// a basic set of defaults that work
+func newTestCheck(spec *apiv1.PodSpec) *external.Checker {
+	// create a new checker and insert this pod spec
+	checker, _ := external.New() // external checker does not ever return an error so we drop it
+	checker.PodSpec = spec
+	checker.Namespace = "kuberhealthy"
+
+	return checker
 }
