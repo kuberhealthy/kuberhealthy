@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"k8s.io/client-go/kubernetes"
 	log "github.com/sirupsen/logrus"
 
@@ -65,6 +65,7 @@ type Checker struct {
 	RunID                    string // the uuid of the current run
 	KuberhealthyReportingURL string // the URL that the check should want to report results back to
 	currentCheckUUID         string // the UUID of the current external checker running
+	Debug bool // indicates we should run in debug mode - run once and stop
 }
 
 // New creates a new external checker
@@ -118,6 +119,30 @@ func (ext *Checker) Timeout() time.Duration {
 // the RunInterval and is executed by the Kuberhealthy checker
 func (ext *Checker) Run(client *kubernetes.Clientset) error {
 
+	// run on a loop firing off external checks on each run
+	for {
+		// skip the initial pause if in debug mode
+		if !ext.Debug {
+			time.Sleep(ext.Interval())
+		}
+
+		// run a check iteration
+		ext.log("Running external check iteration")
+		err :=  ext.execute(client)
+		if err != nil {
+			ext.log("Error with running external check:", err.Error())
+			ext.setError(err.Error())
+		}
+
+		// only run once if in debug mode
+		if ext.Debug {
+			return nil
+		}
+	}
+
+}
+
+func (ext *Checker) execute(client *kubernetes.Clientset) error {
 	// set the clientset property with the passed client
 	ext.kubeClient = client
 
@@ -438,7 +463,7 @@ func (ext *Checker) addKuberhealthyLabels(pod *apiv1.Pod) {
 
 // createCheckUUID creates a UUID that represents a single run of the external check
 func (ext *Checker) createCheckUUID() error {
-	uniqueID := uuid.FromBytesOrNil(nil)
+	uniqueID := uuid.New()
 	ext.currentCheckUUID = uniqueID.String()
 	return nil
 }
@@ -521,6 +546,16 @@ func (ext *Checker) Shutdown() error {
 // clearErrors clears all errors from the checker
 func (ext *Checker) clearErrors() {
 	ext.ErrorMessages = []string{}
+}
+
+// setError sets the error message for the checker and overwrites all prior state
+func (ext *Checker) setError(s string) {
+	ext.ErrorMessages = []string{s}
+}
+
+// addError adds an error to the errors list
+func (ext *Checker) addError(s string) {
+	ext.ErrorMessages = append(ext.ErrorMessages,s)
 }
 
 // podDeployed returns a bool indicating that the pod
