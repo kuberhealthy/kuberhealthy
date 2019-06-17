@@ -82,6 +82,7 @@ func TestLoadPodSpecTestFile(t *testing.T) {
 		t.Log(p)
 }
 
+// TestExternalChecker tests the external checker end to end
 func TestExternalChecker(t *testing.T) {
 
 	// create a kubernetes clientset
@@ -115,6 +116,6 @@ func newTestCheck(spec *apiv1.PodSpec) *external.Checker {
 	checker, _ := external.New() // external checker does not ever return an error so we drop it
 	checker.PodSpec = spec
 	checker.Namespace = "kuberhealthy"
-
+	checker.Debug = true
 	return checker
 }

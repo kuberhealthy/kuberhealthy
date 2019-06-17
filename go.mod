@@ -9,11 +9,11 @@ replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.3.0
 require (
 	github.com/Pallinder/go-randomdata v1.1.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/gofuzz v1.0.0 // indirect
+	github.com/google/uuid v1.1.1
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190212212710-3befbb6ad0cc // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
@@ -24,7 +24,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/common v0.4.1
 	github.com/sirupsen/logrus v1.4.0
 	github.com/spf13/pflag v1.0.3 // indirect
 	golang.org/x/net v0.0.0-20190326090315-15845e8f865b // indirect
