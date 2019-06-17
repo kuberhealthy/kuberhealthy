@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
-	"github.com/prometheus/common/log"
 	"k8s.io/client-go/kubernetes"
+	log "github.com/sirupsen/logrus"
 
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,7 +54,6 @@ type Checker struct {
 	CheckName                string // the name of this checker
 	Namespace                string
 	ErrorMessages            []string
-	Image                    string        // the docker image URL to spin up
 	RunInterval              time.Duration // how often this check runs a loop
 	maxRunTime               time.Duration // time check must run completely within after switching to 'Running'
 	startupTimeout           time.Duration // the time an external checker pod has to become 'Running' after starting
@@ -71,7 +70,7 @@ type Checker struct {
 // New creates a new external checker
 func New() (*Checker, error) {
 
-	testDS := Checker{
+	testChecker := Checker{
 		ErrorMessages:            []string{},
 		Namespace:                namespace,
 		CheckName:                DefaultName,
@@ -79,9 +78,10 @@ func New() (*Checker, error) {
 		KuberhealthyReportingURL: DefaultKuberhealthyReportingURL,
 		maxRunTime:               defaultMaxRunTime,
 		startupTimeout:           defaultMaxStartTime,
+		PodName: 				  DefaultName,
 	}
 
-	return &testDS, nil
+	return &testChecker, nil
 }
 
 // CurrentStatus returns the status of the check as of right now
@@ -118,6 +118,9 @@ func (ext *Checker) Timeout() time.Duration {
 // the RunInterval and is executed by the Kuberhealthy checker
 func (ext *Checker) Run(client *kubernetes.Clientset) error {
 
+	// set the clientset property with the passed client
+	ext.kubeClient = client
+
 	// generate a new UUID for this run:
 	err := ext.createCheckUUID()
 	if err != nil {
@@ -136,6 +139,13 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	err = ext.configureUserPodSpec()
 	if err != nil {
 		return errors.New("failed to configure pod spec for Kubernetes from user specified pod spec: " + err.Error())
+	}
+
+	// sanity check our settings
+	ext.log("Running sanity check on check parameters")
+	err = ext.sanityCheck()
+	if err != nil {
+		return err
 	}
 
 	// cleanup all pods from this checker that should not exist right now (all of them)
@@ -167,7 +177,6 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 			errorMessage = errorMessage + " and an error occurred when deleting the pod:" + err.Error()
 		}
 		return errors.New(errorMessage)
-
 	case <-ext.waitForPodRunning(ctx):
 		ext.log("External check pod is running:", ext.PodName)
 	}
@@ -194,7 +203,7 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 
 // Log writes a normal InfoLn message output prefixed with this checker's name on it
 func (ext *Checker) log(s ...string) {
-	log.Infoln(ext.CheckName+": ", s)
+	log.Infoln(ext.CheckName+":", s)
 }
 
 // stopPod stops any pods running because of this external checker
@@ -204,6 +213,24 @@ func (ext *Checker) deletePod() error {
 	return podClient.DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
 		LabelSelector: kuberhealthyCheckNameLabel + "=" + ext.CheckName,
 	})
+}
+
+
+// sanityCheck runs a basic sanity check on the checker before running
+func (ext *Checker) sanityCheck() error {
+	if ext.Namespace == "" {
+		return errors.New("check namespace can not be empty")
+	}
+
+	if ext.PodName == "" {
+		return errors.New("pod name can not be empty")
+	}
+
+	if ext.kubeClient == nil {
+		return errors.New("kubeClient can not be nil")
+	}
+
+	return nil
 }
 
 // waitForPodExit returns a channel that notifies when the checker pod exits
@@ -279,6 +306,8 @@ func (ext *Checker) waitForPodRunning(ctx context.Context) chan error {
 	// watch events and return when the pod is in state running
 	for e := range watcher.ResultChan() {
 
+		log.Debugln("Got event while watching for pod to start running:",e)
+
 		// try to cast the incoming object to a pod and skip the event if we cant
 		p, ok := e.Object.(*apiv1.Pod)
 		if !ok {
@@ -339,13 +368,14 @@ func (ext *Checker) validatePodSpec() error {
 	return nil
 }
 
-// createPod creates the checker pod using the kubernetes API
+// createPod prepares and creates the checker pod using the kubernetes API
 func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	p := &apiv1.Pod{}
 	p.Namespace = ext.Namespace
 	p.Name = ext.PodName
 	ext.log("Creating external checker pod named", p.Name)
 	p.Spec = *ext.PodSpec
+	ext.addKuberhealthyLabels(p)
 	return ext.kubeClient.CoreV1().Pods(ext.Namespace).Create(p)
 }
 
@@ -392,23 +422,23 @@ func (ext *Checker) configureUserPodSpec() error {
 // addKuberhealthyLabels adds the appropriate labels to a kuberhealthy
 // external checker pod.
 func (ext *Checker) addKuberhealthyLabels(pod *apiv1.Pod) {
-	existingLabels := pod.ObjectMeta.Labels
 	// make the labels map if it does not exist on the pod yet
+	if pod == nil {
+		pod = &apiv1.Pod{}
+	}
 	if pod.ObjectMeta.Labels == nil {
 		pod.ObjectMeta.Labels = make(map[string]string)
 	}
 
 	// stack the kuberhealthy run id on top of the existing labels
+	existingLabels := pod.ObjectMeta.Labels
 	existingLabels[kuberhealthyRunIDLabel] = ext.currentCheckUUID
 	existingLabels[kuberhealthyCheckNameLabel] = ext.CheckName
 }
 
 // createCheckUUID creates a UUID that represents a single run of the external check
 func (ext *Checker) createCheckUUID() error {
-	uniqueID, err := uuid.FromString(ext.CheckName + time.Now().String())
-	if err != nil {
-		return errors.New("external checker had error creating UUID for external check run: " + err.Error())
-	}
+	uniqueID := uuid.FromBytesOrNil(nil)
 	ext.currentCheckUUID = uniqueID.String()
 	return nil
 }
