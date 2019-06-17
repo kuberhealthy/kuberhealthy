@@ -383,6 +383,9 @@ func (ext *Checker) configureUserPodSpec() error {
 		ext.PodSpec.Containers[i].Env = append(ext.PodSpec.Containers[i].Env, overwriteEnvVars...)
 	}
 
+	// enforce restart policy of never
+	ext.PodSpec.RestartPolicy = apiv1.RestartPolicyNever
+
 	return nil
 }
 
