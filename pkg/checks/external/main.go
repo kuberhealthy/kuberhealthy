@@ -152,7 +152,6 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 			return nil
 		}
 	}
-
 }
 
 // execute runs one check loop.  This creates a checker pod and ensures it starts,
@@ -497,7 +496,6 @@ func (ext *Checker) podExists() (bool, error) {
 	}
 
 	return false, nil
-
 }
 
 // waitForShutdown waits for the external pod to shut down
@@ -555,7 +553,6 @@ func (ext *Checker) Shutdown() error {
 
 	ext.log(ext.Name(), "Pod "+ext.PodName+" ready for shutdown.")
 	return nil
-
 }
 
 // clearErrors clears all errors from the checker
