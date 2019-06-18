@@ -57,7 +57,7 @@ type Checker struct {
 	RunInterval              time.Duration // how often this check runs a loop
 	maxRunTime               time.Duration // time check must run completely within after switching to 'Running'
 	startupTimeout           time.Duration // the time an external checker pod has to become 'Running' after starting
-	kubeClient               *kubernetes.Clientset
+	KubeClient               *kubernetes.Clientset
 	PodSpec                  *apiv1.PodSpec // the user-provided spec of the pod
 	PodDeployed              bool           // indicates the pod exists in the API
 	PodDeployedMu            sync.Mutex
@@ -129,6 +129,9 @@ func (ext *Checker) Timeout() time.Duration {
 // the RunInterval and is executed by the Kuberhealthy checker
 func (ext *Checker) Run(client *kubernetes.Clientset) error {
 
+	// store the client in the checker
+	ext.KubeClient = client
+
 	// run on a loop firing off external checks on each run
 	for {
 		// skip the initial pause if in debug mode
@@ -136,12 +139,9 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 			time.Sleep(ext.Interval())
 		}
 
-		// create a context for this run
-		ext.ctx, ext.cancelFunc = context.WithCancel(context.Background())
-
 		// run a check iteration
 		ext.log("Running external check iteration")
-		err :=  ext.execute(client)
+		err :=  ext.RunOnce()
 		if err != nil {
 			ext.log("Error with running external check:", err.Error())
 			ext.setError(err.Error())
@@ -154,12 +154,12 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	}
 }
 
-// execute runs one check loop.  This creates a checker pod and ensures it starts,
+// RunOnce runs one check loop.  This creates a checker pod and ensures it starts,
 // then ensures it changes to Running properly
-func (ext *Checker) execute(client *kubernetes.Clientset) error {
+func (ext *Checker) RunOnce() error {
 
-	// set the clientset property with the passed client
-	ext.kubeClient = client
+	// create a context for this run
+	ext.ctx, ext.cancelFunc = context.WithCancel(context.Background())
 
 	// generate a new UUID for this run:
 	err := ext.createCheckUUID()
@@ -245,7 +245,7 @@ func (ext *Checker) log(s ...string) {
 // stopPod stops any pods running because of this external checker
 func (ext *Checker) deletePod() error {
 	ext.log("Deleting all checker pods")
-	podClient := ext.kubeClient.CoreV1().Pods(ext.Namespace)
+	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 	return podClient.DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
 		LabelSelector: kuberhealthyCheckNameLabel + "=" + ext.CheckName,
 	})
@@ -262,8 +262,8 @@ func (ext *Checker) sanityCheck() error {
 		return errors.New("pod name can not be empty")
 	}
 
-	if ext.kubeClient == nil {
-		return errors.New("kubeClient can not be nil")
+	if ext.KubeClient == nil {
+		return errors.New("KubeClient can not be nil")
 	}
 
 	return nil
@@ -276,7 +276,7 @@ func (ext *Checker) waitForPodExit(ctx context.Context) chan error {
 	outChan := make(chan error, 2)
 
 	// setup a pod watching client for our current KH pod
-	podClient := ext.kubeClient.CoreV1().Pods(ext.Namespace)
+	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 	watcher, err := podClient.Watch(metav1.ListOptions{
 		LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
 	})
@@ -328,7 +328,7 @@ func (ext *Checker) waitForPodRunning() chan error {
 	outChan := make(chan error, 2)
 
 	// setup a pod watching client for our current KH pod
-	podClient := ext.kubeClient.CoreV1().Pods(ext.Namespace)
+	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 	watcher, err := podClient.Watch(metav1.ListOptions{
 		LabelSelector: "kuberhealthy-run-id=" + ext.currentCheckUUID,
 	})
@@ -412,7 +412,7 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	ext.log("Creating external checker pod named", p.Name)
 	p.Spec = *ext.PodSpec
 	ext.addKuberhealthyLabels(p)
-	return ext.kubeClient.CoreV1().Pods(ext.Namespace).Create(p)
+	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
 }
 
 // configureUserPodSpec configures a user-specified pod spec with
@@ -426,9 +426,6 @@ func (ext *Checker) configureUserPodSpec() error {
 	// set overrides like env var for pod name and env var for where to send responses to
 	// Set environment variable for run UUID
 	// wrap pod spec in job spec
-
-	// set the pod running the check's pod name
-	ext.PodSpec.Hostname = ext.CheckName
 
 	// specify environment variables that need applied.  We apply environment
 	// variables that set the report-in URL of kuberhealthy along with
@@ -484,7 +481,7 @@ func (ext *Checker) createCheckUUID() error {
 func (ext *Checker) podExists() (bool, error) {
 
 	// setup a pod watching client for our current KH pod
-	podClient := ext.kubeClient.CoreV1().Pods(ext.Namespace)
+	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 	p, err := podClient.Get(ext.PodName,metav1.GetOptions{})
 	if err != nil {
 		return false, err
@@ -551,7 +548,7 @@ func (ext *Checker) Shutdown() error {
 		}
 	}
 
-	ext.log(ext.Name(), "Pod "+ext.PodName+" ready for shutdown.")
+	ext.log(ext.Name(), "Pod "+ext.PodName+" successfully shutdown.")
 	return nil
 }
 
@@ -587,5 +584,5 @@ func (ext *Checker) setPodDeployed(status bool) {
 
 // getPodClient returns a client for Kubernetes pods
 func (ext *Checker) getPodClient() typedv1.PodInterface {
-	return ext.kubeClient.CoreV1().Pods(ext.Namespace)
+	return ext.KubeClient.CoreV1().Pods(ext.Namespace)
 }

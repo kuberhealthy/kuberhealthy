@@ -16,23 +16,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/pkg/health"
-	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/Comcast/kuberhealthy/pkg/health"
+	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
 )
 
-// setCheckCRDState puts a check state's state into the specified CRD.  It sets the AuthoritivePod
+// setCheckState puts a check state's state into the specified CRD resource.  It sets the AuthoritativePod
 // to the server's hostname and sets the LastUpdate time to now.
-func setCheckCRDState(checkName string, client *khstatecrd.KuberhealthyStateClient, state health.CheckDetails) error {
+func setCheckState(checkName string, client *khstatecrd.KuberhealthyStateClient, state health.CheckDetails) error {
 
-	name := sanitizeCRDName(checkName)
+	name := sanitizeResourceName(checkName)
 
 	// we must fetch the existing state to use the current resource version
 	// int found within
 	existingState, err := client.Get(metav1.GetOptions{}, CRDResource, name)
 	if err != nil {
-		return errors.New("Error retreiving CRD for: " + name + " " + err.Error())
+		return errors.New("Error retrieving CRD for: " + name + " " + err.Error())
 	}
 	resourceVersion := existingState.GetResourceVersion()
 
@@ -56,11 +57,11 @@ func setCheckCRDState(checkName string, client *khstatecrd.KuberhealthyStateClie
 }
 
 // sanitizeCRDName cleans up the check names for use in CRDs.
-// DNS-1123 subdomain must consist of lower case alphanumeric characters, '-'
+// DNS-1123 subdomains must consist of lower case alphanumeric characters, '-'
 // or '.', and must start and end with an alphanumeric character (e.g.
 // 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?
-//(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
-func sanitizeCRDName(c string) string {
+// (\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
+func sanitizeResourceName(c string) string {
 
 	// the name we pass to the CRD must be lowercase
 	nameLower := strings.ToLower(c)
@@ -69,11 +70,11 @@ func sanitizeCRDName(c string) string {
 	return name
 }
 
-// ensureCRDExists checks for the existence of the CRD and creates it if it does not exist
-func ensureCRDExists(checkName string, client *khstatecrd.KuberhealthyStateClient) error {
-	name := sanitizeCRDName(checkName)
+// ensureResourceExists checks for the existence of the CRD and creates it if it does not exist
+func ensureResourceExists(checkName string, client *khstatecrd.KuberhealthyStateClient) error {
+	name := sanitizeResourceName(checkName)
 
-	log.Debugln("Checking existence of CRD:", name)
+	log.Debugln("Checking existence of custom resource:", name)
 	state, err := client.Get(metav1.GetOptions{}, CRDResource, name)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
@@ -95,24 +96,25 @@ func ensureCRDExists(checkName string, client *khstatecrd.KuberhealthyStateClien
 	return nil
 }
 
-// getCheckCRDState retreives the check values from the kuberhealthy CRD
-func getCheckCRDState(c KuberhealthyCheck, client *khstatecrd.KuberhealthyStateClient) (health.CheckDetails, error) {
+// getCheckState retrieves the check values from the kuberhealthy khstate
+// custom resource
+func getCheckState(c KuberhealthyCheck, client *khstatecrd.KuberhealthyStateClient) (health.CheckDetails, error) {
 
 	var state = health.NewCheckDetails()
 	var err error
-	name := sanitizeCRDName(c.Name())
+	name := sanitizeResourceName(c.Name())
 
 	// make sure the CRD exists, even when checking status
-	err = ensureCRDExists(c.Name(), client)
+	err = ensureResourceExists(c.Name(), client)
 	if err != nil {
 		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
 	}
 
-	log.Debugln("Retreiving CRD for:", name)
+	log.Debugln("Retrieving khstate custom resource for:", name)
 	khstate, err := client.Get(metav1.GetOptions{}, CRDResource, name)
 	if err != nil {
-		return state, errors.New("Error retrieving CRD: " + name + " " + err.Error())
+		return state, errors.New("Error retrieving custom khstate resource: " + name + " " + err.Error())
 	}
-	log.Debugln("Successfully retrieved CRD:", name)
+	log.Debugln("Successfully retrieved khstate resource:", name)
 	return khstate.Spec, nil
 }
