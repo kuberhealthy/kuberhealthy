@@ -21,6 +21,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/integrii/flaggy"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/Comcast/kuberhealthy/pkg/checks/componentStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
 	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
@@ -28,8 +31,6 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 	"github.com/Comcast/kuberhealthy/pkg/metrics"
-	"github.com/integrii/flaggy"
-	log "github.com/sirupsen/logrus"
 )
 
 // status represents the current Kuberhealthy OK:Error state
@@ -41,11 +42,12 @@ var dnsEndpoints []string
 // shutdown signal handling
 var sigChan chan os.Signal
 var doneChan chan bool
-var terminationGracePeriodSeconds = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
+var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
 // flags indicating that checks of specific types should be used
 var enableForceMaster bool               // force master mode - for debugging
 var enableDebug bool                     // enable debug logging
+// DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
 var logLevel = "info"
 var enableComponentStatusChecks = true
@@ -74,7 +76,7 @@ const CRDResource = "khstates"
 var masterCalculationInterval = time.Second * 10
 
 func getAllLogLevel() string {
-	levelStrings := []string{}
+	var levelStrings []string
 	for _, level := range log.AllLevels {
 		levelStrings = append(levelStrings, level.String())
 	}
@@ -218,7 +220,7 @@ func main() {
 
 }
 
-// listenForInterrupts watches for termination singnals and acts on them
+// listenForInterrupts watches for termination signals and acts on them
 func listenForInterrupts() {
 	signal.Notify(sigChan, os.Interrupt, os.Kill)
 	<-sigChan
@@ -230,7 +232,7 @@ func listenForInterrupts() {
 		log.Infoln("Shutdown gracefully completed!")
 	case <-sigChan:
 		log.Warningln("Shutdown forced from multiple interrupts!")
-	case <-time.After(terminationGracePeriodSeconds):
+	case <-time.After(terminationGracePeriod):
 		log.Errorln("Shutdown took too long.  Shutting down forcefully!")
 	}
 	os.Exit(0)

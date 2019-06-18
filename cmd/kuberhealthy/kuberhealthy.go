@@ -12,6 +12,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -20,16 +21,17 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
+
 	"github.com/Comcast/kuberhealthy/pkg/health"
 	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 	"github.com/Comcast/kuberhealthy/pkg/metrics"
-	log "github.com/sirupsen/logrus"
-	"k8s.io/client-go/kubernetes"
 )
 
-// Kuberhealthy represents the kuberhealhty server and its checks
+// Kuberhealthy represents the kuberhealthy server and its checks
 type Kuberhealthy struct {
 	sync.RWMutex
 	Checks                []KuberhealthyCheck
@@ -39,8 +41,7 @@ type Kuberhealthy struct {
 	overrideKubeClient    *kubernetes.Clientset
 }
 
-// newKubeClient sets up a new kuberhealthy client if it does not exist
-// yet
+// KubeClient sets up a new kuberhealthy client if it does not exist yet
 func (k *Kuberhealthy) KubeClient() (*kubernetes.Clientset, error) {
 
 	// fetch a client if it does not exist
@@ -304,13 +305,13 @@ func (k *Kuberhealthy) storeCheckState(checkName string, details health.CheckDet
 	}
 
 	// ensure the CRD resoruce exits
-	err = ensureCRDExists(checkName, client)
+	err = ensureResourceExists(checkName, client)
 	if err != nil {
 		return err
 	}
 
 	// put the status on the CRD from the check
-	err = setCheckCRDState(checkName, client, details)
+	err = setCheckState(checkName, client, details)
 	if err != nil {
 		return err
 	}
@@ -362,12 +363,15 @@ func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.R
 	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
 	state, err := k.getCurrentState()
 	if err != nil {
-		metrics.WriteMetricError(w, state)
+		err = metrics.WriteMetricError(w, state)
+		if err != nil {
+			return errors.New(err.Error() + " and " + err.Error())
+		}
 		return err
 	}
-	metrics := metrics.GenerateMetrics(state)
+	m := metrics.GenerateMetrics(state)
 	// write summarized health check results back to caller
-	_, err = w.Write([]byte(metrics))
+	_, err = w.Write([]byte(m))
 	if err != nil {
 		log.Warningln("Error writing health check results to caller:", err)
 	}
@@ -403,13 +407,13 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	}
 
 	// fetch a client for the master calculation
-	kubeClient, err := k.KubeClient()
+	kc, err := k.KubeClient()
 	if err != nil {
 		return state, err
 	}
 
 	// calculate the current master and apply it to the status output
-	currentMaster, err := masterCalculation.CalculateMaster(kubeClient)
+	currentMaster, err := masterCalculation.CalculateMaster(kc)
 	state.CurrentMaster = currentMaster
 	if err != nil {
 		return state, err
@@ -420,7 +424,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 		log.Debugln("Getting status of check for client:", c.Name())
 
 		// get the state from the CRD that exists for this check
-		checkDetails, err := getCheckCRDState(c, khClient)
+		checkDetails, err := getCheckState(c, khClient)
 		if err != nil {
 			errMessage := "System error when fetching status for check " + c.Name() + ":" + err.Error()
 			log.Errorln(errMessage)
@@ -450,5 +454,5 @@ func (k *Kuberhealthy) getCheck(name string) (KuberhealthyCheck, error) {
 			return c, nil
 		}
 	}
-	return nil, fmt.Errorf("Could not find Kuberhealthy check with name %s", name)
+	return nil, fmt.Errorf("could not find Kuberhealthy check with name %s", name)
 }
