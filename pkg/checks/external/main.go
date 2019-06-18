@@ -42,7 +42,7 @@ var DefaultName = "external-check"
 
 // namespace indicates the namespace of the kuberhealthy
 // pod that is running this check
-var namespace = os.Getenv("POD_NAMESPACE")
+var defaultNamespace = os.Getenv("POD_NAMESPACE")
 
 // defaultRunInterval is the default time we assume this check
 // should run on unless specified
@@ -75,7 +75,7 @@ func New() (*Checker, error) {
 
 	testChecker := Checker{
 		ErrorMessages:            []string{},
-		Namespace:                namespace,
+		Namespace:                defaultNamespace,
 		CheckName:                DefaultName,
 		RunInterval:              defaultRunInterval,
 		KuberhealthyReportingURL: DefaultKuberhealthyReportingURL,
