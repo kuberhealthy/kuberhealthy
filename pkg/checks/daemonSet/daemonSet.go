@@ -74,7 +74,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 		log.Warningln("Unable to generate list of pod scheduling tolerations", err)
 	}
 
-	//create the DS object
+	// create the DS object
 	log.Infoln("Generating daemon set kubernetes spec.")
 	dsc.DaemonSet = &betaapiv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -304,7 +304,7 @@ func (dsc *Checker) cleanupOrphanedDaemonsets() error {
 		// fetch the creatingInstance label
 		creatingInstance := ds.Labels["creatingInstance"]
 
-		// if there isnt a creatingInstance label, we assume its an old generation and remove it.
+		// if there isn't a creatingInstance label, we assume its an old generation and remove it.
 		if len(creatingInstance) == 0 {
 			log.Warningln("Unable to find hostname with creatingInstance label on ds", ds.Name, "assuming orphaned and removing!")
 			err := dsc.deleteDS(ds.Name)
@@ -317,10 +317,6 @@ func (dsc *Checker) cleanupOrphanedDaemonsets() error {
 
 		// check if the creatingInstance exists
 		exists := dsc.checkIfPodExists(creatingInstance)
-		if err != nil {
-			log.Errorln("error checking if kuberhealthy ds exists:", err)
-			return err
-		}
 
 		// if the owning kuberhealthy pod of the DS does not exist, then we delete the daemonset
 		if !exists {
@@ -482,7 +478,7 @@ func (dsc *Checker) doChecks(ctx context.Context) error {
 
 	// clean up any existing daemonsets that may be laying around
 	// waiting so not to cause a conflict.  Don't listen to errors here.
-	dsc.cleanUp(ctx)
+	_ = dsc.cleanUp(ctx)
 
 	// deploy the daemonset
 	err := dsc.doDeploy(ctx)
@@ -605,8 +601,11 @@ func (dsc *Checker) doDeploy(ctx context.Context) error {
 	dsc.DaemonSetDeployed = true
 	err := dsc.deploy()
 	if err != nil {
-		log.Error("Something went wrong with daemonset deployment, cleaning things up...")
-		dsc.doRemove(ctx)
+		log.Error("Something went wrong with daemonset deployment, cleaning things up...", err)
+		err2 := dsc.doRemove(ctx)
+		if err2 != nil {
+			log.Error("Something went wrong when removing the deployment after a deployment error:", err2)
+		}
 		return err
 	}
 
