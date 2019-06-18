@@ -66,6 +66,8 @@ type Checker struct {
 	KuberhealthyReportingURL string // the URL that the check should want to report results back to
 	currentCheckUUID         string // the UUID of the current external checker running
 	Debug bool // indicates we should run in debug mode - run once and stop
+	cancelFunc context.CancelFunc // used to cancel things in-flight
+	ctx context.Context // a context used for tracking check runs
 }
 
 // New creates a new external checker
@@ -83,6 +85,14 @@ func New() (*Checker, error) {
 	}
 
 	return &testChecker, nil
+}
+
+// cancel cancels the context of this checker to shut things down gracefully
+func (ext *Checker) cancel() {
+	if ext.cancelFunc == nil {
+		return
+	}
+	ext.cancelFunc()
 }
 
 // CurrentStatus returns the status of the check as of right now
@@ -126,6 +136,9 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 			time.Sleep(ext.Interval())
 		}
 
+		// create a context for this run
+		ext.ctx, ext.cancelFunc = context.WithCancel(context.Background())
+
 		// run a check iteration
 		ext.log("Running external check iteration")
 		err :=  ext.execute(client)
@@ -142,7 +155,10 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 
 }
 
+// execute runs one check loop.  This creates a checker pod and ensures it starts,
+// then ensures it changes to Running properly
 func (ext *Checker) execute(client *kubernetes.Clientset) error {
+
 	// set the clientset property with the passed client
 	ext.kubeClient = client
 
@@ -188,21 +204,17 @@ func (ext *Checker) execute(client *kubernetes.Clientset) error {
 	}
 	ext.log("Check", ext.Name(), "created pod", createdPod.Name, "in namespace", createdPod.Namespace)
 
-	// wait for the pod to be running or timeout
-	// make a cancel context so we can reign in the pod watch when its time
-	ctx, cancelPodWatch := context.WithCancel(context.Background())
-
 	// watch for pod to start with a timeout (include time for a new node to be created)
 	select {
 	case <-time.After(ext.startupTimeout):
-		cancelPodWatch() // cancel the watch context, we have timed out
-		err := ext.deletePod()
+		ext.cancel() // cancel the watch context, we have timed out
 		errorMessage := "failed to see pod running within timeout"
+		err := ext.deletePod()
 		if err != nil {
 			errorMessage = errorMessage + " and an error occurred when deleting the pod:" + err.Error()
 		}
 		return errors.New(errorMessage)
-	case <-ext.waitForPodRunning(ctx):
+	case <-ext.waitForPodRunning():
 		ext.log("External check pod is running:", ext.PodName)
 	}
 
@@ -212,14 +224,14 @@ func (ext *Checker) execute(client *kubernetes.Clientset) error {
 	// the pod has started! Wait for the pod to exit and abort if it takes too long
 	select {
 	case <-time.After(ext.maxRunTime):
-		cancelPodWatch() // cancel the watch context, we have timed out
+		ext.cancel() // cancel the watch context, we have timed out
 		err := ext.deletePod()
 		errorMessage := "pod ran too long and was shut down"
 		if err != nil {
 			errorMessage = errorMessage + " but an error occurred when deleting the pod:" + err.Error()
 		}
 		return errors.New(errorMessage)
-	case <-ext.waitForPodExit(ctx):
+	case <-ext.waitForPodExit(ext.ctx):
 		ext.log("External check pod is done running:", ext.PodName)
 	}
 
@@ -311,7 +323,7 @@ func (ext *Checker) waitForPodExit(ctx context.Context) chan error {
 }
 
 // waitForPodRunning returns a channel that notifies when the checker pod is running
-func (ext *Checker) waitForPodRunning(ctx context.Context) chan error {
+func (ext *Checker) waitForPodRunning() chan error {
 
 	// make the output channel we will return
 	outChan := make(chan error, 2)
@@ -352,7 +364,7 @@ func (ext *Checker) waitForPodRunning(ctx context.Context) chan error {
 
 		// if the context is done, we break the loop and return
 		select {
-		case <-ctx.Done():
+		case <-ext.ctx.Done():
 			outChan <- errors.New("external checker pod startup watch aborted")
 			return outChan
 		default:
@@ -468,7 +480,7 @@ func (ext *Checker) createCheckUUID() error {
 	return nil
 }
 
-// podExsts fetches the pod for the checker from the api server
+// podExists fetches the pod for the checker from the api server
 // and returns a bool indicating if it exists or not
 func (ext *Checker) podExists() (bool, error) {
 
@@ -514,7 +526,10 @@ func (ext *Checker) waitForShutdown(ctx context.Context) error {
 // Shutdown signals the checker to begin a shutdown and cleanup
 func (ext *Checker) Shutdown() error {
 
-	// make a context to satisfy pod removal
+	// cancel the context for this checker run
+	ext.cancel()
+
+	// make a context to track pod removal and cleanup
 	ctx := context.Background()
 	ctx, cancelCtx := context.WithCancel(ctx)
 
