@@ -30,7 +30,7 @@ const group = "comcast.github.io"
 const version = "v1"
 
 // Client creates a rest client to use for interacting with CRDs
-func Client(GroupName string, GroupVersion string, kubeConfig string) (*KuberhealthyStateClient, error) {
+func Client(GroupName string, GroupVersion string, kubeConfig string) (*KuberhealthyCheckClient, error) {
 
 	var c *rest.Config
 	var err error
@@ -41,7 +41,7 @@ func Client(GroupName string, GroupVersion string, kubeConfig string) (*Kuberhea
 	}
 
 	if err != nil {
-		return &KuberhealthyStateClient{}, err
+		return &KuberhealthyCheckClient{}, err
 	}
 
 	ConfigureScheme(GroupName, GroupVersion)
@@ -53,5 +53,5 @@ func Client(GroupName string, GroupVersion string, kubeConfig string) (*Kuberhea
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
 
 	client, err := rest.RESTClientFor(&config)
-	return &KuberhealthyStateClient{restClient: client, ns: namespace}, err
+	return &KuberhealthyCheckClient{restClient: client, ns: namespace}, err
 }

@@ -23,9 +23,9 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
 )
 
-// setCheckState puts a check state's state into the specified CRD resource.  It sets the AuthoritativePod
+// setCheckStateResource puts a check state's state into the specified CRD resource.  It sets the AuthoritativePod
 // to the server's hostname and sets the LastUpdate time to now.
-func setCheckState(checkName string, client *khstatecrd.KuberhealthyStateClient, state health.CheckDetails) error {
+func setCheckStateResource(checkName string, client *khstatecrd.KuberhealthyStateClient, state health.CheckDetails) error {
 
 	name := sanitizeResourceName(checkName)
 
@@ -56,7 +56,7 @@ func setCheckState(checkName string, client *khstatecrd.KuberhealthyStateClient,
 	return err
 }
 
-// sanitizeCRDName cleans up the check names for use in CRDs.
+// sanitizeResourceName cleans up the check names for use in CRDs.
 // DNS-1123 subdomains must consist of lower case alphanumeric characters, '-'
 // or '.', and must start and end with an alphanumeric character (e.g.
 // 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?
@@ -70,8 +70,8 @@ func sanitizeResourceName(c string) string {
 	return name
 }
 
-// ensureResourceExists checks for the existence of the CRD and creates it if it does not exist
-func ensureResourceExists(checkName string, client *khstatecrd.KuberhealthyStateClient) error {
+// ensureStateResourceExists checks for the existence of the specified resource and creates it if it does not exist
+func ensureStateResourceExists(checkName string, client *khstatecrd.KuberhealthyStateClient) error {
 	name := sanitizeResourceName(checkName)
 
 	log.Debugln("Checking existence of custom resource:", name)
@@ -105,7 +105,7 @@ func getCheckState(c KuberhealthyCheck, client *khstatecrd.KuberhealthyStateClie
 	name := sanitizeResourceName(c.Name())
 
 	// make sure the CRD exists, even when checking status
-	err = ensureResourceExists(c.Name(), client)
+	err = ensureStateResourceExists(c.Name(), client)
 	if err != nil {
 		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
 	}
