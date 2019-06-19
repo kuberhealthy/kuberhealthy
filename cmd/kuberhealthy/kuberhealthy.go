@@ -12,11 +12,11 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -36,9 +36,9 @@ type Kuberhealthy struct {
 	sync.RWMutex
 	Checks                []KuberhealthyCheck
 	ListenAddr            string               // the listen address, such as ":80"
-	checkShutdownChannels map[string]chan bool // a slice of channels used to signal shutdowns to checks
 	MetricForwarder       metrics.Client
 	overrideKubeClient    *kubernetes.Clientset
+	cancelChecksFunc 	  context.CancelFunc // invalidates the context of all running checks
 }
 
 // KubeClient sets up a new kuberhealthy client if it does not exist yet
@@ -56,7 +56,6 @@ func (k *Kuberhealthy) KubeClient() (*kubernetes.Clientset, error) {
 // NewKuberhealthy creates a new kuberhealthy checker instance
 func NewKuberhealthy() *Kuberhealthy {
 	kh := &Kuberhealthy{}
-	kh.checkShutdownChannels = make(map[string]chan bool)
 	return kh
 }
 
@@ -99,13 +98,19 @@ func (k *Kuberhealthy) Shutdown() {
 // StopChecks causes the kuberhealthy check group to shutdown gracefully.
 // All checks are sent a shutdown command at the same time.
 func (k *Kuberhealthy) StopChecks() {
-	// send a shutdown signal to all checks
-	k.sigChecks()
+	// atomic operation here to prevent races
+	k.Lock()
+	defer k.Unlock()
+
+	log.Infoln("Checks stopping...")
+	k.cancelChecksFunc()
+
 }
 
 // Start inits Kuberhealthy checks and master monitoring
 func (k *Kuberhealthy) Start() {
 
+	// we use two channels to indicate when we gain or lose master status
 	becameMasterChan := make(chan bool)
 	lostMasterChan := make(chan bool)
 
@@ -127,47 +132,21 @@ func (k *Kuberhealthy) Start() {
 
 // StartChecks starts all checks concurrently and ensures they stay running
 func (k *Kuberhealthy) StartChecks() {
+	// prevent races with locking
+	k.Lock()
+	defer k.Unlock()
+
+	// create a context for checks to abort with
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	k.cancelChecksFunc = cancelFunc
+
+	// start each check with this check group's context
 	for _, c := range k.Checks {
-		// create and log a stop signal channel here. pass into channel
-		stopChan := make(chan bool, 1)
-		k.addCheckStopChan(c.Name(), stopChan)
-
 		// start the check in its own routine
-		go k.runCheck(stopChan, c)
+		go k.runCheck(ctx, c)
 	}
 }
 
-// addCheckStopChan stores a check's shutdown channel in the checker
-func (k *Kuberhealthy) addCheckStopChan(checkName string, stopChan chan bool) {
-	k.Lock()
-	defer k.Unlock()
-
-	// append the check name with a unique timestamp so they dont overwrite
-	now := strconv.Itoa(int(time.Now().Unix()))
-	checkName = checkName + "-" + now
-	k.checkShutdownChannels[checkName] = stopChan
-}
-
-// sigChecks sends signals down all check shutdown chans and removes them
-// from the tracking map
-func (k *Kuberhealthy) sigChecks() {
-	k.Lock()
-	defer k.Unlock()
-
-	for checkName, stopChan := range k.checkShutdownChannels {
-		select {
-		case stopChan <- true:
-			log.Debugln("Check stop channel signal sent:", checkName)
-		default:
-			log.Warnln("Attempted to send signal to check stop channel", checkName, "but channel did not accept send")
-		}
-
-		// remove the channel from the chceck shutdown channels listing.
-		// No more shutdowns are ever sent once a check is shutdown.
-		delete(k.checkShutdownChannels, checkName)
-	}
-
-}
 
 // masterStatusMonitor calculates the master pod on a ticker.  When a
 // change in master is determined that is relevant to this pod, a signal
@@ -218,7 +197,7 @@ func (k *Kuberhealthy) masterStatusMonitor(becameMasterChan chan bool, lostMaste
 }
 
 // runCheck runs a check on an interval and sets its status each run
-func (k *Kuberhealthy) runCheck(stopChan chan bool, c KuberhealthyCheck) {
+func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 
 	// run on an interval specified by the package
 	ticker := time.NewTicker(c.Interval())
@@ -229,7 +208,7 @@ func (k *Kuberhealthy) runCheck(stopChan chan bool, c KuberhealthyCheck) {
 
 		// break out if check channel is supposed to stop
 		select {
-		case <-stopChan:
+		case <-ctx.Done():
 			log.Debugln("Check", c.Name(), "stop signal received. Stopping check.")
 			err := c.Shutdown()
 			if err != nil {
@@ -305,13 +284,13 @@ func (k *Kuberhealthy) storeCheckState(checkName string, details health.CheckDet
 	}
 
 	// ensure the CRD resoruce exits
-	err = ensureResourceExists(checkName, client)
+	err = ensureStateResourceExists(checkName, client)
 	if err != nil {
 		return err
 	}
 
 	// put the status on the CRD from the check
-	err = setCheckState(checkName, client, details)
+	err = setCheckStateResource(checkName, client, details)
 	if err != nil {
 		return err
 	}
