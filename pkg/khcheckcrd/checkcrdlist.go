@@ -16,19 +16,20 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-type KuberhealthyStateList struct {
+// KuberhealthyCheckList is a list of Kuberhealthy check configurations
+type KuberhealthyCheckList struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Items             []KuberhealthyState `json:"items"`
+	Items             []KuberhealthyCheck `json:"items"`
 }
 
 // DeepCopyInto copies all properties of this object into another object of the
 // same type that is provided as a pointer.
-func (h *KuberhealthyStateList) DeepCopyInto(out *KuberhealthyStateList) {
+func (h *KuberhealthyCheckList) DeepCopyInto(out *KuberhealthyCheckList) {
 	out.TypeMeta = h.TypeMeta
 	out.ObjectMeta = h.ObjectMeta
 	if h.Items != nil {
-		out.Items = make([]KuberhealthyState, len(h.Items))
+		out.Items = make([]KuberhealthyCheck, len(h.Items))
 		for i := range h.Items {
 			h.Items[i].DeepCopyInto(&out.Items[i])
 		}
@@ -36,8 +37,8 @@ func (h *KuberhealthyStateList) DeepCopyInto(out *KuberhealthyStateList) {
 }
 
 // DeepCopyObject returns a generically typed copy of an object
-func (h *KuberhealthyStateList) DeepCopyObject() runtime.Object {
-	out := KuberhealthyStateList{}
+func (h *KuberhealthyCheckList) DeepCopyObject() runtime.Object {
+	out := KuberhealthyCheckList{}
 	h.DeepCopyInto(&out)
 
 	return &out

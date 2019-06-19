@@ -17,16 +17,16 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// KuberhealthyStateClient holds client data for talking to Kubernetes about
+// KuberhealthyCheckClient holds client data for talking to Kubernetes about
 // the khstate custom resource
-type KuberhealthyStateClient struct {
+type KuberhealthyCheckClient struct {
 	restClient rest.Interface
 	ns         string
 }
 
 // Create creates a new resource for this CRD
-func (c *KuberhealthyStateClient) Create(state *KuberhealthyState, resource string) (*KuberhealthyState, error) {
-	result := KuberhealthyState{}
+func (c *KuberhealthyCheckClient) Create(state *KuberhealthyCheck, resource string) (*KuberhealthyCheck, error) {
+	result := KuberhealthyCheck{}
 	err := c.restClient.
 		Post().
 		Namespace(c.ns).
@@ -38,8 +38,8 @@ func (c *KuberhealthyStateClient) Create(state *KuberhealthyState, resource stri
 }
 
 // Delete deletes a resource for this CRD
-func (c *KuberhealthyStateClient) Delete(state *KuberhealthyState, resource string, name string) (*KuberhealthyState, error) {
-	result := KuberhealthyState{}
+func (c *KuberhealthyCheckClient) Delete(state *KuberhealthyCheck, resource string, name string) (*KuberhealthyCheck, error) {
+	result := KuberhealthyCheck{}
 	err := c.restClient.
 		Delete().
 		Namespace(c.ns).
@@ -51,8 +51,8 @@ func (c *KuberhealthyStateClient) Delete(state *KuberhealthyState, resource stri
 }
 
 // Update updates a resource for this CRD
-func (c *KuberhealthyStateClient) Update(state *KuberhealthyState, resource string, name string) (*KuberhealthyState, error) {
-	result := KuberhealthyState{}
+func (c *KuberhealthyCheckClient) Update(state *KuberhealthyCheck, resource string, name string) (*KuberhealthyCheck, error) {
+	result := KuberhealthyCheck{}
 	// err := c.restClient.Verb("update").Namespace(c.ns).Resource(resource).Name(name).Do().Into(&result)
 	err := c.restClient.
 		Put().
@@ -66,8 +66,8 @@ func (c *KuberhealthyStateClient) Update(state *KuberhealthyState, resource stri
 }
 
 // Get fetches a resource of this CRD
-func (c *KuberhealthyStateClient) Get(opts metav1.GetOptions, resource string, name string) (*KuberhealthyState, error) {
-	result := KuberhealthyState{}
+func (c *KuberhealthyCheckClient) Get(opts metav1.GetOptions, resource string, name string) (*KuberhealthyCheck, error) {
+	result := KuberhealthyCheck{}
 	err := c.restClient.
 		Get().
 		Namespace(c.ns).
@@ -80,8 +80,8 @@ func (c *KuberhealthyStateClient) Get(opts metav1.GetOptions, resource string, n
 }
 
 // List lists resources for this CRD
-func (c *KuberhealthyStateClient) List(opts metav1.ListOptions, resource string) (*KuberhealthyStateList, error) {
-	result := KuberhealthyStateList{}
+func (c *KuberhealthyCheckClient) List(opts metav1.ListOptions, resource string) (*KuberhealthyCheckList, error) {
+	result := KuberhealthyCheckList{}
 	err := c.restClient.
 		Get().
 		Namespace(c.ns).

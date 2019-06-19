@@ -41,7 +41,7 @@ func TestCreate(t *testing.T) {
 	checkDetail.AuthoritativePod = "TestCreatePod"
 	checkDetail.LastRun = time.Now()
 	state.CheckDetails["TestCheck"] = checkDetail
-	status := NewKuberhealthyState("gotest", checkDetail)
+	status := NewKuberhealthyCheck("gotest", checkDetail)
 	status.Kind = resource
 	status.APIVersion = version
 	result, err := client.Create(&status, resource)

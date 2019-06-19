@@ -14,46 +14,49 @@ package khcheckcrd
 import (
 	"encoding/json"
 
-	"github.com/Comcast/kuberhealthy/pkg/health"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/Comcast/kuberhealthy/pkg/checks/external"
 )
 
-type KuberhealthyState struct {
+// KuberhealthyCheck represents the data in the CRD for configuring an
+// external checker for Kuberhealthy
+type KuberhealthyCheck struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              health.CheckDetails `json:"spec"`
+	Spec              external.CheckConfig `json:"spec"`
 }
 
 // String satisfies the stringer interface for cleaner output when printing
-func (h KuberhealthyState) String() string {
+func (h KuberhealthyCheck) String() string {
 	b, err := json.MarshalIndent(&h, "", "\t")
 	if err != nil {
-		logrus.Errorln("Failed to marshal KuberhealthyState in a nice format:", err)
+		logrus.Errorln("Failed to marshal KuberhealthyCheck in a nice format:", err)
 	}
 	return string(b)
 }
 
 // DeepCopyInto copies all properties of this object into another object of the
 // same type that is provided as a pointer.
-func (h KuberhealthyState) DeepCopyInto(out *KuberhealthyState) {
+func (h KuberhealthyCheck) DeepCopyInto(out *KuberhealthyCheck) {
 	out.TypeMeta = h.TypeMeta
 	out.ObjectMeta = h.ObjectMeta
 	out.Spec = h.Spec
 }
 
 // DeepCopyObject returns a generically typed copy of an object
-func (h KuberhealthyState) DeepCopyObject() runtime.Object {
-	out := KuberhealthyState{}
+func (h KuberhealthyCheck) DeepCopyObject() runtime.Object {
+	out := KuberhealthyCheck{}
 	h.DeepCopyInto(&out)
 	return &out
 }
 
-// NewKuberhealthyState creates a KuberhealthyState struct which represents
+// NewKuberhealthyCheck creates a KuberhealthyCheck struct which represents
 // the data inside a KuberHealthyCheck resource
-func NewKuberhealthyState(name string, spec health.CheckDetails) KuberhealthyState {
-	state := KuberhealthyState{}
+func NewKuberhealthyCheck(name string, spec external.CheckConfig) KuberhealthyCheck {
+	state := KuberhealthyCheck{}
 	state.SetName(name)
 	state.Spec = spec
 	return state

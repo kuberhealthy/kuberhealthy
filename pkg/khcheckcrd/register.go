@@ -42,8 +42,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	defer knownTypesMu.Unlock()
 
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&KuberhealthyState{},
-		&KuberhealthyStateList{},
+		&KuberhealthyCheck{},
+		&KuberhealthyCheckList{},
 	)
 
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
