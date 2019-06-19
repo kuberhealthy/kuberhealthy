@@ -18,7 +18,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -33,7 +32,6 @@ import (
 
 // Kuberhealthy represents the kuberhealthy server and its checks
 type Kuberhealthy struct {
-	sync.RWMutex
 	Checks                []KuberhealthyCheck
 	ListenAddr            string               // the listen address, such as ":80"
 	MetricForwarder       metrics.Client
@@ -98,9 +96,6 @@ func (k *Kuberhealthy) Shutdown() {
 // StopChecks causes the kuberhealthy check group to shutdown gracefully.
 // All checks are sent a shutdown command at the same time.
 func (k *Kuberhealthy) StopChecks() {
-	// atomic operation here to prevent races
-	k.Lock()
-	defer k.Unlock()
 
 	log.Infoln("Checks stopping...")
 	k.cancelChecksFunc()
@@ -132,9 +127,6 @@ func (k *Kuberhealthy) Start() {
 
 // StartChecks starts all checks concurrently and ensures they stay running
 func (k *Kuberhealthy) StartChecks() {
-	// prevent races with locking
-	k.Lock()
-	defer k.Unlock()
 
 	// create a context for checks to abort with
 	ctx, cancelFunc := context.WithCancel(context.Background())
