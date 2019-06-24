@@ -48,8 +48,8 @@ var doneChan chan bool
 var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
 // flags indicating that checks of specific types should be used
-var enableForceMaster bool               // force master mode - for debugging
-var enableDebug bool                     // enable debug logging
+var enableForceMaster bool // force master mode - for debugging
+var enableDebug bool       // enable debug logging
 // DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
 var logLevel = "info"
@@ -75,7 +75,6 @@ const CRDVersion = "v1"
 
 // CRDResource is a custom resource name
 const CRDResource = "khstates"
-
 
 func init() {
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
@@ -130,14 +129,14 @@ func init() {
 }
 
 // configureInflux configures influxdb connection information
-func configureInflux() (metrics.Client, error){
+func configureInflux() (metrics.Client, error) {
 
 	var metricClient metrics.Client
 
 	// parse influxdb connection url
 	influxUrlParsed, err := url.Parse(influxUrl)
 	if err != nil {
-		return metricClient, errors.New("Unable to parse influxUrl: "+ err.Error())
+		return metricClient, errors.New("Unable to parse influxUrl: " + err.Error())
 	}
 
 	// return an influx client with the right configuration details in it
@@ -165,7 +164,7 @@ func main() {
 		// configure influxdb
 		metricClient, err := configureInflux()
 		if err != nil {
-			log.Fatalln("Error setting up influx client:",err)
+			log.Fatalln("Error setting up influx client:", err)
 		}
 		kuberhealthy.MetricForwarder = metricClient
 	}

@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"k8s.io/client-go/kubernetes"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,13 +61,13 @@ type Checker struct {
 	PodSpec                  *apiv1.PodSpec // the user-provided spec of the pod
 	PodDeployed              bool           // indicates the pod exists in the API
 	PodDeployedMu            sync.Mutex
-	PodName                  string // the name of the deployed pod
-	RunID                    string // the uuid of the current run
-	KuberhealthyReportingURL string // the URL that the check should want to report results back to
-	currentCheckUUID         string // the UUID of the current external checker running
-	Debug bool // indicates we should run in debug mode - run once and stop
-	cancelFunc context.CancelFunc // used to cancel things in-flight
-	ctx context.Context // a context used for tracking check runs
+	PodName                  string             // the name of the deployed pod
+	RunID                    string             // the uuid of the current run
+	KuberhealthyReportingURL string             // the URL that the check should want to report results back to
+	currentCheckUUID         string             // the UUID of the current external checker running
+	Debug                    bool               // indicates we should run in debug mode - run once and stop
+	cancelFunc               context.CancelFunc // used to cancel things in-flight
+	ctx                      context.Context    // a context used for tracking check runs
 }
 
 // New creates a new external checker
@@ -81,7 +81,7 @@ func New() (*Checker, error) {
 		KuberhealthyReportingURL: DefaultKuberhealthyReportingURL,
 		maxRunTime:               defaultMaxRunTime,
 		startupTimeout:           defaultMaxStartTime,
-		PodName: 				  DefaultName,
+		PodName:                  DefaultName,
 	}
 
 	return &testChecker, nil
@@ -141,7 +141,7 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 
 		// run a check iteration
 		ext.log("Running external check iteration")
-		err :=  ext.RunOnce()
+		err := ext.RunOnce()
 		if err != nil {
 			ext.log("Error with running external check:", err.Error())
 			ext.setError(err.Error())
@@ -251,7 +251,6 @@ func (ext *Checker) deletePod() error {
 	})
 }
 
-
 // sanityCheck runs a basic sanity check on the checker before running
 func (ext *Checker) sanityCheck() error {
 	if ext.Namespace == "" {
@@ -342,7 +341,7 @@ func (ext *Checker) waitForPodRunning() chan error {
 	// watch events and return when the pod is in state running
 	for e := range watcher.ResultChan() {
 
-		log.Debugln("Got event while watching for pod to start running:",e)
+		log.Debugln("Got event while watching for pod to start running:", e)
 
 		// try to cast the incoming object to a pod and skip the event if we cant
 		p, ok := e.Object.(*apiv1.Pod)
@@ -482,13 +481,13 @@ func (ext *Checker) podExists() (bool, error) {
 
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
-	p, err := podClient.Get(ext.PodName,metav1.GetOptions{})
+	p, err := podClient.Get(ext.PodName, metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}
 
 	// if the pod has a start time that isn't zero, it exists
-	if !p.Status.StartTime.IsZero() && p.Status.Phase != apiv1.PodFailed{
+	if !p.Status.StartTime.IsZero() && p.Status.Phase != apiv1.PodFailed {
 		return true, nil
 	}
 
@@ -511,8 +510,8 @@ func (ext *Checker) waitForShutdown(ctx context.Context) error {
 
 		// see if the context has expired yet and give up if so
 		select {
-			case <-ctx.Done():
-				return errors.New("timed out when waiting for pod to shutdown")
+		case <-ctx.Done():
+			return errors.New("timed out when waiting for pod to shutdown")
 		default:
 		}
 	}
@@ -564,7 +563,7 @@ func (ext *Checker) setError(s string) {
 
 // addError adds an error to the errors list
 func (ext *Checker) addError(s string) {
-	ext.ErrorMessages = append(ext.ErrorMessages,s)
+	ext.ErrorMessages = append(ext.ErrorMessages, s)
 }
 
 // podDeployed returns a bool indicating that the pod

@@ -33,11 +33,11 @@ import (
 
 // Kuberhealthy represents the kuberhealthy server and its checks
 type Kuberhealthy struct {
-	Checks                []KuberhealthyCheck
-	ListenAddr            string               // the listen address, such as ":80"
-	MetricForwarder       metrics.Client
-	overrideKubeClient    *kubernetes.Clientset
-	cancelChecksFunc 	  context.CancelFunc // invalidates the context of all running checks
+	Checks             []KuberhealthyCheck
+	ListenAddr         string // the listen address, such as ":80"
+	MetricForwarder    metrics.Client
+	overrideKubeClient *kubernetes.Clientset
+	cancelChecksFunc   context.CancelFunc // invalidates the context of all running checks
 }
 
 // KubeClient sets up a new kuberhealthy client if it does not exist yet
@@ -138,7 +138,6 @@ func (k *Kuberhealthy) StartChecks() {
 	}
 }
 
-
 // masterStatusMonitor calculates the master pod on a ticker.  When a
 // change in master is determined that is relevant to this pod, a signal
 // is sent down the appropriate became or lost channels
@@ -153,14 +152,14 @@ func (k *Kuberhealthy) masterStatusMonitor(becameMasterChan chan bool, lostMaste
 		// setup a pod watching client for kuberhealthy pods
 		c, err := k.KubeClient()
 		if err != nil {
-			log.Errorln("attempted to fetch kube client, but found error:",err)
+			log.Errorln("attempted to fetch kube client, but found error:", err)
 			continue
 		}
 		watcher, err := c.CoreV1().Pods(podNamespace).Watch(metav1.ListOptions{
 			LabelSelector: "app=kuberhealthy",
 		})
 		if err != nil {
-			log.Errorln("error when attempting to watch for kuberhealthy pod changes:",err)
+			log.Errorln("error when attempting to watch for kuberhealthy pod changes:", err)
 			continue
 		}
 
