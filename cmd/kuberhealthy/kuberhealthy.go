@@ -21,6 +21,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/Comcast/kuberhealthy/pkg/health"
@@ -96,10 +97,8 @@ func (k *Kuberhealthy) Shutdown() {
 // StopChecks causes the kuberhealthy check group to shutdown gracefully.
 // All checks are sent a shutdown command at the same time.
 func (k *Kuberhealthy) StopChecks() {
-
 	log.Infoln("Checks stopping...")
 	k.cancelChecksFunc()
-
 }
 
 // Start inits Kuberhealthy checks and master monitoring
@@ -145,46 +144,58 @@ func (k *Kuberhealthy) StartChecks() {
 // is sent down the appropriate became or lost channels
 func (k *Kuberhealthy) masterStatusMonitor(becameMasterChan chan bool, lostMasterChan chan bool) {
 
-	ticker := time.NewTicker(masterCalculationInterval)
-
-	var wasMaster bool
-	var isMaster bool
-
+	// continue reconnecting to the api to resume the pod watch if it ends
 	for {
 
-		client, err := k.KubeClient()
+		// don't retry too fast
+		time.Sleep(time.Second)
+
+		// setup a pod watching client for kuberhealthy pods
+		c, err := k.KubeClient()
 		if err != nil {
-			log.Warnln(err)
+			log.Errorln("attempted to fetch kube client, but found error:",err)
+			continue
 		}
-
-		// determine if we are currently master or not
-		isMaster, err = masterCalculation.IAmMaster(client)
+		watcher, err := c.CoreV1().Pods(podNamespace).Watch(metav1.ListOptions{
+			LabelSelector: "app=kuberhealthy",
+		})
 		if err != nil {
-			log.Errorln(err)
+			log.Errorln("error when attempting to watch for kuberhealthy pod changes:",err)
+			continue
 		}
 
-		// stop checks if we are no longer the master
-		if wasMaster && !isMaster {
-			log.Infoln("No longer master. Stopping all checks.")
-			select {
-			case lostMasterChan <- true:
-			default:
-			}
+		// on each update from the watch, we re-check our master status.
+		for range watcher.ResultChan() {
+			k.checkMasterStatus(c, becameMasterChan, lostMasterChan)
 		}
+	}
+}
 
-		// start checks if we are now master
-		if !wasMaster && isMaster {
-			log.Infoln("I am now master. Starting checks.")
-			select {
-			case becameMasterChan <- true:
-			default:
-			}
+// checkMasterStatus checks the current status of this node as a master and if necessary, notifies
+// the channels supplied.  Returns the new isMaster state bool.
+func (k *Kuberhealthy) checkMasterStatus(c *kubernetes.Clientset, becameMasterChan chan bool, lostMasterChan chan bool) {
+
+	// determine if we are currently master or not
+	becameMaster, err := masterCalculation.IAmMaster(c)
+	if err != nil {
+		log.Errorln(err)
+		return
+	}
+
+	// stop checks if we are no longer the master
+	if becameMaster && !isMaster {
+		select {
+		case lostMasterChan <- true:
+		default:
 		}
+	}
 
-		// keep track of the previous runs master state
-		wasMaster = isMaster
-
-		<-ticker.C
+	// start checks if we are now master
+	if !becameMaster && isMaster {
+		select {
+		case becameMasterChan <- true:
+		default:
+		}
 	}
 }
 
