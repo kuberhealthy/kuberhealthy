@@ -29,7 +29,6 @@ func getEnvVar(v string) (string, error) {
 	return envVar, err
 }
 
-
 // getAllLogLevel fetches a string list of possible log levels that can be set
 func getAllLogLevel() string {
 	var levelStrings []string
