@@ -13,6 +13,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -38,6 +39,8 @@ var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var listenAddress = ":8080"
 var podCheckNamespaces = "kube-system"
 var dnsEndpoints []string
+var podNamespace = os.Getenv("POD_NAMESPACE")
+var isMaster bool // indicates this instance is the master and should be running checks
 
 // shutdown signal handling
 var sigChan chan os.Signal
@@ -56,7 +59,7 @@ var enablePodRestartChecks = true
 var enablePodStatusChecks = true
 var enableDnsStatusChecks = true
 
-// InfluxDB flags
+// InfluxDB connection configuration
 var enableInflux = false
 var influxUrl = ""
 var influxUsername = ""
@@ -73,16 +76,6 @@ const CRDVersion = "v1"
 // CRDResource is a custom resource name
 const CRDResource = "khstates"
 
-var masterCalculationInterval = time.Second * 10
-
-func getAllLogLevel() string {
-	var levelStrings []string
-	for _, level := range log.AllLevels {
-		levelStrings = append(levelStrings, level.String())
-	}
-
-	return strings.Join(levelStrings, ",")
-}
 
 func init() {
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
@@ -136,44 +129,56 @@ func init() {
 	}
 }
 
+// configureInflux configures influxdb connection information
+func configureInflux() (metrics.Client, error){
+
+	var metricClient metrics.Client
+
+	// parse influxdb connection url
+	influxUrlParsed, err := url.Parse(influxUrl)
+	if err != nil {
+		return metricClient, errors.New("Unable to parse influxUrl: "+ err.Error())
+	}
+
+	// return an influx client with the right configuration details in it
+	return metrics.NewInfluxClient(metrics.InfluxClientInput{
+		Config: metrics.InfluxConfig{
+			URL:      *influxUrlParsed,
+			Password: influxPassword,
+			Username: influxUsername,
+		},
+		Database: influxDB,
+	})
+}
+
 func main() {
 
+	// start listening for shutdown interrupts
 	go listenForInterrupts()
 
 	// Create a new Kuberhealthy struct
 	kuberhealthy = NewKuberhealthy()
 	kuberhealthy.ListenAddr = listenAddress
-	var metricClient metrics.Client
+
+	// if influxdb is enabled, configure it
 	if enableInflux {
-		influxUrlParsed, err := url.Parse(influxUrl)
+		// configure influxdb
+		metricClient, err := configureInflux()
 		if err != nil {
-			log.Fatalln("Unable to parse influxUrl", err)
+			log.Fatalln("Error setting up influx client:",err)
 		}
-		metricClient, err = metrics.NewInfluxClient(metrics.InfluxClientInput{
-			Config: metrics.InfluxConfig{
-				URL:      *influxUrlParsed,
-				Password: influxPassword,
-				Username: influxUsername,
-			},
-			Database: influxDB,
-		})
-		if err != nil {
-			log.Fatalln("Unable to parse initialize connection with InfluxDB", err)
-		}
+		kuberhealthy.MetricForwarder = metricClient
 	}
-	kuberhealthy.MetricForwarder = metricClient
 
 	// Split the podCheckNamespaces into a []string
 	namespaces := strings.Split(podCheckNamespaces, ",")
 
-	// Add enabled checks into Kuberhealthy
-
-	// componentstatus checking
+	// add componentstatus checking if enabled
 	if enableComponentStatusChecks {
 		kuberhealthy.AddCheck(componentStatus.New())
 	}
 
-	// daemonset checking
+	// add daemonset checking if enabled
 	if enableDaemonSetChecks {
 		dsc, err := daemonSet.New()
 		// allow the user to override the image used by the DSC - see #114
@@ -187,7 +192,7 @@ func main() {
 		kuberhealthy.AddCheck(dsc)
 	}
 
-	// pod restart checking
+	// add pod restart checking if enabled
 	if enablePodRestartChecks {
 		for _, namespace := range namespaces {
 			n := strings.TrimSpace(namespace)
@@ -197,7 +202,7 @@ func main() {
 		}
 	}
 
-	// pod status checking
+	// add pod status checking if enabled
 	if enablePodStatusChecks {
 		for _, namespace := range namespaces {
 			n := strings.TrimSpace(namespace)
@@ -207,17 +212,16 @@ func main() {
 		}
 	}
 
-	// dns resolution checking
+	// add dns resolution checking if enabled
 	if enableDnsStatusChecks {
 		kuberhealthy.AddCheck(dnsStatus.New(dnsEndpoints))
 	}
 
-	// Tell Kuberhealthy to start all checks and master change monitoring
+	// tell Kuberhealthy to start all checks and master change monitoring
 	go kuberhealthy.Start()
 
 	// Start the web server and restart it if it crashes
 	kuberhealthy.StartWebServer()
-
 }
 
 // listenForInterrupts watches for termination signals and acts on them
