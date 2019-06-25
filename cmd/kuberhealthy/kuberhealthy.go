@@ -18,13 +18,21 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/Comcast/kuberhealthy/pkg/checks/componentStatus"
+	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
+	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
+	"github.com/Comcast/kuberhealthy/pkg/checks/external"
+	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
+	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/health"
+	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
@@ -33,6 +41,7 @@ import (
 
 // Kuberhealthy represents the kuberhealthy server and its checks
 type Kuberhealthy struct {
+	sync.Mutex
 	Checks             []KuberhealthyCheck
 	ListenAddr         string // the listen address, such as ":80"
 	MetricForwarder    metrics.Client
@@ -104,11 +113,16 @@ func (k *Kuberhealthy) StopChecks() {
 // Start inits Kuberhealthy checks and master monitoring
 func (k *Kuberhealthy) Start() {
 
+	// reset checks and re-add from configuration settings
+	kuberhealthy.configureChecks()
+
+	// find all the external checks from the khcheckcrd resources on the cluster and keep them in sync
+	externalChecksUpdated := make(chan struct{})
+	go k.monitorExternalChecks(externalChecksUpdated)
+
 	// we use two channels to indicate when we gain or lose master status
 	becameMasterChan := make(chan bool)
 	lostMasterChan := make(chan bool)
-
-	// recalculate the current master on an interval
 	go k.masterStatusMonitor(becameMasterChan, lostMasterChan)
 
 	// loop and select channels to do appropriate thing when master changes
@@ -120,12 +134,108 @@ func (k *Kuberhealthy) Start() {
 		case <-lostMasterChan:
 			log.Infoln("Lost master. Stopping checks.")
 			k.StopChecks()
+		case <-externalChecksUpdated:
+			log.Infoln("Reloading external check configurations due to resource update.")
+			k.StopChecks()
+			err := k.addExternalChecks()
+			if err != nil {
+				log.Errorln("Error reloading external check configurations:",err)
+			}
+			k.StartChecks()
 		}
 	}
 }
 
+// monitorExternalChecks watches for changes to the external check CRDs
+func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
+
+	// make a map of resource versions so we know when things change
+	resourceVersions := make(map[string]string)
+
+	// start polling for check changes all the time.
+	// TODO - watch is not implemented on the CRD package yet, but
+	// when it is we should use that instead of polling.
+	for {
+
+		// rate limiting for watch restarts
+		time.Sleep(checkCRDScanInterval)
+		log.Infoln("Starting to monitor for external check configuration resource changes...")
+
+		// make a new crd check client
+		checkClient, err := khcheckcrd.Client(checkCRDGroup,checkCRDVersion,kubeConfigFile)
+		if err != nil {
+			log.Errorln("Error creating client for configuration resource listing", err)
+			continue
+		}
+
+		l, err := checkClient.List(metav1.ListOptions{},checkCRDResource)
+		if err != nil {
+			log.Errorln("Error listing check configuration resources", err)
+			continue
+		}
+
+		// iterate on each check CRD resource
+		for _, i := range l.Items{
+			log.Debugln("Scanning check CRD",i.Name,"for changes...")
+			r, err := checkClient.Get(metav1.GetOptions{},checkCRDResource, i.Name)
+			if err != nil {
+				log.Errorln("Error getting check configuration resource:", err)
+				continue
+			}
+			// if this is the first time seeing this resource, we don't notify of a change
+			if len(resourceVersions[r.Name]) == 0 {
+				resourceVersions[r.Name] = r.GetResourceVersion()
+				log.Debugln("Initialized change monitoring for check CRD",r.Name,"at resource version",r.GetResourceVersion())
+				continue
+			}
+
+			// if the resource has changed, we notify the notify channel and set the new resource version
+			if resourceVersions[r.Name] != r.GetResourceVersion() {
+				log.Infoln("Detected a change in external check CRD",r.Name,"to resource version",r.GetResourceVersion())
+				notify <- struct{}{}
+				resourceVersions[r.Name] = r.GetResourceVersion()
+			}
+		}
+	}
+}
+
+// setExternalChecks syncs up the state of the external-checks installed in this
+// Kuberhealthy struct.
+func (k *Kuberhealthy) addExternalChecks() error {
+	k.Lock()
+	defer k.Unlock()
+
+	// make a new crd check client
+	checkClient, err := khcheckcrd.Client(checkCRDGroup,checkCRDVersion,kubeConfigFile)
+	if err != nil {
+		return err
+	}
+
+	// list all checks
+	l, err := checkClient.List(metav1.ListOptions{},checkCRDResource)
+	if err != nil {
+		return err
+	}
+
+	// iterate on each check CRD resource
+	for _, i := range l.Items {
+		log.Debugln("Scanning check CRD", i.Name, "for changes...")
+		r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, i.Name)
+		if err != nil {
+			return err
+		}
+
+		// create a new KuberhealthyCheck and add it
+		log.Infoln("Enabling external checker:",r.Name)
+		k.AddCheck(external.New(&r.Spec.PodSpec))
+	}
+
+	return nil
+}
+
 // StartChecks starts all checks concurrently and ensures they stay running
 func (k *Kuberhealthy) StartChecks() {
+	log.Infoln("Checks starting...")
 
 	// create a context for checks to abort with
 	ctx, cancelFunc := context.WithCancel(context.Background())
@@ -280,12 +390,12 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 func (k *Kuberhealthy) storeCheckState(checkName string, details health.CheckDetails) error {
 
 	// make a new crd client
-	client, err := khstatecrd.Client(CRDGroup, CRDVersion, kubeConfigFile)
+	client, err := khstatecrd.Client(statusCRDGroup, statusCRDVersion, kubeConfigFile)
 	if err != nil {
 		return err
 	}
 
-	// ensure the CRD resoruce exits
+	// ensure the CRD resource exits
 	err = ensureStateResourceExists(checkName, client)
 	if err != nil {
 		return err
@@ -382,7 +492,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	state := health.NewState()
 
 	// create a CRD client to fetch CRD states with
-	khClient, err := khstatecrd.Client(CRDGroup, CRDVersion, kubeConfigFile)
+	khClient, err := khstatecrd.Client(statusCRDGroup, statusCRDVersion, kubeConfigFile)
 	if err != nil {
 		return state, err
 	}
@@ -436,4 +546,78 @@ func (k *Kuberhealthy) getCheck(name string) (KuberhealthyCheck, error) {
 		}
 	}
 	return nil, fmt.Errorf("could not find Kuberhealthy check with name %s", name)
+}
+
+// configureChecks removes all checks set in Kuberhealthy and reloads them
+// based on the configuration options
+func (k *Kuberhealthy) configureChecks(){
+
+	// wipe all existing checks before we configure
+	k.Checks = []KuberhealthyCheck{}
+
+	// if influxdb is enabled, configure it
+	if enableInflux {
+		// configure influxdb
+		metricClient, err := configureInflux()
+		if err != nil {
+			log.Fatalln("Error setting up influx client:", err)
+		}
+		kuberhealthy.MetricForwarder = metricClient
+	}
+
+	// add componentstatus checking if enabled
+	if enableComponentStatusChecks {
+		kuberhealthy.AddCheck(componentStatus.New())
+	}
+
+	// add daemonset checking if enabled
+	if enableDaemonSetChecks {
+		dsc, err := daemonSet.New()
+		// allow the user to override the image used by the DSC - see #114
+		if len(DSPauseContainerImageOverride) > 0 {
+			log.Info("Setting DS pause container override image to:", DSPauseContainerImageOverride)
+			dsc.PauseContainerImage = DSPauseContainerImageOverride
+		}
+		if err != nil {
+			log.Fatalln("unable to create daemonset checker:", err)
+		}
+		kuberhealthy.AddCheck(dsc)
+	}
+
+	// add pod restart checking if enabled
+	if enablePodRestartChecks {
+		// Split the podCheckNamespaces into a []string
+		namespaces := strings.Split(podCheckNamespaces, ",")
+		for _, namespace := range namespaces {
+			n := strings.TrimSpace(namespace)
+			if len(n) > 0 {
+				kuberhealthy.AddCheck(podRestarts.New(n))
+			}
+		}
+	}
+
+	// add pod status checking if enabled
+	if enablePodStatusChecks {
+		// Split the podCheckNamespaces into a []string
+		namespaces := strings.Split(podCheckNamespaces, ",")
+		for _, namespace := range namespaces {
+			n := strings.TrimSpace(namespace)
+			if len(n) > 0 {
+				kuberhealthy.AddCheck(podStatus.New(n))
+			}
+		}
+	}
+
+	// add dns resolution checking if enabled
+	if enableDnsStatusChecks {
+		kuberhealthy.AddCheck(dnsStatus.New(dnsEndpoints))
+	}
+
+	// check external check configurations
+	if enableExternalChecks {
+		err := kuberhealthy.addExternalChecks()
+		if err != nil {
+			log.Errorln("Error loading external checks:", err)
+		}
+	}
 }

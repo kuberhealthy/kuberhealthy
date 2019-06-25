@@ -31,7 +31,7 @@ func setCheckStateResource(checkName string, client *khstatecrd.KuberhealthyStat
 
 	// we must fetch the existing state to use the current resource version
 	// int found within
-	existingState, err := client.Get(metav1.GetOptions{}, CRDResource, name)
+	existingState, err := client.Get(metav1.GetOptions{}, statusCRDResource, name)
 	if err != nil {
 		return errors.New("Error retrieving CRD for: " + name + " " + err.Error())
 	}
@@ -52,7 +52,7 @@ func setCheckStateResource(checkName string, client *khstatecrd.KuberhealthyStat
 	khState.SetResourceVersion(resourceVersion)
 
 	log.Debugln("Updating the CRD for:", checkName, "to", khState)
-	_, err = client.Update(&khState, CRDResource, name)
+	_, err = client.Update(&khState, statusCRDResource, name)
 	return err
 }
 
@@ -75,14 +75,14 @@ func ensureStateResourceExists(checkName string, client *khstatecrd.Kuberhealthy
 	name := sanitizeResourceName(checkName)
 
 	log.Debugln("Checking existence of custom resource:", name)
-	state, err := client.Get(metav1.GetOptions{}, CRDResource, name)
+	state, err := client.Get(metav1.GetOptions{}, statusCRDResource, name)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 
 			log.Infoln("CRD not found, creating CRD:", name, err)
 			initialDetails := health.NewCheckDetails()
 			initialState := khstatecrd.NewKuberhealthyState(name, initialDetails)
-			_, err := client.Create(&initialState, CRDResource)
+			_, err := client.Create(&initialState, statusCRDResource)
 			if err != nil {
 				return errors.New("Error creating CRD: " + name + ": " + err.Error())
 			}
@@ -111,7 +111,7 @@ func getCheckState(c KuberhealthyCheck, client *khstatecrd.KuberhealthyStateClie
 	}
 
 	log.Debugln("Retrieving khstate custom resource for:", name)
-	khstate, err := client.Get(metav1.GetOptions{}, CRDResource, name)
+	khstate, err := client.Get(metav1.GetOptions{}, statusCRDResource, name)
 	if err != nil {
 		return state, errors.New("Error retrieving custom khstate resource: " + name + " " + err.Error())
 	}

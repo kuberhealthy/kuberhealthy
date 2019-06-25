@@ -71,7 +71,7 @@ type Checker struct {
 }
 
 // New creates a new external checker
-func New() (*Checker, error) {
+func New(podSpec *apiv1.PodSpec) (*Checker) {
 
 	testChecker := Checker{
 		ErrorMessages:            []string{},
@@ -82,9 +82,10 @@ func New() (*Checker, error) {
 		maxRunTime:               defaultMaxRunTime,
 		startupTimeout:           defaultMaxStartTime,
 		PodName:                  DefaultName,
+		PodSpec: 			      podSpec,
 	}
 
-	return &testChecker, nil
+	return &testChecker
 }
 
 // cancel cancels the context of this checker to shut things down gracefully
