@@ -13,9 +13,7 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -23,9 +21,10 @@ import (
 
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
-	"github.com/Comcast/kuberhealthy/pkg/metrics"
 )
 
 // status represents the current Kuberhealthy OK:Error state
@@ -126,28 +125,6 @@ func init() {
 	}
 }
 
-// configureInflux configures influxdb connection information
-func configureInflux() (metrics.Client, error) {
-
-	var metricClient metrics.Client
-
-	// parse influxdb connection url
-	influxUrlParsed, err := url.Parse(influxUrl)
-	if err != nil {
-		return metricClient, errors.New("Unable to parse influxUrl: " + err.Error())
-	}
-
-	// return an influx client with the right configuration details in it
-	return metrics.NewInfluxClient(metrics.InfluxClientInput{
-		Config: metrics.InfluxConfig{
-			URL:      *influxUrlParsed,
-			Password: influxPassword,
-			Username: influxUsername,
-		},
-		Database: influxDB,
-	})
-}
-
 func main() {
 
 	// start listening for shutdown interrupts
@@ -180,4 +157,21 @@ func listenForInterrupts() {
 		log.Errorln("Shutdown took too long.  Shutting down forcefully!")
 	}
 	os.Exit(0)
+}
+
+// getWhitelistedUUIDForExternalCheck fetches the current allowed UUID for an
+// external check.  This data is stored in khcheck custom resources.
+func getWhitelistedUUIDForExternalCheck(checkName string) (string, error) {
+	// make a new crd check client
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
+	if err != nil {
+		return "", err
+	}
+
+	r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, checkName)
+	if err != nil {
+		return "", err
+	}
+
+	return r.Spec.CurrentUUID, nil
 }
