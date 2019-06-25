@@ -19,17 +19,11 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/Comcast/kuberhealthy/pkg/checks/componentStatus"
-	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
-	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
-	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
-	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 	"github.com/Comcast/kuberhealthy/pkg/metrics"
 )
@@ -58,6 +52,7 @@ var enableDaemonSetChecks = true
 var enablePodRestartChecks = true
 var enablePodStatusChecks = true
 var enableDnsStatusChecks = true
+var enableExternalChecks = true
 
 // InfluxDB connection configuration
 var enableInflux = false
@@ -67,14 +62,16 @@ var influxPassword = ""
 var influxDB = "http://localhost:8086"
 var kuberhealthy *Kuberhealthy
 
-// CRDGroup is a custom resource group name
-const CRDGroup = "comcast.github.io"
+// constants for using the kuberhealthy status CRD
+const statusCRDGroup = "comcast.github.io"
+const statusCRDVersion = "v1"
+const statusCRDResource = "khstates"
 
-// CRDVersion is a custom resource version
-const CRDVersion = "v1"
-
-// CRDResource is a custom resource name
-const CRDResource = "khstates"
+// constants for using the kuberhealthy check CRD
+const checkCRDGroup = "comcast.github.io"
+const checkCRDVersion = "v1"
+const checkCRDResource = "khchecks"
+var checkCRDScanInterval = time.Second * 15 // how often we scan for changes to check CRD objects
 
 func init() {
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
@@ -85,6 +82,7 @@ func init() {
 	flaggy.Bool(&enablePodRestartChecks, "", "podRestartChecks", "Set to false to disable pod restart checking.")
 	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
 	flaggy.Bool(&enableDnsStatusChecks, "", "dnsStatusChecks", "Set to false to disable DNS checks.")
+	flaggy.Bool(&enableExternalChecks, "", "externalChecks", "Set to false to disable external checks.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
 	flaggy.String(&DSPauseContainerImageOverride, "", "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
@@ -158,63 +156,6 @@ func main() {
 	// Create a new Kuberhealthy struct
 	kuberhealthy = NewKuberhealthy()
 	kuberhealthy.ListenAddr = listenAddress
-
-	// if influxdb is enabled, configure it
-	if enableInflux {
-		// configure influxdb
-		metricClient, err := configureInflux()
-		if err != nil {
-			log.Fatalln("Error setting up influx client:", err)
-		}
-		kuberhealthy.MetricForwarder = metricClient
-	}
-
-	// Split the podCheckNamespaces into a []string
-	namespaces := strings.Split(podCheckNamespaces, ",")
-
-	// add componentstatus checking if enabled
-	if enableComponentStatusChecks {
-		kuberhealthy.AddCheck(componentStatus.New())
-	}
-
-	// add daemonset checking if enabled
-	if enableDaemonSetChecks {
-		dsc, err := daemonSet.New()
-		// allow the user to override the image used by the DSC - see #114
-		if len(DSPauseContainerImageOverride) > 0 {
-			log.Info("Setting DS pause container override image to:", DSPauseContainerImageOverride)
-			dsc.PauseContainerImage = DSPauseContainerImageOverride
-		}
-		if err != nil {
-			log.Fatalln("unable to create daemonset checker:", err)
-		}
-		kuberhealthy.AddCheck(dsc)
-	}
-
-	// add pod restart checking if enabled
-	if enablePodRestartChecks {
-		for _, namespace := range namespaces {
-			n := strings.TrimSpace(namespace)
-			if len(n) > 0 {
-				kuberhealthy.AddCheck(podRestarts.New(n))
-			}
-		}
-	}
-
-	// add pod status checking if enabled
-	if enablePodStatusChecks {
-		for _, namespace := range namespaces {
-			n := strings.TrimSpace(namespace)
-			if len(n) > 0 {
-				kuberhealthy.AddCheck(podStatus.New(n))
-			}
-		}
-	}
-
-	// add dns resolution checking if enabled
-	if enableDnsStatusChecks {
-		kuberhealthy.AddCheck(dnsStatus.New(dnsEndpoints))
-	}
 
 	// tell Kuberhealthy to start all checks and master change monitoring
 	go kuberhealthy.Start()
