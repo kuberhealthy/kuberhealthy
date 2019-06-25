@@ -18,7 +18,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -41,7 +40,6 @@ import (
 
 // Kuberhealthy represents the kuberhealthy server and its checks
 type Kuberhealthy struct {
-	sync.Mutex
 	Checks             []KuberhealthyCheck
 	ListenAddr         string // the listen address, such as ":80"
 	MetricForwarder    metrics.Client
@@ -117,8 +115,8 @@ func (k *Kuberhealthy) Start() {
 	kuberhealthy.configureChecks()
 
 	// find all the external checks from the khcheckcrd resources on the cluster and keep them in sync
-	externalChecksUpdated := make(chan struct{})
-	go k.monitorExternalChecks(externalChecksUpdated)
+	externalChecksUpdateChan := make(chan struct{})
+	go k.monitorExternalChecks(externalChecksUpdateChan)
 
 	// we use two channels to indicate when we gain or lose master status
 	becameMasterChan := make(chan bool)
@@ -134,13 +132,10 @@ func (k *Kuberhealthy) Start() {
 		case <-lostMasterChan:
 			log.Infoln("Lost master. Stopping checks.")
 			k.StopChecks()
-		case <-externalChecksUpdated:
+		case <-externalChecksUpdateChan:
 			log.Infoln("Reloading external check configurations due to resource update.")
 			k.StopChecks()
-			err := k.addExternalChecks()
-			if err != nil {
-				log.Errorln("Error reloading external check configurations:",err)
-			}
+			k.configureChecks() // reset and reconfigure all checks
 			k.StartChecks()
 		}
 	}
@@ -174,7 +169,8 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 			continue
 		}
 
-		// iterate on each check CRD resource
+		// iterate on each check CRD resource for changes
+		var foundChange bool
 		for _, i := range l.Items{
 			log.Debugln("Scanning check CRD",i.Name,"for changes...")
 			r, err := checkClient.Get(metav1.GetOptions{},checkCRDResource, i.Name)
@@ -192,9 +188,15 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 			// if the resource has changed, we notify the notify channel and set the new resource version
 			if resourceVersions[r.Name] != r.GetResourceVersion() {
 				log.Infoln("Detected a change in external check CRD",r.Name,"to resource version",r.GetResourceVersion())
-				notify <- struct{}{}
 				resourceVersions[r.Name] = r.GetResourceVersion()
+				foundChange = true
 			}
+		}
+
+		// if a change was detected, we signal the notify channel
+		if foundChange {
+			log.Debugln("Signaling that a change was found in external check configuration")
+			notify <- struct{}{}
 		}
 	}
 }
@@ -202,8 +204,6 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 // setExternalChecks syncs up the state of the external-checks installed in this
 // Kuberhealthy struct.
 func (k *Kuberhealthy) addExternalChecks() error {
-	k.Lock()
-	defer k.Unlock()
 
 	// make a new crd check client
 	checkClient, err := khcheckcrd.Client(checkCRDGroup,checkCRDVersion,kubeConfigFile)
@@ -227,7 +227,8 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 		// create a new KuberhealthyCheck and add it
 		log.Infoln("Enabling external checker:",r.Name)
-		k.AddCheck(external.New(&r.Spec.PodSpec))
+		c := external.New(&r.Spec.PodSpec)
+		k.AddCheck(c)
 	}
 
 	return nil
@@ -572,16 +573,16 @@ func (k *Kuberhealthy) configureChecks(){
 
 	// add daemonset checking if enabled
 	if enableDaemonSetChecks {
-		dsc, err := daemonSet.New()
+		ds, err := daemonSet.New()
 		// allow the user to override the image used by the DSC - see #114
 		if len(DSPauseContainerImageOverride) > 0 {
 			log.Info("Setting DS pause container override image to:", DSPauseContainerImageOverride)
-			dsc.PauseContainerImage = DSPauseContainerImageOverride
+			ds.PauseContainerImage = DSPauseContainerImageOverride
 		}
 		if err != nil {
 			log.Fatalln("unable to create daemonset checker:", err)
 		}
-		kuberhealthy.AddCheck(dsc)
+		kuberhealthy.AddCheck(ds)
 	}
 
 	// add pod restart checking if enabled

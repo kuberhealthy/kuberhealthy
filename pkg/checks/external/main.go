@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -16,6 +17,8 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
 )
 
 // DefaultKuberhealthyReportingURL is the default location that external checks
@@ -44,9 +47,17 @@ var DefaultName = "external-check"
 // pod that is running this check
 var defaultNamespace = os.Getenv("POD_NAMESPACE")
 
+// kubeConfigFile is the default location to check for a kubernetes configuration file
+var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+
 // defaultRunInterval is the default time we assume this check
 // should run on unless specified
 var defaultRunInterval = time.Minute * 10
+
+// constants for using the kuberhealthy check CRD
+const checkCRDGroup = "comcast.github.io"
+const checkCRDVersion = "v1"
+const checkCRDResource = "khchecks"
 
 // Checker implements a KuberhealthyCheck for external
 // check execution and lifecycle management.
@@ -71,7 +82,7 @@ type Checker struct {
 }
 
 // New creates a new external checker
-func New(podSpec *apiv1.PodSpec) (*Checker) {
+func New(podSpec *apiv1.PodSpec) *Checker {
 
 	testChecker := Checker{
 		ErrorMessages:            []string{},
@@ -155,6 +166,29 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	}
 }
 
+// setUUID sets the current whitelisted UUID for the checker
+func (ext *Checker) setUUID(uuid string) error {
+
+	// make a new crd check client
+	checkClient, err := khcheckcrd.Client(checkCRDGroup,checkCRDVersion,kubeConfigFile)
+	if err != nil {
+		return err
+	}
+
+	// get the item in question
+	checkConfig, err := checkClient.Get(metav1.GetOptions{},checkCRDResource,ext.Name())
+	if err != nil {
+		return err
+	}
+
+	// update the check config and write it back to the struct
+	checkConfig.Spec.CurrentUUID = uuid
+
+	// update the resource with the new values we want
+	_, err = checkClient.Update(checkConfig,checkCRDResource,ext.Name())
+	return err
+}
+
 // RunOnce runs one check loop.  This creates a checker pod and ensures it starts,
 // then ensures it changes to Running properly
 func (ext *Checker) RunOnce() error {
@@ -164,6 +198,13 @@ func (ext *Checker) RunOnce() error {
 
 	// generate a new UUID for this run:
 	err := ext.createCheckUUID()
+	if err != nil {
+		return err
+	}
+
+	// set whitelist in check configuration CRD so only this
+	// currently running pod can report-in with a status update
+	err = ext.setUUID(ext.currentCheckUUID)
 	if err != nil {
 		return err
 	}
@@ -188,7 +229,6 @@ func (ext *Checker) RunOnce() error {
 	if err != nil {
 		return err
 	}
-
 	// cleanup all pods from this checker that should not exist right now (all of them)
 	ext.log("Deleting any rogue check pods")
 	err = ext.deletePod()

@@ -13,9 +13,10 @@ import (
 
 	// "k8s.io/apimachinery/pkg/api/resource"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/Comcast/kuberhealthy/pkg/checks/external"
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
-	log "github.com/sirupsen/logrus"
 
 	apiv1 "k8s.io/api/core/v1"
 	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -229,8 +230,7 @@ func newTestCheck() (*external.Checker, error) {
 // spec file for pods
 func newTestCheckFromSpec(spec *apiv1.PodSpec) *external.Checker {
 	// create a new checker and insert this pod spec
-	checker, _ := external.New() // external checker does not ever return an error so we drop it
-	checker.PodSpec = spec
+	checker := external.New(spec) // external checker does not ever return an error so we drop it
 	checker.Namespace = "kuberhealthy"
 	checker.Debug = true
 	return checker
