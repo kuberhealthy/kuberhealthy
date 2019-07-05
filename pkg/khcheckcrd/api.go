@@ -32,14 +32,14 @@ const version = "v1"
 const defaultNamespace = "kuberhealthy"
 
 func init(){
-	if namespace == `` {
+	if namespace == "" {
 		log.Println("Failed to fetch POD_NAMESPACE environment variable.  Defaulting to:", defaultNamespace)
+		namespace = defaultNamespace
 	}
 }
 
 // Client creates a rest client to use for interacting with CRDs
 func Client(GroupName string, GroupVersion string, kubeConfig string) (*KuberhealthyCheckClient, error) {
-
 	var c *rest.Config
 	var err error
 

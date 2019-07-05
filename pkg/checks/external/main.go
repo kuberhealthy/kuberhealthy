@@ -23,7 +23,7 @@ import (
 
 // DefaultKuberhealthyReportingURL is the default location that external checks
 // are expected to report into.
-const DefaultKuberhealthyReportingURL = "http://kuberhealthy.kuberhealthy.svc.local"
+const DefaultKuberhealthyReportingURL = "http://kuberhealthy.kuberhealthy.svc.cluster.local"
 
 // kuberhealthyRunIDLabel is the pod label for the kuberhealthy run id value
 const kuberhealthyRunIDLabel = "kuberhealthy-run-id"
@@ -45,7 +45,9 @@ var DefaultName = "external-check"
 
 // namespace indicates the namespace of the kuberhealthy
 // pod that is running this check
-var defaultNamespace = os.Getenv("POD_NAMESPACE")
+var namespace = ""
+// defaultNamespace is used if namespace is found to be blank
+var defaultNamespace = "kuberhealthy"
 
 // kubeConfigFile is the default location to check for a kubernetes configuration file
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
@@ -58,6 +60,15 @@ var defaultRunInterval = time.Minute * 10
 const checkCRDGroup = "comcast.github.io"
 const checkCRDVersion = "v1"
 const checkCRDResource = "khchecks"
+
+func init(){
+	envNamespace := os.Getenv("POD_NAMESPACE")
+	if envNamespace == `` {
+		namespace = defaultNamespace
+	} else {
+		namespace = envNamespace
+	}
+}
 
 // Checker implements a KuberhealthyCheck for external
 // check execution and lifecycle management.
@@ -197,7 +208,7 @@ func (ext *Checker) setUUID(uuid string) error {
 
 	// update the check config and write it back to the struct
 	checkConfig.Spec.CurrentUUID = uuid
-	checkConfig.ObjectMeta.Namespace = "kuberhealthy"
+	checkConfig.ObjectMeta.Namespace = defaultNamespace
 	log.Infoln(checkConfig)
 
 	// make a new crd check client
