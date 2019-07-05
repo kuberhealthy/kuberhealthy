@@ -166,23 +166,45 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	}
 }
 
+// getCheck gets the CRD information for this check from the kubernetes API.
+func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck,error) {
+
+	var defaultCheck khcheckcrd.KuberhealthyCheck
+
+	// make a new crd check client
+	checkClient, err := ext.NewCheckClient()
+	if err != nil {
+		return &defaultCheck, err
+	}
+
+	// get the item in question and return it along with any errors
+	return checkClient.Get(metav1.GetOptions{}, checkCRDResource, ext.Name())
+}
+
+// NewCheckClient creates a new client for khcheckcrd resources
+func (ext *Checker) NewCheckClient() (*khcheckcrd.KuberhealthyCheckClient, error) {
+	// make a new crd check client
+	return khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
+}
+
 // setUUID sets the current whitelisted UUID for the checker
 func (ext *Checker) setUUID(uuid string) error {
 
-	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup,checkCRDVersion,kubeConfigFile)
-	if err != nil {
-		return err
-	}
-
-	// get the item in question
-	checkConfig, err := checkClient.Get(metav1.GetOptions{},checkCRDResource,ext.Name())
+	checkConfig, err := ext.getCheck()
 	if err != nil {
 		return err
 	}
 
 	// update the check config and write it back to the struct
 	checkConfig.Spec.CurrentUUID = uuid
+	checkConfig.ObjectMeta.Namespace = "kuberhealthy"
+	log.Infoln(checkConfig)
+
+	// make a new crd check client
+	checkClient, err := ext.NewCheckClient()
+	if err != nil {
+		return err
+	}
 
 	// update the resource with the new values we want
 	_, err = checkClient.Update(checkConfig,checkCRDResource,ext.Name())
@@ -201,6 +223,7 @@ func (ext *Checker) RunOnce() error {
 	if err != nil {
 		return err
 	}
+	log.Debugln("UUID for external check",ext.Name(),"run:",ext.currentCheckUUID)
 
 	// set whitelist in check configuration CRD so only this
 	// currently running pod can report-in with a status update

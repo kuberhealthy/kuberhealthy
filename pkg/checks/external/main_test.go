@@ -22,9 +22,17 @@ import (
 	// typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
+const testingNamespace = "kuberhealthy"
+
 func init(){
 	// tests always run with debug logging
 	log.SetLevel(log.DebugLevel)
+
+	// // set our POD_NAMESPACE value (required for some functions to work)
+	// err := os.Setenv("POD_NAMESPACE", testingNamespace)
+	// if err != nil {
+	// 	log.Fatalln("was unable to set environment variable:", err)
+	// }
 }
 
 // loadTestPodSpecFile loads a pod spec yaml from disk in this
