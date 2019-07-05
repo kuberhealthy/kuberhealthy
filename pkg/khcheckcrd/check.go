@@ -1,4 +1,4 @@
-package external
+package khcheckcrd
 
 import (
 	"time"

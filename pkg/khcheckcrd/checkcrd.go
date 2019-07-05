@@ -17,8 +17,6 @@ import (
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/Comcast/kuberhealthy/pkg/checks/external"
 )
 
 // KuberhealthyCheck represents the data in the CRD for configuring an
@@ -26,7 +24,7 @@ import (
 type KuberhealthyCheck struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              external.CheckConfig `json:"spec"`
+	Spec              CheckConfig `json:"spec"`
 }
 
 // String satisfies the stringer interface for cleaner output when printing
@@ -55,7 +53,7 @@ func (h KuberhealthyCheck) DeepCopyObject() runtime.Object {
 
 // NewKuberhealthyCheck creates a KuberhealthyCheck struct which represents
 // the data inside a KuberhealthyCheck resource
-func NewKuberhealthyCheck(name string, spec external.CheckConfig) KuberhealthyCheck {
+func NewKuberhealthyCheck(name string, spec CheckConfig) KuberhealthyCheck {
 	state := KuberhealthyCheck{}
 	state.SetName(name)
 	state.Spec = spec

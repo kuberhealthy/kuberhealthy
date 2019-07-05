@@ -622,3 +622,27 @@ func (k *Kuberhealthy) configureChecks(){
 		}
 	}
 }
+
+
+// isUUIDWhitelistedForCheck determines if the supplied uuid is whitelisted for the
+// check with the supplied name.  Only one UUID can be whitelisted at a time.
+// Operations are not atomic.  Whitelisting prevents expired or invalidated pods from
+// reporting into the status endpoint when they shouldn't be.
+func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, uuid string) (bool,error) {
+	// make a new crd check client
+	checkClient, err := khcheckcrd.Client(checkCRDGroup,checkCRDVersion,kubeConfigFile)
+	if err != nil {
+		return false, err
+	}
+
+	// get the item in question
+	checkConfig, err := checkClient.Get(metav1.GetOptions{},checkCRDResource,checkName)
+	if err != nil {
+		return false, err
+	}
+
+	if checkConfig.Spec.CurrentUUID == uuid {
+		return true, nil
+	}
+	return false, nil
+}

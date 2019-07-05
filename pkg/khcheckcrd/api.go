@@ -14,6 +14,7 @@
 package khcheckcrd
 
 import (
+	"log"
 	"os"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -28,6 +29,13 @@ var namespace = os.Getenv("POD_NAMESPACE")
 const resource = "khchecks"
 const group = "comcast.github.io"
 const version = "v1"
+const defaultNamespace = "kuberhealthy"
+
+func init(){
+	if namespace == `` {
+		log.Println("Failed to fetch POD_NAMESPACE environment variable.  Defaulting to:", defaultNamespace)
+	}
+}
 
 // Client creates a rest client to use for interacting with CRDs
 func Client(GroupName string, GroupVersion string, kubeConfig string) (*KuberhealthyCheckClient, error) {
