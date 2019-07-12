@@ -78,7 +78,7 @@ func TestExternalCheckerSanitation(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected pod name blank validation check failure but did not hit it")
 	}
-	t.Log("got expected error:",err)
+	t.Log("got expected error:",er car)
 
 	// break the pod namespace instead now
 	checker.PodName = DefaultName
