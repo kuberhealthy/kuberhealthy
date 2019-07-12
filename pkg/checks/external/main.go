@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -202,8 +203,10 @@ func (ext *Checker) NewCheckClient() (*khcheckcrd.KuberhealthyCheckClient, error
 func (ext *Checker) setUUID(uuid string) error {
 
 	checkConfig, err := ext.getCheck()
-	if err != nil {
-		return err
+	if err != nil  {
+		if !strings.Contains(err.Error(),"could not find the requested resource") {
+			return err
+		}
 	}
 
 	// update the check config and write it back to the struct
