@@ -26,6 +26,8 @@ type KuberhealthyCheckClient struct {
 
 // Create creates a new resource for this CRD
 func (c *KuberhealthyCheckClient) Create(state *KuberhealthyCheck, resource string) (*KuberhealthyCheck, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	result := KuberhealthyCheck{}
 	err := c.restClient.
 		Post().
@@ -39,6 +41,8 @@ func (c *KuberhealthyCheckClient) Create(state *KuberhealthyCheck, resource stri
 
 // Delete deletes a resource for this CRD
 func (c *KuberhealthyCheckClient) Delete(state *KuberhealthyCheck, resource string, name string) (*KuberhealthyCheck, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	result := KuberhealthyCheck{}
 	err := c.restClient.
 		Delete().
@@ -52,6 +56,8 @@ func (c *KuberhealthyCheckClient) Delete(state *KuberhealthyCheck, resource stri
 
 // Update updates a resource for this CRD
 func (c *KuberhealthyCheckClient) Update(state *KuberhealthyCheck, resource string, name string) (*KuberhealthyCheck, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	result := KuberhealthyCheck{}
 	// err := c.restClient.Verb("update").Namespace(c.ns).Resource(resource).Name(name).Do().Into(&result)
 	err := c.restClient.
@@ -67,6 +73,8 @@ func (c *KuberhealthyCheckClient) Update(state *KuberhealthyCheck, resource stri
 
 // Get fetches a resource of this CRD
 func (c *KuberhealthyCheckClient) Get(opts metav1.GetOptions, resource string, name string) (*KuberhealthyCheck, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	result := KuberhealthyCheck{}
 	err := c.restClient.
 		Get().
@@ -81,6 +89,8 @@ func (c *KuberhealthyCheckClient) Get(opts metav1.GetOptions, resource string, n
 
 // List lists resources for this CRD
 func (c *KuberhealthyCheckClient) List(opts metav1.ListOptions, resource string) (*KuberhealthyCheckList, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	result := KuberhealthyCheckList{}
 	err := c.restClient.
 		Get().
