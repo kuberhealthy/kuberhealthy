@@ -18,16 +18,17 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/pkg/metrics"
-	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/componentStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
+	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
+	"github.com/Comcast/kuberhealthy/pkg/metrics"
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
 )
@@ -49,11 +50,12 @@ var enableDebug bool                     // enable debug logging
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
 var DSTolerationOverride []string			 // specify an alternate list of taints to tolerate - see #178
 var logLevel = "info"
-var enableComponentStatusChecks = true
-var enableDaemonSetChecks = true
-var enablePodRestartChecks = true
-var enablePodStatusChecks = true
-var enableDnsStatusChecks = true
+
+var enableComponentStatusChecks = determineCheckStateFromEnvVar("COMPONENT_STATUS_CHECK")
+var enableDaemonSetChecks = determineCheckStateFromEnvVar("DAEMON_SET_CHECK")
+var enablePodRestartChecks = determineCheckStateFromEnvVar("POD_RESTARTS_CHECK")
+var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
+var enableDnsStatusChecks = determineCheckStateFromEnvVar("DNS_STATUS_CHECK")
 
 // InfluxDB flags
 var enableInflux = false
@@ -84,6 +86,8 @@ func getAllLogLevel() string {
 }
 
 func init() {
+
+	// setup flaggy
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
 	flaggy.String(&listenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
@@ -245,4 +249,15 @@ func listenForInterrupts() {
 		log.Errorln("Shutdown took too long.  Shutting down forcefully!")
 	}
 	os.Exit(0)
+}
+
+// determineCheckStateFromEnvVar determines a check's enabled state based on
+// the supplied environment variable
+func determineCheckStateFromEnvVar(envVarName string) bool {
+	enabledState, err := strconv.ParseBool(os.Getenv(envVarName))
+	if err != nil {
+		log.Debugln("Had an error parsing the environment variable", envVarName, err)
+		return true // by default, the check is on
+	}
+	return enabledState
 }
