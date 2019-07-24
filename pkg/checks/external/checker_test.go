@@ -78,7 +78,7 @@ func TestExternalCheckerSanitation(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected pod name blank validation check failure but did not hit it")
 	}
-	t.Log("got expected error:",er car)
+	t.Log("got expected error:",err)
 
 	// break the pod namespace instead now
 	checker.PodName = DefaultName
@@ -133,7 +133,7 @@ func TestGetWhitelistedUUIDForExternalCheck(t *testing.T) {
 		t.Fatal("Found a UUID set for a check when we expected to see none:", err)
 	}
 
-	// set the UUID
+	// set the UUID for real this time
 	err = c.setUUID(testUUID)
 	if err != nil {
 		t.Fatal("Failed to set UUID on test check:", err)
@@ -151,3 +151,39 @@ func TestGetWhitelistedUUIDForExternalCheck(t *testing.T) {
 	}
 }
 
+func TestSanityCheck(t *testing.T) {
+	c, err := newTestCheck()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// by default with the test checker, the sanity test should pass
+	err = c.sanityCheck()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// if we blank the namespace, it should fail
+	c.Namespace = ""
+	err = c.sanityCheck()
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	// fix the namespace, then try blanking the PodName
+	c.Namespace = defaultNamespace
+	c.PodName = ""
+	err = c.sanityCheck()
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	// fix the pod name and try KubeClient
+	c.PodName = "kuberhealthy"
+	c.KubeClient = nil
+	err = c.sanityCheck()
+	if err == nil {
+		t.Fatal(err)
+	}
+
+}
