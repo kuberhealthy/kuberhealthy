@@ -13,16 +13,15 @@ import (
 // the whitelisted UUID that is currently allowed to report-in to
 // the status reporting endpoint.
 type CheckConfig struct {
-	Name string // the name of this external checker
+	Name        string        // the name of this external checker
 	RunInterval time.Duration // the interval at which the check runs
-	PodSpec apiv1.PodSpec // a spec for the external checker
-	CurrentUUID string // the UUID that is authorized to report statuses into the kuberhealthy endpoint
+	PodSpec     apiv1.PodSpec // a spec for the external checker
+	CurrentUUID string        // the UUID that is authorized to report statuses into the kuberhealthy endpoint
 }
 
 // NewCheckConfig creates a new check configuration
-func NewCheckConfig(name string) CheckConfig {
+func NewCheckConfig() CheckConfig {
 	c := CheckConfig{
-		Name:        name,
 		RunInterval: time.Minute * 10,
 		PodSpec:     apiv1.PodSpec{},
 	}

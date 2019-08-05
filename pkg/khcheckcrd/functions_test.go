@@ -16,11 +16,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/pkg/health"
 	"github.com/Pallinder/go-randomdata"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
+
+const testCheckName = "gotest"
 
 var kubeConfigFile = os.Getenv("HOME") + "/.kube/config"
 
@@ -32,23 +33,16 @@ func TestClient(t *testing.T) {
 }
 
 func TestCreate(t *testing.T) {
+
 	client, err := Client(group, version, kubeConfigFile)
 	if err != nil {
 		t.Fatal(err)
 	}
-	state := health.NewState()
-	checkDetail := health.NewCheckDetails()
-	checkDetail.AuthoritativePod = "TestCreatePod"
-	checkDetail.LastRun = time.Now()
-	state.CheckDetails["TestCheck"] = checkDetail
-	status := NewKuberhealthyCheck("gotest", checkDetail)
-	status.Kind = resource
-	status.APIVersion = version
-	result, err := client.Create(&status, resource)
+	checkDetails := NewKuberhealthyCheck(testCheckName, NewCheckConfig())
+	result, err := client.Create(&checkDetails, resource)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("%+v", status)
 	t.Logf("%+v", result)
 }
 
@@ -68,50 +62,74 @@ func TestGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err := client.Get(metav1.GetOptions{}, resource, "gotest")
+	result, err := client.Get(metav1.GetOptions{}, resource, testCheckName)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log(result.Kind)
 }
 
+// createTestCheck creates a test placeholder check
+func createTestCheck(checkName string) error {
+	check := NewKuberhealthyCheck(testCheckName, NewCheckConfig())
+
+	client, err := Client(group, version, kubeConfigFile)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.Create(&check, resource)
+	return err
+
+}
+
 func TestUpdate(t *testing.T) {
+
+	// make client
 	client, err := Client(group, version, kubeConfigFile)
 	if err != nil {
 		t.Fatal(err)
 	}
-	status, err := client.Get(metav1.GetOptions{}, resource, "gotest")
+
+	// ensure that the resource exists on the testing server
+	_ = createTestCheck(testCheckName)
+
+	// get the custom resource for the check named gotest
+	checkConfig, err := client.Get(metav1.GetOptions{}, resource, testCheckName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("%+v", status)
-	randomString := randomdata.SillyName()
-	checkDetail := health.NewCheckDetails()
-	checkDetail.AuthoritativePod = randomString
-	checkDetail.LastRun = time.Now()
-	checkDetail.OK = true
-	checkDetail.Errors = []string{"1", "2", "3"}
-	status.Spec = checkDetail
-	t.Logf("%+v", checkDetail)
-	_, err = client.Update(status, resource, "gotest")
+	t.Logf("%+v", checkConfig)
+
+	// change something in the check config
+	checkConfig.Spec.RunInterval = time.Minute * 4
+	randomUUID := randomdata.RandStringRunes(15)
+	checkConfig.Spec.CurrentUUID = randomUUID
+	t.Logf("%+v", checkConfig)
+
+	// apply the updated version to the server
+	_, err = client.Update(checkConfig, resource, testCheckName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	result, err := client.Get(metav1.GetOptions{}, resource, "gotest")
+	// get the updated version back
+	result, err := client.Get(metav1.GetOptions{}, resource, testCheckName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result.Spec.AuthoritativePod != randomString {
-		t.Log("Incorrect name after updating and fetching CRD.  Wanted", randomString, "but got", result.Spec.AuthoritativePod)
+	// ensure the interval is set to what we wanted
+	if result.Spec.RunInterval != time.Minute*4 {
+		t.Log("Incorrect name after updating and fetching CRD.  Wanted", time.Minute*4, "but got", result.Spec.RunInterval)
 		t.Fail()
 	}
-	if result.Spec.OK != true {
-		t.Log("Incorrect OK state after updating and fetching CRD.  Wanted", true, "but got", result.Spec.AuthoritativePod)
+
+	// ensure the UUID is the oen we set
+	if result.Spec.CurrentUUID != randomUUID {
+		t.Log("Incorrect CurrentUUID state after updating and fetching CRD.  Wanted", randomUUID, "but got", result.Spec.CurrentUUID)
 		t.Fail()
 	}
-
 	t.Log(result.Kind)
 }
 
@@ -120,11 +138,11 @@ func TestDelete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	state, err := client.Get(metav1.GetOptions{}, resource, "gotest")
+	check, err := client.Get(metav1.GetOptions{}, resource, testCheckName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err := client.Delete(state, resource, "gotest")
+	result, err := client.Delete(resource, check.Name)
 	if err != nil {
 		t.Fatal(err)
 	}
