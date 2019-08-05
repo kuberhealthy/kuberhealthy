@@ -46,7 +46,8 @@ var DefaultName = "external-check"
 
 // namespace indicates the namespace of the kuberhealthy
 // pod that is running this check
-var namespace = ""
+var namespace string
+
 // defaultNamespace is used if namespace is found to be blank
 var defaultNamespace = "kuberhealthy"
 
@@ -62,7 +63,7 @@ const checkCRDGroup = "comcast.github.io"
 const checkCRDVersion = "v1"
 const checkCRDResource = "khchecks"
 
-func init(){
+func init() {
 	envNamespace := os.Getenv("POD_NAMESPACE")
 	if envNamespace == `` {
 		namespace = defaultNamespace
@@ -105,7 +106,7 @@ func New(podSpec *apiv1.PodSpec) *Checker {
 		maxRunTime:               defaultMaxRunTime,
 		startupTimeout:           defaultMaxStartTime,
 		PodName:                  DefaultName,
-		PodSpec: 			      podSpec,
+		PodSpec:                  podSpec,
 	}
 
 	return &testChecker
@@ -179,7 +180,7 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 }
 
 // getCheck gets the CRD information for this check from the kubernetes API.
-func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck,error) {
+func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck, error) {
 
 	var defaultCheck khcheckcrd.KuberhealthyCheck
 
@@ -203,8 +204,8 @@ func (ext *Checker) NewCheckClient() (*khcheckcrd.KuberhealthyCheckClient, error
 func (ext *Checker) setUUID(uuid string) error {
 
 	checkConfig, err := ext.getCheck()
-	if err != nil  {
-		if !strings.Contains(err.Error(),"could not find the requested resource") {
+	if err != nil {
+		if !strings.Contains(err.Error(), "could not find the requested resource") {
 			return err
 		}
 	}
@@ -221,7 +222,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	}
 
 	// update the resource with the new values we want
-	_, err = checkClient.Update(checkConfig,checkCRDResource,ext.Name())
+	_, err = checkClient.Update(checkConfig, checkCRDResource, ext.Name())
 	return err
 }
 
@@ -237,7 +238,7 @@ func (ext *Checker) RunOnce() error {
 	if err != nil {
 		return err
 	}
-	log.Debugln("UUID for external check",ext.Name(),"run:",ext.currentCheckUUID)
+	log.Debugln("UUID for external check", ext.Name(), "run:", ext.currentCheckUUID)
 
 	// set whitelist in check configuration CRD so only this
 	// currently running pod can report-in with a status update
