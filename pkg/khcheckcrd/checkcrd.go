@@ -54,8 +54,8 @@ func (h KuberhealthyCheck) DeepCopyObject() runtime.Object {
 // NewKuberhealthyCheck creates a KuberhealthyCheck struct which represents
 // the data inside a KuberhealthyCheck resource
 func NewKuberhealthyCheck(name string, spec CheckConfig) KuberhealthyCheck {
-	state := KuberhealthyCheck{}
-	state.SetName(name)
-	state.Spec = spec
-	return state
+	check := KuberhealthyCheck{}
+	check.ObjectMeta.Name = name
+	check.Spec = spec
+	return check
 }

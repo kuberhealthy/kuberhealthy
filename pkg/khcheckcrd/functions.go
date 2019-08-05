@@ -25,20 +25,20 @@ type KuberhealthyCheckClient struct {
 }
 
 // Create creates a new resource for this CRD
-func (c *KuberhealthyCheckClient) Create(state *KuberhealthyCheck, resource string) (*KuberhealthyCheck, error) {
+func (c *KuberhealthyCheckClient) Create(check *KuberhealthyCheck, resource string) (*KuberhealthyCheck, error) {
 	result := KuberhealthyCheck{}
 	err := c.restClient.
 		Post().
 		Namespace(c.ns).
 		Resource(resource).
-		Body(state).
+		Body(check).
 		Do().
 		Into(&result)
 	return &result, err
 }
 
 // Delete deletes a resource for this CRD
-func (c *KuberhealthyCheckClient) Delete(state *KuberhealthyCheck, resource string, name string) (*KuberhealthyCheck, error) {
+func (c *KuberhealthyCheckClient) Delete(resource string, name string) (*KuberhealthyCheck, error) {
 	result := KuberhealthyCheck{}
 	err := c.restClient.
 		Delete().
@@ -51,14 +51,14 @@ func (c *KuberhealthyCheckClient) Delete(state *KuberhealthyCheck, resource stri
 }
 
 // Update updates a resource for this CRD
-func (c *KuberhealthyCheckClient) Update(state *KuberhealthyCheck, resource string, name string) (*KuberhealthyCheck, error) {
+func (c *KuberhealthyCheckClient) Update(check *KuberhealthyCheck, resource string, name string) (*KuberhealthyCheck, error) {
 	result := KuberhealthyCheck{}
 	// err := c.restClient.Verb("update").Namespace(c.ns).Resource(resource).Name(name).Do().Into(&result)
 	err := c.restClient.
 		Put().
 		Namespace(c.ns).
 		Resource(resource).
-		Body(state).
+		Body(check).
 		Name(name).
 		Do().
 		Into(&result)
