@@ -12,8 +12,6 @@
 package khcheckcrd
 
 import (
-	"sync"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -24,6 +22,9 @@ var SchemeGroupVersion schema.GroupVersion
 
 // ConfigureScheme configures the runtime scheme for use with CRD creation
 func ConfigureScheme(GroupName string, GroupVersion string) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
 	var (
 		SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
@@ -32,14 +33,9 @@ func ConfigureScheme(GroupName string, GroupVersion string) {
 	AddToScheme(scheme.Scheme)
 }
 
-// knownTypesMu works around a potential race with a map inside the kubernetes
-// api machinery which crashes when addKnownTypes and AddToGroupVersion are
-// both executing at the same time.
-var knownTypesMu sync.Mutex
-
 func addKnownTypes(scheme *runtime.Scheme) error {
-	knownTypesMu.Lock()
-	defer knownTypesMu.Unlock()
+    mu.Lock()
+    defer mu.Unlock()
 
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&KuberhealthyCheck{},
