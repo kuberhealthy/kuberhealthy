@@ -55,6 +55,7 @@ func (h KuberhealthyCheck) DeepCopyObject() runtime.Object {
 // the data inside a KuberhealthyCheck resource
 func NewKuberhealthyCheck(name string, spec CheckConfig) KuberhealthyCheck {
 	check := KuberhealthyCheck{}
+	check.Name = name
 	check.ObjectMeta.Name = name
 	check.Spec = spec
 	return check
