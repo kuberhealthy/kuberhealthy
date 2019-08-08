@@ -1,6 +1,6 @@
 containers:
   - image: "integrii/kh-test-check"
-    name:  "kuberhealthy"
+    name:  "kuberhealthy-test"
     resources:
       requests:
         cpu: 100m

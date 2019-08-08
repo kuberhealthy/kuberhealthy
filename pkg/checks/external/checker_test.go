@@ -2,37 +2,53 @@ package external
 
 import (
 	"errors"
+	"log"
 	"testing"
 
+	"k8s.io/client-go/kubernetes"
+
+	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 
 	apiv1 "k8s.io/api/core/v1"
 )
 
+var client *kubernetes.Clientset
+
+const testCheckName = "test-check"
+
+func init() {
+
+	// create a kubernetes clientset for our tests to use
+	var err error
+	client, err = kubeClient.Create(kubeConfigFile)
+	if err != nil {
+		log.Fatal("Unable to create kubernetes client", err)
+	}
+
+	// make sure that a test check exists for tests. ignore errors (like when it already exists)
+	_ = khcheckcrd.CreateTestCheck(kubeConfigFile, testCheckName)
+
+}
+
 // newTestCheck creates a new test checker struct with a basic set of defaults
 // that work out of the box
-func newTestCheck() (*Checker, error) {
+func newTestCheck(client *kubernetes.Clientset) (*Checker, error) {
 	podCheckFile := "test/basicCheckerPod.yaml"
 	p, err := loadTestPodSpecFile(podCheckFile)
 	if err != nil {
 		return &Checker{}, errors.New("Unable to load kubernetes pod spec " + podCheckFile + " " + err.Error())
 	}
-	return newTestCheckFromSpec(p), nil
+	return newTestCheckFromSpec(client, p), nil
 }
 
 // TestExternalChecker tests the external checker end to end
 func TestExternalChecker(t *testing.T) {
 
-	// create a kubernetes clientset
-	client, err := kubeClient.Create(kubeConfigFile)
-	if err != nil {
-		t.Fatal("Unable to create kubernetes client", err)
-	}
-
 	// make a new default checker of this check
-	checker, err := newTestCheck()
+	checker, err := newTestCheck(client)
 	if err != nil {
-		t.Fatal("Failed to create client:",err)
+		t.Fatal("Failed to create client:", err)
 	}
 	checker.KubeClient = client
 
@@ -45,11 +61,12 @@ func TestExternalChecker(t *testing.T) {
 
 // newTestCheckFromSpec creates a new test checker but using the supplied
 // spec file for pods
-func newTestCheckFromSpec(spec *apiv1.PodSpec) *Checker {
+func newTestCheckFromSpec(client *kubernetes.Clientset, spec *apiv1.PodSpec) *Checker {
 	// create a new checker and insert this pod spec
-	checker := New(spec) // external checker does not ever return an error so we drop it
+	checker := New(client, spec) // external checker does not ever return an error so we drop it
 	checker.Namespace = defaultNamespace
 	checker.Debug = true
+	checker.CheckName = testCheckName // override check name so we know what the name is via the constant
 	return checker
 }
 
@@ -58,15 +75,10 @@ func newTestCheckFromSpec(spec *apiv1.PodSpec) *Checker {
 func TestExternalCheckerSanitation(t *testing.T) {
 	t.Parallel()
 
-	// create a kubernetes clientset
-	client, err := kubeClient.Create(kubeConfigFile)
-	if err != nil {
-		t.Fatal("Unable to create kubernetes client", err)
-	}
 	// make a new default checker of this check
-	checker, err := newTestCheck()
+	checker, err := newTestCheck(client)
 	if err != nil {
-		t.Fatal("Failed to create client:",err)
+		t.Fatal("Failed to create client:", err)
 	}
 	checker.KubeClient = client
 
@@ -78,7 +90,7 @@ func TestExternalCheckerSanitation(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected pod name blank validation check failure but did not hit it")
 	}
-	t.Log("got expected error:",err)
+	t.Log("got expected error:", err)
 
 	// break the pod namespace instead now
 	checker.PodName = DefaultName
@@ -89,7 +101,7 @@ func TestExternalCheckerSanitation(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected namespace blank validation check failure but did not hit it")
 	}
-	t.Log("got expected error:",err)
+	t.Log("got expected error:", err)
 
 	// break the pod spec now instead of namespace
 	checker.Namespace = defaultNamespace
@@ -100,7 +112,7 @@ func TestExternalCheckerSanitation(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected pod validation check failure but did not hit it")
 	}
-	t.Log("got expected error:",err)
+	t.Log("got expected error:", err)
 }
 
 // TestGetWhitelistedUUIDForExternalCheck validates that setting
@@ -109,13 +121,13 @@ func TestGetWhitelistedUUIDForExternalCheck(t *testing.T) {
 	var testUUID = "test-UUID-1234"
 
 	// make an external check and cause it to write a whitelist
-	c, err := newTestCheck()
+	c, err := newTestCheck(client)
 	if err != nil {
-		t.Fatal("Failed to create new external check:",err)
+		t.Fatal("Failed to create new external check:", err)
 	}
 	c.KubeClient, err = kubeClient.Create(kubeConfigFile)
 	if err != nil {
-		t.Fatal("Failed to create kube client:",err)
+		t.Fatal("Failed to create kube client:", err)
 	}
 
 	// delete the UUID (blank it out)
@@ -152,7 +164,7 @@ func TestGetWhitelistedUUIDForExternalCheck(t *testing.T) {
 }
 
 func TestSanityCheck(t *testing.T) {
-	c, err := newTestCheck()
+	c, err := newTestCheck(client)
 	if err != nil {
 		t.Fatal(err)
 	}
