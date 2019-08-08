@@ -21,8 +21,7 @@ import (
 	// typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
-
-func init(){
+func init() {
 	// tests always run with debug logging
 	log.SetLevel(log.DebugLevel)
 }
@@ -47,7 +46,6 @@ func loadTestPodSpecFile(path string) (*apiv1.PodSpec, error) {
 
 	log.Debugln("Decoding this YAML:", string(b))
 	j, err := yaml.YAMLToJSON(b)
-
 
 	// unmarshal the pod into the pod struct and return
 	err = json.Unmarshal(j, &podSpec)
@@ -87,18 +85,18 @@ func TestShutdown(t *testing.T) {
 	}
 
 	// make a new default checker of this check
-	checker, err := newTestCheck()
+	checker, err := newTestCheck(client)
 	if err != nil {
-		t.Log("Failed to create client:",err)
+		t.Log("Failed to create client:", err)
 	}
 	checker.KubeClient = client
 
 	// run the checker with the kube client
 	t.Log("Starting check...")
-	go func(){
+	go func() {
 		err := checker.RunOnce()
 		if err != nil {
-			t.Fatal("Failure when running check:",err)
+			t.Fatal("Failure when running check:", err)
 		}
 	}()
 
@@ -108,9 +106,9 @@ func TestShutdown(t *testing.T) {
 
 	// tell the checker to shut down in the background
 	t.Log("Sending shutdown to check")
-	c := make(chan error,0)
-	go func(c chan error){
-		c<- checker.Shutdown()
+	c := make(chan error, 0)
+	go func(c chan error) {
+		c <- checker.Shutdown()
 	}(c)
 
 	// see if we shut down properly before a timeout
@@ -118,11 +116,11 @@ func TestShutdown(t *testing.T) {
 	case <-time.After(time.Second * 20):
 		t.Log("Failed to interrupt and shut down pod properly")
 		t.FailNow()
-		case e := <-c:
-			// see if the check shut down without error
-			if e != nil {
-				t.Fatal("Error shutting down in-flight check:",err)
-			}
-			t.Log("Check shutdown properly and without error")
+	case e := <-c:
+		// see if the check shut down without error
+		if e != nil {
+			t.Fatal("Error shutting down in-flight check:", err)
+		}
+		t.Log("Check shutdown properly and without error")
 	}
 }

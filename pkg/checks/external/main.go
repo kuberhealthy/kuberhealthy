@@ -38,9 +38,6 @@ const defaultMaxRunTime = time.Minute * 15
 // defaultMaxStartTime is the default time that a pod is required to start within
 const defaultMaxStartTime = time.Minute * 5
 
-// NamePrefix is the name of this kuberhealthy checker
-var NamePrefix = DefaultName
-
 // DefaultName is used when no check name is supplied
 var DefaultName = "external-check"
 
@@ -95,11 +92,10 @@ type Checker struct {
 }
 
 // New creates a new external checker
-func New(podSpec *apiv1.PodSpec) *Checker {
-
-	testChecker := Checker{
+func New(client *kubernetes.Clientset, podSpec *apiv1.PodSpec) *Checker {
+	return &Checker{
 		ErrorMessages:            []string{},
-		Namespace:                defaultNamespace,
+		Namespace:                namespace,
 		CheckName:                DefaultName,
 		RunInterval:              defaultRunInterval,
 		KuberhealthyReportingURL: DefaultKuberhealthyReportingURL,
@@ -107,9 +103,8 @@ func New(podSpec *apiv1.PodSpec) *Checker {
 		startupTimeout:           defaultMaxStartTime,
 		PodName:                  DefaultName,
 		PodSpec:                  podSpec,
+		KubeClient:               client,
 	}
-
-	return &testChecker
 }
 
 // cancel cancels the context of this checker to shut things down gracefully
@@ -132,7 +127,7 @@ func (ext *Checker) CurrentStatus() (bool, []string) {
 // when creating a check status CRD as well as for the status
 // output
 func (ext *Checker) Name() string {
-	return NamePrefix + "-" + ext.CheckName
+	return ext.CheckName
 }
 
 // CheckNamespace returns the namespace of this checker
@@ -495,10 +490,8 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 
 // configureUserPodSpec configures a user-specified pod spec with
 // the unique and required fields for compatibility with an external
-// kuberhealthy check.
-
-// configureUserPodSpec takes in the user's pod spec as seen by this checker and
-// adds in kuberhealthy settings such as the required environment variables.
+// kuberhealthy check.  Required environment variables and settings
+// overwrite user-specified values.
 func (ext *Checker) configureUserPodSpec() error {
 
 	// set overrides like env var for pod name and env var for where to send responses to

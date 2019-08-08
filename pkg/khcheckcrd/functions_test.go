@@ -69,20 +69,6 @@ func TestGet(t *testing.T) {
 	t.Log(result.Kind)
 }
 
-// createTestCheck creates a test placeholder check
-func createTestCheck(checkName string) error {
-	check := NewKuberhealthyCheck(testCheckName, NewCheckConfig())
-
-	client, err := Client(group, version, kubeConfigFile)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.Create(&check, resource)
-	return err
-
-}
-
 func TestUpdate(t *testing.T) {
 
 	// make client
@@ -92,7 +78,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	// ensure that the resource exists on the testing server
-	_ = createTestCheck(testCheckName)
+	_ = CreateTestCheck(kubeConfigFile, testCheckName)
 
 	// get the custom resource for the check named gotest
 	checkConfig, err := client.Get(metav1.GetOptions{}, resource, testCheckName)
