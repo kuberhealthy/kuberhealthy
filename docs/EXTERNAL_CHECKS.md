@@ -26,6 +26,9 @@ External check pods are injected with the following environment variables reguar
 // TODO
 ```
 
+Checks can be written in anything as long as its turned into a docker image.  The spec for the pod that needs run should be set in the yaml above.  The pod should then
+send its status json payload to the exact URL in the `KH_REPORTING_URL` environment variable.
+
 
 
 
@@ -40,3 +43,4 @@ External check pods are injected with the following environment variables reguar
 - create framework getting started project for people to fork
 - more docs and walkthroughs
 - add khcheck custom resource to helm chart
+
