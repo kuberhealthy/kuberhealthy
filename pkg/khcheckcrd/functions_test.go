@@ -88,7 +88,7 @@ func TestUpdate(t *testing.T) {
 	t.Logf("%+v", checkConfig)
 
 	// change something in the check config
-	checkConfig.Spec.RunInterval = time.Minute * 4
+	checkConfig.Spec.RunInterval = (time.Minute * 4).String()
 	randomUUID := randomdata.RandStringRunes(15)
 	checkConfig.Spec.CurrentUUID = randomUUID
 	t.Logf("%+v", checkConfig)
@@ -106,8 +106,8 @@ func TestUpdate(t *testing.T) {
 	}
 
 	// ensure the interval is set to what we wanted
-	if result.Spec.RunInterval != time.Minute*4 {
-		t.Log("Incorrect name after updating and fetching CRD.  Wanted", time.Minute*4, "but got", result.Spec.RunInterval)
+	if result.Spec.RunInterval != "4m0s" {
+		t.Log("Incorrect duration after updating and fetching CRD.  Wanted 4m0s but got", result.Spec.RunInterval)
 		t.Fail()
 	}
 

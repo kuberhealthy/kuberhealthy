@@ -13,7 +13,7 @@ import (
 // the whitelisted UUID that is currently allowed to report-in to
 // the status reporting endpoint.
 type CheckConfig struct {
-	RunInterval time.Duration // the interval at which the check runs
+	RunInterval string        // the interval at which the check runs
 	PodSpec     apiv1.PodSpec // a spec for the external checker
 	CurrentUUID string        // the UUID that is authorized to report statuses into the kuberhealthy endpoint
 }
@@ -21,7 +21,7 @@ type CheckConfig struct {
 // NewCheckConfig creates a new check configuration
 func NewCheckConfig() CheckConfig {
 	c := CheckConfig{
-		RunInterval: time.Minute * 10,
+		RunInterval: (time.Minute * 10).String(),
 		PodSpec:     apiv1.PodSpec{},
 	}
 
