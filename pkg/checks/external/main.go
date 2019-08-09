@@ -35,7 +35,7 @@ const KHRunUUID = "KH_RUN_UUID"
 
 // DefaultKuberhealthyReportingURL is the default location that external checks
 // are expected to report into.
-const DefaultKuberhealthyReportingURL = "http://kuberhealthy.kuberhealthy.svc.cluster.local"
+const DefaultKuberhealthyReportingURL = "http://kuberhealthy.kuberhealthy.svc.cluster.local/externalCheckStatus"
 
 // kuberhealthyRunIDLabel is the pod label for the kuberhealthy run id value
 const kuberhealthyRunIDLabel = "kuberhealthy-run-id"
