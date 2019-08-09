@@ -22,6 +22,17 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
 )
 
+// KHReportingURL is the environment variable used to tell external checks where to send their status updates
+const KHReportingURL = "KH_REPORTING_URL"
+
+// KHCheckName is the environment variable used to tell external checks their check's name when sending in
+// their status update to the kuberhealthy server.
+const KHCheckName = "KH_CHECK_NAME"
+
+// KHRunUUID is the environment variable used to tell external checks their check's UUID so that they
+// can be de-duplicated on the server side.
+const KHRunUUID = "KH_RUN_UUID"
+
 // DefaultKuberhealthyReportingURL is the default location that external checks
 // are expected to report into.
 const DefaultKuberhealthyReportingURL = "http://kuberhealthy.kuberhealthy.svc.cluster.local"
@@ -503,11 +514,15 @@ func (ext *Checker) configureUserPodSpec() error {
 	// the unique run ID of this pod
 	overwriteEnvVars := []apiv1.EnvVar{
 		{
-			Name:  "KUBERHEALTHY_URL",
+			Name:  KHReportingURL,
 			Value: ext.KuberhealthyReportingURL,
 		},
 		{
-			Name:  "KUBERHEALTHY_RUN_ID",
+			Name:  KHCheckName,
+			Value: ext.Name(),
+		},
+		{
+			Name:  KHRunUUID,
 			Value: ext.currentCheckUUID,
 		},
 	}

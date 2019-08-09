@@ -13,14 +13,17 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -157,13 +160,13 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 		log.Infoln("Starting to monitor for external check configuration resource changes...")
 
 		// make a new crd check client
-		checkClient, err := khcheckcrd.Client(checkCRDGroup,checkCRDVersion,kubeConfigFile)
+		checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
 		if err != nil {
 			log.Errorln("Error creating client for configuration resource listing", err)
 			continue
 		}
 
-		l, err := checkClient.List(metav1.ListOptions{},checkCRDResource)
+		l, err := checkClient.List(metav1.ListOptions{}, checkCRDResource)
 		if err != nil {
 			log.Errorln("Error listing check configuration resources", err)
 			continue
@@ -171,9 +174,9 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 
 		// iterate on each check CRD resource for changes
 		var foundChange bool
-		for _, i := range l.Items{
-			log.Debugln("Scanning check CRD",i.Name,"for changes...")
-			r, err := checkClient.Get(metav1.GetOptions{},checkCRDResource, i.Name)
+		for _, i := range l.Items {
+			log.Debugln("Scanning check CRD", i.Name, "for changes...")
+			r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, i.Name)
 			if err != nil {
 				log.Errorln("Error getting check configuration resource:", err)
 				continue
@@ -181,13 +184,13 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 			// if this is the first time seeing this resource, we don't notify of a change
 			if len(resourceVersions[r.Name]) == 0 {
 				resourceVersions[r.Name] = r.GetResourceVersion()
-				log.Debugln("Initialized change monitoring for check CRD",r.Name,"at resource version",r.GetResourceVersion())
+				log.Debugln("Initialized change monitoring for check CRD", r.Name, "at resource version", r.GetResourceVersion())
 				continue
 			}
 
 			// if the resource has changed, we notify the notify channel and set the new resource version
 			if resourceVersions[r.Name] != r.GetResourceVersion() {
-				log.Infoln("Detected a change in external check CRD",r.Name,"to resource version",r.GetResourceVersion())
+				log.Infoln("Detected a change in external check CRD", r.Name, "to resource version", r.GetResourceVersion())
 				resourceVersions[r.Name] = r.GetResourceVersion()
 				foundChange = true
 			}
@@ -206,13 +209,13 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 func (k *Kuberhealthy) addExternalChecks() error {
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup,checkCRDVersion,kubeConfigFile)
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
 	if err != nil {
 		return err
 	}
 
 	// list all checks
-	l, err := checkClient.List(metav1.ListOptions{},checkCRDResource)
+	l, err := checkClient.List(metav1.ListOptions{}, checkCRDResource)
 	if err != nil {
 		return err
 	}
@@ -226,8 +229,12 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		}
 
 		// create a new KuberhealthyCheck and add it
-		log.Infoln("Enabling external checker:",r.Name)
-		c := external.New(&r.Spec.PodSpec)
+		log.Infoln("Enabling external checker:", r.Name)
+		kc, err := k.KubeClient()
+		if err != nil {
+			log.Fatalln("Could not fetch Kubernetes client for external checker:", err)
+		}
+		c := external.New(kc, &r.Spec.PodSpec)
 		k.AddCheck(c)
 	}
 
@@ -421,6 +428,14 @@ func (k *Kuberhealthy) StartWebServer() {
 		}
 	})
 
+	// Accept status reports coming from external checker pods
+	http.HandleFunc("/externalCheckStatus", func(w http.ResponseWriter, r *http.Request) {
+		err := k.healthCheckHandler(w, r)
+		if err != nil {
+			log.Errorln(err)
+		}
+	})
+
 	// Assign all requests to be handled by the healthCheckHandler function
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		err := k.healthCheckHandler(w, r)
@@ -435,6 +450,138 @@ func (k *Kuberhealthy) StartWebServer() {
 		log.Errorln(err)
 	}
 	os.Exit(1)
+}
+
+// validateExternalRequest calls the Kubernetes API to fetch details about a pod by it's source IP
+// and then validates that the pod is allowed to report the status of a check.  The pod is expected
+// to have the environment variables KH_CHECK_NAME and KH_RUN_UUID
+func (k *Kuberhealthy) validateExternalRequest(remoteIP string) error {
+	envVars, err := k.fetchPodEnvironmentVariablesByIP(remoteIP)
+	if err != nil {
+		return err
+	}
+
+	// validate that the environment variables we expect are in place based on the check's name and UUID
+	// compared to what is in the khcheck custom resource
+	var foundUUID bool
+	var podUUID string
+	var foundName bool
+	var podCheckName string
+
+	for _, e := range envVars {
+		if e.Name == external.KHRunUUID {
+			foundName = true
+			podCheckName = e.Value
+		}
+		if e.Name == external.KHCheckName {
+			foundName = true
+			podUUID = e.Value
+		}
+	}
+
+	// verify that we found the UUID
+	if !foundUUID {
+		return errors.New("error finding environment variable on remote pod: " + external.KHRunUUID)
+	}
+	// verify we found the check name
+	if !foundName {
+		return errors.New("error finding environment variable on remote pod: " + external.KHCheckName)
+	}
+
+	// we know that we have a UUID and check name now, so lets check their validity.  First, we sanity check.
+	if len(podUUID) < 1 {
+		return errors.New("pod uuid was invalid")
+	}
+	if len(podCheckName) < 1 {
+		return errors.New("pod check name was invalid")
+	}
+
+	// next, we check the uuid against the check name to see if this uuid is the expected one.  if it isn't,
+	// we return an error
+	whitelisted, err := k.isUUIDWhitelistedForCheck(podCheckName, podUUID)
+	if !whitelisted {
+		return errors.New("pod was not properly whitelisted for reporting status of check " + podCheckName + " with uuid " + podUUID)
+	}
+
+	return nil
+}
+
+// fetchPodEnvironmentVariablesByIP fetches the environment variables for a pod by it's IP address.
+func (k *Kuberhealthy) fetchPodEnvironmentVariablesByIP(remoteIP string) ([]v1.EnvVar, error) {
+	var envVars []v1.EnvVar
+
+	c, err := k.KubeClient()
+	if err != nil {
+		return envVars, errors.New("failed to create new kube client when finding pod environment variables:" + err.Error())
+	}
+
+	// fetch the pod by its IP address
+	podClient := c.CoreV1().Pods("")
+	listOptions := metav1.ListOptions{
+		FieldSelector: "status.podIP==" + remoteIP,
+	}
+	podList, err := podClient.List(listOptions)
+	if err != nil {
+		return envVars, errors.New("failed to fetch pod with remote ip " + remoteIP + " with error: " + err.Error())
+	}
+
+	// ensure that we only got back one pod, because two means something awful has happened and 0 means we
+	// didnt find one
+	if len(podList.Items) == 0 {
+		return envVars, errors.New("failed to fetch pod with remote ip " + remoteIP)
+	}
+	if len(podList.Items) > 1 {
+		return envVars, errors.New("failed to fetch pod with remote ip " + remoteIP + " - found two or more with same ip")
+	}
+
+	// check if the pod has containers
+	if len(podList.Items[0].Spec.Containers) == 0 {
+		return envVars, errors.New("failed to fetch environment variables from pod with remote ip " + remoteIP + " - pod had no containers")
+	}
+
+	// we found our pod, lets return all its env vars from all its containers
+	for _, container := range podList.Items[0].Spec.Containers {
+		envVars = append(envVars, container.Env...)
+	}
+
+	return envVars, nil
+}
+
+// externalCheckReportHandler handles requests coming from external checkers reporting their status.
+// This endpoint checks that the external check report is coming from the correct UUID before recording
+// the reported status of the corresponding external check.  This endpoint expects a JSON payload of
+// the `State` struct found in the github.com/Comcast/kuberhealthy/pkg/health package.  The request
+// causes a check of the calling pod's spec via the API to ensure that the calling pod is expected
+// to be reporting its status.
+func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
+	log.Infoln("Client connected to check report handler from", r.RemoteAddr, r.UserAgent())
+
+	// validate the calling pod to ensure that it has a proper KH_CHECK_NAME and KH_RUN_UUID
+	err := k.validateExternalRequest(r.RemoteAddr)
+
+	// ensure the client is sending a valid payload in the request body
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Errorln("Failed to read request body:", err, r.RemoteAddr)
+		return nil
+	}
+
+	// decode the bytes into a kuberhealthy health struct
+	state := health.State{}
+	err = json.Unmarshal(b, &state)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Errorln("Failed to unmarshal state json:", err, r.RemoteAddr)
+		return nil
+	}
+
+	// write summarized health check results back to caller
+	err = state.WriteHTTPStatusResponse(w)
+	if err != nil {
+		log.Warningln("Error writing report handler results to caller:", err)
+	}
+	return err
 }
 
 // writeHealthCheckError writes an error to the client when things go wrong in a health check handling
@@ -551,7 +698,7 @@ func (k *Kuberhealthy) getCheck(name string) (KuberhealthyCheck, error) {
 
 // configureChecks removes all checks set in Kuberhealthy and reloads them
 // based on the configuration options
-func (k *Kuberhealthy) configureChecks(){
+func (k *Kuberhealthy) configureChecks() {
 
 	// wipe all existing checks before we configure
 	k.Checks = []KuberhealthyCheck{}
@@ -623,20 +770,19 @@ func (k *Kuberhealthy) configureChecks(){
 	}
 }
 
-
 // isUUIDWhitelistedForCheck determines if the supplied uuid is whitelisted for the
 // check with the supplied name.  Only one UUID can be whitelisted at a time.
 // Operations are not atomic.  Whitelisting prevents expired or invalidated pods from
 // reporting into the status endpoint when they shouldn't be.
-func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, uuid string) (bool,error) {
+func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, uuid string) (bool, error) {
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup,checkCRDVersion,kubeConfigFile)
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
 	if err != nil {
 		return false, err
 	}
 
 	// get the item in question
-	checkConfig, err := checkClient.Get(metav1.GetOptions{},checkCRDResource,checkName)
+	checkConfig, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, checkName)
 	if err != nil {
 		return false, err
 	}

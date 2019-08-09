@@ -9,7 +9,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package health // import "github.com/Comcast/kuberhealthy/pkg/health"
+package health
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// State returns the results of checks to the client calling Kuberhealthy.  This is displayed
+// State represents the results of all checks being managed along with a top-level OK and Error state. This is displayed
 // on the kuberhealthy status page as JSON
 type State struct {
 	OK            bool
