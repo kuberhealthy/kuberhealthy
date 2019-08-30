@@ -23,6 +23,8 @@ type KuberhealthyStateClient struct {
 }
 
 func (c *KuberhealthyStateClient) Create(state *KuberhealthyState, resource string) (*KuberhealthyState, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	result := KuberhealthyState{}
 	err := c.restClient.
 		Post().
@@ -35,6 +37,8 @@ func (c *KuberhealthyStateClient) Create(state *KuberhealthyState, resource stri
 }
 
 func (c *KuberhealthyStateClient) Delete(state *KuberhealthyState, resource string, name string) (*KuberhealthyState, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	result := KuberhealthyState{}
 	err := c.restClient.
 		Delete().
@@ -47,6 +51,8 @@ func (c *KuberhealthyStateClient) Delete(state *KuberhealthyState, resource stri
 }
 
 func (c *KuberhealthyStateClient) Update(state *KuberhealthyState, resource string, name string) (*KuberhealthyState, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	result := KuberhealthyState{}
 	//err := c.restClient.Verb("update").Namespace(c.ns).Resource(resource).Name(name).Do().Into(&result)
 	err := c.restClient.
@@ -61,6 +67,8 @@ func (c *KuberhealthyStateClient) Update(state *KuberhealthyState, resource stri
 }
 
 func (c *KuberhealthyStateClient) Get(opts metav1.GetOptions, resource string, name string) (*KuberhealthyState, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	result := KuberhealthyState{}
 	err := c.restClient.
 		Get().
@@ -74,6 +82,8 @@ func (c *KuberhealthyStateClient) Get(opts metav1.GetOptions, resource string, n
 }
 
 func (c *KuberhealthyStateClient) List(opts metav1.ListOptions, resource string) (*KuberhealthyStateList, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	result := KuberhealthyStateList{}
 	err := c.restClient.
 		Get().
