@@ -31,6 +31,7 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
 	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/external"
+	"github.com/Comcast/kuberhealthy/pkg/checks/external/status"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/health"
@@ -70,9 +71,9 @@ func NewKuberhealthy() *Kuberhealthy {
 
 // setCheckExecutionError sets an execution error for a check name in
 // its crd status
-func (k *Kuberhealthy) setCheckExecutionError(checkName string, exErr error) {
+func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace string, exErr error) {
 	details := health.NewCheckDetails()
-	check, err := k.getCheck(checkName)
+	check, err := k.getCheck(checkName, checkNamespace)
 	if err != nil {
 		log.Errorln(err)
 	}
@@ -350,7 +351,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		err = c.Run(client)
 		if err != nil {
 			// set any check run errors in the CRD
-			k.setCheckExecutionError(c.Name(), err)
+			k.setCheckExecutionError(c.Name(), c.CheckNamespace(), err)
 			log.Errorln("Error running check:", c.Name(), err)
 			<-ticker.C
 			continue
@@ -552,7 +553,56 @@ func (k *Kuberhealthy) fetchPodEnvironmentVariablesByIP(remoteIP string) ([]v1.E
 // checker and then parses the response into the current check status.
 func (k *Kuberhealthy) externalCheckStatusHandler(w http.ResponseWriter, r *http.Request) error {
 
-	// TODO
+	// parse the request struct from the client and fail if we can't
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return fmt.Errorf("error reading json status bytes from client: %w", err)
+	}
+
+	var s status.Report
+	err = json.Unmarshal(b, &s)
+	if err != nil {
+		return fmt.Errorf("error unmarshaling json status report: %w", err)
+	}
+
+	// we have a status report, so now we validate that the check name and
+	// uuid match up as expected.
+	ok, err := k.isUUIDWhitelistedForCheck(s.CheckName, s.UUID)
+	if err != nil {
+		return fmt.Errorf("failed to validate uuid whitelisting for check %s and uuid %s: %w", s.CheckName, s.UUID, err)
+	}
+	if !ok {
+		return fmt.Errorf("uuid %s is not whitelisted for check %s", s.UUID, s.CheckName)
+	}
+
+	// fetch the namespace of the check to use
+	chk, err := k.getCheck(s.CheckName, s.CheckNamespace)
+	if err != nil {
+		return fmt.Errorf("failed to fetch check with name %s: %w", s.CheckName, err)
+	}
+
+	// fetch the hostname of this pod because we will consider it authoritative
+	// of the last check update
+	hostname, err := getEnvVar("POD_NAME")
+	if err != nil {
+		return err
+	}
+
+	// create a details object from our incoming status report before storing it
+	details := health.NewCheckDetails()
+	details.Errors = s.Errors
+	if len(s.Errors) == 0 {
+		details.OK = true
+	}
+	details.LastRun = time.Now()
+	details.Namespace = chk.CheckNamespace()
+	details.AuthoritativePod = hostname
+
+	// since the check is validated, we can proceed to update the status now
+	err = k.storeCheckState(s.CheckName, details)
+	if err != nil {
+		return fmt.Errorf("failed to store check state for %s: %w", s.CheckName, err)
+	}
 
 	return nil
 }
@@ -697,9 +747,9 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 }
 
 // getCheck returns a Kuberhealthy check object from its name, returns an error otherwise
-func (k *Kuberhealthy) getCheck(name string) (KuberhealthyCheck, error) {
+func (k *Kuberhealthy) getCheck(name string, namespace string) (KuberhealthyCheck, error) {
 	for _, c := range k.Checks {
-		if c.Name() == name {
+		if c.Name() == name && c.CheckNamespace() == namespace {
 			return c, nil
 		}
 	}
