@@ -24,8 +24,7 @@ type CheckDetails struct {
 
 // NewCheckDetails creates a new CheckDetails struct
 func NewCheckDetails() CheckDetails {
-	cd := CheckDetails{
+	return CheckDetails{
 		Errors: []string{},
 	}
-	return cd
 }
