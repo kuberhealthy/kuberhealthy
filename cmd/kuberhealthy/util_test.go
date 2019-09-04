@@ -9,26 +9,27 @@ import (
 	"github.com/ghodss/yaml"
 	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/Comcast/kuberhealthy/pkg/checks/external"
 )
 
 // newExternalTestCheck creates a new external test checker struct with a basic set of defaults
 // that work out of the box
-func newExternalTestCheck() (*external.Checker, error) {
+func newExternalTestCheck(c *kubernetes.Clientset) (*external.Checker, error) {
 	podCheckFile := "test/basicCheckerPod.yaml"
 	p, err := loadTestPodSpecFile(podCheckFile)
 	if err != nil {
 		return &external.Checker{}, errors.New("Unable to load kubernetes pod spec " + podCheckFile + " " + err.Error())
 	}
-	return newTestCheckFromSpec(p), nil
+	return newTestCheckFromSpec(c, p), nil
 }
 
 // newTestCheckFromSpec creates a new test checker but using the supplied
 // spec file for pods
-func newTestCheckFromSpec(spec *apiv1.PodSpec) *external.Checker {
+func newTestCheckFromSpec(c *kubernetes.Clientset, spec *apiv1.PodSpec) *external.Checker {
 	// create a new checker and insert this pod spec
-	checker := external.New(spec) // external checker does not ever return an error so we drop it
+	checker := external.New(c, spec) // external checker does not ever return an error so we drop it
 	checker.Namespace = "kuberhealthy"
 	checker.Debug = true
 	return checker
@@ -54,7 +55,6 @@ func loadTestPodSpecFile(path string) (*apiv1.PodSpec, error) {
 
 	log.Debugln("Decoding this YAML:", string(b))
 	j, err := yaml.YAMLToJSON(b)
-
 
 	// unmarshal the pod into the pod struct and return
 	err = json.Unmarshal(j, &podSpec)
