@@ -43,14 +43,15 @@ var enableForceMaster bool // force master mode - for debugging
 var enableDebug bool       // enable debug logging
 // DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
-var DSTolerationOverride []string        // specify an alternate list of taints to tolerate - see #178
+// DSTolerationOverride specifies an alternate list of taints to tolerate - see #178
+var DSTolerationOverride []string
 var logLevel = "info"
 
 var enableComponentStatusChecks = determineCheckStateFromEnvVar("COMPONENT_STATUS_CHECK")
 var enableDaemonSetChecks = determineCheckStateFromEnvVar("DAEMON_SET_CHECK")
 var enablePodRestartChecks = determineCheckStateFromEnvVar("POD_RESTARTS_CHECK")
 var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
-var enableDnsStatusChecks = determineCheckStateFromEnvVar("DNS_STATUS_CHECK")
+var enableDNSStatusChecks = determineCheckStateFromEnvVar("DNS_STATUS_CHECK")
 var enableExternalChecks = true
 
 // InfluxDB connection configuration
@@ -83,7 +84,7 @@ func init() {
 	flaggy.Bool(&enableDaemonSetChecks, "", "daemonsetChecks", "Set to false to disable cluster daemonset deployment and termination checking.")
 	flaggy.Bool(&enablePodRestartChecks, "", "podRestartChecks", "Set to false to disable pod restart checking.")
 	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
-	flaggy.Bool(&enableDnsStatusChecks, "", "dnsStatusChecks", "Set to false to disable DNS checks.")
+	flaggy.Bool(&enableDNSStatusChecks, "", "dnsStatusChecks", "Set to false to disable DNS checks.")
 	flaggy.Bool(&enableExternalChecks, "", "externalChecks", "Set to false to disable external checks.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")

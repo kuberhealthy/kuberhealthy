@@ -767,7 +767,7 @@ func (k *Kuberhealthy) configureChecks() {
 	}
 
 	// add dns resolution checking if enabled
-	if enableDnsStatusChecks {
+	if enableDNSStatusChecks {
 		kuberhealthy.AddCheck(dnsStatus.New(dnsEndpoints))
 	}
 
