@@ -17,12 +17,12 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"time"
 
+	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 )
 
 // status represents the current Kuberhealthy OK:Error state
@@ -43,12 +43,14 @@ var enableForceMaster bool // force master mode - for debugging
 var enableDebug bool       // enable debug logging
 // DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
+var DSTolerationOverride []string        // specify an alternate list of taints to tolerate - see #178
 var logLevel = "info"
-var enableComponentStatusChecks = true
-var enableDaemonSetChecks = true
-var enablePodRestartChecks = true
-var enablePodStatusChecks = true
-var enableDnsStatusChecks = true
+
+var enableComponentStatusChecks = determineCheckStateFromEnvVar("COMPONENT_STATUS_CHECK")
+var enableDaemonSetChecks = determineCheckStateFromEnvVar("DAEMON_SET_CHECK")
+var enablePodRestartChecks = determineCheckStateFromEnvVar("POD_RESTARTS_CHECK")
+var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
+var enableDnsStatusChecks = determineCheckStateFromEnvVar("DNS_STATUS_CHECK")
 var enableExternalChecks = true
 
 // InfluxDB connection configuration
@@ -68,9 +70,12 @@ const statusCRDResource = "khstates"
 const checkCRDGroup = "comcast.github.io"
 const checkCRDVersion = "v1"
 const checkCRDResource = "khchecks"
+
 var checkCRDScanInterval = time.Second * 15 // how often we scan for changes to check CRD objects
 
 func init() {
+
+	// setup flaggy
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
 	flaggy.String(&listenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
@@ -83,6 +88,7 @@ func init() {
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
 	flaggy.String(&DSPauseContainerImageOverride, "", "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
+	flaggy.StringSlice(&DSTolerationOverride, "", "tolerationOverride", "Specify a specific taint (in a key,value,effect format, ex. node-role.kubernetes.io/master,,NoSchedule or dedicated,someteam,NoSchedule)  to tolerate and force DaemonSetChecker to tolerate only nodes with that taint. Use the flag multiple times to add multiple tolerations. Default behavior is to tolerate all taints in the cluster.")
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
 	flaggy.String(&logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
 	flaggy.StringSlice(&dnsEndpoints, "", "dnsEndpoints", "The comma separated list of dns endpoints to check, if enabled. Defaults to kubernetes.default")
@@ -157,4 +163,13 @@ func listenForInterrupts() {
 	os.Exit(0)
 }
 
-
+// determineCheckStateFromEnvVar determines a check's enabled state based on
+// the supplied environment variable
+func determineCheckStateFromEnvVar(envVarName string) bool {
+	enabledState, err := strconv.ParseBool(os.Getenv(envVarName))
+	if err != nil {
+		log.Debugln("Had an error parsing the environment variable", envVarName, err)
+		return true // by default, the check is on
+	}
+	return enabledState
+}

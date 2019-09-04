@@ -67,6 +67,7 @@ github.com/integrii/flaggy v1.2.0 h1:/a4mcq8Ueke2+9rgP85yRy8oXriTdvUMWm5qFam9c/Q
 github.com/integrii/flaggy v1.2.0/go.mod h1:3cpVUtAftUH2sUWSsXjFhC6o9aRkLEAuxGQV/qXbSOQ=
 github.com/json-iterator/go v1.1.6 h1:MrUvLMLTMxbqFJ9kzlvat/rYZqZnW3u4wkLzWTaFwKs=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
+github.com/json-iterator/go v1.1.7 h1:KfgG9LzI+pYjr4xvmz/5H4FXjokeP+rlHLhv3iH62Fo=
 github.com/json-iterator/go v1.1.7/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
 github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvWXihfKN4Q=
@@ -221,7 +222,7 @@ k8s.io/api v0.0.0-20190111032252-67edc246be36 h1:XrFGq/4TDgOxYOxtNROTyp2ASjHjBII
 k8s.io/api v0.0.0-20190111032252-67edc246be36/go.mod h1:iuAfoD4hCxJ8Onx9kaTIt30j7jUFS00AXQi6QMi99vA=
 k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628 h1:UYfHH+KEF88OTg+GojQUwFTNxbxwmoktLwutUzR0GPg=
 k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628/go.mod h1:ccL7Eh7zubPUSh9A3USN90/OzHNSVN6zxzde07TDCL0=
-k8s.io/client-go v10.0.0+incompatible h1:h3fciHPG0O5QEzATTFoRw/YGtDsU6pxrMrAhxiTtcq0=
+k8s.io/client-go v10.0.0+incompatible h1:F1IqCqw7oMBzDkqlcBymRq1450wD0eNqLE9jzUrIi34=
 k8s.io/client-go v10.0.0+incompatible/go.mod h1:7vJpHMYJwNQCWgzmNV+VYUl1zCObLyodBc8nIyt8L5s=
 k8s.io/klog v0.2.0 h1:0ElL0OHzF3N+OhoJTL0uca20SxtYt4X4+bzHeqrB83c=
 k8s.io/klog v0.2.0/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
