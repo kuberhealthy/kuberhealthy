@@ -21,7 +21,7 @@ func configureInflux() (metrics.Client, error) {
 	// return an influx client with the right configuration details in it
 	return metrics.NewInfluxClient(metrics.InfluxClientInput{
 		Config: metrics.InfluxConfig{
-			URL:      *influxUrlParsed,
+			URL:      *influxURLParsed,
 			Password: influxPassword,
 			Username: influxUsername,
 		},

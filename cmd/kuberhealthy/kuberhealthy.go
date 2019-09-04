@@ -551,6 +551,10 @@ func (k *Kuberhealthy) fetchPodEnvironmentVariablesByIP(remoteIP string) ([]v1.E
 // validates them to ensure they have the proper UUID expected by the external
 // checker and then parses the response into the current check status.
 func (k *Kuberhealthy) externalCheckStatusHandler(w http.ResponseWriter, r *http.Request) error {
+
+	// TODO
+
+	return nil
 }
 
 // externalCheckReportHandler handles requests coming from external checkers reporting their status.
