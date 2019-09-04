@@ -53,7 +53,7 @@ var enableExternalChecks = true
 
 // InfluxDB connection configuration
 var enableInflux = false
-var influxUrl = ""
+var influxURL = ""
 var influxUsername = ""
 var influxPassword = ""
 var influxDB = "http://localhost:8086"
@@ -89,7 +89,7 @@ func init() {
 	// Influx flags
 	flaggy.String(&influxUsername, "", "influxUser", "Username for the InfluxDB instance")
 	flaggy.String(&influxPassword, "", "influxPassword", "Password for the InfluxDB instance")
-	flaggy.String(&influxUrl, "", "influxUrl", "Address for the InfluxDB instance")
+	flaggy.String(&influxURL, "", "influxUrl", "Address for the InfluxDB instance")
 	flaggy.String(&influxDB, "", "influxDB", "Name of the InfluxDB database")
 	flaggy.Bool(&enableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
 	flaggy.Parse()

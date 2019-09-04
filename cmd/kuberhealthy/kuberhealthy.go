@@ -430,7 +430,7 @@ func (k *Kuberhealthy) StartWebServer() {
 
 	// Accept status reports coming from external checker pods
 	http.HandleFunc("/externalCheckStatus", func(w http.ResponseWriter, r *http.Request) {
-		err := k.healthCheckHandler(w, r)
+		err := k.externalCheckStatusHandler(w, r)
 		if err != nil {
 			log.Errorln(err)
 		}
@@ -545,6 +545,12 @@ func (k *Kuberhealthy) fetchPodEnvironmentVariablesByIP(remoteIP string) ([]v1.E
 	}
 
 	return envVars, nil
+}
+
+// externalCheckStatusHandler takes status reports from external checkers,
+// validates them to ensure they have the proper UUID expected by the external
+// checker and then parses the response into the current check status.
+func (k *Kuberhealthy) externalCheckStatusHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 // externalCheckReportHandler handles requests coming from external checkers reporting their status.

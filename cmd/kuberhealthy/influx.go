@@ -13,7 +13,7 @@ func configureInflux() (metrics.Client, error) {
 	var metricClient metrics.Client
 
 	// parse influxdb connection url
-	influxUrlParsed, err := url.Parse(influxUrl)
+	influxURLParsed, err := url.Parse(influxURL)
 	if err != nil {
 		return metricClient, errors.New("Unable to parse influxUrl: " + err.Error())
 	}
