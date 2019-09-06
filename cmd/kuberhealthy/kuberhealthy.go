@@ -714,12 +714,14 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	state := health.NewState()
 
 	// create a CRD client to fetch CRD states with
+	log.Debugln("Creating khCheck client...")
 	khClient, err := khstatecrd.Client(statusCRDGroup, statusCRDVersion, kubeConfigFile)
 	if err != nil {
 		return state, err
 	}
 
 	// fetch a client for the master calculation
+	log.Debugln("Creating kubernetes client...")
 	kc, err := k.KubeClient()
 	if err != nil {
 		return state, err
@@ -734,7 +736,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 
 	// loop over every check and apply the current state to the status return
 	for _, c := range k.Checks {
-		log.Debugln("Getting status of check for client:", c.Name())
+		log.Debugln("Getting status of check for web request to status page:", c.Name())
 
 		// get the state from the CRD that exists for this check
 		checkDetails, err := getCheckState(c, khClient)

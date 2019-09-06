@@ -53,6 +53,8 @@ func getEnvVar(v string) (string, error) {
 // CalculateMaster determines which kuberhealthy pod should assume the master role
 func CalculateMaster(client *kubernetes.Clientset) (string, error) {
 
+	log.Debugln("Calculating current master...")
+
 	// get a list of all kuberhealthy pods
 	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{
 		LabelSelector: "app=kuberhealthy", FieldSelector: "status.phase=Running",
