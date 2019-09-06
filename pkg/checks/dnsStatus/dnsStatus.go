@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const maxTimeInFailure = time.Duration(60 * time.Second)
+const maxTimeInFailure = 60 * time.Second
 
 // Checker validates that DNS is functioning correctly
 type Checker struct {

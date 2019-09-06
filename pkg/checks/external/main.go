@@ -22,6 +22,9 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
 )
 
+// KHCheckNamespace is the environment var that will hold the namespace of the checker pod.
+const KHCheckNamespace = "KH_CHECK_NAMESPACE"
+
 // KHReportingURL is the environment variable used to tell external checks where to send their status updates
 const KHReportingURL = "KH_REPORTING_URL"
 
@@ -524,6 +527,15 @@ func (ext *Checker) configureUserPodSpec() error {
 		{
 			Name:  KHRunUUID,
 			Value: ext.currentCheckUUID,
+		},
+		{
+			Name:  KHCheckNamespace,
+			Value: ext.currentCheckUUID,
+			ValueFrom: &apiv1.EnvVarSource{
+				FieldRef: &apiv1.ObjectFieldSelector{
+					FieldPath:  "metadata.namespace",
+				},
+			},
 		},
 	}
 
