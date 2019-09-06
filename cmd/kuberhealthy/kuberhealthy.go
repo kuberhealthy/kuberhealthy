@@ -135,12 +135,18 @@ func (k *Kuberhealthy) Start() {
 	lostMasterChan := make(chan bool)
 	go k.masterStatusMonitor(becameMasterChan, lostMasterChan)
 
+	// init checks one time so that the check status page shows data instead of a blank.
+	log.Infoln("Loading check configuration...")
+	kuberhealthy.configureChecks()
+
 	// loop and select channels to do appropriate thing when master changes
 	for {
 		select {
 		case <-becameMasterChan:
 			// reset checks and re-add from configuration settings
 			log.Infoln("Became master. Reconfiguring and starting checks.")
+			log.Infoln("Loading check configuration...")
+			kuberhealthy.configureChecks()
 			k.StartChecks()
 		case <-lostMasterChan:
 			log.Infoln("Lost master. Stopping checks.")
@@ -150,6 +156,8 @@ func (k *Kuberhealthy) Start() {
 			if isMaster {
 				log.Infoln("Reloading external check configurations due to resource update.")
 				k.StopChecks()
+				log.Infoln("Loading check configuration...")
+				kuberhealthy.configureChecks()
 				k.StartChecks()
 			}
 		}
@@ -255,9 +263,6 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 // StartChecks starts all checks concurrently and ensures they stay running
 func (k *Kuberhealthy) StartChecks() {
-
-	log.Infoln("Loading check configuration...")
-	kuberhealthy.configureChecks()
 
 	log.Infoln("Checks starting...")
 	// create a context for checks to abort with
