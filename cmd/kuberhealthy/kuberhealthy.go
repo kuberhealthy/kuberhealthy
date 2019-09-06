@@ -108,7 +108,9 @@ func (k *Kuberhealthy) Shutdown() {
 // All checks are sent a shutdown command at the same time.
 func (k *Kuberhealthy) StopChecks() {
 	log.Infoln("Checks stopping...")
-	k.cancelChecksFunc()
+	if k.cancelChecksFunc != nil {
+		k.cancelChecksFunc()
+	}
 }
 
 // Start inits Kuberhealthy checks and master monitoring
