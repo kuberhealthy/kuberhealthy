@@ -115,6 +115,16 @@ func (k *Kuberhealthy) StopChecks() {
 // Start inits Kuberhealthy checks and master monitoring
 func (k *Kuberhealthy) Start() {
 
+	// if influxdb is enabled, configure it
+	if enableInflux {
+		// configure influxdb
+		metricClient, err := configureInflux()
+		if err != nil {
+			log.Fatalln("Error setting up influx client:", err)
+		}
+		kuberhealthy.MetricForwarder = metricClient
+	}
+
 	// reset checks and re-add from configuration settings
 	kuberhealthy.configureChecks()
 
@@ -762,16 +772,6 @@ func (k *Kuberhealthy) configureChecks() {
 
 	// wipe all existing checks before we configure
 	k.Checks = []KuberhealthyCheck{}
-
-	// if influxdb is enabled, configure it
-	if enableInflux {
-		// configure influxdb
-		metricClient, err := configureInflux()
-		if err != nil {
-			log.Fatalln("Error setting up influx client:", err)
-		}
-		kuberhealthy.MetricForwarder = metricClient
-	}
 
 	// add componentstatus checking if enabled
 	if enableComponentStatusChecks {
