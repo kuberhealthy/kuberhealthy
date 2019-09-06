@@ -144,6 +144,7 @@ func (k *Kuberhealthy) Start() {
 			log.Infoln("Lost master. Stopping checks.")
 			k.StopChecks()
 		case <-externalChecksUpdateChan:
+			log.Infoln("Witnessed a khcheck resource change...")
 			if isMaster {
 				log.Infoln("Reloading external check configurations due to resource update.")
 				k.StopChecks()
@@ -161,7 +162,7 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 
 	// start polling for check changes all the time.
 	// TODO - watch is not implemented on the CRD package yet, but
-	// when it is we should use that instead of polling.
+	// when it is we should use a watch instead of polling.
 	for {
 
 		// rate limiting for watch restarts
@@ -253,7 +254,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 // StartChecks starts all checks concurrently and ensures they stay running
 func (k *Kuberhealthy) StartChecks() {
 
-	log.Infoln("Configuring checks...")
+	log.Infoln("Loading check configuration...")
 	kuberhealthy.configureChecks()
 
 	log.Infoln("Checks starting...")

@@ -71,7 +71,7 @@ const checkCRDGroup = "comcast.github.io"
 const checkCRDVersion = "v1"
 const checkCRDResource = "khchecks"
 
-var checkCRDScanInterval = time.Second * 15 // how often we scan for changes to check CRD objects
+var checkCRDScanInterval = time.Second * 5 // how often we scan for changes to check CRD objects
 
 func init() {
 
