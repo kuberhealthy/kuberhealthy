@@ -124,9 +124,6 @@ func (k *Kuberhealthy) Start() {
 		kuberhealthy.MetricForwarder = metricClient
 	}
 
-	// reset checks and re-add from configuration settings
-	kuberhealthy.configureChecks()
-
 	// find all the external checks from the khcheckcrd resources on the cluster and keep them in sync
 	externalChecksUpdateChan := make(chan struct{})
 	go k.monitorExternalChecks(externalChecksUpdateChan)
@@ -140,16 +137,18 @@ func (k *Kuberhealthy) Start() {
 	for {
 		select {
 		case <-becameMasterChan:
-			log.Infoln("Became master. Starting checks.")
+			// reset checks and re-add from configuration settings
+			log.Infoln("Became master. Reconfiguring and starting checks.")
 			k.StartChecks()
 		case <-lostMasterChan:
 			log.Infoln("Lost master. Stopping checks.")
 			k.StopChecks()
 		case <-externalChecksUpdateChan:
-			log.Infoln("Reloading external check configurations due to resource update.")
-			k.StopChecks()
-			k.configureChecks() // reset and reconfigure all checks
-			k.StartChecks()
+			if isMaster {
+				log.Infoln("Reloading external check configurations due to resource update.")
+				k.StopChecks()
+				k.StartChecks()
+			}
 		}
 	}
 }
@@ -253,8 +252,11 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 // StartChecks starts all checks concurrently and ensures they stay running
 func (k *Kuberhealthy) StartChecks() {
-	log.Infoln("Checks starting...")
 
+	log.Infoln("Configuring checks...")
+	kuberhealthy.configureChecks()
+
+	log.Infoln("Checks starting...")
 	// create a context for checks to abort with
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	k.cancelChecksFunc = cancelFunc
