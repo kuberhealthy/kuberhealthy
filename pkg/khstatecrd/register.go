@@ -34,8 +34,7 @@ func ConfigureScheme(GroupName string, GroupVersion string) {
 }
 
 func addKnownTypes(scheme *runtime.Scheme) error {
-	mu.Lock()
-	defer mu.Unlock()
+	// do not mutex - causes deadlock when CRD client created
 
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&KuberhealthyState{},

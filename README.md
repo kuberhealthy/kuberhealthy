@@ -140,7 +140,7 @@ A command line flag exists `--podCheckNamespaces` which can optionally contain a
 
 #### DNS
 
-Checks for failures with DNS, including resolving within the cluster and outside of the cluster. Default endpoints to resolve: kubernetes.default, aws.amazon.com, cloud.dns.com
+Checks for failures with DNS, including resolving within the cluster and outside of the cluster. By default, only `kubernetes.default` is checked because external internet access is not assumed.
 
 A command-line flag exists `--dnsEndpoints` which can optionally include a comma separated list of DNS endpoints to test. 
 
