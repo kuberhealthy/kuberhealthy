@@ -317,7 +317,7 @@ func (k *Kuberhealthy) checkMasterStatus(c *kubernetes.Clientset, becameMasterCh
 	// stop checks if we are no longer the master
 	if becameMaster && !isMaster {
 		select {
-		case lostMasterChan <- true:
+		case becameMasterChan <- true:
 		default:
 		}
 	}
@@ -325,7 +325,7 @@ func (k *Kuberhealthy) checkMasterStatus(c *kubernetes.Clientset, becameMasterCh
 	// start checks if we are now master
 	if !becameMaster && isMaster {
 		select {
-		case becameMasterChan <- true:
+		case lostMasterChan <- true:
 		default:
 		}
 	}

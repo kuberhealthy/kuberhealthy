@@ -125,6 +125,7 @@ rules:
     - comcast.github.io
     resources:
     - khstates
+    - khchecks
     verbs:
     - create
     - delete
