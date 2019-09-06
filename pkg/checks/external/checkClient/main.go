@@ -32,8 +32,14 @@ func ReportSuccess() error {
 		return err
 	}
 
+	// fetch the namespace of the checker pod
+	checkNamespace, err := getCheckNamespace()
+	if err != nil {
+		return err
+	}
+
 	// make a new report without errors
-	newReport := status.NewReport(uuid, checkName, []string{})
+	newReport := status.NewReport(uuid, checkName, checkNamespace,  []string{})
 
 	// send the payload
 	return sendReport(newReport)
@@ -120,13 +126,27 @@ func getUUID() (string, error) {
 // specified environment variables
 func getCheckName() (string, error) {
 
-	// fetch the UUID that we need to report status with from the environment
+	// fetch the check name that we need to report status with from the environment
 	checkName := os.Getenv(external.KHCheckName)
 
-	// check the length of the UUID to make sure we pulled one properly
+	// check the length of the check name to make sure we pulled one properly
 	if len(checkName) < 1 {
 		return "", fmt.Errorf("fetched %s environment variable but it was blank", external.KHCheckName)
 	}
 
 	return checkName, nil
+}
+
+// getCheckNamespace fetches the namespace of the check
+func getCheckNamespace() (string, error) {
+
+	// fetch the namespace we need from the environment variable
+	checkNamespace := os.Getenv(external.KHCheckNamespace)
+
+	// check the length of the namespace to make sure we pulled one properly
+	if len(checkNamespace) < 1 {
+		return "", fmt.Errorf("fetched %s environment variable but it was blank", external.KHCheckNamespace)
+	}
+
+	return checkNamespace, nil
 }
