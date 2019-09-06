@@ -34,8 +34,6 @@ func ConfigureScheme(GroupName string, GroupVersion string) {
 }
 
 func addKnownTypes(scheme *runtime.Scheme) error {
-	mu.Lock()
-	defer mu.Unlock()
 
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&KuberhealthyState{},
