@@ -47,7 +47,6 @@ var DSPauseContainerImageOverride string // specify an alternate location for th
 var DSTolerationOverride []string
 var logLevel = "info"
 
-var enableComponentStatusChecks = determineCheckStateFromEnvVar("COMPONENT_STATUS_CHECK")
 var enableDaemonSetChecks = determineCheckStateFromEnvVar("DAEMON_SET_CHECK")
 var enablePodRestartChecks = determineCheckStateFromEnvVar("POD_RESTARTS_CHECK")
 var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
@@ -80,7 +79,6 @@ func init() {
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
 	flaggy.String(&listenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
-	flaggy.Bool(&enableComponentStatusChecks, "", "componentStatusChecks", "Set to false to disable daemonset deployment checking.")
 	flaggy.Bool(&enableDaemonSetChecks, "", "daemonsetChecks", "Set to false to disable cluster daemonset deployment and termination checking.")
 	flaggy.Bool(&enablePodRestartChecks, "", "podRestartChecks", "Set to false to disable pod restart checking.")
 	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")

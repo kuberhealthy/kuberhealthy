@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/Comcast/kuberhealthy/pkg/checks/componentStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
 	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/external"
@@ -772,11 +771,6 @@ func (k *Kuberhealthy) configureChecks() {
 
 	// wipe all existing checks before we configure
 	k.Checks = []KuberhealthyCheck{}
-
-	// add componentstatus checking if enabled
-	if enableComponentStatusChecks {
-		kuberhealthy.AddCheck(componentStatus.New())
-	}
 
 	// add daemonset checking if enabled
 	if enableDaemonSetChecks {
