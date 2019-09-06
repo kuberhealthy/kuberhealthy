@@ -70,12 +70,6 @@ If you choose to alert from the JSON status page, you can access the status on `
   "OK": true,
   "Errors": [],
   "CheckDetails": {
-    "ComponentStatusChecker": {
-      "OK": true,
-      "Errors": [],
-      "LastRun": "2018-06-21T17:32:16.921733843Z",
-      "AuthoritativePod": "kuberhealthy-7cf79bdc86-m78qr"
-    },
     "DaemonSetChecker": {
       "OK": true,
       "Errors": [],
@@ -119,15 +113,6 @@ Deploys a `daemonset` to the `kuberhealthy` namespace, waits for all pods to be 
 - Timeout: 5 minutes
 - Check Interval: 15 minutes
 - Check name: `daemonSet`
-
-#### Component Health
-
-Checks for the state of cluster `componentstatuses`.  Kubernetes components include the ETCD and ETCD-event deployments, the Kubernetes scheduler, and the Kubernetes controller manager.  This is almost the same as running `kubectl get componentstatuses`.  If a `componentstatus` status is down for 5 minutes, an alert is shown on the status page.
-
-- Timeout: 1 minute
-- Check Interval: 2 minute
-- Downtime toleration: 5 minutes
-- Check name: `componentStatus`
 
 #### Excessive Pod Restarts
 
