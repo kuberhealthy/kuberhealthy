@@ -399,7 +399,7 @@ func (dsc *Checker) getAllPods() ([]apiv1.Pod, error) {
 	// fetch the pod objects created by kuberhealthy
 	for {
 		var podList *apiv1.PodList
-		podList, err := dsc.client.Core().Pods(dsc.Namespace).List(metav1.ListOptions{
+		podList, err := dsc.client.CoreV1().Pods(dsc.Namespace).List(metav1.ListOptions{
 			LabelSelector: "source=kuberhealthy",
 		})
 		if err != nil {
@@ -726,7 +726,6 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 
 	// get a list of DS pods
 	pods, err := dsc.client.CoreV1().Pods(dsc.Namespace).List(metav1.ListOptions{
-		IncludeUninitialized: true,
 		LabelSelector:        "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
 	})
 	if err != nil {
@@ -817,7 +816,6 @@ func (dsc *Checker) remove() error {
 	// confirm the count we are removing before issuing a delete
 	podsClient := dsc.client.CoreV1().Pods(dsc.Namespace)
 	pods, err := podsClient.List(metav1.ListOptions{
-		IncludeUninitialized: true,
 		LabelSelector:        "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
 	})
 	if err != nil {
@@ -838,7 +836,6 @@ func (dsc *Checker) remove() error {
 	// pods are removed
 	log.Infoln(dsc.Name(), "removing daemonset pods")
 	err = podsClient.DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
-		IncludeUninitialized: true,
 		LabelSelector:        "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
 	})
 	if err != nil {
@@ -868,7 +865,6 @@ func (dsc *Checker) waitForPodRemoval(ctx context.Context) error {
 		}
 
 		pods, err := podsClient.List(metav1.ListOptions{
-			IncludeUninitialized: true,
 			LabelSelector:        "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
 		})
 		if err != nil {
@@ -883,7 +879,6 @@ func (dsc *Checker) waitForPodRemoval(ctx context.Context) error {
 		case <-deleteTicker.C:
 			log.Infoln(dsc.Name(), "Re-issuing a pod delete command for daemonset checkers.")
 			err = podsClient.DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
-				IncludeUninitialized: true,
 				LabelSelector:        "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
 			})
 			if err != nil {
