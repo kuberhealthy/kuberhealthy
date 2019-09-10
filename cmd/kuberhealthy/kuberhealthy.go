@@ -186,7 +186,8 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 			continue
 		}
 
-		l, err := checkClient.List(metav1.ListOptions{}, checkCRDResource)
+		// fetch all khcheck resources from all namespaces
+		l, err := checkClient.List(metav1.ListOptions{}, checkCRDResource, "")
 		if err != nil {
 			log.Errorln("Error listing check configuration resources", err)
 			continue
@@ -196,22 +197,22 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 		var foundChange bool
 		for _, i := range l.Items {
 			log.Debugln("Scanning check CRD", i.Name, "for changes...")
-			r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, i.Name)
+			r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, i.Name, i.Namespace)
 			if err != nil {
 				log.Errorln("Error getting check configuration resource:", err)
 				continue
 			}
 			// if this is the first time seeing this resource, we don't notify of a change
-			if len(resourceVersions[r.Name]) == 0 {
-				resourceVersions[r.Name] = r.GetResourceVersion()
+			if len(resourceVersions[r.Namespace+r.Name]) == 0 {
+				resourceVersions[r.Namespace+r.Name] = r.GetResourceVersion()
 				log.Debugln("Initialized change monitoring for check CRD", r.Name, "at resource version", r.GetResourceVersion())
 				continue
 			}
 
 			// if the resource has changed, we notify the notify channel and set the new resource version
-			if resourceVersions[r.Name] != r.GetResourceVersion() {
+			if resourceVersions[r.Namespace+r.Name] != r.GetResourceVersion() {
 				log.Infoln("Detected a change in external check CRD", r.Name, "to resource version", r.GetResourceVersion())
-				resourceVersions[r.Name] = r.GetResourceVersion()
+				resourceVersions[r.Namespace+r.Name] = r.GetResourceVersion()
 				foundChange = true
 			}
 		}
@@ -235,7 +236,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 	}
 
 	// list all checks
-	l, err := checkClient.List(metav1.ListOptions{}, checkCRDResource)
+	l, err := checkClient.List(metav1.ListOptions{}, checkCRDResource, "")
 	if err != nil {
 		return err
 	}
@@ -243,7 +244,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 	// iterate on each check CRD resource
 	for _, i := range l.Items {
 		log.Debugln("Scanning check CRD", i.Name, "for changes...")
-		r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, i.Name)
+		r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, i.Namespace, i.Name)
 		if err != nil {
 			return err
 		}
@@ -487,6 +488,8 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIP string) error {
 	var podUUID string
 	var foundName bool
 	var podCheckName string
+	var foundNamespace bool
+	var podCheckNamespace string
 
 	for _, e := range envVars {
 		if e.Name == external.KHRunUUID {
@@ -496,6 +499,10 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIP string) error {
 		if e.Name == external.KHCheckName {
 			foundName = true
 			podUUID = e.Value
+		}
+		if e.Name == external.KHCheckNamespace {
+			foundNamespace = true
+			podCheckNamespace = e.Value
 		}
 	}
 
@@ -507,18 +514,25 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIP string) error {
 	if !foundName {
 		return errors.New("error finding environment variable on remote pod: " + external.KHCheckName)
 	}
+	// verify we found the check namespace
+	if !foundNamespace {
+		return errors.New("error finding environment variable on remote pod: " + external.KHCheckNamespace)
+	}
 
 	// we know that we have a UUID and check name now, so lets check their validity.  First, we sanity check.
 	if len(podUUID) < 1 {
-		return errors.New("pod uuid was invalid")
+		return errors.New("pod uuid was invalid or unset")
 	}
 	if len(podCheckName) < 1 {
-		return errors.New("pod check name was invalid")
+		return errors.New("pod check name was invalid or unset")
+	}
+	if len(podCheckNamespace) < 1 {
+		return errors.New("pod check namespace was invalid or unset")
 	}
 
 	// next, we check the uuid against the check name to see if this uuid is the expected one.  if it isn't,
 	// we return an error
-	whitelisted, err := k.isUUIDWhitelistedForCheck(podCheckName, podUUID)
+	whitelisted, err := k.isUUIDWhitelistedForCheck(podCheckName, podCheckNamespace, podUUID)
 	if !whitelisted {
 		return errors.New("pod was not properly whitelisted for reporting status of check " + podCheckName + " with uuid " + podUUID)
 	}
@@ -586,7 +600,7 @@ func (k *Kuberhealthy) externalCheckStatusHandler(w http.ResponseWriter, r *http
 
 	// we have a status report, so now we validate that the check name and
 	// uuid match up as expected.
-	ok, err := k.isUUIDWhitelistedForCheck(s.CheckName, s.UUID)
+	ok, err := k.isUUIDWhitelistedForCheck(s.CheckName, s.CheckNamespace, s.UUID)
 	if err != nil {
 		return fmt.Errorf("failed to validate uuid whitelisting for check %s and uuid %s: %w", s.CheckName, s.UUID, err)
 	}
@@ -840,7 +854,7 @@ func (k *Kuberhealthy) configureChecks() {
 // check with the supplied name.  Only one UUID can be whitelisted at a time.
 // Operations are not atomic.  Whitelisting prevents expired or invalidated pods from
 // reporting into the status endpoint when they shouldn't be.
-func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, uuid string) (bool, error) {
+func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, checkNamespace string, uuid string) (bool, error) {
 	// make a new crd check client
 	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
 	if err != nil {
@@ -848,7 +862,7 @@ func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, uuid string) 
 	}
 
 	// get the item in question
-	checkConfig, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, checkName)
+	checkConfig, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, checkNamespace, checkName)
 	if err != nil {
 		return false, err
 	}
