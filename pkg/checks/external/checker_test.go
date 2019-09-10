@@ -16,6 +16,7 @@ import (
 var client *kubernetes.Clientset
 
 const testCheckName = "test-check"
+const defaultNamespace = "kuberhealthy"
 
 func init() {
 
@@ -60,10 +61,10 @@ func TestExternalChecker(t *testing.T) {
 }
 
 // newTestCheckFromSpec creates a new test checker but using the supplied
-// spec file for pods
-func newTestCheckFromSpec(client *kubernetes.Clientset, spec *apiv1.PodSpec) *Checker {
+// spec file for a khcheck
+func newTestCheckFromSpec(client *kubernetes.Clientset, checkSpec *khcheckcrd.KuberhealthyCheck) *Checker {
 	// create a new checker and insert this pod spec
-	checker := New(client, spec) // external checker does not ever return an error so we drop it
+	checker := New(client, checkSpec) // external checker does not ever return an error so we drop it
 	checker.Namespace = defaultNamespace
 	checker.Debug = true
 	checker.CheckName = testCheckName // override check name so we know what the name is via the constant
@@ -137,7 +138,7 @@ func TestGetWhitelistedUUIDForExternalCheck(t *testing.T) {
 	}
 
 	// get the UUID's value (should be blank)
-	uuid, err := GetWhitelistedUUIDForExternalCheck(c.Name())
+	uuid, err := GetWhitelistedUUIDForExternalCheck(c.Namespace, c.Name())
 	if err != nil {
 		t.Fatal("Failed to get UUID on test check:", err)
 	}
@@ -152,7 +153,7 @@ func TestGetWhitelistedUUIDForExternalCheck(t *testing.T) {
 	}
 
 	// re-fetch the UUID from the custom resource
-	uuid, err = GetWhitelistedUUIDForExternalCheck(c.Name())
+	uuid, err = GetWhitelistedUUIDForExternalCheck(c.Namespace, c.Name())
 	if err != nil {
 		t.Fatal("Failed to get UUID on test check:", err)
 	}

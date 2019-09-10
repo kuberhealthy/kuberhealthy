@@ -90,20 +90,29 @@ type Checker struct {
 }
 
 // New creates a new external checker
-func New(client *kubernetes.Clientset, podSpec *apiv1.PodSpec, namespace string) *Checker {
-	if len(namespace) == 0 {
-		namespace = "kuberhealthy"
+func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck) *Checker {
+	if len(checkConfig.Namespace) == 0 {
+		checkConfig.Namespace = "kuberhealthy"
 	}
+
+	// parse the run interval string from the custom resource
+	runInterval, err := time.ParseDuration(checkConfig.Spec.RunInterval)
+	if err != nil {
+		log.Warningln("Error parsing duration for check",checkConfig.Name, "in namespace",checkConfig.Namespace,err)
+		runInterval = defaultRunInterval
+	}
+
+	// build the checker object
 	return &Checker{
 		ErrorMessages:            []string{},
-		Namespace:                namespace,
-		CheckName:                DefaultName,
-		RunInterval:              defaultRunInterval,
+		Namespace:                checkConfig.Namespace,
+		CheckName:                checkConfig.Name,
+		RunInterval:              runInterval,
 		KuberhealthyReportingURL: DefaultKuberhealthyReportingURL,
 		maxRunTime:               defaultMaxRunTime,
 		startupTimeout:           defaultMaxStartTime,
-		PodName:                  DefaultName,
-		PodSpec:                  podSpec,
+		PodName:                  checkConfig.Name,
+		PodSpec:                  &checkConfig.Spec.PodSpec,
 		KubeClient:               client,
 	}
 }
@@ -187,7 +196,7 @@ func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck, error) {
 	}
 
 	// get the item in question and return it along with any errors
-	return checkClient.Get(metav1.GetOptions{}, checkCRDResource, ext.Name())
+	return checkClient.Get(metav1.GetOptions{}, checkCRDResource, ext.Namespace, ext.Name())
 }
 
 // NewCheckClient creates a new client for khcheckcrd resources
@@ -208,7 +217,7 @@ func (ext *Checker) setUUID(uuid string) error {
 
 	// update the check config and write it back to the struct
 	checkConfig.Spec.CurrentUUID = uuid
-	checkConfig.ObjectMeta.Namespace = defaultNamespace
+	checkConfig.ObjectMeta.Namespace = ext.Namespace
 	log.Infoln(checkConfig)
 
 	// make a new crd check client
@@ -218,7 +227,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	}
 
 	// update the resource with the new values we want
-	_, err = checkClient.Update(checkConfig, checkCRDResource, ext.Name())
+	_, err = checkClient.Update(checkConfig, checkCRDResource, ext.Namespace, ext.Name())
 	return err
 }
 

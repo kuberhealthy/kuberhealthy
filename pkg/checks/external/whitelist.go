@@ -8,14 +8,14 @@ import (
 
 // GetWhitelistedUUIDForExternalCheck fetches the current allowed UUID for an
 // external check.  This data is stored in khcheck custom resources.
-func GetWhitelistedUUIDForExternalCheck(checkName string) (string, error) {
+func GetWhitelistedUUIDForExternalCheck(checkNamespace string, checkName string) (string, error) {
 	// make a new crd check client
 	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
 	if err != nil {
 		return "", err
 	}
 
-	r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, checkName)
+	r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, checkNamespace, checkName)
 	if err != nil {
 		return "", err
 	}
