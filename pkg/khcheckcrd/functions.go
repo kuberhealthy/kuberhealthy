@@ -25,13 +25,13 @@ type KuberhealthyCheckClient struct {
 }
 
 // Create creates a new resource for this CRD
-func (c *KuberhealthyCheckClient) Create(check *KuberhealthyCheck, resource string) (*KuberhealthyCheck, error) {
+func (c *KuberhealthyCheckClient) Create(check *KuberhealthyCheck, resource string, namespace string) (*KuberhealthyCheck, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	result := KuberhealthyCheck{}
 	err := c.restClient.
 		Post().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		Body(check).
 		Do().
@@ -40,13 +40,13 @@ func (c *KuberhealthyCheckClient) Create(check *KuberhealthyCheck, resource stri
 }
 
 // Delete deletes a resource for this CRD
-func (c *KuberhealthyCheckClient) Delete(resource string, name string) (*KuberhealthyCheck, error) {
+func (c *KuberhealthyCheckClient) Delete(resource string, name string, namespace string) (*KuberhealthyCheck, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	result := KuberhealthyCheck{}
 	err := c.restClient.
 		Delete().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		Name(name).
 		Do().
@@ -55,14 +55,14 @@ func (c *KuberhealthyCheckClient) Delete(resource string, name string) (*Kuberhe
 }
 
 // Update updates a resource for this CRD
-func (c *KuberhealthyCheckClient) Update(check *KuberhealthyCheck, resource string, name string) (*KuberhealthyCheck, error) {
+func (c *KuberhealthyCheckClient) Update(check *KuberhealthyCheck, resource string, namespace string, name string) (*KuberhealthyCheck, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	result := KuberhealthyCheck{}
 	// err := c.restClient.Verb("update").Namespace(c.ns).Resource(resource).Name(name).Do().Into(&result)
 	err := c.restClient.
 		Put().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		Body(check).
 		Name(name).
@@ -72,13 +72,13 @@ func (c *KuberhealthyCheckClient) Update(check *KuberhealthyCheck, resource stri
 }
 
 // Get fetches a resource of this CRD
-func (c *KuberhealthyCheckClient) Get(opts metav1.GetOptions, resource string, name string) (*KuberhealthyCheck, error) {
+func (c *KuberhealthyCheckClient) Get(opts metav1.GetOptions, resource string, namespace string, name string) (*KuberhealthyCheck, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	result := KuberhealthyCheck{}
 	err := c.restClient.
 		Get().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		Name(name).
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -88,13 +88,13 @@ func (c *KuberhealthyCheckClient) Get(opts metav1.GetOptions, resource string, n
 }
 
 // List lists resources for this CRD
-func (c *KuberhealthyCheckClient) List(opts metav1.ListOptions, resource string) (*KuberhealthyCheckList, error) {
+func (c *KuberhealthyCheckClient) List(opts metav1.ListOptions, resource string, namespace string) (*KuberhealthyCheckList, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	result := KuberhealthyCheckList{}
 	err := c.restClient.
 		Get().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
