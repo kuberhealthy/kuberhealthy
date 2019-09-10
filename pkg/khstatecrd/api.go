@@ -61,7 +61,7 @@ func Client(GroupName string, GroupVersion string, kubeConfig string) (*Kuberhea
 	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
 
-	log.Println("creating rest client")
+	log.Println("creating khstate rest client")
 	client, err := rest.RESTClientFor(&config)
 	return &KuberhealthyStateClient{restClient: client, ns: namespace}, err
 }

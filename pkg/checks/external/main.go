@@ -95,10 +95,12 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 		checkConfig.Namespace = "kuberhealthy"
 	}
 
+	log.Debugf("Creating external check from check config: %+v \n", checkConfig)
+
 	// parse the run interval string from the custom resource
 	runInterval, err := time.ParseDuration(checkConfig.Spec.RunInterval)
 	if err != nil {
-		log.Warningln("Error parsing duration for check",checkConfig.Name, "in namespace",checkConfig.Namespace,err)
+		log.Errorln("Error parsing duration for check", checkConfig.Name, "in namespace", checkConfig.Namespace, err)
 		runInterval = defaultRunInterval
 	}
 

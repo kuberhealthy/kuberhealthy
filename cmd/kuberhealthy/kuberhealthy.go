@@ -229,6 +229,8 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 // Kuberhealthy struct.
 func (k *Kuberhealthy) addExternalChecks() error {
 
+	log.Debugln("Searching for khcheck configurations...")
+
 	// make a new crd check client
 	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
 	if err != nil {
@@ -250,6 +252,9 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		if err != nil {
 			return err
 		}
+
+		// print with formatting
+		log.Debugf("External check custom resource loaded: %v",r)
 
 		// create a new kubernetes client for this external checker
 		kc, err := k.KubeClient()
@@ -800,6 +805,7 @@ func (k *Kuberhealthy) getCheck(name string, namespace string) (KuberhealthyChec
 // configureChecks removes all checks set in Kuberhealthy and reloads them
 // based on the configuration options
 func (k *Kuberhealthy) configureChecks() {
+	log.Debugln("Configuring checks...")
 
 	// wipe all existing checks before we configure
 	k.Checks = []KuberhealthyCheck{}
@@ -852,6 +858,7 @@ func (k *Kuberhealthy) configureChecks() {
 	}
 
 	// check external check configurations
+	log.Debugln("Enable external checks?")
 	if enableExternalChecks {
 		log.Infoln("Enabling external checks")
 		err := kuberhealthy.addExternalChecks()
