@@ -64,8 +64,14 @@ func ReportFailure(errorMessages []string) error {
 		return err
 	}
 
+	// fetch the namespace of the checker pod
+	checkNamespace, err := getCheckNamespace()
+	if err != nil {
+		return err
+	}
+
 	// make a new report without errors
-	newReport := status.NewReport(uuid, checkName, errorMessages)
+	newReport := status.NewReport(uuid, checkName, checkNamespace, errorMessages)
 
 	// send it
 	return sendReport(newReport)
