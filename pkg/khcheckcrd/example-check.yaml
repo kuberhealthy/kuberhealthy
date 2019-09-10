@@ -6,9 +6,9 @@ metadata:
   labels:
     app: kuberhealthy
   annotations: {}
-spec:
-  runinterval: 1m5s
-  podspec:
+Spec:
+  RunInterval: 1m5s
+  PodSpec:
     containers:
     - env:
       - name: SOME_ENV_VAR
