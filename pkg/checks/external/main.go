@@ -55,13 +55,6 @@ const defaultMaxStartTime = time.Minute * 5
 // DefaultName is used when no check name is supplied
 var DefaultName = "external-check"
 
-// namespace indicates the namespace of the kuberhealthy
-// pod that is running this check
-var namespace string
-
-// defaultNamespace is used if namespace is found to be blank
-var defaultNamespace = "kuberhealthy"
-
 // kubeConfigFile is the default location to check for a kubernetes configuration file
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
@@ -73,15 +66,6 @@ var defaultRunInterval = time.Minute * 10
 const checkCRDGroup = "comcast.github.io"
 const checkCRDVersion = "v1"
 const checkCRDResource = "khchecks"
-
-func init() {
-	envNamespace := os.Getenv("POD_NAMESPACE")
-	if envNamespace == `` {
-		namespace = defaultNamespace
-	} else {
-		namespace = envNamespace
-	}
-}
 
 // Checker implements a KuberhealthyCheck for external
 // check execution and lifecycle management.
@@ -106,7 +90,10 @@ type Checker struct {
 }
 
 // New creates a new external checker
-func New(client *kubernetes.Clientset, podSpec *apiv1.PodSpec) *Checker {
+func New(client *kubernetes.Clientset, podSpec *apiv1.PodSpec, namespace string) *Checker {
+	if len(namespace) == 0 {
+		namespace = "kuberhealthy"
+	}
 	return &Checker{
 		ErrorMessages:            []string{},
 		Namespace:                namespace,
