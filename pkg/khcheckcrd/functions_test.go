@@ -12,11 +12,13 @@
 package khcheckcrd
 
 import (
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/Pallinder/go-randomdata"
+	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
@@ -30,6 +32,20 @@ func TestClient(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+// TestCreateCRDYAML is used to create an example check spec easily.
+func TestCreateCRDYAML(t *testing.T) {
+
+	t.Skip("Only to be used to make yaml example")
+
+	checkDetails := NewKuberhealthyCheck(testCheckName, NewCheckConfig())
+	b, err := yaml.Marshal(checkDetails)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(string(b))
 }
 
 func TestCreate(t *testing.T) {
