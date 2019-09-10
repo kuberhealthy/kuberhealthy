@@ -22,9 +22,6 @@ var SchemeGroupVersion schema.GroupVersion
 
 // ConfigureScheme configures the runtime scheme for use with CRD creation
 func ConfigureScheme(GroupName string, GroupVersion string) {
-	mu.Lock()
-	defer mu.Unlock()
-
 	SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
 	var (
 		SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
@@ -34,7 +31,8 @@ func ConfigureScheme(GroupName string, GroupVersion string) {
 }
 
 func addKnownTypes(scheme *runtime.Scheme) error {
-	// do not mutex - causes deadlock when CRD client created
+	mu.Lock()
+	defer mu.Unlock()
 
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&KuberhealthyState{},
