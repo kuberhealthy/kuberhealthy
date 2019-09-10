@@ -255,7 +255,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		if err != nil {
 			log.Fatalln("Could not fetch Kubernetes client for external checker:", err)
 		}
-		c := external.New(kc, &r.Spec.PodSpec)
+		c := external.New(kc, &r.Spec.PodSpec, r.Namespace)
 		k.AddCheck(c)
 	}
 
