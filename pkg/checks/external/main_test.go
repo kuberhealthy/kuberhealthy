@@ -14,6 +14,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -26,11 +27,11 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-// loadTestPodSpecFile loads a pod spec yaml from disk in this
-// directory and returns the pod spec struct it represents
-func loadTestPodSpecFile(path string) (*apiv1.PodSpec, error) {
+// loadTestPodSpecFile loads a check spec yaml from disk in this
+// the test directory and returns the check struct
+func loadTestPodSpecFile(path string) (*khcheckcrd.KuberhealthyCheck, error) {
 
-	podSpec := apiv1.PodSpec{}
+	podSpec := khcheckcrd.KuberhealthyCheck{}
 
 	// open the yaml file
 	f, err := os.Open(path)

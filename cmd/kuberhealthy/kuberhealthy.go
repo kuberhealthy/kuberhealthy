@@ -177,7 +177,7 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 
 		// rate limiting for watch restarts
 		time.Sleep(checkCRDScanInterval)
-		log.Infoln("Starting to monitor for external check configuration resource changes...")
+		log.Debugln("Scanning for external check CRD changes...")
 
 		// make a new crd check client
 		checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
@@ -197,7 +197,7 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 		var foundChange bool
 		for _, i := range l.Items {
 			log.Debugln("Scanning check CRD", i.Name, "for changes...")
-			r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, i.Name, i.Namespace)
+			r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, i.Namespace, i.Name)
 			if err != nil {
 				log.Errorln("Error getting check configuration resource:", err)
 				continue
@@ -235,27 +235,30 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		return err
 	}
 
-	// list all checks
+	// list all checks from all namespaces
 	l, err := checkClient.List(metav1.ListOptions{}, checkCRDResource, "")
 	if err != nil {
 		return err
 	}
 
-	// iterate on each check CRD resource
+	log.Debugln("Found",len(l.Items),"external checks to load")
+
+	// iterate on each check CRD resource and add it as a check
 	for _, i := range l.Items {
-		log.Debugln("Scanning check CRD", i.Name, "for changes...")
+		log.Debugln("Loading check CRD:", i.Name)
 		r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, i.Namespace, i.Name)
 		if err != nil {
 			return err
 		}
 
-		// create a new KuberhealthyCheck and add it
-		log.Infoln("Enabling external checker:", r.Name)
+		// create a new kubernetes client for this external checker
 		kc, err := k.KubeClient()
 		if err != nil {
 			log.Fatalln("Could not fetch Kubernetes client for external checker:", err)
 		}
-		c := external.New(kc, &r.Spec.PodSpec, r.Namespace)
+
+		log.Infoln("Enabling external check:", r.Name)
+		c := external.New(kc, r)
 		k.AddCheck(c)
 	}
 
@@ -314,14 +317,14 @@ func (k *Kuberhealthy) masterStatusMonitor(becameMasterChan chan bool, lostMaste
 func (k *Kuberhealthy) checkMasterStatus(c *kubernetes.Clientset, becameMasterChan chan bool, lostMasterChan chan bool) {
 
 	// determine if we are currently master or not
-	becameMaster, err := masterCalculation.IAmMaster(c)
+	masterNow, err := masterCalculation.IAmMaster(c)
 	if err != nil {
 		log.Errorln(err)
 		return
 	}
 
 	// stop checks if we are no longer the master
-	if becameMaster && !isMaster {
+	if masterNow && !isMaster {
 		select {
 		case becameMasterChan <- true:
 		default:
@@ -329,12 +332,15 @@ func (k *Kuberhealthy) checkMasterStatus(c *kubernetes.Clientset, becameMasterCh
 	}
 
 	// start checks if we are now master
-	if !becameMaster && isMaster {
+	if !masterNow && isMaster {
 		select {
 		case lostMasterChan <- true:
 		default:
 		}
 	}
+
+	// refresh global isMaster state
+	isMaster = masterNow
 }
 
 // runCheck runs a check on an interval and sets its status each run
@@ -809,11 +815,13 @@ func (k *Kuberhealthy) configureChecks() {
 		if err != nil {
 			log.Fatalln("unable to create daemonset checker:", err)
 		}
+		log.Infoln("Enabling daemonset checker")
 		kuberhealthy.AddCheck(ds)
 	}
 
 	// add pod restart checking if enabled
 	if enablePodRestartChecks {
+		log.Infoln("Enabling pod restart checker")
 		// Split the podCheckNamespaces into a []string
 		namespaces := strings.Split(podCheckNamespaces, ",")
 		for _, namespace := range namespaces {
@@ -826,6 +834,7 @@ func (k *Kuberhealthy) configureChecks() {
 
 	// add pod status checking if enabled
 	if enablePodStatusChecks {
+		log.Infoln("Enabling pod status checker")
 		// Split the podCheckNamespaces into a []string
 		namespaces := strings.Split(podCheckNamespaces, ",")
 		for _, namespace := range namespaces {
@@ -838,11 +847,13 @@ func (k *Kuberhealthy) configureChecks() {
 
 	// add dns resolution checking if enabled
 	if enableDNSStatusChecks {
+		log.Infoln("Enabling dns checker")
 		kuberhealthy.AddCheck(dnsStatus.New(dnsEndpoints))
 	}
 
 	// check external check configurations
 	if enableExternalChecks {
+		log.Infoln("Enabling external checks")
 		err := kuberhealthy.addExternalChecks()
 		if err != nil {
 			log.Errorln("Error loading external checks:", err)

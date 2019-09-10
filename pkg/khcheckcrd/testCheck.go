@@ -13,6 +13,6 @@ func CreateTestCheck(kubeConfigFile string, checkName string) error {
 	check := NewKuberhealthyCheck(checkName, NewCheckConfig())
 
 	// create the check against the kubernetes API
-	_, err = client.Create(&check, resource)
+	_, err = client.Create(&check, resource, defaultNamespace)
 	return err
 }

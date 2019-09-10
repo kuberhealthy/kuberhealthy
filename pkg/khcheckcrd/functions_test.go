@@ -55,7 +55,7 @@ func TestCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 	checkDetails := NewKuberhealthyCheck(testCheckName, NewCheckConfig())
-	result, err := client.Create(&checkDetails, resource)
+	result, err := client.Create(&checkDetails, resource, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = client.List(metav1.ListOptions{}, resource)
+	_, err = client.List(metav1.ListOptions{}, resource, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err := client.Get(metav1.GetOptions{}, resource, testCheckName)
+	result, err := client.Get(metav1.GetOptions{}, resource, defaultNamespace, testCheckName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestUpdate(t *testing.T) {
 	_ = CreateTestCheck(kubeConfigFile, testCheckName)
 
 	// get the custom resource for the check named gotest
-	checkConfig, err := client.Get(metav1.GetOptions{}, resource, testCheckName)
+	checkConfig, err := client.Get(metav1.GetOptions{}, resource, defaultNamespace, testCheckName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,13 +110,13 @@ func TestUpdate(t *testing.T) {
 	t.Logf("%+v", checkConfig)
 
 	// apply the updated version to the server
-	_, err = client.Update(checkConfig, resource, testCheckName)
+	_, err = client.Update(checkConfig, resource, defaultNamespace, testCheckName)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// get the updated version back
-	result, err := client.Get(metav1.GetOptions{}, resource, testCheckName)
+	result, err := client.Get(metav1.GetOptions{}, resource, defaultNamespace, testCheckName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,11 +140,11 @@ func TestDelete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	check, err := client.Get(metav1.GetOptions{}, resource, testCheckName)
+	check, err := client.Get(metav1.GetOptions{}, resource, defaultNamespace, testCheckName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err := client.Delete(resource, check.Name)
+	result, err := client.Delete(resource, check.Name, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
