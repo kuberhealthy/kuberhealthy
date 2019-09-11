@@ -14,11 +14,8 @@ type Report struct {
 // NewReport creates a new error report to be sent to the server.  If
 // errors are left out, then we assume the status report is OK.  If
 // any error is present, we assume the status is DOWN.
-func NewReport(uuid string, checkName string, checkNamespace string, errorMessages []string) Report {
+func NewReport(errorMessages []string) Report {
 	return Report{
-		UUID:           uuid,
 		Errors:         errorMessages,
-		CheckName:      checkName,
-		CheckNamespace: checkNamespace,
 	}
 }

@@ -20,26 +20,8 @@ import (
 // instance of Kuberhealthy to time out and show an error.
 func ReportSuccess() error {
 
-	// fetch the UUID from the environment
-	uuid, err := getUUID()
-	if err != nil {
-		return err
-	}
-
-	// fetch the name of the checker pod
-	checkName, err := getCheckName()
-	if err != nil {
-		return err
-	}
-
-	// fetch the namespace of the checker pod
-	checkNamespace, err := getCheckNamespace()
-	if err != nil {
-		return err
-	}
-
 	// make a new report without errors
-	newReport := status.NewReport(uuid, checkName, checkNamespace,  []string{})
+	newReport := status.NewReport([]string{})
 
 	// send the payload
 	return sendReport(newReport)
@@ -52,26 +34,8 @@ func ReportSuccess() error {
 // failure to report-in and raise an error upstream.
 func ReportFailure(errorMessages []string) error {
 
-	// fetch the UUID from the environment
-	uuid, err := getUUID()
-	if err != nil {
-		return err
-	}
-
-	// fetch the name of the checker pod
-	checkName, err := getCheckName()
-	if err != nil {
-		return err
-	}
-
-	// fetch the namespace of the checker pod
-	checkNamespace, err := getCheckNamespace()
-	if err != nil {
-		return err
-	}
-
 	// make a new report without errors
-	newReport := status.NewReport(uuid, checkName, checkNamespace, errorMessages)
+	newReport := status.NewReport(errorMessages)
 
 	// send it
 	return sendReport(newReport)
@@ -114,45 +78,3 @@ func getKuberhealthyURL() (string, error) {
 	return reportingURL, nil
 }
 
-// getUUID gets the UUID as seen in the environment variables
-func getUUID() (string, error) {
-
-	// fetch the UUID that we need to report status with from the environment
-	uuid := os.Getenv(external.KHRunUUID)
-
-	// check the length of the UUID to make sure we pulled one properly
-	if len(uuid) < 1 {
-		return "", fmt.Errorf("fetched %s environment variable but it was blank", external.KHRunUUID)
-	}
-
-	return uuid, nil
-}
-
-// getCheckName fetches the name of the check from the kuberhealthy
-// specified environment variables
-func getCheckName() (string, error) {
-
-	// fetch the check name that we need to report status with from the environment
-	checkName := os.Getenv(external.KHCheckName)
-
-	// check the length of the check name to make sure we pulled one properly
-	if len(checkName) < 1 {
-		return "", fmt.Errorf("fetched %s environment variable but it was blank", external.KHCheckName)
-	}
-
-	return checkName, nil
-}
-
-// getCheckNamespace fetches the namespace of the check
-func getCheckNamespace() (string, error) {
-
-	// fetch the namespace we need from the environment variable
-	checkNamespace := os.Getenv(external.KHCheckNamespace)
-
-	// check the length of the namespace to make sure we pulled one properly
-	if len(checkNamespace) < 1 {
-		return "", fmt.Errorf("fetched %s environment variable but it was blank", external.KHCheckNamespace)
-	}
-
-	return checkNamespace, nil
-}

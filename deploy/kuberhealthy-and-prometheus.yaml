@@ -264,6 +264,8 @@ spec:
             value: "true"
           - name: POD_STATUS_CHECK
             value: "true"
+          - name: KH_EXTERNAL_REPORTING_URL
+            value: "http://kuberhealthy.kuberhealthy.svc.cluster.local/externalCheckStatus"
         readinessProbe:
           failureThreshold: 3
           initialDelaySeconds: 2

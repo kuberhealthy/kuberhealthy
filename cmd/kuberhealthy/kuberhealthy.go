@@ -31,7 +31,6 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
 	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/external"
-	"github.com/Comcast/kuberhealthy/pkg/checks/external/status"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/health"
@@ -479,7 +478,7 @@ func (k *Kuberhealthy) StartWebServer() {
 
 	// Accept status reports coming from external checker pods
 	http.HandleFunc("/externalCheckStatus", func(w http.ResponseWriter, r *http.Request) {
-		err := k.externalCheckStatusHandler(w, r)
+		err := k.externalCheckReportHandler(w, r)
 		if err != nil {
 			log.Errorln(err)
 		}
@@ -501,13 +500,23 @@ func (k *Kuberhealthy) StartWebServer() {
 	os.Exit(1)
 }
 
+// PodReportIPInfo holds info about an incoming IP to the external check reporting endpoint
+type PodReportIPInfo struct {
+	Name string
+	UUID string
+	Namespace string
+}
+
 // validateExternalRequest calls the Kubernetes API to fetch details about a pod by it's source IP
 // and then validates that the pod is allowed to report the status of a check.  The pod is expected
 // to have the environment variables KH_CHECK_NAME and KH_RUN_UUID
-func (k *Kuberhealthy) validateExternalRequest(remoteIP string) error {
+func (k *Kuberhealthy) validateExternalRequest(remoteIP string) (PodReportIPInfo, error) {
+
+	reportInfo := PodReportIPInfo{}
+
 	envVars, err := k.fetchPodEnvironmentVariablesByIP(remoteIP)
 	if err != nil {
-		return err
+		return reportInfo, err
 	}
 
 	// validate that the environment variables we expect are in place based on the check's name and UUID
@@ -536,36 +545,41 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIP string) error {
 
 	// verify that we found the UUID
 	if !foundUUID {
-		return errors.New("error finding environment variable on remote pod: " + external.KHRunUUID)
+		return reportInfo, errors.New("error finding environment variable on remote pod: " + external.KHRunUUID)
 	}
 	// verify we found the check name
 	if !foundName {
-		return errors.New("error finding environment variable on remote pod: " + external.KHCheckName)
+		return reportInfo, errors.New("error finding environment variable on remote pod: " + external.KHCheckName)
 	}
 	// verify we found the check namespace
 	if !foundNamespace {
-		return errors.New("error finding environment variable on remote pod: " + external.KHCheckNamespace)
+		return reportInfo, errors.New("error finding environment variable on remote pod: " + external.KHCheckNamespace)
 	}
 
 	// we know that we have a UUID and check name now, so lets check their validity.  First, we sanity check.
 	if len(podUUID) < 1 {
-		return errors.New("pod uuid was invalid or unset")
+		return reportInfo, errors.New("pod uuid was invalid or unset")
 	}
 	if len(podCheckName) < 1 {
-		return errors.New("pod check name was invalid or unset")
+		return reportInfo, errors.New("pod check name was invalid or unset")
 	}
 	if len(podCheckNamespace) < 1 {
-		return errors.New("pod check namespace was invalid or unset")
+		return reportInfo, errors.New("pod check namespace was invalid or unset")
 	}
+
+	// create a report to send back to the function invoker
+	reportInfo.Name = podCheckName
+	reportInfo.Namespace = podNamespace
+	reportInfo.UUID = podUUID
 
 	// next, we check the uuid against the check name to see if this uuid is the expected one.  if it isn't,
 	// we return an error
 	whitelisted, err := k.isUUIDWhitelistedForCheck(podCheckName, podCheckNamespace, podUUID)
 	if !whitelisted {
-		return errors.New("pod was not properly whitelisted for reporting status of check " + podCheckName + " with uuid " + podUUID)
+		return reportInfo, errors.New("pod was not properly whitelisted for reporting status of check " + podCheckName + " with uuid " + podUUID)
 	}
 
-	return nil
+	return reportInfo, nil
 }
 
 // fetchPodEnvironmentVariablesByIP fetches the environment variables for a pod by it's IP address.
@@ -609,66 +623,6 @@ func (k *Kuberhealthy) fetchPodEnvironmentVariablesByIP(remoteIP string) ([]v1.E
 	return envVars, nil
 }
 
-// externalCheckStatusHandler takes status reports from external checkers,
-// validates them to ensure they have the proper UUID expected by the external
-// checker and then parses the response into the current check status.
-func (k *Kuberhealthy) externalCheckStatusHandler(w http.ResponseWriter, r *http.Request) error {
-	log.Println("Getting external check callback from client at",r.RemoteAddr)
-
-	// parse the request struct from the client and fail if we can't
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return fmt.Errorf("error reading json status bytes from client: %w", err)
-	}
-
-	var s status.Report
-	err = json.Unmarshal(b, &s)
-	if err != nil {
-		return fmt.Errorf("error unmarshaling json status report: %w", err)
-	}
-
-	// we have a status report, so now we validate that the check name and
-	// uuid match up as expected.
-	ok, err := k.isUUIDWhitelistedForCheck(s.CheckName, s.CheckNamespace, s.UUID)
-	if err != nil {
-		return fmt.Errorf("failed to validate uuid whitelisting for check %s and uuid %s: %w", s.CheckName, s.UUID, err)
-	}
-	if !ok {
-		return fmt.Errorf("uuid %s is not whitelisted for check %s", s.UUID, s.CheckName)
-	}
-
-	// fetch the namespace of the check to use
-	chk, err := k.getCheck(s.CheckName, s.CheckNamespace)
-	if err != nil {
-		return fmt.Errorf("failed to fetch check with name %s: %w", s.CheckName, err)
-	}
-
-	// fetch the hostname of this pod because we will consider it authoritative
-	// of the last check update
-	hostname, err := getEnvVar("POD_NAME")
-	if err != nil {
-		return err
-	}
-
-	// create a details object from our incoming status report before storing it
-	details := health.NewCheckDetails()
-	details.Errors = s.Errors
-	if len(s.Errors) == 0 {
-		details.OK = true
-	}
-	details.LastRun = time.Now()
-	details.Namespace = chk.CheckNamespace()
-	details.AuthoritativePod = hostname
-
-	// since the check is validated, we can proceed to update the status now
-	err = k.storeCheckState(s.CheckName, s.CheckNamespace, details)
-	if err != nil {
-		return fmt.Errorf("failed to store check state for %s: %w", s.CheckName, err)
-	}
-
-	return nil
-}
-
 // externalCheckReportHandler handles requests coming from external checkers reporting their status.
 // This endpoint checks that the external check report is coming from the correct UUID before recording
 // the reported status of the corresponding external check.  This endpoint expects a JSON payload of
@@ -679,7 +633,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	log.Infoln("Client connected to check report handler from", r.RemoteAddr, r.UserAgent())
 
 	// validate the calling pod to ensure that it has a proper KH_CHECK_NAME and KH_RUN_UUID
-	err := k.validateExternalRequest(r.RemoteAddr)
+	ipReport, err := k.validateExternalRequest(r.RemoteAddr)
 
 	// ensure the client is sending a valid payload in the request body
 	b, err := ioutil.ReadAll(r.Body)
@@ -698,12 +652,34 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		return nil
 	}
 
-	// write summarized health check results back to caller
-	err = state.WriteHTTPStatusResponse(w)
+	// fetch the hostname of this pod because we will consider it authoritative
+	// of the last check update
+	hostname, err := getEnvVar("POD_NAME")
 	if err != nil {
-		log.Warningln("Error writing report handler results to caller:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return fmt.Errorf("failed to fetch my hostname: %w", err)
 	}
-	return err
+
+	// create a details object from our incoming status report before storing it
+	details := health.NewCheckDetails()
+	details.Errors = state.Errors
+	if len(state.Errors) == 0 {
+		details.OK = true
+	}
+	details.LastRun = time.Now()
+	details.Namespace = ipReport.Namespace
+	details.AuthoritativePod = hostname
+
+	// since the check is validated, we can proceed to update the status now
+	err = k.storeCheckState(ipReport.Name, ipReport.Namespace, details)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return fmt.Errorf("failed to store check state for %s: %w", ipReport.Name, err)
+	}
+
+	// write ok back to caller
+	w.WriteHeader(http.StatusOK)
+	return nil
 }
 
 // writeHealthCheckError writes an error to the client when things go wrong in a health check handling
