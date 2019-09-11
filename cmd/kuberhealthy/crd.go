@@ -65,9 +65,7 @@ func sanitizeResourceName(c string) string {
 
 	// the name we pass to the CRD must be lowercase
 	nameLower := strings.ToLower(c)
-	name := strings.Replace(nameLower, " ", "-", -1)
-
-	return name
+	return strings.Replace(nameLower, " ", "-", -1)
 }
 
 // ensureStateResourceExists checks for the existence of the specified resource and creates it if it does not exist
