@@ -216,8 +216,8 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 		for _, i := range l.Items {
 			log.Debugln("Scanning khcheck CRD", i.Name, "for changes since last seen...")
 
-			mapName := i.Namespace + i.Name
-			if len(mapName) == 0 {
+			mapName := i.Namespace + "/" + i.Name
+			if len(mapName) == 1 {
 				log.Warning("Got khcheck update from object with no namespace or name...")
 				continue
 			}
@@ -238,7 +238,7 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 			}
 
 			// check if CheckConfig has changed (PodSpec)
-			if !foundChange && !reflect.DeepEqual(knownSettings[mapName],i.Spec) {
+			if !foundChange && !reflect.DeepEqual(knownSettings[mapName].PodSpec,i.Spec.PodSpec) {
 				log.Debugln("The khstates CheckConfig for",mapName,"has changed.")
 				foundChange = true
 			}

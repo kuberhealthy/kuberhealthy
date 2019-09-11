@@ -324,7 +324,7 @@ func (ext *Checker) RunOnce() error {
 		return errors.New(errorMessage)
 	case err = <-ext.waitForPodExit(ext.ctx):
 		if err != nil {
-			ext.log("External check pod had an error:", err)
+			ext.log("External check pod had an error:", err.Error())
 		}
 		ext.log("External check pod is done running:", ext.PodName)
 	}
@@ -607,7 +607,7 @@ func (ext *Checker) waitForShutdown(ctx context.Context) error {
 	// repeatedly fetch the pod until its gone or the context
 	// is canceled
 	for {
-		time.Sleep(time.Second / 2)
+		time.Sleep(time.Second)
 		exists, err := ext.podExists()
 		if err != nil {
 			return err
