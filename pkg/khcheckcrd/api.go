@@ -14,7 +14,6 @@
 package khcheckcrd
 
 import (
-	"log"
 	"os"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -33,7 +32,6 @@ const defaultNamespace = "kuberhealthy"
 
 func init(){
 	if namespace == "" {
-		log.Println("Failed to fetch POD_NAMESPACE environment variable.  Defaulting to:", defaultNamespace)
 		namespace = defaultNamespace
 	}
 }

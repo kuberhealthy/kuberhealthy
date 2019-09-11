@@ -13,7 +13,6 @@ package khstatecrd // import "github.com/Comcast/kuberhealthy/pkg/khstatecrd"
 
 import (
 	"log"
-	"os"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -22,21 +21,14 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var namespace = os.Getenv("POD_NAMESPACE")
 const defaultNamespace  = "kuberhealthy"
 
 const resource = "khstates"
 const group = "comcast.github.io"
 const version = "v1"
 
-func init(){
-	if namespace == "" {
-		log.Println("Failed to fetch POD_NAMESPACE environment variable.  Defaulting to:", defaultNamespace)
-	}
-}
-
 // Client creates a rest client to use for interacting with CRDs
-func Client(GroupName string, GroupVersion string, kubeConfig string) (*KuberhealthyStateClient, error) {
+func Client(GroupName string, GroupVersion string, kubeConfig string, namespace string) (*KuberhealthyStateClient, error) {
 
 	var c *rest.Config
 	var err error

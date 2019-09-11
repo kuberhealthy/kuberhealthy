@@ -20,9 +20,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Comcast/kuberhealthy/pkg/checks/external"
+	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 )
 
 // status represents the current Kuberhealthy OK:Error state
@@ -52,6 +54,10 @@ var enablePodRestartChecks = determineCheckStateFromEnvVar("POD_RESTARTS_CHECK")
 var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
 var enableDNSStatusChecks = determineCheckStateFromEnvVar("DNS_STATUS_CHECK")
 var enableExternalChecks = true
+
+// external check configs
+const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"
+var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
 
 // InfluxDB connection configuration
 var enableInflux = false
@@ -108,6 +114,12 @@ func init() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(parsedLogLevel)
 	log.Infoln("Startup Arguments:", os.Args)
+
+	// parse external check URL configuration
+	if len(externalCheckReportingURL) == 0 {
+		externalCheckReportingURL = external.DefaultKuberhealthyReportingURL
+	}
+	log.Infoln("External check reporting URL set to:", externalCheckReportingURL)
 
 	// handle debug logging
 	debugEnv := os.Getenv("DEBUG")
