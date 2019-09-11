@@ -528,6 +528,8 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIP string) (PodReportIPInfo
 		return reportInfo, err
 	}
 
+	log.Debugln("Env vars found on pod with IP", remoteIP, envVars)
+
 	// validate that the environment variables we expect are in place based on the check's name and UUID
 	// compared to what is in the khcheck custom resource
 	var foundUUID bool
@@ -539,14 +541,17 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIP string) (PodReportIPInfo
 
 	for _, e := range envVars {
 		if e.Name == external.KHRunUUID {
-			foundName = true
+			log.Debugln("Found on calling pod", remoteIP, "values:", podCheckName, e.Value)
+			foundUUID = true
 			podCheckName = e.Value
 		}
 		if e.Name == external.KHCheckName {
+			log.Debugln("Found values on calling pod", remoteIP, "values:", podUUID, e.Value)
 			foundName = true
 			podUUID = e.Value
 		}
 		if e.Name == external.KHCheckNamespace {
+			log.Debugln("Found values on calling pod", remoteIP, "values:", podCheckNamespace, e.Value)
 			foundNamespace = true
 			podCheckNamespace = e.Value
 		}
@@ -643,6 +648,11 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 
 	// validate the calling pod to ensure that it has a proper KH_CHECK_NAME and KH_RUN_UUID
 	ipReport, err := k.validateExternalRequest(r.RemoteAddr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Errorln("Failed to look up pod by IP:", r.RemoteAddr, err)
+		return nil
+	}
 
 	// ensure the client is sending a valid payload in the request body
 	b, err := ioutil.ReadAll(r.Body)
@@ -669,7 +679,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		return fmt.Errorf("failed to fetch my hostname: %w", err)
 	}
 
-	// create a details object from our incoming status report before storing it
+	// create a details object from our incoming status report before storing it as a khstate custom resource
 	details := health.NewCheckDetails()
 	details.Errors = state.Errors
 	if len(state.Errors) == 0 {

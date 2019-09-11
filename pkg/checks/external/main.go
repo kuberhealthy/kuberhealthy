@@ -87,6 +87,7 @@ type Checker struct {
 	Debug                    bool               // indicates we should run in debug mode - run once and stop
 	cancelFunc               context.CancelFunc // used to cancel things in-flight
 	ctx                      context.Context    // a context used for tracking check runs
+	podSpecAnalyzed bool	 // indicates if the PodSpec has been analyzed yet
 }
 
 // New creates a new external checker
@@ -268,10 +269,13 @@ func (ext *Checker) RunOnce() error {
 	}
 
 	// condition the spec with the required labels and environment variables
-	ext.log("Configuring spec of external check")
-	err = ext.configureUserPodSpec()
-	if err != nil {
-		return errors.New("failed to configure pod spec for Kubernetes from user specified pod spec: " + err.Error())
+	if !ext.podSpecAnalyzed {
+		ext.log("Configuring spec of external check")
+		err = ext.configureUserPodSpec()
+		if err != nil {
+			return errors.New("failed to configure pod spec for Kubernetes from user specified pod spec: " + err.Error())
+		}
+		ext.podSpecAnalyzed = true
 	}
 
 	// sanity check our settings
@@ -309,8 +313,9 @@ func (ext *Checker) RunOnce() error {
 		ext.log("External check pod is running:", ext.PodName)
 	}
 
-	// flag the pod as running
+	// flag the pod as running until this run ends
 	ext.setPodDeployed(true)
+	defer ext.setPodDeployed(false)
 
 	// the pod has started! Wait for the pod to exit and abort if it takes too long
 	select {
@@ -328,6 +333,8 @@ func (ext *Checker) RunOnce() error {
 		}
 		ext.log("External check pod is done running:", ext.PodName)
 	}
+
+	// set the pod as not running now
 
 	return nil
 }
@@ -389,6 +396,8 @@ func (ext *Checker) waitForPodExit(ctx context.Context) chan error {
 		if !ok {
 			continue
 		}
+
+		log.Debugln("Got event while watching for pod to stop:", e)
 
 		// make sure the pod coming through the event channel has the right check uuid label
 		if p.Labels[kuberhealthyRunIDLabel] != ext.currentCheckUUID {
@@ -591,6 +600,9 @@ func (ext *Checker) podExists() (bool, error) {
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 	p, err := podClient.Get(ext.PodName, metav1.GetOptions{})
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return false, nil
+		}
 		return false, err
 	}
 

@@ -44,7 +44,7 @@ func getEnvVar(v string) (string, error) {
 	var err error
 	envVar := os.Getenv(v)
 	if len(envVar) < 1 {
-		err = errors.New("Could not retreive Environment variable, or it had no content. " + v)
+		err = errors.New("Could not retrieve environment variable, or it had no content. " + v)
 		return envVar, err
 	}
 	return envVar, err
