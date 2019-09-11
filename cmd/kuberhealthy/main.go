@@ -110,9 +110,13 @@ func init() {
 	log.Infoln("Startup Arguments:", os.Args)
 
 	// handle debug logging
-	enableDebug, err = strconv.ParseBool(os.Getenv("DEBUG"))
-	log.Warningln("Failed to parse bool for DEBUG setting:",err)
-	log.Infoln("debug logging setting:", enableDebug)
+	debugEnv := os.Getenv("DEBUG")
+	if len(debugEnv) > 0 {
+		enableDebug, err = strconv.ParseBool(debugEnv)
+		if err != nil {
+			log.Warningln("Failed to parse bool for DEBUG setting:",err)
+		}
+	}
 	if enableDebug {
 		log.Infoln("Enabling debug logging")
 		log.SetLevel(log.DebugLevel)

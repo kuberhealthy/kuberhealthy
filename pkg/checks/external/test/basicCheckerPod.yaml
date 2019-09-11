@@ -1,17 +1,18 @@
 apiVersion: "comcast.github.io/v1"
 kind: "KuberhealthyCheck"
 metadata:
-  name: "test-check"
+  name: "kh-test-check"
   namespace: "kuberhealthy"
   labels:
     app: kuberhealthy
   annotations: {}
 spec:
-  runinterval: 1m5s
-  podspec:
+  runInterval: 1m5s
+  uuid: "TESTUUIDHERE"
+  podSpec:
     containers:
       - env:
-          - name: SOME_ENV_VAR
+          - name: "SOME_ENV_VAR"
             value: "12345"
         image: integrii/kh-test-check
         imagePullPolicy: IfNotPresent

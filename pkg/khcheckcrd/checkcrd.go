@@ -53,10 +53,12 @@ func (h KuberhealthyCheck) DeepCopyObject() runtime.Object {
 
 // NewKuberhealthyCheck creates a KuberhealthyCheck struct which represents
 // the data inside a KuberhealthyCheck resource
-func NewKuberhealthyCheck(name string, spec CheckConfig) KuberhealthyCheck {
+func NewKuberhealthyCheck(name string, namespace string, spec CheckConfig) KuberhealthyCheck {
 	check := KuberhealthyCheck{}
 	check.Name = name
 	check.ObjectMeta.Name = name
 	check.Spec = spec
+	check.Namespace = namespace
+	check.ObjectMeta.Namespace = namespace
 	return check
 }

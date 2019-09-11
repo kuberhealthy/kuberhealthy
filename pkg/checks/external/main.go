@@ -198,7 +198,13 @@ func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck, error) {
 	}
 
 	// get the item in question and return it along with any errors
-	return checkClient.Get(metav1.GetOptions{}, checkCRDResource, ext.Namespace, ext.Name())
+	log.Debugln("Fetching check", ext.CheckName, "in namespace", ext.Namespace)
+	checkConfig, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, ext.Namespace, ext.CheckName)
+	if err != nil {
+		return &defaultCheck, err
+	}
+
+	return checkConfig, err
 }
 
 // NewCheckClient creates a new client for khcheckcrd resources
@@ -207,7 +213,7 @@ func (ext *Checker) NewCheckClient() (*khcheckcrd.KuberhealthyCheckClient, error
 	return khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
 }
 
-// setUUID sets the current whitelisted UUID for the checker
+// setUUID sets the current whitelisted UUID for the checker and updates it on the server
 func (ext *Checker) setUUID(uuid string) error {
 
 	checkConfig, err := ext.getCheck()
@@ -528,7 +534,6 @@ func (ext *Checker) configureUserPodSpec() error {
 		},
 		{
 			Name:  KHCheckNamespace,
-			Value: ext.currentCheckUUID,
 			ValueFrom: &apiv1.EnvVarSource{
 				FieldRef: &apiv1.ObjectFieldSelector{
 					FieldPath:  "metadata.namespace",
@@ -544,6 +549,9 @@ func (ext *Checker) configureUserPodSpec() error {
 
 	// enforce restart policy of never
 	ext.PodSpec.RestartPolicy = apiv1.RestartPolicyNever
+
+	// enforce namespace as namespace of this checker
+	ext.Namespace = ext.CheckNamespace()
 
 	return nil
 }

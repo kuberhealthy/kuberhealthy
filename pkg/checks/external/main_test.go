@@ -86,7 +86,7 @@ func TestShutdown(t *testing.T) {
 	}
 
 	// make a new default checker of this check
-	checker, err := newTestCheck(client)
+	checker, err := newTestChecker(client)
 	if err != nil {
 		t.Log("Failed to create client:", err)
 	}
@@ -103,7 +103,7 @@ func TestShutdown(t *testing.T) {
 
 	// give the check a few seconds to start
 	t.Log("Waiting for check to get started...")
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 20)
 
 	// tell the checker to shut down in the background
 	t.Log("Sending shutdown to check")
