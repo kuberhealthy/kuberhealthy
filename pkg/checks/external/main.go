@@ -322,7 +322,10 @@ func (ext *Checker) RunOnce() error {
 			errorMessage = errorMessage + " but an error occurred when deleting the pod:" + err.Error()
 		}
 		return errors.New(errorMessage)
-	case <-ext.waitForPodExit(ext.ctx):
+	case err = <-ext.waitForPodExit(ext.ctx):
+		if err != nil {
+			ext.log("External check pod had an error:", err)
+		}
 		ext.log("External check pod is done running:", ext.PodName)
 	}
 
@@ -421,7 +424,7 @@ func (ext *Checker) waitForPodRunning() chan error {
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 	watcher, err := podClient.Watch(metav1.ListOptions{
-		LabelSelector: "kuberhealthy-run-id=" + ext.currentCheckUUID,
+		LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
 	})
 
 	// return the watch error as a channel if found

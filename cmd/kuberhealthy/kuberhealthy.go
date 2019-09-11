@@ -21,6 +21,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -111,10 +112,23 @@ func (k *Kuberhealthy) StopChecks() {
 	if k.cancelChecksFunc != nil {
 		k.cancelChecksFunc()
 	}
-	// give a little time for checks to shut down...
-	// TODO - replace with shutdown channels?
-	log.Infoln("Waiting one minute for checks to fully stop...")
-	time.Sleep(time.Minute)
+
+	// call a shutdown on all checks concurrently
+	var stopWG sync.WaitGroup
+	for _, c := range k.Checks {
+		stopWG.Add(1)
+		go func() {
+			log.Debugln("Check", c.Name(), "stopping...")
+			err := c.Shutdown()
+			if err != nil {
+				log.Errorln("Error stopping check", c.Name(), err)
+			}
+			stopWG.Done()
+		}()
+	}
+
+	// wait for all checks to stop cleanly
+	stopWG.Wait()
 }
 
 // Start inits Kuberhealthy checks and master monitoring
@@ -377,11 +391,6 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		// break out if check channel is supposed to stop
 		select {
 		case <-ctx.Done():
-			log.Debugln("Check", c.Name(), "stop signal received. Stopping check.")
-			err := c.Shutdown()
-			if err != nil {
-				log.Errorln("Error stopping check", c.Name(), err)
-			}
 			return
 		default:
 		}

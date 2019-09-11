@@ -91,7 +91,7 @@ func ensureStateResourceExists(checkName string, client *khstatecrd.Kuberhealthy
 		}
 	}
 	if state.Spec.Errors != nil {
-		log.Debugln("CRD found:", name)
+		log.Debugln("khstate custom resource found:", name)
 	}
 	return nil
 }
