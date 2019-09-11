@@ -4,8 +4,6 @@ import (
 	"time"
 
 	apiv1 "k8s.io/api/core/v1"
-	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	// typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 // CheckConfig represents a configuration for a kuberhealthy external
@@ -13,16 +11,16 @@ import (
 // the whitelisted UUID that is currently allowed to report-in to
 // the status reporting endpoint.
 type CheckConfig struct {
-	RunInterval string        // the interval at which the check runs
-	PodSpec     apiv1.PodSpec // a spec for the external checker
-	CurrentUUID string        // the UUID that is authorized to report statuses into the kuberhealthy endpoint
+	RunInterval string `json:"runInterval"`       // the interval at which the check runs
+	PodSpec     apiv1.PodSpec `json:"podSpec"` // a spec for the external checker
+	CurrentUUID string `json:"uuid"` // the UUID that is authorized to report statuses into the kuberhealthy endpoint
 }
 
 // NewCheckConfig creates a new check configuration
-func NewCheckConfig() CheckConfig {
+func NewCheckConfig(runInterval time.Duration, podSpec apiv1.PodSpec) CheckConfig {
 	c := CheckConfig{
-		RunInterval: (time.Minute * 10).String(),
-		PodSpec:     apiv1.PodSpec{},
+		RunInterval: runInterval.String(),
+		PodSpec:     podSpec,
 	}
 
 	return c

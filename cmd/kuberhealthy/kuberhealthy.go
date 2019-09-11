@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -111,6 +112,10 @@ func (k *Kuberhealthy) StopChecks() {
 	if k.cancelChecksFunc != nil {
 		k.cancelChecksFunc()
 	}
+	// give a little time for checks to shut down...
+	// TODO - replace with shutdown channels?
+	log.Infoln("Waiting one minute for checks to fully stop...")
+	time.Sleep(time.Minute)
 }
 
 // Start inits Kuberhealthy checks and master monitoring
@@ -168,7 +173,7 @@ func (k *Kuberhealthy) Start() {
 func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 
 	// make a map of resource versions so we know when things change
-	resourceVersions := make(map[string]string)
+	knownSettings := make(map[string]khcheckcrd.CheckConfig)
 
 	// start polling for check changes all the time.
 	// TODO - watch is not implemented on the CRD package yet, but
@@ -193,28 +198,41 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 			continue
 		}
 
-		// iterate on each check CRD resource for changes
+		// check for changes in the incoming data
 		var foundChange bool
 		for _, i := range l.Items {
-			log.Debugln("Scanning check CRD", i.Name, "for changes...")
-			r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, i.Namespace, i.Name)
-			if err != nil {
-				log.Errorln("Error getting check configuration resource:", err)
-				continue
-			}
-			// if this is the first time seeing this resource, we don't notify of a change
-			if len(resourceVersions[r.Namespace+r.Name]) == 0 {
-				resourceVersions[r.Namespace+r.Name] = r.GetResourceVersion()
-				log.Debugln("Initialized change monitoring for check CRD", r.Name, "at resource version", r.GetResourceVersion())
+			log.Debugln("Scanning khcheck CRD", i.Name, "for changes since last seen...")
+
+			mapName := i.Namespace + i.Name
+			if len(mapName) == 0 {
+				log.Warning("Got khcheck update from object with no namespace or name...")
 				continue
 			}
 
-			// if the resource has changed, we notify the notify channel and set the new resource version
-			if resourceVersions[r.Namespace+r.Name] != r.GetResourceVersion() {
-				log.Infoln("Detected a change in external check CRD", r.Name, "to resource version", r.GetResourceVersion())
-				resourceVersions[r.Namespace+r.Name] = r.GetResourceVersion()
+			// if we don't know about this check yet, just store the state and continue.  The check is already
+			// loaded on the first check configuration run.
+			_, exists := knownSettings[mapName]
+			if !exists {
+				log.Debugln("First time seeing khcheck of name", mapName)
+				knownSettings[mapName] = i.Spec
+				continue
+			}
+
+			// check if run interval has changed
+			if knownSettings[mapName].RunInterval != i.Spec.RunInterval {
+				log.Debugln("The khstates run interval for",mapName,"has changed.")
 				foundChange = true
 			}
+
+			// check if CheckConfig has changed (PodSpec)
+			if !foundChange && !reflect.DeepEqual(knownSettings[mapName],i.Spec) {
+				log.Debugln("The khstates CheckConfig for",mapName,"has changed.")
+				foundChange = true
+			}
+
+			// finally, update known settings before continuing
+			knownSettings[mapName] = i.Spec
+
 		}
 
 		// if a change was detected, we signal the notify channel
@@ -229,7 +247,7 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 // Kuberhealthy struct.
 func (k *Kuberhealthy) addExternalChecks() error {
 
-	log.Debugln("Searching for khcheck configurations...")
+	log.Debugln("Fetching khcheck configurations...")
 
 	// make a new crd check client
 	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
@@ -253,7 +271,6 @@ func (k *Kuberhealthy) addExternalChecks() error {
 			return err
 		}
 
-		// print with formatting
 		log.Debugf("External check custom resource loaded: %v",r)
 
 		// create a new kubernetes client for this external checker
@@ -858,9 +875,8 @@ func (k *Kuberhealthy) configureChecks() {
 	}
 
 	// check external check configurations
-	log.Debugln("Enable external checks?")
 	if enableExternalChecks {
-		log.Infoln("Enabling external checks")
+		log.Infoln("Enabling external checks...")
 		err := kuberhealthy.addExternalChecks()
 		if err != nil {
 			log.Errorln("Error loading external checks:", err)

@@ -12,7 +12,7 @@
 package khcheckcrd
 
 import (
-	"fmt"
+	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -34,18 +34,19 @@ func TestClient(t *testing.T) {
 	}
 }
 
-// TestCreateCRDYAML is used to create an example check spec easily.
-func TestCreateCRDYAML(t *testing.T) {
-
-	t.Skip("Only to be used to make yaml example")
-
-	checkDetails := NewKuberhealthyCheck(testCheckName, NewCheckConfig())
-	b, err := yaml.Marshal(checkDetails)
+// loadBasicCheckerPod loads a khcheck example spec from disk for testing
+func loadBasicCheckerPod(filename string) (KuberhealthyCheck, error) {
+	var c KuberhealthyCheck
+	f, err := os.Open(filename)
 	if err != nil {
-		t.Fatal(err)
+		return c, err
 	}
-
-	fmt.Println(string(b))
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		return c, err
+	}
+	err = yaml.Unmarshal(b, &c)
+	return c, err
 }
 
 func TestCreate(t *testing.T) {
@@ -54,7 +55,7 @@ func TestCreate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkDetails := NewKuberhealthyCheck(testCheckName, NewCheckConfig())
+	checkDetails := NewKuberhealthyCheck(testCheckName, defaultNamespace, NewCheckConfig())
 	result, err := client.Create(&checkDetails, resource, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
