@@ -86,7 +86,7 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace s
 	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors)
 
 	// store the check state with the CRD
-	err = k.storeCheckState(checkName, details)
+	err = k.storeCheckState(checkName, checkNamespace, details)
 	if err != nil {
 		log.Errorln("Was unable to write an execution error to the CRD status with error:", err)
 	}
@@ -182,7 +182,7 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 
 		// rate limiting for watch restarts
 		time.Sleep(checkCRDScanInterval)
-		log.Debugln("Scanning for external check CRD changes...")
+		log.Debugln("Scanning for external check changes...")
 
 		// make a new crd check client
 		checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
@@ -280,7 +280,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		}
 
 		log.Infoln("Enabling external check:", r.Name)
-		c := external.New(kc, r)
+		c := external.New(kc, r, externalCheckReportingURL)
 		k.AddCheck(c)
 	}
 
@@ -435,7 +435,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		log.Infoln("Setting state of check", c.Name(), "to", details.OK, details.Errors)
 
 		// store the check state with the CRD
-		err = k.storeCheckState(c.Name(), details)
+		err = k.storeCheckState(c.Name(), c.CheckNamespace(), details)
 		if err != nil {
 			log.Errorln("Error storing CRD state for check:", c.Name(), err)
 		}
@@ -444,10 +444,10 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 }
 
 // storeCheckState stores the check state in its cluster CRD
-func (k *Kuberhealthy) storeCheckState(checkName string, details health.CheckDetails) error {
+func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, details health.CheckDetails) error {
 
 	// make a new crd client
-	client, err := khstatecrd.Client(statusCRDGroup, statusCRDVersion, kubeConfigFile)
+	client, err := khstatecrd.Client(statusCRDGroup, statusCRDVersion, kubeConfigFile, checkNamespace)
 	if err != nil {
 		return err
 	}
@@ -464,7 +464,7 @@ func (k *Kuberhealthy) storeCheckState(checkName string, details health.CheckDet
 		return err
 	}
 
-	log.Debugln("Successfully updated CRD for check:", checkName)
+	log.Debugln("Successfully updated CRD for check:", checkName, "in namespace", checkNamespace)
 	return err
 }
 
@@ -613,6 +613,7 @@ func (k *Kuberhealthy) fetchPodEnvironmentVariablesByIP(remoteIP string) ([]v1.E
 // validates them to ensure they have the proper UUID expected by the external
 // checker and then parses the response into the current check status.
 func (k *Kuberhealthy) externalCheckStatusHandler(w http.ResponseWriter, r *http.Request) error {
+	log.Println("Getting external check callback from client at",r.RemoteAddr)
 
 	// parse the request struct from the client and fail if we can't
 	b, err := ioutil.ReadAll(r.Body)
@@ -660,7 +661,7 @@ func (k *Kuberhealthy) externalCheckStatusHandler(w http.ResponseWriter, r *http
 	details.AuthoritativePod = hostname
 
 	// since the check is validated, we can proceed to update the status now
-	err = k.storeCheckState(s.CheckName, details)
+	err = k.storeCheckState(s.CheckName, s.CheckNamespace, details)
 	if err != nil {
 		return fmt.Errorf("failed to store check state for %s: %w", s.CheckName, err)
 	}
@@ -762,7 +763,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 
 	// create a CRD client to fetch CRD states with
 	log.Debugln("Creating khCheck client...")
-	khClient, err := khstatecrd.Client(statusCRDGroup, statusCRDVersion, kubeConfigFile)
+	khClient, err := khstatecrd.Client(statusCRDGroup, statusCRDVersion, kubeConfigFile, podNamespace)
 	if err != nil {
 		return state, err
 	}

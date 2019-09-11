@@ -104,11 +104,11 @@ func sendReport(s status.Report) error {
 // status report to from the environment variables
 func getKuberhealthyURL() (string, error) {
 
-	reportingURL := os.Getenv(external.KHCheckName)
+	reportingURL := os.Getenv(external.KHReportingURL)
 
 	// check the length of the reporting url to make sure we pulled one properly
 	if len(reportingURL) < 1 {
-		return "", fmt.Errorf("fetched %s environment variable but it was blank", external.KHCheckName)
+		return "", fmt.Errorf("fetched %s environment variable but it was blank", external.KHReportingURL)
 	}
 
 	return reportingURL, nil

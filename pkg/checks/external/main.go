@@ -90,7 +90,7 @@ type Checker struct {
 }
 
 // New creates a new external checker
-func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck) *Checker {
+func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck, reportingURL string) *Checker {
 	if len(checkConfig.Namespace) == 0 {
 		checkConfig.Namespace = "kuberhealthy"
 	}
@@ -110,7 +110,7 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 		Namespace:                checkConfig.Namespace,
 		CheckName:                checkConfig.Name,
 		RunInterval:              runInterval,
-		KuberhealthyReportingURL: DefaultKuberhealthyReportingURL,
+		KuberhealthyReportingURL: reportingURL,
 		maxRunTime:               defaultMaxRunTime,
 		startupTimeout:           defaultMaxStartTime,
 		PodName:                  checkConfig.Name,

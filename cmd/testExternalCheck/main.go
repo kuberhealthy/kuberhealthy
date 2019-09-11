@@ -8,9 +8,12 @@ import (
 )
 
 func main(){
-    time.Sleep(time.Second * 5)
+    log.Println("Waiting 30 seconds before reporting success...")
+    time.Sleep(time.Second * 30)
     err := checkclient.ReportSuccess()
     if err != nil {
-        log.Println("Error reporting success:", err)
+        log.Println("Error reporting success to Kuberhealthy servers:", err)
+        return
     }
+    log.Println("Successfully reported success to Kuberhealthy servers")
 }
