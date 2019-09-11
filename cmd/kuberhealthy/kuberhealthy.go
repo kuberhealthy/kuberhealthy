@@ -519,16 +519,24 @@ type PodReportIPInfo struct {
 // validateExternalRequest calls the Kubernetes API to fetch details about a pod by it's source IP
 // and then validates that the pod is allowed to report the status of a check.  The pod is expected
 // to have the environment variables KH_CHECK_NAME and KH_RUN_UUID
-func (k *Kuberhealthy) validateExternalRequest(remoteIP string) (PodReportIPInfo, error) {
+func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIPInfo, error) {
 
 	reportInfo := PodReportIPInfo{}
 
-	envVars, err := k.fetchPodEnvironmentVariablesByIP(remoteIP)
+	// break the port off the remoteIPPort incoming string
+	ipPortString := strings.Split(remoteIPPort, ":")
+	if len(ipPortString) == 0 {
+		return reportInfo, errors.New("remote ip:port was blank")
+	}
+	ip := ipPortString[0]
+
+	// fetch the pod from the api using its ip
+	envVars, err := k.fetchPodEnvironmentVariablesByIP(ip)
 	if err != nil {
 		return reportInfo, err
 	}
 
-	log.Debugln("Env vars found on pod with IP", remoteIP, envVars)
+	log.Debugln("Env vars found on pod with IP", ip, envVars)
 
 	// validate that the environment variables we expect are in place based on the check's name and UUID
 	// compared to what is in the khcheck custom resource
@@ -541,17 +549,17 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIP string) (PodReportIPInfo
 
 	for _, e := range envVars {
 		if e.Name == external.KHRunUUID {
-			log.Debugln("Found on calling pod", remoteIP, "values:", podCheckName, e.Value)
+			log.Debugln("Found on calling pod", ip, "values:", podCheckName, e.Value)
 			foundUUID = true
 			podCheckName = e.Value
 		}
 		if e.Name == external.KHCheckName {
-			log.Debugln("Found values on calling pod", remoteIP, "values:", podUUID, e.Value)
+			log.Debugln("Found values on calling pod", ip, "values:", podUUID, e.Value)
 			foundName = true
 			podUUID = e.Value
 		}
 		if e.Name == external.KHCheckNamespace {
-			log.Debugln("Found values on calling pod", remoteIP, "values:", podCheckNamespace, e.Value)
+			log.Debugln("Found values on calling pod", ip, "values:", podCheckNamespace, e.Value)
 			foundNamespace = true
 			podCheckNamespace = e.Value
 		}
