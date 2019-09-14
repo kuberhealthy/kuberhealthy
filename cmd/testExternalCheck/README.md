@@ -17,7 +17,7 @@ spec:
     - env:
       - name: SOME_ENV_VAR
         value: "12345"
-      image: testexternalcheck:latest
+      image: quay.io/comcast/testexternalcheck:latest
       imagePullPolicy: IfNotPresent
       name: main
       resources:
