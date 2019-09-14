@@ -521,6 +521,10 @@ type PodReportIPInfo struct {
 // to have the environment variables KH_CHECK_NAME and KH_RUN_UUID
 func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIPInfo, error) {
 
+	var podUUID string
+	var podCheckName string
+	var podCheckNamespace string
+
 	reportInfo := PodReportIPInfo{}
 
 	// break the port off the remoteIPPort incoming string
@@ -531,9 +535,21 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	ip := ipPortString[0]
 
 	// fetch the pod from the api using its ip
-	envVars, err := k.fetchPodEnvironmentVariablesByIP(ip)
+	pod, err := k.fetchPodByIP(ip)
 	if err != nil {
 		return reportInfo, err
+	}
+
+	// set the pod namespace and name from the returned metadata
+	podCheckName = pod.GetName()
+	podCheckNamespace = pod.GetNamespace()
+	log.Debugln("Found pod name", podCheckName, "in namespace", podCheckNamespace)
+
+	// pile up all the env vars for searching
+	var envVars []v1.EnvVar
+	// we found our pod, lets return all its env vars from all its containers
+	for _, container := range pod.Spec.Containers {
+		envVars = append(envVars, container.Env...)
 	}
 
 	log.Debugln("Env vars found on pod with IP", ip, envVars)
@@ -541,27 +557,12 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	// validate that the environment variables we expect are in place based on the check's name and UUID
 	// compared to what is in the khcheck custom resource
 	var foundUUID bool
-	var podUUID string
-	var foundName bool
-	var podCheckName string
-	var foundNamespace bool
-	var podCheckNamespace string
-
 	for _, e := range envVars {
+		log.Debugln("Checking environment variable on calling pod:", e.Name, e.Value)
 		if e.Name == external.KHRunUUID {
-			log.Debugln("Found on calling pod", ip, "values:", podCheckName, e.Value)
-			foundUUID = true
-			podCheckName = e.Value
-		}
-		if e.Name == external.KHCheckName {
-			log.Debugln("Found values on calling pod", ip, "values:", podUUID, e.Value)
-			foundName = true
+			log.Debugln("Found value on calling pod", ip, "value:", external.KHRunUUID, e.Value)
 			podUUID = e.Value
-		}
-		if e.Name == external.KHCheckNamespace {
-			log.Debugln("Found values on calling pod", ip, "values:", podCheckNamespace, e.Value)
-			foundNamespace = true
-			podCheckNamespace = e.Value
+			foundUUID = true
 		}
 	}
 
@@ -569,80 +570,74 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	if !foundUUID {
 		return reportInfo, errors.New("error finding environment variable on remote pod: " + external.KHRunUUID)
 	}
-	// verify we found the check name
-	if !foundName {
-		return reportInfo, errors.New("error finding environment variable on remote pod: " + external.KHCheckName)
-	}
-	// verify we found the check namespace
-	if !foundNamespace {
-		return reportInfo, errors.New("error finding environment variable on remote pod: " + external.KHCheckNamespace)
-	}
 
 	// we know that we have a UUID and check name now, so lets check their validity.  First, we sanity check.
-	if len(podUUID) < 1 {
-		return reportInfo, errors.New("pod uuid was invalid or unset")
-	}
 	if len(podCheckName) < 1 {
 		return reportInfo, errors.New("pod check name was invalid or unset")
 	}
 	if len(podCheckNamespace) < 1 {
 		return reportInfo, errors.New("pod check namespace was invalid or unset")
 	}
+	if len(podUUID) < 1 {
+		return reportInfo, errors.New("pod uuid was invalid or unset")
+	}
 
 	// create a report to send back to the function invoker
 	reportInfo.Name = podCheckName
-	reportInfo.Namespace = podNamespace
+	reportInfo.Namespace = podCheckNamespace
 	reportInfo.UUID = podUUID
 
 	// next, we check the uuid against the check name to see if this uuid is the expected one.  if it isn't,
 	// we return an error
 	whitelisted, err := k.isUUIDWhitelistedForCheck(podCheckName, podCheckNamespace, podUUID)
 	if !whitelisted {
-		return reportInfo, errors.New("pod was not properly whitelisted for reporting status of check " + podCheckName + " with uuid " + podUUID)
+		return reportInfo, errors.New("pod was not properly whitelisted for reporting status of check " + podCheckName + " with uuid " + podUUID + " and namespace " + podCheckNamespace)
 	}
 
 	return reportInfo, nil
 }
 
-// fetchPodEnvironmentVariablesByIP fetches the environment variables for a pod by it's IP address.
-func (k *Kuberhealthy) fetchPodEnvironmentVariablesByIP(remoteIP string) ([]v1.EnvVar, error) {
-	var envVars []v1.EnvVar
+// fetchPodByIP fetches the pod by it's IP address.
+func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
+	var pod v1.Pod
 
 	c, err := k.KubeClient()
 	if err != nil {
-		return envVars, errors.New("failed to create new kube client when finding pod environment variables:" + err.Error())
+		return pod, errors.New("failed to create new kube client when finding pod environment variables:" + err.Error())
 	}
 
-	// fetch the pod by its IP address
+	// find the pod by its IP address
 	podClient := c.CoreV1().Pods("")
 	listOptions := metav1.ListOptions{
 		FieldSelector: "status.podIP==" + remoteIP,
 	}
 	podList, err := podClient.List(listOptions)
 	if err != nil {
-		return envVars, errors.New("failed to fetch pod with remote ip " + remoteIP + " with error: " + err.Error())
+		return pod, errors.New("failed to fetch pod with remote ip " + remoteIP + " with error: " + err.Error())
 	}
+
+	// log the fetched pod DEBUG
+	// b, err := json.MarshalIndent(podList,"","\t")
+	// if err != nil {
+	// 	log.Panic(string(b))
+	// }
+	// log.Debugln(string(b))
 
 	// ensure that we only got back one pod, because two means something awful has happened and 0 means we
 	// didnt find one
 	if len(podList.Items) == 0 {
-		return envVars, errors.New("failed to fetch pod with remote ip " + remoteIP)
+		return pod, errors.New("failed to fetch pod with remote ip " + remoteIP)
 	}
 	if len(podList.Items) > 1 {
-		return envVars, errors.New("failed to fetch pod with remote ip " + remoteIP + " - found two or more with same ip")
+		return pod, errors.New("failed to fetch pod with remote ip " + remoteIP + " - found two or more with same ip")
 	}
 
 	// check if the pod has containers
 	if len(podList.Items[0].Spec.Containers) == 0 {
-		return envVars, errors.New("failed to fetch environment variables from pod with remote ip " + remoteIP + " - pod had no containers")
+		return pod, errors.New("failed to fetch environment variables from pod with remote ip " + remoteIP + " - pod had no containers")
 	}
 
-	// we found our pod, lets return all its env vars from all its containers
-	for _, container := range podList.Items[0].Spec.Containers {
-		envVars = append(envVars, container.Env...)
-	}
-
-	return envVars, nil
+	return podList.Items[0], nil
 }
 
 // externalCheckReportHandler handles requests coming from external checkers reporting their status.
@@ -905,6 +900,7 @@ func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, checkNamespac
 		return false, err
 	}
 
+	log.Debugln("Validating current UUID", checkConfig.Spec.CurrentUUID,"vs incoming UUID:", uuid)
 	if checkConfig.Spec.CurrentUUID == uuid {
 		return true, nil
 	}
