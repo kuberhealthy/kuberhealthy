@@ -22,15 +22,8 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
 )
 
-// KHCheckNamespace is the environment var that will hold the namespace of the checker pod.
-const KHCheckNamespace = "KH_CHECK_NAMESPACE"
-
 // KHReportingURL is the environment variable used to tell external checks where to send their status updates
 const KHReportingURL = "KH_REPORTING_URL"
-
-// KHCheckName is the environment variable used to tell external checks their check's name when sending in
-// their status update to the kuberhealthy server.
-const KHCheckName = "KH_CHECK_NAME"
 
 // KHRunUUID is the environment variable used to tell external checks their check's UUID so that they
 // can be de-duplicated on the server side.
@@ -77,7 +70,8 @@ type Checker struct {
 	maxRunTime               time.Duration // time check must run completely within after switching to 'Running'
 	startupTimeout           time.Duration // the time an external checker pod has to become 'Running' after starting
 	KubeClient               *kubernetes.Clientset
-	PodSpec                  *apiv1.PodSpec // the user-provided spec of the pod
+	PodSpec                  apiv1.PodSpec // the current pod spec we are using after enforcement of settings
+	OriginalPodSpec          apiv1.PodSpec // the user-provided spec of the pod
 	PodDeployed              bool           // indicates the pod exists in the API
 	PodDeployedMu            sync.Mutex
 	PodName                  string             // the name of the deployed pod
@@ -87,7 +81,6 @@ type Checker struct {
 	Debug                    bool               // indicates we should run in debug mode - run once and stop
 	cancelFunc               context.CancelFunc // used to cancel things in-flight
 	ctx                      context.Context    // a context used for tracking check runs
-	podSpecAnalyzed bool	 // indicates if the PodSpec has been analyzed yet
 }
 
 // New creates a new external checker
@@ -115,7 +108,8 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 		maxRunTime:               defaultMaxRunTime,
 		startupTimeout:           defaultMaxStartTime,
 		PodName:                  checkConfig.Name,
-		PodSpec:                  &checkConfig.Spec.PodSpec,
+		OriginalPodSpec:          checkConfig.Spec.PodSpec,
+		PodSpec:                  checkConfig.Spec.PodSpec,
 		KubeClient:               client,
 	}
 }
@@ -217,6 +211,7 @@ func (ext *Checker) NewCheckClient() (*khcheckcrd.KuberhealthyCheckClient, error
 // setUUID sets the current whitelisted UUID for the checker and updates it on the server
 func (ext *Checker) setUUID(uuid string) error {
 
+	log.Debugln("Set expected UUID to:", uuid)
 	checkConfig, err := ext.getCheck()
 	if err != nil {
 		if !strings.Contains(err.Error(), "could not find the requested resource") {
@@ -227,7 +222,6 @@ func (ext *Checker) setUUID(uuid string) error {
 	// update the check config and write it back to the struct
 	checkConfig.Spec.CurrentUUID = uuid
 	checkConfig.ObjectMeta.Namespace = ext.Namespace
-	log.Infoln(checkConfig)
 
 	// make a new crd check client
 	checkClient, err := ext.NewCheckClient()
@@ -247,19 +241,12 @@ func (ext *Checker) RunOnce() error {
 	// create a context for this run
 	ext.ctx, ext.cancelFunc = context.WithCancel(context.Background())
 
-	// generate a new UUID for this run:
-	err := ext.createCheckUUID()
+	// generate a new UUID for this run
+	err := ext.setNewCheckUUID()
 	if err != nil {
 		return err
 	}
 	log.Debugln("UUID for external check", ext.Name(), "run:", ext.currentCheckUUID)
-
-	// set whitelist in check configuration CRD so only this
-	// currently running pod can report-in with a status update
-	err = ext.setUUID(ext.currentCheckUUID)
-	if err != nil {
-		return err
-	}
 
 	// validate the pod spec
 	ext.log("Validating pod spec of external check")
@@ -269,13 +256,10 @@ func (ext *Checker) RunOnce() error {
 	}
 
 	// condition the spec with the required labels and environment variables
-	if !ext.podSpecAnalyzed {
-		ext.log("Configuring spec of external check")
-		err = ext.configureUserPodSpec()
-		if err != nil {
-			return errors.New("failed to configure pod spec for Kubernetes from user specified pod spec: " + err.Error())
-		}
-		ext.podSpecAnalyzed = true
+	ext.log("Configuring spec of external check")
+	err = ext.configureUserPodSpec()
+	if err != nil {
+		return errors.New("failed to configure pod spec for Kubernetes from user specified pod spec: " + err.Error())
 	}
 
 	// sanity check our settings
@@ -397,7 +381,7 @@ func (ext *Checker) waitForPodExit(ctx context.Context) chan error {
 			continue
 		}
 
-		log.Debugln("Got event while watching for pod to stop:", e)
+		// log.Debugln("Got event while watching for pod to stop:", e)
 
 		// make sure the pod coming through the event channel has the right check uuid label
 		if p.Labels[kuberhealthyRunIDLabel] != ext.currentCheckUUID {
@@ -445,7 +429,7 @@ func (ext *Checker) waitForPodRunning() chan error {
 	// watch events and return when the pod is in state running
 	for e := range watcher.ResultChan() {
 
-		log.Debugln("Got event while watching for pod to start running:", e)
+		// log.Debugln("Got event while watching for pod to start running:", e)
 
 		// try to cast the incoming object to a pod and skip the event if we cant
 		p, ok := e.Object.(*apiv1.Pod)
@@ -482,10 +466,6 @@ func (ext *Checker) waitForPodRunning() chan error {
 // has all the default configuration required
 func (ext *Checker) validatePodSpec() error {
 
-	// if the pod spec is unspecified, we return an error
-	if ext.PodSpec == nil {
-		return errors.New("unable to determine pod spec for checker  Pod spec was nil")
-	}
 
 	// if containers are not set, then we return an error
 	if len(ext.PodSpec.Containers) == 0 && len(ext.PodSpec.InitContainers) == 0 {
@@ -513,7 +493,7 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	p.Namespace = ext.Namespace
 	p.Name = ext.PodName
 	ext.log("Creating external checker pod named", p.Name)
-	p.Spec = *ext.PodSpec
+	p.Spec = ext.PodSpec
 	ext.addKuberhealthyLabels(p)
 	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
 }
@@ -524,9 +504,8 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 // overwrite user-specified values.
 func (ext *Checker) configureUserPodSpec() error {
 
-	// set overrides like env var for pod name and env var for where to send responses to
-	// Set environment variable for run UUID
-	// wrap pod spec in job spec
+	// start with a fresh spec each time we regenerate the spec
+	ext.PodSpec = ext.OriginalPodSpec
 
 	// specify environment variables that need applied.  We apply environment
 	// variables that set the report-in URL of kuberhealthy along with
@@ -537,20 +516,8 @@ func (ext *Checker) configureUserPodSpec() error {
 			Value: ext.KuberhealthyReportingURL,
 		},
 		{
-			Name:  KHCheckName,
-			Value: ext.Name(),
-		},
-		{
 			Name:  KHRunUUID,
 			Value: ext.currentCheckUUID,
-		},
-		{
-			Name:  KHCheckNamespace,
-			ValueFrom: &apiv1.EnvVarSource{
-				FieldRef: &apiv1.ObjectFieldSelector{
-					FieldPath:  "metadata.namespace",
-				},
-			},
 		},
 	}
 
@@ -586,10 +553,14 @@ func (ext *Checker) addKuberhealthyLabels(pod *apiv1.Pod) {
 }
 
 // createCheckUUID creates a UUID that represents a single run of the external check
-func (ext *Checker) createCheckUUID() error {
+func (ext *Checker) setNewCheckUUID() error {
 	uniqueID := uuid.New()
 	ext.currentCheckUUID = uniqueID.String()
-	return nil
+	log.Debugln("Generated new UUID for external check:", ext.currentCheckUUID)
+
+	// set whitelist in check configuration CRD so only this
+	// currently running pod can report-in with a status update
+	return ext.setUUID(ext.currentCheckUUID)
 }
 
 // podExists fetches the pod for the checker from the api server
