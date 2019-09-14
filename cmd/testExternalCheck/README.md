@@ -1,4 +1,32 @@
-#### testExternalCheck
+### testExternalCheck
+
+##### 2.0.0 alpha setup
+
+The version 2.0.0 alpha for Kubernetes image is: `quay.io/comcast/kuberhealthy:2.0.0alpha`.  
+
+You will need to run this image of kuberhealthy in your cluster before external checks are available to you.
+
+You will also need to define the following CRD for Kuberhealthy 2 to use.
+
+```
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: khchecks.comcast.github.io
+spec:
+  group: comcast.github.io
+  version: v1
+  scope: Namespaced
+  names:
+    plural: khchecks
+    singular: khcheck
+    kind: KuberhealthyCheck
+    shortNames:
+      - khc
+```
+
+
+##### Example Check
 
 An example checker pod for testing the external check functionality.  Waits a few seconds and reports success every time.  Logs any Kuberhealthy API communication failures.
 
@@ -18,7 +46,6 @@ spec:
       - name: SOME_ENV_VAR
         value: "12345"
       image: quay.io/comcast/testexternalcheck:latest
-      imagePullPolicy: IfNotPresent
       name: main
       resources:
         requests:
@@ -28,21 +55,5 @@ spec:
 
 Apply this check in your cluster (normally for testing) by running `kubectl apply -f khcheck.yaml`.
 
-This of course requires the new `khcheck` CRD to be configured.  The yaml for that looks like this:
+**Pro tip: by setting the `imagePullPolicy` to `Never` on your check's spec or on the kuberhealthy deoplyment in your test environment, the Docker Kubernetes cluster will pull the image from your local docker host instead of the web.  This enables rapid development when doing local builds.**
 
-```
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: khchecks.comcast.github.io
-spec:
-  group: comcast.github.io
-  version: v1
-  scope: Namespaced
-  names:
-    plural: khchecks
-    singular: khcheck
-    kind: KuberhealthyCheck
-    shortNames:
-      - khc
-```
