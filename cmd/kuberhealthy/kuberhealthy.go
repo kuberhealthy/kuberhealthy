@@ -737,8 +737,8 @@ func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.R
 	return err
 }
 
-// healthCheckHandler runs health checks against kubernetes and
-// returns a status output to a web request client
+// healthCheckHandler returns the current status of checks loaded into Kuberhealthy
+// as JSON to the client.
 func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
 	state, err := k.getCurrentState()
@@ -754,7 +754,8 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 	return err
 }
 
-// getCurrentState fetches the current state of all checks from their CRD objects and returns the summary as a health.State. Failures to fetch CRD state return an error.
+// getCurrentState fetches the current state of all checks from their CRD objects and returns the summary as a
+// health.State. Failures to fetch CRD state return an error.
 func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	// create a new set of state for this page render
 	state := health.NewState()
@@ -797,12 +798,20 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 			continue
 		}
 
+		// skip the check if it has never been run before.  This prevents checks that have not yet
+		// run from showing in the status page.
+		if len(checkDetails.AuthoritativePod) == 0 {
+			log.Debugln("Output for", c.Name(), "hidden from status page due to blank authoritative pod")
+			continue
+		}
+
 		// parse check status from CRD and add it to the status
 		state.AddError(checkDetails.Errors...)
 		if !checkDetails.OK {
 			log.Debugln("Status page: Setting OK to false due to check details not being OK")
 			state.OK = false
 		}
+
 		state.CheckDetails[c.Name()] = checkDetails
 	}
 	return state, nil
