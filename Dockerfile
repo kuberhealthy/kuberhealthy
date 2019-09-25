@@ -3,7 +3,6 @@ LABEL LOCATION="git@github.com:Comcast/kuberhealthy.git"
 LABEL DESCRIPTION="Kuberhealthy - Check and expose kubernetes cluster health in detail."
 ADD ./ /go/src/github.com/Comcast/kuberhealthy/
 WORKDIR /go/src/github.com/Comcast/kuberhealthy/cmd/kuberhealthy
-ENV GO111MODULE=on
 ENV CGO_ENABLED=0
 RUN go version
 #RUN go test -v -short -- --debug --forceMaster

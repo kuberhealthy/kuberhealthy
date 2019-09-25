@@ -23,7 +23,6 @@ import (
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/Comcast/kuberhealthy/pkg/checks/external"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 )
 
@@ -117,7 +116,10 @@ func init() {
 
 	// parse external check URL configuration
 	if len(externalCheckReportingURL) == 0 {
-		externalCheckReportingURL = external.DefaultKuberhealthyReportingURL
+		if len(podNamespace) == 0 {
+			log.Fatalln("KH_EXTERNAL_REPORTING_URL environment variable not set and POD_NAMESPACE environment variable was blank.  Could not determine Kuberhealthy callback URL.")
+		}
+		externalCheckReportingURL = "kuberhealthy." + podNamespace + ".svc.cluster.local"
 	}
 	log.Infoln("External check reporting URL set to:", externalCheckReportingURL)
 
