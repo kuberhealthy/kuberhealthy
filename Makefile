@@ -1,5 +1,5 @@
 IMAGE="kuberhealthy"
-TAG="local"
+TAG="2.0.0alpha2"
 
 build:
 	docker build -t $(IMAGE):$(TAG) .
