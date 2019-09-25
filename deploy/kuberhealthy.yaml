@@ -38,6 +38,8 @@ spec:
     shortNames:
       - khc
 
+#time="2019-09-25T20:08:37Z" level=error msg="System error when fetching status for check PodStatusChecker namespace kube-system:Error validating CRD exists: podstatuschecker-namespace-kube-system khstates.comcast.github.io \"podstatuschecker-namespace-kube-system\" is forbidden: User \"system:serviceaccount:kuberhealthy:kuberhealthy\" cannot get khstates.comcast.github.io in the namespace \"kube-system\""
+
 ---
 # Source: kuberhealthy/templates/clusterrolebinding.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -51,7 +53,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kuberhealthy
-  namespace: kube-system
+  namespace: kuberhealthy
 
 ---
 # Source: kuberhealthy/templates/role.yaml
