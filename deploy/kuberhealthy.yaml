@@ -201,6 +201,10 @@ spec:
             port: 8080
           timeoutSeconds: 1
         name:  kuberhealthy
+        args:
+          - "--debug"
+        command:
+          - "/app/kuberhealthy"
         env:
           - name: POD_NAME
             valueFrom:
@@ -211,13 +215,13 @@ spec:
               fieldRef:
                 fieldPath: metadata.namespace
           - name: DAEMON_SET_CHECK
-            value: "true"
+            value: "false"
           - name: DNS_STATUS_CHECK
-            value: "true"
+            value: "false"
           - name: POD_RESTARTS_CHECK
-            value: "true"
+            value: "false"
           - name: POD_STATUS_CHECK
-            value: "true"
+            value: "false"
           - name: KH_EXTERNAL_REPORTING_URL
             value: ""
         readinessProbe:
