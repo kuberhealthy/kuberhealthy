@@ -50,7 +50,7 @@ func (dc *Checker) Name() string {
 
 // CheckNamespace returns the namespace of this checker
 func (dc *Checker) CheckNamespace() string {
-	return ""
+	return "default"
 }
 
 // Interval returns the interval at which this check runs
