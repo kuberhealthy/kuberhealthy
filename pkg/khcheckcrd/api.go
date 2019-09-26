@@ -14,7 +14,6 @@
 package khcheckcrd
 
 import (
-	"log"
 	"os"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -46,14 +45,13 @@ func Client(GroupName string, GroupVersion string, kubeConfig string) (*Kuberhea
 	if err != nil {
 		c, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
 	}
-
 	if err != nil {
 		return &KuberhealthyCheckClient{}, err
 	}
 
 	err = ConfigureScheme(GroupName, GroupVersion)
 	if err != nil {
-		log.Fatalln("Failed to configure scheme for",GroupName,GroupVersion,err)
+		return &KuberhealthyCheckClient{}, err
 	}
 
 	config := *c
