@@ -201,7 +201,7 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 		}
 
 		// fetch all khcheck resources from all namespaces
-		l, err := checkClient.List(metav1.ListOptions{}, checkCRDResource, "")
+		l, err := checkClient.List(metav1.ListOptions{FieldSelector: "metadata.name"}, checkCRDResource, "")
 		if err != nil {
 			log.Errorln("Error listing check configuration resources", err)
 			continue
@@ -264,7 +264,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 	}
 
 	// list all checks from all namespaces
-	l, err := checkClient.List(metav1.ListOptions{}, checkCRDResource, "")
+	l, err := checkClient.List(metav1.ListOptions{FieldSelector: "metadata.name"}, checkCRDResource, "")
 	if err != nil {
 		return err
 	}
