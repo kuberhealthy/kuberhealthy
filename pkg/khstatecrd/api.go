@@ -47,7 +47,7 @@ func Client(GroupName string, GroupVersion string, kubeConfig string, namespace 
 	log.Println("Configuring scheme")
 	err = ConfigureScheme(GroupName, GroupVersion)
 	if err != nil {
-		log.Fatalln("Failed to configure scheme for",GroupName,GroupVersion,err)
+		return &KuberhealthyStateClient{}, err
 	}
 
 	config := *c
