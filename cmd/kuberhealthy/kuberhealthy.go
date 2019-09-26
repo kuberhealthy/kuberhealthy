@@ -228,7 +228,6 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 				log.Debugln("First time seeing khcheck of name", mapName)
 				knownSettings[mapName] = i.Spec
 				foundChange = true
-				continue
 			}
 
 			// check if run interval has changed
