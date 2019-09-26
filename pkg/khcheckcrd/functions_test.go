@@ -68,7 +68,7 @@ func TestList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = client.List(metav1.ListOptions{}, resource, defaultNamespace)
+	_, err = client.List(metav1.ListOptions{FieldSelector: "metadata.name"}, resource, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
