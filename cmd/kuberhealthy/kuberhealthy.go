@@ -150,10 +150,6 @@ func (k *Kuberhealthy) Start() {
 	lostMasterChan := make(chan bool)
 	go k.masterStatusMonitor(becameMasterChan, lostMasterChan)
 
-	// init checks one time so that the check status page shows data instead of a blank.
-	log.Infoln("Loading check configuration...")
-	kuberhealthy.configureChecks()
-
 	// loop and select channels to do appropriate thing when master changes
 	for {
 		select {
@@ -231,6 +227,7 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 			if !exists {
 				log.Debugln("First time seeing khcheck of name", mapName)
 				knownSettings[mapName] = i.Spec
+				foundChange = true
 				continue
 			}
 
