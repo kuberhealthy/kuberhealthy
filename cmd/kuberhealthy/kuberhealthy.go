@@ -232,14 +232,16 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 
 			// check if run interval has changed
 			if knownSettings[mapName].RunInterval != i.Spec.RunInterval {
-				log.Debugln("The khstates run interval for",mapName,"has changed.")
+				log.Debugln("The khcheck run interval for",mapName,"has changed.")
 				foundChange = true
+				break
 			}
 
 			// check if CheckConfig has changed (PodSpec)
 			if !foundChange && !reflect.DeepEqual(knownSettings[mapName].PodSpec,i.Spec.PodSpec) {
-				log.Debugln("The khstates CheckConfig for",mapName,"has changed.")
+				log.Debugln("The khcheck for",mapName,"has changed.")
 				foundChange = true
+				break
 			}
 
 			// finally, update known settings before continuing
