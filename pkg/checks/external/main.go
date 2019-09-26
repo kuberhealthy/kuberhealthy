@@ -275,6 +275,13 @@ func (ext *Checker) RunOnce() error {
 		return errors.New("failed to clean up pods before starting external checker: " + err.Error())
 	}
 
+	// waiting for all checker pods are gone...
+	err = <-ext.waitForAllPodsToClear(ext.ctx)
+	if err != nil {
+		return errors.New("failed while waiting for pods to clean up: " + err.Error())
+	}
+	ext.log("No checker pods exist.")
+
 	// Spawn kubernetes pod to run our external check
 	ext.log("creating pod for external check:", ext.CheckName)
 	createdPod, err := ext.createPod()
@@ -352,6 +359,49 @@ func (ext *Checker) sanityCheck() error {
 	}
 
 	return nil
+}
+
+// waitForAllPodsToClear waits for all pods to clear up and be gone
+func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
+
+	// make the output channel we will return and close it whenever we are done
+	outChan := make(chan error, 2)
+	defer close(outChan)
+
+	// setup a pod watching client for our current KH pod
+	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
+
+	// watch events and return when the pod is in state running
+	for {
+
+		// if the context is canceled, we stop
+		select {
+			case <-ctx.Done():
+				outChan<-errors.New("waiting for pod to clear was aborted by context cancellation")
+			default:
+		}
+
+		// wait half a second between requests
+		time.Sleep(time.Second / 2)
+
+		// fetch the pod by name
+		_, err := podClient.Get(ext.PodName,metav1.GetOptions{})
+
+		// if we got a "not found" message, then we are done.  This is the happy path.
+		if err != nil && strings.Contains(err.Error(), "not found") {
+			return outChan
+		}
+
+		// if there was any other error, we return and give up
+		if err != nil {
+			outChan<-err
+			break
+		}
+
+		log.Debugln("Waiting for checker pod",ext.PodName,"to clear...")
+	}
+
+	return outChan
 }
 
 // waitForPodExit returns a channel that notifies when the checker pod exits

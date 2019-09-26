@@ -81,6 +81,7 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace s
 		details.Namespace = check.CheckNamespace()
 	}
 	details.OK = false
+	details.AuthoritativePod = podHostname
 
 	details.Errors = []string{"Check execution error: " + exErr.Error()}
 	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors)
@@ -413,6 +414,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		details.Namespace = c.CheckNamespace()
 		details.OK, details.Errors = c.CurrentStatus()
 
+		// send data to the metric forwarder if configured
 		if k.MetricForwarder != nil {
 			checkStatus := 0
 			if details.OK {

@@ -48,6 +48,9 @@ var DSPauseContainerImageOverride string // specify an alternate location for th
 var DSTolerationOverride []string
 var logLevel = "info"
 
+// the hostname of this pod
+var podHostname string
+
 var enableDaemonSetChecks = determineCheckStateFromEnvVar("DAEMON_SET_CHECK")
 var enablePodRestartChecks = determineCheckStateFromEnvVar("POD_RESTARTS_CHECK")
 var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
@@ -146,6 +149,12 @@ func init() {
 	if enableForceMaster {
 		log.Infoln("Enabling forced master mode")
 		masterCalculation.DebugAlwaysMasterOn()
+	}
+
+	// determine the name of this pod from the POD_NAME environment variable
+	podHostname, err = getEnvVar("POD_NAME")
+	if err != nil {
+		log.Fatalln("Failed to determine my hostname!")
 	}
 }
 
