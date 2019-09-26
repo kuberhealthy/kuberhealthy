@@ -45,7 +45,10 @@ func Client(GroupName string, GroupVersion string, kubeConfig string, namespace 
 	}
 
 	log.Println("Configuring scheme")
-	ConfigureScheme(GroupName, GroupVersion)
+	err = ConfigureScheme(GroupName, GroupVersion)
+	if err != nil {
+		log.Fatalln("Failed to configure scheme for",GroupName,GroupVersion,err)
+	}
 
 	config := *c
 	config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: GroupName, Version: GroupVersion}

@@ -163,7 +163,6 @@ func (k *Kuberhealthy) Start() {
 		case <-becameMasterChan:
 			// reset checks and re-add from configuration settings
 			log.Infoln("Became master. Reconfiguring and starting checks.")
-			log.Infoln("Loading check configuration...")
 			kuberhealthy.configureChecks()
 			k.StartChecks()
 		case <-lostMasterChan:
@@ -830,7 +829,7 @@ func (k *Kuberhealthy) getCheck(name string, namespace string) (KuberhealthyChec
 // configureChecks removes all checks set in Kuberhealthy and reloads them
 // based on the configuration options
 func (k *Kuberhealthy) configureChecks() {
-	log.Debugln("Configuring checks...")
+	log.Infoln("Loading check configuration...")
 
 	// wipe all existing checks before we configure
 	k.Checks = []KuberhealthyCheck{}
