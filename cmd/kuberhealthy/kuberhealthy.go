@@ -167,11 +167,18 @@ func (k *Kuberhealthy) Start() {
 			k.StopChecks()
 		case <-externalChecksUpdateChan:
 			log.Infoln("Witnessed a khcheck resource change...")
+
+			// if we are master, stop checks
 			if isMaster {
 				log.Infoln("Reloading external check configurations due to resource update.")
 				k.StopChecks()
-				log.Infoln("Loading check configuration...")
-				kuberhealthy.configureChecks()
+			}
+
+			log.Infoln("Reloading check configuration...")
+			kuberhealthy.configureChecks()
+
+			// start checks again if we are master
+			if isMaster {
 				k.StartChecks()
 			}
 		}
