@@ -129,6 +129,7 @@ func (k *Kuberhealthy) StopChecks() {
 
 	// wait for all checks to stop cleanly
 	stopWG.Wait()
+	log.Debugln("All checks stopped.")
 }
 
 // Start inits Kuberhealthy checks and master monitoring
@@ -136,12 +137,7 @@ func (k *Kuberhealthy) Start() {
 
 	// if influxdb is enabled, configure it
 	if enableInflux {
-		// configure influxdb
-		metricClient, err := configureInflux()
-		if err != nil {
-			log.Fatalln("Error setting up influx client:", err)
-		}
-		kuberhealthy.MetricForwarder = metricClient
+		k.configureInfluxForwarding()
 	}
 
 	// find all the external checks from the khcheckcrd resources on the cluster and keep them in sync
@@ -234,19 +230,16 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 			if knownSettings[mapName].RunInterval != i.Spec.RunInterval {
 				log.Debugln("The khcheck run interval for",mapName,"has changed.")
 				foundChange = true
-				break
 			}
 
 			// check if CheckConfig has changed (PodSpec)
 			if !foundChange && !reflect.DeepEqual(knownSettings[mapName].PodSpec,i.Spec.PodSpec) {
 				log.Debugln("The khcheck for",mapName,"has changed.")
 				foundChange = true
-				break
 			}
 
-			// finally, update known settings before continuing
+			// finally, update known settings before continuing to the next interval
 			knownSettings[mapName] = i.Spec
-
 		}
 
 		// if a change was detected, we signal the notify channel
@@ -915,4 +908,15 @@ func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, checkNamespac
 		return true, nil
 	}
 	return false, nil
+}
+
+// configureInfluxForwarding sets up initial influxdb metric sending
+func (k *Kuberhealthy) configureInfluxForwarding(){
+
+	// configure influxdb
+	metricClient, err := configureInflux()
+	if err != nil {
+		log.Fatalln("Error setting up influx client:", err)
+	}
+	kuberhealthy.MetricForwarder = metricClient
 }
