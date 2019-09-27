@@ -49,6 +49,9 @@ var DefaultName = "external-check"
 // kubeConfigFile is the default location to check for a kubernetes configuration file
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
+// crdMu is a mutex for all CRD use.  This is a troubleshooting stopgap for issue #181
+var crdMu sync.Mutex
+
 // constants for using the kuberhealthy check CRD
 const checkCRDGroup = "comcast.github.io"
 const checkCRDVersion = "v1"
@@ -174,6 +177,8 @@ func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck, error) {
 	}
 
 	// get the item in question and return it along with any errors
+	crdMu.Lock()
+	defer crdMu.Unlock()
 	log.Debugln("Fetching check", ext.CheckName, "in namespace", ext.Namespace)
 	checkConfig, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, ext.Namespace, ext.CheckName)
 	if err != nil {
@@ -186,6 +191,9 @@ func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck, error) {
 // NewCheckClient creates a new client for khcheckcrd resources
 func (ext *Checker) NewCheckClient(namespace string) (*khcheckcrd.KuberhealthyCheckClient, error) {
 	// make a new crd check client
+	crdMu.Lock()
+	defer crdMu.Unlock()
+
 	return khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, namespace)
 }
 
@@ -211,6 +219,8 @@ func (ext *Checker) setUUID(uuid string) error {
 	}
 
 	// update the resource with the new values we want
+	crdMu.Lock()
+	defer crdMu.Unlock()
 	_, err = checkClient.Update(checkConfig, checkCRDResource, ext.Namespace, ext.Name())
 	return err
 }
@@ -390,6 +400,8 @@ func (ext *Checker) getCheckLastUpdateTime(ctx context.Context) (time.Time, erro
 	}
 
 	// fetch the khstate as it exists
+	crdMu.Lock()
+	defer crdMu.Unlock()
 	khstate, err := stateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.CheckName)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
