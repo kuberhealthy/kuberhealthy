@@ -22,3 +22,8 @@ tag:
 
 push: tag
 	docker push $(IMAGE_HOST)/$(IMAGE)
+buildExternalChecker:
+	docker build -t quay.io/comcast/testexternalcheck:latest -f cmd/testExternalCheck/Dockerfile .
+
+pushExternalChecker:
+	docker push quay.io/comcast/testexternalcheck:latest
