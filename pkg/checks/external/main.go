@@ -329,7 +329,7 @@ func (ext *Checker) RunOnce() error {
 			ext.log("External checker had an error waiting for pod status to update:", err.Error())
 			return err
 		}
-		ext.log("External check pod has reported status:", ext.PodName)
+		ext.log("External check pod has reported status for this check iteration:", ext.PodName)
 	}
 
 	return nil
