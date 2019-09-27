@@ -159,6 +159,8 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 		ext.setError(err.Error())
 	}
 
+	return nil
+
 }
 
 // getCheck gets the CRD information for this check from the kubernetes API.
