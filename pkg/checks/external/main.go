@@ -52,10 +52,6 @@ var DefaultName = "external-check"
 // kubeConfigFile is the default location to check for a kubernetes configuration file
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
-// defaultRunInterval is the default time we assume this check
-// should run on unless specified
-var defaultRunInterval = time.Minute * 10
-
 // constants for using the kuberhealthy check CRD
 const checkCRDGroup = "comcast.github.io"
 const checkCRDVersion = "v1"
@@ -95,19 +91,11 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 
 	log.Debugf("Creating external check from check config: %+v \n", checkConfig)
 
-	// parse the run interval string from the custom resource
-	runInterval, err := time.ParseDuration(checkConfig.Spec.RunInterval)
-	if err != nil {
-		log.Errorln("Error parsing duration for check", checkConfig.Name, "in namespace", checkConfig.Namespace, err)
-		runInterval = defaultRunInterval
-	}
-
 	// build the checker object
 	return &Checker{
 		ErrorMessages:            []string{},
 		Namespace:                checkConfig.Namespace,
 		CheckName:                checkConfig.Name,
-		RunInterval:              runInterval,
 		KuberhealthyReportingURL: reportingURL,
 		maxRunTime:               defaultMaxRunTime,
 		startupTimeout:           defaultMaxStartTime,
@@ -163,26 +151,14 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	// store the client in the checker
 	ext.KubeClient = client
 
-	// run on a loop firing off external checks on each run
-	for {
-		// skip the initial pause if in debug mode
-		if !ext.Debug {
-			time.Sleep(ext.Interval())
-		}
-
-		// run a check iteration
-		ext.log("Running external check iteration")
-		err := ext.RunOnce()
-		if err != nil {
-			ext.log("Error with running external check:", err.Error())
-			ext.setError(err.Error())
-		}
-
-		// only run once if in debug mode
-		if ext.Debug {
-			return nil
-		}
+	// run a check iteration
+	ext.log("Running external check iteration")
+	err := ext.RunOnce()
+	if err != nil {
+		ext.log("Error with running external check:", err.Error())
+		ext.setError(err.Error())
 	}
+
 }
 
 // getCheck gets the CRD information for this check from the kubernetes API.
