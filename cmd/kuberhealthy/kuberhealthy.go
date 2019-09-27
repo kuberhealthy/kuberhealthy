@@ -292,6 +292,16 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 		log.Infoln("Enabling external check:", r.Name)
 		c := external.New(kc, r, externalCheckReportingURL)
+
+		// parse the run interval string from the custom resource and setup the run interval
+		c.RunInterval, err = time.ParseDuration(i.Spec.RunInterval)
+		if err != nil {
+			log.Errorln("Error parsing duration for check", c.Name, "in namespace", c.Namespace, err)
+			log.Errorln("Defaulting check to a runtime of ten minutes...")
+			c.RunInterval = time.Minute * 10
+		}
+
+		// add the check into the checker
 		k.AddCheck(c)
 	}
 
@@ -386,7 +396,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 	// CRD resource for the check
 	for {
 
-		// break out if check channel is supposed to stop
+		// break out if context cancels
 		select {
 		case <-ctx.Done():
 			return
