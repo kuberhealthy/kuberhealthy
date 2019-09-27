@@ -113,10 +113,10 @@ func TestExternalCheckerSanitation(t *testing.T) {
 }
 
 // createKHCheck writes a khcheck custom resource on the server
-func createKHCheckSpec(checkSpec *khcheckcrd.KuberhealthyCheck) error {
+func createKHCheckSpec(checkSpec *khcheckcrd.KuberhealthyCheck, checkNamespace string) error {
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, checkNamespace)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func createKHCheckSpec(checkSpec *khcheckcrd.KuberhealthyCheck) error {
 func deleteKHCheckSpec(checkName string, checkNamespace string) error {
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, checkNamespace)
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func TestWriteWhitelistedUUID(t *testing.T) {
 	kuberhealthyCheck := khcheckcrd.NewKuberhealthyCheck(checker.CheckName, defaultNamespace, s.Spec)
 
 	// write the check to the server
-	err = createKHCheckSpec(&kuberhealthyCheck)
+	err = createKHCheckSpec(&kuberhealthyCheck, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}

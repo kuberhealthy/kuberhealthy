@@ -40,7 +40,7 @@ func Client(GroupName string, GroupVersion string, kubeConfig string, namespace 
 	var c *rest.Config
 	var err error
 
-	log.Println("Loading in-cluster kubernetes config...")
+	// log.Println("Loading in-cluster kubernetes config...")
 	c, err = rest.InClusterConfig()
 	if err != nil {
 		log.Println("Loading config from flags...")
@@ -51,7 +51,7 @@ func Client(GroupName string, GroupVersion string, kubeConfig string, namespace 
 		return &KuberhealthyStateClient{}, err
 	}
 
-	log.Println("Configuring scheme")
+	// log.Println("Configuring scheme")
 	err = ConfigureScheme(GroupName, GroupVersion)
 	if err != nil {
 		return &KuberhealthyStateClient{}, err
@@ -63,7 +63,7 @@ func Client(GroupName string, GroupVersion string, kubeConfig string, namespace 
 	config.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
 
-	log.Println("creating khstate rest client")
+	// log.Println("creating khstate rest client")
 	client, err := rest.RESTClientFor(&config)
 	return &KuberhealthyStateClient{restClient: client, ns: namespace}, err
 }

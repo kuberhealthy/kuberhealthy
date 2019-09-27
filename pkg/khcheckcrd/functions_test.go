@@ -19,6 +19,7 @@ import (
 
 	"github.com/Pallinder/go-randomdata"
 	"gopkg.in/yaml.v2"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
@@ -28,7 +29,7 @@ const testCheckName = "gotest"
 var kubeConfigFile = os.Getenv("HOME") + "/.kube/config"
 
 func TestClient(t *testing.T) {
-	_, err := Client(group, version, kubeConfigFile)
+	_, err := Client(group, version, kubeConfigFile, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,11 +52,11 @@ func loadBasicCheckerPod(filename string) (KuberhealthyCheck, error) {
 
 func TestCreate(t *testing.T) {
 
-	client, err := Client(group, version, kubeConfigFile)
+	client, err := Client(group, version, kubeConfigFile, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkDetails := NewKuberhealthyCheck(testCheckName, defaultNamespace, NewCheckConfig())
+	checkDetails := NewKuberhealthyCheck(testCheckName, defaultNamespace, NewCheckConfig(time.Second,v1.PodSpec{}))
 	result, err := client.Create(&checkDetails, resource, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
@@ -64,7 +65,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	client, err := Client(group, version, kubeConfigFile)
+	client, err := Client(group, version, kubeConfigFile, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +76,7 @@ func TestList(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	client, err := Client(group, version, kubeConfigFile)
+	client, err := Client(group, version, kubeConfigFile, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,13 +90,10 @@ func TestGet(t *testing.T) {
 func TestUpdate(t *testing.T) {
 
 	// make client
-	client, err := Client(group, version, kubeConfigFile)
+	client, err := Client(group, version, kubeConfigFile, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// ensure that the resource exists on the testing server
-	_ = CreateTestCheck(kubeConfigFile, testCheckName)
 
 	// get the custom resource for the check named gotest
 	checkConfig, err := client.Get(metav1.GetOptions{}, resource, defaultNamespace, testCheckName)
@@ -137,7 +135,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	client, err := Client(group, version, kubeConfigFile)
+	client, err := Client(group, version, kubeConfigFile, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}

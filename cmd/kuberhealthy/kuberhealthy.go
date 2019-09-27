@@ -197,7 +197,7 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 		log.Debugln("Scanning for external check changes...")
 
 		// make a new crd check client
-		checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
+		checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, "")
 		if err != nil {
 			log.Errorln("Error creating client for configuration resource listing", err)
 			continue
@@ -261,7 +261,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 	log.Debugln("Fetching khcheck configurations...")
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, "")
 	if err != nil {
 		return err
 	}
@@ -897,7 +897,7 @@ func (k *Kuberhealthy) configureChecks() {
 // reporting into the status endpoint when they shouldn't be.
 func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, checkNamespace string, uuid string) (bool, error) {
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, checkNamespace)
 	if err != nil {
 		return false, err
 	}

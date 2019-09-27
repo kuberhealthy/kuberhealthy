@@ -41,7 +41,7 @@ func init(){
 }
 
 // Client creates a rest client to use for interacting with CRDs
-func Client(GroupName string, GroupVersion string, kubeConfig string) (*KuberhealthyCheckClient, error) {
+func Client(GroupName string, GroupVersion string, kubeConfig string, namespace string) (*KuberhealthyCheckClient, error) {
 	clientMu.Lock()
 	defer clientMu.Unlock()
 

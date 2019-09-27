@@ -10,7 +10,7 @@ import (
 // external check.  This data is stored in khcheck custom resources.
 func GetWhitelistedUUIDForExternalCheck(checkNamespace string, checkName string) (string, error) {
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, checkNamespace)
 	if err != nil {
 		return "", err
 	}
