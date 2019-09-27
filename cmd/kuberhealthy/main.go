@@ -18,12 +18,15 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 
+	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
+	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
+	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 )
 
@@ -71,13 +74,14 @@ var influxPassword = ""
 var influxDB = "http://localhost:8086"
 var kuberhealthy *Kuberhealthy
 
-// crdMu is used to prevent CRDs from triggered a concurrent map access deep within kubernetes apimachinery. issue: #181
-var crdMu sync.Mutex
+var khStateClient *khstatecrd.KuberhealthyStateClient
 
 // constants for using the kuberhealthy status CRD
-const statusCRDGroup = "comcast.github.io"
-const statusCRDVersion = "v1"
-const statusCRDResource = "khstates"
+const stateCRDGroup = "comcast.github.io"
+const stateCRDVersion = "v1"
+const stateCRDResource = "khstates"
+
+var khCheckClient *khcheckcrd.KuberhealthyCheckClient
 
 // constants for using the kuberhealthy check CRD
 const checkCRDGroup = "comcast.github.io"
@@ -85,6 +89,9 @@ const checkCRDVersion = "v1"
 const checkCRDResource = "khchecks"
 
 var checkCRDScanInterval = time.Second * 5 // how often we scan for changes to check CRD objects
+
+// the global kubernetes client
+var kubernetesClient *kubernetes.Clientset
 
 func init() {
 
@@ -161,6 +168,12 @@ func init() {
 	if err != nil {
 		log.Fatalln("Failed to determine my hostname!")
 	}
+
+	// setup all clients
+	err = initKubernetesClients()
+	if err != nil {
+		log.Fatalln("Failed to bootstrap kubernetes clients:", err)
+	}
 }
 
 func main() {
@@ -206,4 +219,31 @@ func determineCheckStateFromEnvVar(envVarName string) bool {
 		return true // by default, the check is on
 	}
 	return enabledState
+}
+
+// initKubernetesClients creates the appropriate CRD clients and kubernetes client to be used in all cases. Issue #181
+func initKubernetesClients() error {
+
+	// make a new kuberhealthy client
+	kc, err := kubeClient.Create(kubeConfigFile)
+	if err != nil {
+		return err
+	}
+	kubernetesClient = kc
+
+	// make a new crd check client
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, "")
+	if err != nil {
+		return err
+	}
+	khCheckClient = checkClient
+
+	// make a new crd state client
+	stateClient, err := khstatecrd.Client(stateCRDGroup, stateCRDVersion, kubeConfigFile, "")
+	if err != nil {
+		return err
+	}
+	khStateClient = stateClient
+
+	return nil
 }

@@ -25,13 +25,13 @@ import (
 
 // setCheckStateResource puts a check state's state into the specified CRD resource.  It sets the AuthoritativePod
 // to the server's hostname and sets the LastUpdate time to now.
-func setCheckStateResource(checkName string, client *khstatecrd.KuberhealthyStateClient, state health.CheckDetails) error {
+func setCheckStateResource(checkName string, state health.CheckDetails) error {
 
 	name := sanitizeResourceName(checkName)
 
 	// we must fetch the existing state to use the current resource version
 	// int found within
-	existingState, err := client.Get(metav1.GetOptions{}, statusCRDResource, name)
+	existingState, err := khStateClient.Get(metav1.GetOptions{}, stateCRDResource, name)
 	if err != nil {
 		return errors.New("Error retrieving CRD for: " + name + " " + err.Error())
 	}
@@ -52,7 +52,7 @@ func setCheckStateResource(checkName string, client *khstatecrd.KuberhealthyStat
 	khState.SetResourceVersion(resourceVersion)
 
 	log.Debugln("Updating the CRD for:", checkName, "to", khState)
-	_, err = client.Update(&khState, statusCRDResource, name)
+	_, err = khStateClient.Update(&khState, stateCRDResource, name)
 	return err
 }
 
@@ -69,18 +69,18 @@ func sanitizeResourceName(c string) string {
 }
 
 // ensureStateResourceExists checks for the existence of the specified resource and creates it if it does not exist
-func ensureStateResourceExists(checkName string, client *khstatecrd.KuberhealthyStateClient) error {
+func ensureStateResourceExists(checkName string) error {
 	name := sanitizeResourceName(checkName)
 
 	log.Debugln("Checking existence of custom resource:", name)
-	state, err := client.Get(metav1.GetOptions{}, statusCRDResource, name)
+	state, err := khStateClient.Get(metav1.GetOptions{}, stateCRDResource, name)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 
 			log.Infoln("CRD not found, creating CRD:", name, err)
 			initialDetails := health.NewCheckDetails()
 			initialState := khstatecrd.NewKuberhealthyState(name, initialDetails)
-			_, err := client.Create(&initialState, statusCRDResource)
+			_, err := khStateClient.Create(&initialState, stateCRDResource)
 			if err != nil {
 				return errors.New("Error creating CRD: " + name + ": " + err.Error())
 			}
@@ -96,20 +96,20 @@ func ensureStateResourceExists(checkName string, client *khstatecrd.Kuberhealthy
 
 // getCheckState retrieves the check values from the kuberhealthy khstate
 // custom resource
-func getCheckState(c KuberhealthyCheck, client *khstatecrd.KuberhealthyStateClient) (health.CheckDetails, error) {
+func getCheckState(c KuberhealthyCheck) (health.CheckDetails, error) {
 
 	var state = health.NewCheckDetails()
 	var err error
 	name := sanitizeResourceName(c.Name())
 
 	// make sure the CRD exists, even when checking status
-	err = ensureStateResourceExists(c.Name(), client)
+	err = ensureStateResourceExists(c.Name())
 	if err != nil {
 		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
 	}
 
 	log.Debugln("Retrieving khstate custom resource for:", name)
-	khstate, err := client.Get(metav1.GetOptions{}, statusCRDResource, name)
+	khstate, err := khStateClient.Get(metav1.GetOptions{}, stateCRDResource, name)
 	if err != nil {
 		return state, errors.New("Error retrieving custom khstate resource: " + name + " " + err.Error())
 	}

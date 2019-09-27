@@ -36,8 +36,6 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/health"
 	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
-	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 	"github.com/Comcast/kuberhealthy/pkg/metrics"
 )
@@ -49,18 +47,6 @@ type Kuberhealthy struct {
 	MetricForwarder    metrics.Client
 	overrideKubeClient *kubernetes.Clientset
 	cancelChecksFunc   context.CancelFunc // invalidates the context of all running checks
-}
-
-// KubeClient sets up a new kuberhealthy client if it does not exist yet
-func (k *Kuberhealthy) KubeClient() (*kubernetes.Clientset, error) {
-
-	// fetch a client if it does not exist
-	if k.overrideKubeClient != nil {
-		return k.overrideKubeClient, nil
-	}
-
-	// make a client if one does not exist
-	return kubeClient.Create(kubeConfigFile)
 }
 
 // NewKuberhealthy creates a new kuberhealthy checker instance
@@ -196,22 +182,12 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 		time.Sleep(checkCRDScanInterval)
 		log.Debugln("Scanning for external check changes...")
 
-		// make a new crd check client
-		checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, "")
-		if err != nil {
-			log.Errorln("Error creating client for configuration resource listing", err)
-			continue
-		}
-
 		// fetch all khcheck resources from all namespaces
-		crdMu.Lock() // issue #181
-		l, err := checkClient.List(metav1.ListOptions{}, checkCRDResource, "")
+		l, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
 		if err != nil {
 			log.Errorln("Error listing check configuration resources", err)
-			crdMu.Unlock() // issue #181
 			continue
 		}
-		crdMu.Unlock() // issue #181
 
 		// check for changes in the incoming data
 		var foundChange bool
@@ -263,47 +239,27 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 	log.Debugln("Fetching khcheck configurations...")
 
-	// make a new crd check client
-	crdMu.Lock() // issue #181
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, "")
-	if err != nil {
-		crdMu.Unlock() // issue #181
-		return err
-	}
-	crdMu.Unlock() // issue #181
-
 	// list all checks from all namespaces
-	crdMu.Lock() // issue #181
-	l, err := checkClient.List(metav1.ListOptions{}, checkCRDResource, "")
+	l, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
 	if err != nil {
-		crdMu.Unlock() // issue #181
 		return err
 	}
-	crdMu.Unlock() // issue #181
 
 	log.Debugln("Found", len(l.Items), "external checks to load")
 
 	// iterate on each check CRD resource and add it as a check
 	for _, i := range l.Items {
 		log.Debugln("Loading check CRD:", i.Name)
-		crdMu.Lock() // issue #181
-		r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, i.Namespace, i.Name)
+		r, err := khCheckClient.Get(metav1.GetOptions{}, checkCRDResource, i.Namespace, i.Name)
 		if err != nil {
-			crdMu.Unlock() // issue #181
 			return err
 		}
-		crdMu.Unlock() // issue #181
 
 		log.Debugf("External check custom resource loaded: %v", r)
 
 		// create a new kubernetes client for this external checker
-		kc, err := k.KubeClient()
-		if err != nil {
-			log.Fatalln("Could not fetch Kubernetes client for external checker:", err)
-		}
-
 		log.Infoln("Enabling external check:", r.Name)
-		c := external.New(kc, r, externalCheckReportingURL)
+		c := external.New(kubernetesClient, r, khCheckClient, khStateClient, externalCheckReportingURL)
 
 		// parse the run interval string from the custom resource and setup the run interval
 		c.RunInterval, err = time.ParseDuration(i.Spec.RunInterval)
@@ -361,12 +317,7 @@ func (k *Kuberhealthy) masterStatusMonitor(becameMasterChan chan bool, lostMaste
 		time.Sleep(time.Second)
 
 		// setup a pod watching client for kuberhealthy pods
-		c, err := k.KubeClient()
-		if err != nil {
-			log.Errorln("attempted to fetch kube client, but found error:", err)
-			continue
-		}
-		watcher, err := c.CoreV1().Pods(podNamespace).Watch(metav1.ListOptions{
+		watcher, err := kubernetesClient.CoreV1().Pods(podNamespace).Watch(metav1.ListOptions{
 			LabelSelector: "app=kuberhealthy",
 		})
 		if err != nil {
@@ -376,17 +327,17 @@ func (k *Kuberhealthy) masterStatusMonitor(becameMasterChan chan bool, lostMaste
 
 		// on each update from the watch, we re-check our master status.
 		for range watcher.ResultChan() {
-			k.checkMasterStatus(c, becameMasterChan, lostMasterChan)
+			k.checkMasterStatus(becameMasterChan, lostMasterChan)
 		}
 	}
 }
 
 // checkMasterStatus checks the current status of this node as a master and if necessary, notifies
 // the channels supplied.  Returns the new isMaster state bool.
-func (k *Kuberhealthy) checkMasterStatus(c *kubernetes.Clientset, becameMasterChan chan bool, lostMasterChan chan bool) {
+func (k *Kuberhealthy) checkMasterStatus(becameMasterChan chan bool, lostMasterChan chan bool) {
 
 	// determine if we are currently master or not
-	masterNow, err := masterCalculation.IAmMaster(c)
+	masterNow, err := masterCalculation.IAmMaster(kubernetesClient)
 	if err != nil {
 		log.Errorln(err)
 		return
@@ -430,16 +381,9 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		default:
 		}
 
-		log.Infoln("Running check:", c.Name())
-		client, err := k.KubeClient()
-		if err != nil {
-			log.Errorln("Error creating Kubernetes client for check", c.Name(), "in namespace", c.CheckNamespace()+":", err)
-			<-ticker.C
-			continue
-		}
-
 		// Run the check
-		err = c.Run(client)
+		log.Infoln("Running check:", c.Name())
+		err := c.Run(kubernetesClient)
 		if err != nil {
 			// set any check run errors in the CRD
 			k.setCheckExecutionError(c.Name(), c.CheckNamespace(), err)
@@ -492,24 +436,14 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 // storeCheckState stores the check state in its cluster CRD
 func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, details health.CheckDetails) error {
 
-	// issue #181
-	crdMu.Lock()
-	defer crdMu.Unlock()
-
-	// make a new crd client
-	client, err := khstatecrd.Client(statusCRDGroup, statusCRDVersion, kubeConfigFile, checkNamespace)
-	if err != nil {
-		return err
-	}
-
 	// ensure the CRD resource exits
-	err = ensureStateResourceExists(checkName, client)
+	err := ensureStateResourceExists(checkName)
 	if err != nil {
 		return err
 	}
 
 	// put the status on the CRD from the check
-	err = setCheckStateResource(checkName, client, details)
+	err = setCheckStateResource(checkName, details)
 	if err != nil {
 		return err
 	}
@@ -643,13 +577,8 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 	var pod v1.Pod
 
-	c, err := k.KubeClient()
-	if err != nil {
-		return pod, errors.New("failed to create new kube client when finding pod environment variables:" + err.Error())
-	}
-
 	// find the pod by its IP address
-	podClient := c.CoreV1().Pods("")
+	podClient := kubernetesClient.CoreV1().Pods("")
 	listOptions := metav1.ListOptions{
 		FieldSelector: "status.podIP==" + remoteIP,
 	}
@@ -804,13 +733,9 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 
 	// fetch a client for the master calculation
 	log.Debugln("Creating kubernetes client...")
-	kc, err := k.KubeClient()
-	if err != nil {
-		return state, err
-	}
 
 	// calculate the current master and apply it to the status output
-	currentMaster, err := masterCalculation.CalculateMaster(kc)
+	currentMaster, err := masterCalculation.CalculateMaster(kubernetesClient)
 	state.CurrentMaster = currentMaster
 	if err != nil {
 		return state, err
@@ -820,15 +745,8 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	for _, c := range k.Checks {
 		log.Debugln("Getting status of check for web request to status page:", c.Name())
 
-		// create a khstate client to fetch khstate resources with
-		log.Debugln("Creating khCheck client...")
-		khClient, err := khstatecrd.Client(statusCRDGroup, statusCRDVersion, kubeConfigFile, c.CheckNamespace())
-		if err != nil {
-			return state, err
-		}
-
 		// get the state from the CRD that exists for this check
-		checkDetails, err := getCheckState(c, khClient)
+		checkDetails, err := getCheckState(c)
 		if err != nil {
 			errMessage := "System error when fetching status for check " + c.Name() + ":" + err.Error()
 			log.Errorln(errMessage)
@@ -939,20 +857,12 @@ func (k *Kuberhealthy) configureChecks() {
 // Operations are not atomic.  Whitelisting prevents expired or invalidated pods from
 // reporting into the status endpoint when they shouldn't be.
 func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, checkNamespace string, uuid string) (bool, error) {
-	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, checkNamespace)
-	if err != nil {
-		return false, err
-	}
 
 	// get the item in question
-	crdMu.Lock() // issue #181
-	checkConfig, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, checkNamespace, checkName)
+	checkConfig, err := khCheckClient.Get(metav1.GetOptions{}, checkCRDResource, checkNamespace, checkName)
 	if err != nil {
-		crdMu.Unlock() // issue #181
 		return false, err
 	}
-	crdMu.Unlock() // issue #181
 
 	log.Debugln("Validating current UUID", checkConfig.Spec.CurrentUUID, "vs incoming UUID:", uuid)
 	if checkConfig.Spec.CurrentUUID == uuid {
