@@ -297,10 +297,31 @@ func (ext *Checker) RunOnce() error {
 	ext.setPodDeployed(true)
 	defer ext.setPodDeployed(false)
 
-	// the pod has started! Wait for the pod to exit and abort if it takes too long
+	// validate that the pod was able to update its khstate
 	timeoutChan := time.After(ext.maxRunTime)
+	ext.log("Waiting for pod status to be reported from pod", ext.PodName, "in namespace", ext.Namespace)
 	select {
 	case <-timeoutChan:
+		ext.log("Timed out waiting for checker pod to report in")
+		ext.cancel() // cancel the watch context, we have timed out
+		err := ext.deletePod()
+		errorMessage := "pod status callback was not seen before timeout"
+		if err != nil {
+			errorMessage = errorMessage + " and an error occurred when deleting the pod:" + err.Error()
+		}
+		return errors.New(errorMessage)
+	case err = <-ext.waitForPodStatusUpdate(lastReportTime, ext.ctx):
+		if err != nil {
+			ext.log("External checker had an error waiting for pod status to update:", err.Error())
+			return err
+		}
+		ext.log("External check pod has reported status for this check iteration:", ext.PodName)
+	}
+
+	// validate that the pod stopped running properly
+	select {
+	case <-timeoutChan:
+		ext.log("Timed out waiting for pod to stop running:", ext.PodName)
 		ext.cancel() // cancel the watch context, we have timed out
 		err := ext.deletePod()
 		errorMessage := "pod ran too long and was shut down"
@@ -316,23 +337,7 @@ func (ext *Checker) RunOnce() error {
 		ext.log("External check pod is done running:", ext.PodName)
 	}
 
-	// validate that the pod was able to update its khstate
-	select {
-	case <-timeoutChan:
-		ext.cancel() // cancel the watch context, we have timed out
-		err := ext.deletePod()
-		errorMessage := "pod status callback was not seen before timeout"
-		if err != nil {
-			errorMessage = errorMessage + " and an error occurred when deleting the pod:" + err.Error()
-		}
-		return errors.New(errorMessage)
-	case err = <-ext.waitForPodStatusUpdate(lastReportTime, ext.ctx):
-		if err != nil {
-			ext.log("External checker had an error waiting for pod status to update:", err.Error())
-			return err
-		}
-		ext.log("External check pod has reported status for this check iteration:", ext.PodName)
-	}
+	ext.log("Run completed!")
 
 	return nil
 }
