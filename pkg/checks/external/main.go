@@ -20,6 +20,7 @@ import (
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
+	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
 )
 
 // KHReportingURL is the environment variable used to tell external checks where to send their status updates
@@ -59,6 +60,10 @@ var defaultRunInterval = time.Minute * 10
 const checkCRDGroup = "comcast.github.io"
 const checkCRDVersion = "v1"
 const checkCRDResource = "khchecks"
+const stateCRDResource = "khstate"
+const stateCRDGroup = "comcast.github.io"
+const stateCRDVersion = "v1"
+
 
 // Checker implements a KuberhealthyCheck for external
 // check execution and lifecycle management.
@@ -187,7 +192,7 @@ func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck, error) {
 	var defaultCheck khcheckcrd.KuberhealthyCheck
 
 	// make a new crd check client
-	checkClient, err := ext.NewCheckClient()
+	checkClient, err := ext.NewCheckClient(ext.Namespace)
 	if err != nil {
 		return &defaultCheck, err
 	}
@@ -203,9 +208,9 @@ func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck, error) {
 }
 
 // NewCheckClient creates a new client for khcheckcrd resources
-func (ext *Checker) NewCheckClient() (*khcheckcrd.KuberhealthyCheckClient, error) {
+func (ext *Checker) NewCheckClient(namespace string) (*khcheckcrd.KuberhealthyCheckClient, error) {
 	// make a new crd check client
-	return khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile)
+	return khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, namespace)
 }
 
 // setUUID sets the current whitelisted UUID for the checker and updates it on the server
@@ -224,7 +229,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	checkConfig.ObjectMeta.Namespace = ext.Namespace
 
 	// make a new crd check client
-	checkClient, err := ext.NewCheckClient()
+	checkClient, err := ext.NewCheckClient(ext.Namespace)
 	if err != nil {
 		return err
 	}
@@ -241,8 +246,15 @@ func (ext *Checker) RunOnce() error {
 	// create a context for this run
 	ext.ctx, ext.cancelFunc = context.WithCancel(context.Background())
 
+	// fetch the currently known lastReportTime for this check.  We will use this to know when the pod has
+	// fully reported back with a status before exiting
+	lastReportTime, err := ext.getCheckLastUpdateTime(ext.ctx)
+	if err != nil {
+		return err
+	}
+
 	// generate a new UUID for this run
-	err := ext.setNewCheckUUID()
+	err = ext.setNewCheckUUID()
 	if err != nil {
 		return err
 	}
@@ -309,23 +321,41 @@ func (ext *Checker) RunOnce() error {
 	defer ext.setPodDeployed(false)
 
 	// the pod has started! Wait for the pod to exit and abort if it takes too long
+	timeoutChan := time.After(ext.maxRunTime)
 	select {
-	case <-time.After(ext.maxRunTime):
+	case <-timeoutChan:
 		ext.cancel() // cancel the watch context, we have timed out
 		err := ext.deletePod()
 		errorMessage := "pod ran too long and was shut down"
 		if err != nil {
-			errorMessage = errorMessage + " but an error occurred when deleting the pod:" + err.Error()
+			errorMessage = errorMessage + " and an error occurred when deleting the pod:" + err.Error()
 		}
 		return errors.New(errorMessage)
 	case err = <-ext.waitForPodExit(ext.ctx):
 		if err != nil {
-			ext.log("External check pod had an error:", err.Error())
+			ext.log("External checker had an error while waiting for pod to exit:", err.Error())
+			return err
 		}
 		ext.log("External check pod is done running:", ext.PodName)
 	}
 
-	// set the pod as not running now
+	// TODO - validate that the pod was able to update its khstate
+	select {
+	case <-timeoutChan:
+		ext.cancel() // cancel the watch context, we have timed out
+		err := ext.deletePod()
+		errorMessage := "pod status callback was not seen before timeout"
+		if err != nil {
+			errorMessage = errorMessage + " and an error occurred when deleting the pod:" + err.Error()
+		}
+		return errors.New(errorMessage)
+	case err = <-ext.waitForPodStatusUpdate(lastReportTime, ext.ctx):
+		if err != nil {
+			ext.log("External checker had an error waiting for pod status to update:", err.Error())
+			return err
+		}
+		ext.log("External check pod has reported status:", ext.PodName)
+	}
 
 	return nil
 }
@@ -361,6 +391,76 @@ func (ext *Checker) sanityCheck() error {
 	return nil
 }
 
+
+// NewKHStateClient creates a new client for khstate resources
+func (ext *Checker) NewKHStateClient(namespace string) (*khstatecrd.KuberhealthyStateClient, error) {
+	// make a new crd check client
+	return khstatecrd.Client(stateCRDGroup, stateCRDVersion, kubeConfigFile, namespace)
+}
+
+// getCheckLastUpdateTime fetches the last time the khstate custom resource for this check was updated
+// as a time.Tiem.
+func (ext *Checker) getCheckLastUpdateTime(ctx context.Context) (time.Time, error) {
+
+	// setup a client for watching our status update
+	stateClient, err := ext.NewKHStateClient(ext.Namespace)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	// fetch the khstate as it exists
+	khstate, err := stateClient.Get(metav1.GetOptions{},stateCRDResource,ext.CheckName)
+	if err != nil {
+		if strings.Contains(err.Error(),"not found") {
+			return time.Time{}, nil
+		}
+		return time.Time{}, err
+	}
+
+	return khstate.Spec.LastRun, nil
+
+}
+
+// waitForPodStatusUpdate waits for a pod status to update from the specified time
+func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context.Context) chan error {
+
+	// make the output channel we will return and close it whenever we are done
+	outChan := make(chan error, 2)
+	defer close(outChan)
+
+	// watch events and return when the pod is in state running
+	for {
+
+		// wait half a second between requests
+		time.Sleep(time.Second / 2)
+		log.Debugln("Waiting for external checker pod to report in...")
+
+
+		// if the context is canceled, we stop
+		select {
+		case <-ctx.Done():
+			outChan<-errors.New("waiting for pod to clear was aborted by context cancellation")
+		default:
+		}
+
+		// fetch the lastUpdateTime from the khstate as of right now
+		currentUpdateTime, err := ext.getCheckLastUpdateTime(ctx)
+		if err != nil {
+			outChan<-err
+			return outChan
+		}
+
+		// if the pod has updated, then we return and were done waiting
+		log.Debugln("Last report time was:", lastUpdateTime, "vs", currentUpdateTime)
+		if currentUpdateTime.After(lastUpdateTime) {
+			return outChan
+		}
+
+	}
+
+	return outChan
+}
+
 // waitForAllPodsToClear waits for all pods to clear up and be gone
 func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 
@@ -388,12 +488,12 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 		_, err := podClient.Get(ext.PodName,metav1.GetOptions{})
 
 		// if we got a "not found" message, then we are done.  This is the happy path.
-		if err != nil && strings.Contains(err.Error(), "not found") {
-			return outChan
-		}
-
-		// if there was any other error, we return and give up
 		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				return outChan
+			}
+
+			// if the error was anything else, we return it upstream
 			outChan<-err
 			break
 		}
