@@ -281,7 +281,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 		// add on extra annotations and labels
 		c.ExtraAnnotations = i.Spec.ExtraAnnotations
-		c.ExtraLabels = i.Spec.ExtraAnnotations
+		c.ExtraLabels = i.Spec.ExtraLabels
 
 		// add the check into the checker
 		k.AddCheck(c)
