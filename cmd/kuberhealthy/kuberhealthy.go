@@ -204,11 +204,14 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 		}
 
 		// fetch all khcheck resources from all namespaces
+		crdMu.Lock() // issue #181
 		l, err := checkClient.List(metav1.ListOptions{}, checkCRDResource, "")
 		if err != nil {
 			log.Errorln("Error listing check configuration resources", err)
+			crdMu.Unlock() // issue #181
 			continue
 		}
+		crdMu.Unlock() // issue #181
 
 		// check for changes in the incoming data
 		var foundChange bool
@@ -261,26 +264,35 @@ func (k *Kuberhealthy) addExternalChecks() error {
 	log.Debugln("Fetching khcheck configurations...")
 
 	// make a new crd check client
+	crdMu.Lock() // issue #181
 	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, "")
 	if err != nil {
+		crdMu.Unlock() // issue #181
 		return err
 	}
+	crdMu.Unlock() // issue #181
 
 	// list all checks from all namespaces
+	crdMu.Lock() // issue #181
 	l, err := checkClient.List(metav1.ListOptions{}, checkCRDResource, "")
 	if err != nil {
+		crdMu.Unlock() // issue #181
 		return err
 	}
+	crdMu.Unlock() // issue #181
 
 	log.Debugln("Found", len(l.Items), "external checks to load")
 
 	// iterate on each check CRD resource and add it as a check
 	for _, i := range l.Items {
 		log.Debugln("Loading check CRD:", i.Name)
+		crdMu.Lock() // issue #181
 		r, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, i.Namespace, i.Name)
 		if err != nil {
+			crdMu.Unlock() // issue #181
 			return err
 		}
+		crdMu.Unlock() // issue #181
 
 		log.Debugf("External check custom resource loaded: %v", r)
 
@@ -479,6 +491,10 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 
 // storeCheckState stores the check state in its cluster CRD
 func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, details health.CheckDetails) error {
+
+	// issue #181
+	crdMu.Lock()
+	defer crdMu.Unlock()
 
 	// make a new crd client
 	client, err := khstatecrd.Client(statusCRDGroup, statusCRDVersion, kubeConfigFile, checkNamespace)
@@ -930,10 +946,13 @@ func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, checkNamespac
 	}
 
 	// get the item in question
+	crdMu.Lock() // issue #181
 	checkConfig, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, checkNamespace, checkName)
 	if err != nil {
+		crdMu.Unlock() // issue #181
 		return false, err
 	}
+	crdMu.Unlock() // issue #181
 
 	log.Debugln("Validating current UUID", checkConfig.Spec.CurrentUUID, "vs incoming UUID:", uuid)
 	if checkConfig.Spec.CurrentUUID == uuid {

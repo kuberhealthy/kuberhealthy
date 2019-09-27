@@ -18,6 +18,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/integrii/flaggy"
@@ -59,6 +60,7 @@ var enableExternalChecks = true
 
 // external check configs
 const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"
+
 var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
 
 // InfluxDB connection configuration
@@ -68,6 +70,9 @@ var influxUsername = ""
 var influxPassword = ""
 var influxDB = "http://localhost:8086"
 var kuberhealthy *Kuberhealthy
+
+// crdMu is used to prevent CRDs from triggered a concurrent map access deep within kubernetes apimachinery. issue: #181
+var crdMu sync.Mutex
 
 // constants for using the kuberhealthy status CRD
 const statusCRDGroup = "comcast.github.io"
@@ -92,7 +97,7 @@ func init() {
 	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
 	flaggy.Bool(&enableDNSStatusChecks, "", "dnsStatusChecks", "Set to false to disable DNS checks.")
 	flaggy.Bool(&enableExternalChecks, "", "externalChecks", "Set to false to disable external checks.")
-	flaggy.Bool(&enableForceMaster, "","forceMaster", "Set to true to enable local testing, forced master mode.")
+	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
 	flaggy.String(&DSPauseContainerImageOverride, "", "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
 	flaggy.StringSlice(&DSTolerationOverride, "", "tolerationOverride", "Specify a specific taint (in a key,value,effect format, ex. node-role.kubernetes.io/master,,NoSchedule or dedicated,someteam,NoSchedule)  to tolerate and force DaemonSetChecker to tolerate only nodes with that taint. Use the flag multiple times to add multiple tolerations. Default behavior is to tolerate all taints in the cluster.")
@@ -131,7 +136,7 @@ func init() {
 	if len(debugEnv) > 0 {
 		enableDebug, err = strconv.ParseBool(debugEnv)
 		if err != nil {
-			log.Warningln("Failed to parse bool for DEBUG setting:",err)
+			log.Warningln("Failed to parse bool for DEBUG setting:", err)
 		}
 	}
 	if enableDebug {
