@@ -297,7 +297,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		c.RunInterval, err = time.ParseDuration(i.Spec.RunInterval)
 		if err != nil {
 			log.Errorln("Error parsing duration for check", c.Name, "in namespace", c.Namespace, err)
-			log.Errorln("Defaulting check to a runtime of ten minutes...")
+			log.Errorln("Defaulting check to a runtime of ten minutes.")
 			c.RunInterval = time.Minute * 10
 		}
 
