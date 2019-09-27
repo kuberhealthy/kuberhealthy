@@ -301,6 +301,20 @@ func (k *Kuberhealthy) addExternalChecks() error {
 			c.RunInterval = time.Minute * 10
 		}
 
+		// parse the user specified timeout if present
+		c.RunInterval = khcheckcrd.DefaultTimeout
+		if len(i.Spec.Timeout) > 0 {
+			c.RunTimeout, err = time.ParseDuration(i.Spec.Timeout)
+			if err != nil {
+				log.Errorln("Error parsing timeout for check", c.Name, "in namespace", c.Namespace, err)
+				log.Errorln("Defaulting check to a timeout of", khcheckcrd.DefaultTimeout)
+			}
+		}
+
+		// add on extra annotations and labels
+		c.ExtraAnnotations = i.Spec.ExtraAnnotations
+		c.ExtraLabels = i.Spec.ExtraAnnotations
+
 		// add the check into the checker
 		k.AddCheck(c)
 	}

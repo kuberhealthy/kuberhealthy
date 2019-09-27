@@ -39,6 +39,11 @@ metadata:
   name: kh-test-check
   namespace: kuberhealthy
 spec:
+  timeout: 5m
+  extraAnnotations:
+    comcast.com/testAnnotation: test.annotation
+  extraLabels:
+    testLabel: testLabel
   runInterval: 30s
   podSpec:
     containers:
