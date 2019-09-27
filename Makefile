@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # IMAGE="quay.io/comcast/kuberhealthy"
 # TAG="2.0.0alpha4"
 
@@ -13,6 +14,10 @@
 VERSION="2.0.0alphajonny1"
 IMAGE="kuberhealthy:$(VERSION)"
 IMAGE_HOST="docker-proto.repo.theplatform.com"
+=======
+IMAGE="quay.io/comcast/kuberhealthy"
+TAG="2.0.0alpha5"
+>>>>>>> 61cabfdc9eaf0dc3bf51baf874778c64cfbf40d3
 
 build:
 	docker build -t $(IMAGE) .

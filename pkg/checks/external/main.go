@@ -54,8 +54,6 @@ const checkCRDGroup = "comcast.github.io"
 const checkCRDVersion = "v1"
 const checkCRDResource = "khchecks"
 const stateCRDResource = "khstates"
-const stateCRDGroup = "comcast.github.io"
-const stateCRDVersion = "v1"
 
 // Checker implements a KuberhealthyCheck for external
 // check execution and lifecycle management.
@@ -66,6 +64,8 @@ type Checker struct {
 	RunInterval              time.Duration // how often this check runs a loop
 	RunTimeout               time.Duration // time check must run completely within
 	KubeClient               *kubernetes.Clientset
+	KHCheckClient            *khcheckcrd.KuberhealthyCheckClient
+	KHStateClient            *khstatecrd.KuberhealthyStateClient
 	PodSpec                  apiv1.PodSpec // the current pod spec we are using after enforcement of settings
 	OriginalPodSpec          apiv1.PodSpec // the user-provided spec of the pod
 	PodDeployed              bool          // indicates the pod exists in the API
@@ -82,7 +82,7 @@ type Checker struct {
 }
 
 // New creates a new external checker
-func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck, reportingURL string) *Checker {
+func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck, khCheckClient *khcheckcrd.KuberhealthyCheckClient, khStateClient *khstatecrd.KuberhealthyStateClient, reportingURL string) *Checker {
 	if len(checkConfig.Namespace) == 0 {
 		checkConfig.Namespace = "kuberhealthy"
 	}
@@ -93,6 +93,8 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 	return &Checker{
 		ErrorMessages:            []string{},
 		Namespace:                checkConfig.Namespace,
+		KHCheckClient:            khCheckClient,
+		KHStateClient:            khStateClient,
 		CheckName:                checkConfig.Name,
 		KuberhealthyReportingURL: reportingURL,
 		RunTimeout:               defaultTimeout,
@@ -165,28 +167,14 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 // getCheck gets the CRD information for this check from the kubernetes API.
 func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck, error) {
 
-	var defaultCheck khcheckcrd.KuberhealthyCheck
-
-	// make a new crd check client
-	checkClient, err := ext.NewCheckClient(ext.Namespace)
-	if err != nil {
-		return &defaultCheck, err
-	}
-
 	// get the item in question and return it along with any errors
 	log.Debugln("Fetching check", ext.CheckName, "in namespace", ext.Namespace)
-	checkConfig, err := checkClient.Get(metav1.GetOptions{}, checkCRDResource, ext.Namespace, ext.CheckName)
+	checkConfig, err := ext.KHCheckClient.Get(metav1.GetOptions{}, checkCRDResource, ext.Namespace, ext.CheckName)
 	if err != nil {
-		return &defaultCheck, err
+		return &khcheckcrd.KuberhealthyCheck{}, err
 	}
 
 	return checkConfig, err
-}
-
-// NewCheckClient creates a new client for khcheckcrd resources
-func (ext *Checker) NewCheckClient(namespace string) (*khcheckcrd.KuberhealthyCheckClient, error) {
-	// make a new crd check client
-	return khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, namespace)
 }
 
 // setUUID sets the current whitelisted UUID for the checker and updates it on the server
@@ -204,14 +192,8 @@ func (ext *Checker) setUUID(uuid string) error {
 	checkConfig.Spec.CurrentUUID = uuid
 	checkConfig.ObjectMeta.Namespace = ext.Namespace
 
-	// make a new crd check client
-	checkClient, err := ext.NewCheckClient(ext.Namespace)
-	if err != nil {
-		return err
-	}
-
 	// update the resource with the new values we want
-	_, err = checkClient.Update(checkConfig, checkCRDResource, ext.Namespace, ext.Name())
+	_, err = ext.KHCheckClient.Update(checkConfig, checkCRDResource, ext.Namespace, ext.Name())
 	return err
 }
 
@@ -373,24 +355,12 @@ func (ext *Checker) sanityCheck() error {
 	return nil
 }
 
-// NewKHStateClient creates a new client for khstate resources
-func (ext *Checker) NewKHStateClient(namespace string) (*khstatecrd.KuberhealthyStateClient, error) {
-	// make a new crd check client
-	return khstatecrd.Client(stateCRDGroup, stateCRDVersion, kubeConfigFile, namespace)
-}
-
 // getCheckLastUpdateTime fetches the last time the khstate custom resource for this check was updated
-// as a time.Tiem.
+// as a time.Time.
 func (ext *Checker) getCheckLastUpdateTime(ctx context.Context) (time.Time, error) {
 
-	// setup a client for watching our status update
-	stateClient, err := ext.NewKHStateClient(ext.Namespace)
-	if err != nil {
-		return time.Time{}, err
-	}
-
 	// fetch the khstate as it exists
-	khstate, err := stateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.CheckName)
+	khstate, err := ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.CheckName)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return time.Time{}, nil
@@ -435,7 +405,6 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context
 		if currentUpdateTime.After(lastUpdateTime) {
 			return outChan
 		}
-
 	}
 
 	return outChan
