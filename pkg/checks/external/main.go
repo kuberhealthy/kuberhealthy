@@ -40,11 +40,8 @@ const kuberhealthyRunIDLabel = "kuberhealthy-run-id"
 // kuberhealthyCheckNameLabel is the label used to flag this pod as being managed by this checker
 const kuberhealthyCheckNameLabel = "kuberhealthy-check-name"
 
-// defaultMaxRunTime is the default time a pod is allowed to run when this checker is created
-const defaultMaxRunTime = time.Minute * 15
-
-// defaultMaxStartTime is the default time that a pod is required to start within
-const defaultMaxStartTime = time.Minute * 5
+// defaultTimeout is the default time a pod is allowed to run when this checker is created
+const defaultTimeout = time.Minute * 15
 
 // DefaultName is used when no check name is supplied
 var DefaultName = "external-check"
@@ -67,16 +64,17 @@ type Checker struct {
 	Namespace                string
 	ErrorMessages            []string
 	RunInterval              time.Duration // how often this check runs a loop
-	maxRunTime               time.Duration // time check must run completely within after switching to 'Running'
-	startupTimeout           time.Duration // the time an external checker pod has to become 'Running' after starting
+	RunTimeout               time.Duration // time check must run completely within
 	KubeClient               *kubernetes.Clientset
 	PodSpec                  apiv1.PodSpec // the current pod spec we are using after enforcement of settings
 	OriginalPodSpec          apiv1.PodSpec // the user-provided spec of the pod
 	PodDeployed              bool          // indicates the pod exists in the API
 	PodDeployedMu            sync.Mutex
-	PodName                  string             // the name of the deployed pod
-	RunID                    string             // the uuid of the current run
-	KuberhealthyReportingURL string             // the URL that the check should want to report results back to
+	PodName                  string // the name of the deployed pod
+	RunID                    string // the uuid of the current run
+	KuberhealthyReportingURL string // the URL that the check should want to report results back to
+	ExtraAnnotations         map[string]string
+	ExtraLabels              map[string]string
 	currentCheckUUID         string             // the UUID of the current external checker running
 	Debug                    bool               // indicates we should run in debug mode - run once and stop
 	cancelFunc               context.CancelFunc // used to cancel things in-flight
@@ -97,8 +95,9 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 		Namespace:                checkConfig.Namespace,
 		CheckName:                checkConfig.Name,
 		KuberhealthyReportingURL: reportingURL,
-		maxRunTime:               defaultMaxRunTime,
-		startupTimeout:           defaultMaxStartTime,
+		RunTimeout:               defaultTimeout,
+		ExtraAnnotations:         make(map[string]string),
+		ExtraLabels:              make(map[string]string),
 		PodName:                  checkConfig.Name,
 		OriginalPodSpec:          checkConfig.Spec.PodSpec,
 		PodSpec:                  checkConfig.Spec.PodSpec,
@@ -141,7 +140,7 @@ func (ext *Checker) Interval() time.Duration {
 
 // Timeout returns the maximum run time for this check before it times out
 func (ext *Checker) Timeout() time.Duration {
-	return ext.maxRunTime
+	return ext.RunTimeout
 }
 
 // Run executes the checker.  This is ran on each "tick" of
@@ -279,9 +278,11 @@ func (ext *Checker) RunOnce() error {
 	}
 	ext.log("Check", ext.Name(), "created pod", createdPod.Name, "in namespace", createdPod.Namespace)
 
+	timeoutChan := time.After(ext.RunTimeout)
+
 	// watch for pod to start with a timeout (include time for a new node to be created)
 	select {
-	case <-time.After(ext.startupTimeout):
+	case <-timeoutChan:
 		ext.cancel() // cancel the watch context, we have timed out
 		errorMessage := "failed to see pod running within timeout"
 		err := ext.deletePod()
@@ -298,7 +299,6 @@ func (ext *Checker) RunOnce() error {
 	defer ext.setPodDeployed(false)
 
 	// validate that the pod was able to update its khstate
-	timeoutChan := time.After(ext.maxRunTime)
 	ext.log("Waiting for pod status to be reported from pod", ext.PodName, "in namespace", ext.Namespace)
 	select {
 	case <-timeoutChan:
