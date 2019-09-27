@@ -621,6 +621,8 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	p := &apiv1.Pod{}
 	p.Namespace = ext.Namespace
 	p.Name = ext.PodName
+	p.Annotations = ext.ExtraAnnotations
+	p.Labels = ext.ExtraLabels
 	ext.log("Creating external checker pod named", p.Name)
 	p.Spec = ext.PodSpec
 	ext.addKuberhealthyLabels(p)
