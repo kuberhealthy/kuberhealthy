@@ -232,13 +232,13 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 
 			// check if run interval has changed
 			if knownSettings[mapName].RunInterval != i.Spec.RunInterval {
-				log.Debugln("The khcheck run interval for",mapName,"has changed.")
+				log.Debugln("The khcheck run interval for", mapName, "has changed.")
 				foundChange = true
 			}
 
 			// check if CheckConfig has changed (PodSpec)
-			if !foundChange && !reflect.DeepEqual(knownSettings[mapName].PodSpec,i.Spec.PodSpec) {
-				log.Debugln("The khcheck for",mapName,"has changed.")
+			if !foundChange && !reflect.DeepEqual(knownSettings[mapName].PodSpec, i.Spec.PodSpec) {
+				log.Debugln("The khcheck for", mapName, "has changed.")
 				foundChange = true
 			}
 
@@ -272,7 +272,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		return err
 	}
 
-	log.Debugln("Found",len(l.Items),"external checks to load")
+	log.Debugln("Found", len(l.Items), "external checks to load")
 
 	// iterate on each check CRD resource and add it as a check
 	for _, i := range l.Items {
@@ -282,7 +282,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 			return err
 		}
 
-		log.Debugf("External check custom resource loaded: %v",r)
+		log.Debugf("External check custom resource loaded: %v", r)
 
 		// create a new kubernetes client for this external checker
 		kc, err := k.KubeClient()
@@ -399,6 +399,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		// break out if context cancels
 		select {
 		case <-ctx.Done():
+			log.Infoln("Shutting down check due to context cancellation:", c.Name(), "in namespace", c.CheckNamespace())
 			return
 		default:
 		}
@@ -406,7 +407,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		log.Infoln("Running check:", c.Name())
 		client, err := k.KubeClient()
 		if err != nil {
-			log.Errorln("Error creating Kubernetes client for check"+c.Name()+":", err)
+			log.Errorln("Error creating Kubernetes client for check", c.Name(), "in namespace", c.CheckNamespace()+":", err)
 			<-ticker.C
 			continue
 		}
@@ -416,11 +417,11 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		if err != nil {
 			// set any check run errors in the CRD
 			k.setCheckExecutionError(c.Name(), c.CheckNamespace(), err)
-			log.Errorln("Error running check:", c.Name(), err)
+			log.Errorln("Error running check:", c.Name(), "in namespace", c.CheckNamespace()+":", err)
 			<-ticker.C
 			continue
 		}
-		log.Debugln("Done running check:", c.Name())
+		log.Debugln("Done running check:", c.Name(), "in namespace", c.CheckNamespace())
 
 		// make a new state for this check and fill it from the check's current status
 		details := health.NewCheckDetails()
@@ -441,7 +442,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 				"Errors":          strings.Join(details.Errors, ","),
 			}
 			metric := metrics.Metric{
-				{c.Name() + "_status": checkStatus},
+				{c.Name() + "." + c.CheckNamespace(): checkStatus},
 			}
 			err := k.MetricForwarder.Push(metric, tags)
 			if err != nil {
@@ -449,13 +450,15 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 			}
 		}
 
-		log.Infoln("Setting state of check", c.Name(), "to", details.OK, details.Errors)
+		log.Infoln("Setting state of check", c.Name(), "in namespace", c.CheckNamespace(), "to", details.OK, details.Errors)
 
 		// store the check state with the CRD
 		err = k.storeCheckState(c.Name(), c.CheckNamespace(), details)
 		if err != nil {
-			log.Errorln("Error storing CRD state for check:", c.Name(), err)
+			log.Errorln("Error storing CRD state for check:", c.Name(), "in namespace", c.CheckNamespace(), err)
 		}
+
+		log.Infoln("Waiting for next run of check", c.Name(), "in namespace", c.CheckNamespace())
 		<-ticker.C // wait for next run
 	}
 }
@@ -520,8 +523,8 @@ func (k *Kuberhealthy) StartWebServer() {
 
 // PodReportIPInfo holds info about an incoming IP to the external check reporting endpoint
 type PodReportIPInfo struct {
-	Name string
-	UUID string
+	Name      string
+	UUID      string
 	Namespace string
 }
 
@@ -918,7 +921,7 @@ func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, checkNamespac
 		return false, err
 	}
 
-	log.Debugln("Validating current UUID", checkConfig.Spec.CurrentUUID,"vs incoming UUID:", uuid)
+	log.Debugln("Validating current UUID", checkConfig.Spec.CurrentUUID, "vs incoming UUID:", uuid)
 	if checkConfig.Spec.CurrentUUID == uuid {
 		return true, nil
 	}
@@ -926,7 +929,7 @@ func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, checkNamespac
 }
 
 // configureInfluxForwarding sets up initial influxdb metric sending
-func (k *Kuberhealthy) configureInfluxForwarding(){
+func (k *Kuberhealthy) configureInfluxForwarding() {
 
 	// configure influxdb
 	metricClient, err := configureInflux()
