@@ -39,7 +39,7 @@ metadata:
   name: kh-test-check
   namespace: kuberhealthy
 spec:
-  timeout: 5m
+  timeout: 2m
   extraAnnotations:
     comcast.com/testAnnotation: test.annotation
   extraLabels:
@@ -48,8 +48,8 @@ spec:
   podSpec:
     containers:
     - env:
-      - name: SOME_ENV_VAR
-        value: "12345"
+      - name: REPORT_FAILURE
+        value: "false"
       image: quay.io/comcast/testexternalcheck:latest
       name: main
       resources:
