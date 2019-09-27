@@ -339,7 +339,7 @@ func (ext *Checker) RunOnce() error {
 		ext.log("External check pod is done running:", ext.PodName)
 	}
 
-	// TODO - validate that the pod was able to update its khstate
+	// validate that the pod was able to update its khstate
 	select {
 	case <-timeoutChan:
 		ext.cancel() // cancel the watch context, we have timed out
