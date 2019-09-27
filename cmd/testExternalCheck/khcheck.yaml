@@ -5,11 +5,16 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 30s
+  timeout: 2m
+  extraAnnotations:
+    comcast.com/testAnnotation: test.annotation
+  extraLabels:
+    testLabel: testLabel
   podSpec:
     containers:
       - env:
-          - name: SOME_ENV_VAR
-            value: "12345"
+          - name: REPORT_FAILURE
+            value: "false"
         image: testexternalcheck:latest
         imagePullPolicy: IfNotPresent
         name: main

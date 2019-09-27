@@ -22,7 +22,11 @@ import (
 
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 
+	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
+	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
+	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 )
 
@@ -59,6 +63,7 @@ var enableExternalChecks = true
 
 // external check configs
 const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"
+
 var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
 
 // InfluxDB connection configuration
@@ -69,10 +74,14 @@ var influxPassword = ""
 var influxDB = "http://localhost:8086"
 var kuberhealthy *Kuberhealthy
 
+var khStateClient *khstatecrd.KuberhealthyStateClient
+
 // constants for using the kuberhealthy status CRD
-const statusCRDGroup = "comcast.github.io"
-const statusCRDVersion = "v1"
-const statusCRDResource = "khstates"
+const stateCRDGroup = "comcast.github.io"
+const stateCRDVersion = "v1"
+const stateCRDResource = "khstates"
+
+var khCheckClient *khcheckcrd.KuberhealthyCheckClient
 
 // constants for using the kuberhealthy check CRD
 const checkCRDGroup = "comcast.github.io"
@@ -80,6 +89,9 @@ const checkCRDVersion = "v1"
 const checkCRDResource = "khchecks"
 
 var checkCRDScanInterval = time.Second * 5 // how often we scan for changes to check CRD objects
+
+// the global kubernetes client
+var kubernetesClient *kubernetes.Clientset
 
 func init() {
 
@@ -92,7 +104,7 @@ func init() {
 	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
 	flaggy.Bool(&enableDNSStatusChecks, "", "dnsStatusChecks", "Set to false to disable DNS checks.")
 	flaggy.Bool(&enableExternalChecks, "", "externalChecks", "Set to false to disable external checks.")
-	flaggy.Bool(&enableForceMaster, "","forceMaster", "Set to true to enable local testing, forced master mode.")
+	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
 	flaggy.String(&DSPauseContainerImageOverride, "", "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
 	flaggy.StringSlice(&DSTolerationOverride, "", "tolerationOverride", "Specify a specific taint (in a key,value,effect format, ex. node-role.kubernetes.io/master,,NoSchedule or dedicated,someteam,NoSchedule)  to tolerate and force DaemonSetChecker to tolerate only nodes with that taint. Use the flag multiple times to add multiple tolerations. Default behavior is to tolerate all taints in the cluster.")
@@ -131,7 +143,7 @@ func init() {
 	if len(debugEnv) > 0 {
 		enableDebug, err = strconv.ParseBool(debugEnv)
 		if err != nil {
-			log.Warningln("Failed to parse bool for DEBUG setting:",err)
+			log.Warningln("Failed to parse bool for DEBUG setting:", err)
 		}
 	}
 	if enableDebug {
@@ -155,6 +167,12 @@ func init() {
 	podHostname, err = getEnvVar("POD_NAME")
 	if err != nil {
 		log.Fatalln("Failed to determine my hostname!")
+	}
+
+	// setup all clients
+	err = initKubernetesClients()
+	if err != nil {
+		log.Fatalln("Failed to bootstrap kubernetes clients:", err)
 	}
 }
 
@@ -201,4 +219,31 @@ func determineCheckStateFromEnvVar(envVarName string) bool {
 		return true // by default, the check is on
 	}
 	return enabledState
+}
+
+// initKubernetesClients creates the appropriate CRD clients and kubernetes client to be used in all cases. Issue #181
+func initKubernetesClients() error {
+
+	// make a new kuberhealthy client
+	kc, err := kubeClient.Create(kubeConfigFile)
+	if err != nil {
+		return err
+	}
+	kubernetesClient = kc
+
+	// make a new crd check client
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, "")
+	if err != nil {
+		return err
+	}
+	khCheckClient = checkClient
+
+	// make a new crd state client
+	stateClient, err := khstatecrd.Client(stateCRDGroup, stateCRDVersion, kubeConfigFile, "")
+	if err != nil {
+		return err
+	}
+	khStateClient = stateClient
+
+	return nil
 }
