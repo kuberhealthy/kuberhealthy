@@ -360,7 +360,7 @@ func (ext *Checker) sanityCheck() error {
 func (ext *Checker) getCheckLastUpdateTime(ctx context.Context) (time.Time, error) {
 
 	// fetch the khstate as it exists
-	khstate, err := ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.CheckName)
+	khstate, err := ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.CheckName, ext.Namespace)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return time.Time{}, nil

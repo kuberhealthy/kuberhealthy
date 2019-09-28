@@ -281,7 +281,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 		// add on extra annotations and labels
 		c.ExtraAnnotations = i.Spec.ExtraAnnotations
-		c.ExtraLabels = i.Spec.ExtraAnnotations
+		c.ExtraLabels = i.Spec.ExtraLabels
 
 		// add the check into the checker
 		k.AddCheck(c)
@@ -437,13 +437,13 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, details health.CheckDetails) error {
 
 	// ensure the CRD resource exits
-	err := ensureStateResourceExists(checkName)
+	err := ensureStateResourceExists(checkName, checkNamespace)
 	if err != nil {
 		return err
 	}
 
 	// put the status on the CRD from the check
-	err = setCheckStateResource(checkName, details)
+	err = setCheckStateResource(checkName, checkNamespace, details)
 	if err != nil {
 		return err
 	}
