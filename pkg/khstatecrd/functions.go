@@ -25,13 +25,13 @@ type KuberhealthyStateClient struct {
 }
 
 // Create creates a new resource for this CRD
-func (c *KuberhealthyStateClient) Create(state *KuberhealthyState, resource string) (*KuberhealthyState, error) {
+func (c *KuberhealthyStateClient) Create(state *KuberhealthyState, resource string, namespace string) (*KuberhealthyState, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	result := KuberhealthyState{}
 	err := c.restClient.
 		Post().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		Body(state).
 		Do().
@@ -40,13 +40,13 @@ func (c *KuberhealthyStateClient) Create(state *KuberhealthyState, resource stri
 }
 
 // Delete deletes a resource for this CRD
-func (c *KuberhealthyStateClient) Delete(state *KuberhealthyState, resource string, name string) (*KuberhealthyState, error) {
+func (c *KuberhealthyStateClient) Delete(state *KuberhealthyState, resource string, name string, namespace string) (*KuberhealthyState, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	result := KuberhealthyState{}
 	err := c.restClient.
 		Delete().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		Name(name).
 		Do().
@@ -55,14 +55,14 @@ func (c *KuberhealthyStateClient) Delete(state *KuberhealthyState, resource stri
 }
 
 // Update updates a resource for this CRD
-func (c *KuberhealthyStateClient) Update(state *KuberhealthyState, resource string, name string) (*KuberhealthyState, error) {
+func (c *KuberhealthyStateClient) Update(state *KuberhealthyState, resource string, name string, namespace string) (*KuberhealthyState, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	result := KuberhealthyState{}
 	// err := c.restClient.Verb("update").Namespace(c.ns).Resource(resource).Name(name).Do().Into(&result)
 	err := c.restClient.
 		Put().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		Body(state).
 		Name(name).
@@ -72,13 +72,13 @@ func (c *KuberhealthyStateClient) Update(state *KuberhealthyState, resource stri
 }
 
 // Get fetches a resource of this CRD
-func (c *KuberhealthyStateClient) Get(opts metav1.GetOptions, resource string, name string) (*KuberhealthyState, error) {
+func (c *KuberhealthyStateClient) Get(opts metav1.GetOptions, resource string, name string, namespace string) (*KuberhealthyState, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	result := KuberhealthyState{}
 	err := c.restClient.
 		Get().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		Name(name).
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -88,13 +88,13 @@ func (c *KuberhealthyStateClient) Get(opts metav1.GetOptions, resource string, n
 }
 
 // List lists resources for this CRD
-func (c *KuberhealthyStateClient) List(opts metav1.ListOptions, resource string) (*KuberhealthyStateList, error) {
+func (c *KuberhealthyStateClient) List(opts metav1.ListOptions, resource string, namespace string) (*KuberhealthyStateList, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	result := KuberhealthyStateList{}
 	err := c.restClient.
 		Get().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
