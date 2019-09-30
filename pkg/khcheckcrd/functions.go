@@ -12,7 +12,10 @@
 package khcheckcrd
 
 import (
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 )
@@ -102,4 +105,16 @@ func (c *KuberhealthyCheckClient) List(opts metav1.ListOptions, resource string,
 	return &result, err
 }
 
-// TODO - implement watches?
+// Watch returns a watch.Interface that watches the requested clusterTestTypes.
+func (c *KuberhealthyCheckClient) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
+	opts.Watch = true
+	return c.restClient.Get().
+		Resource("khchecks").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
+		Watch()
+}
