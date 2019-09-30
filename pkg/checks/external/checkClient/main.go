@@ -59,7 +59,12 @@ func sendReport(s status.Report) error {
 
 	// send to the server
 	// TODO - retry logic?  Maybe we want this to be sensitive on a failure...
-	_, err = http.Post(url, "application/json", bytes.NewBuffer(b))
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(b))
+
+	// make sure we got a 200 and consider it an error otherwise
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status code from kuberhealthy status reporting url: %s", resp.Status)
+	}
 
 	return err
 }
@@ -77,4 +82,3 @@ func getKuberhealthyURL() (string, error) {
 
 	return reportingURL, nil
 }
-
