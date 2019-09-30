@@ -54,7 +54,7 @@ func sendReport(s status.Report) error {
 	// fetch the server url
 	url, err := getKuberhealthyURL()
 	if err != nil {
-		return fmt.Errorf("Failed to fetch the kuberhealthy url: %w", err)
+		return fmt.Errorf("failed to fetch the kuberhealthy url: %w", err)
 	}
 
 	// send to the server

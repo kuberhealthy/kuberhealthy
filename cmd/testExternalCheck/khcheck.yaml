@@ -15,7 +15,7 @@ spec:
       - env:
           - name: REPORT_FAILURE
             value: "false"
-        image: testexternalcheck:latest
+        image: integrii/kh-test-check:latest
         imagePullPolicy: IfNotPresent
         name: main
         resources:
