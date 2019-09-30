@@ -5,6 +5,7 @@ package external
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -161,7 +162,6 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	}
 
 	return nil
-
 }
 
 // getCheck gets the CRD information for this check from the kubernetes API.
@@ -183,8 +183,8 @@ func (ext *Checker) setUUID(uuid string) error {
 	log.Debugln("Set expected UUID to:", uuid)
 	checkConfig, err := ext.getCheck()
 	if err != nil {
-		if !strings.Contains(err.Error(), "could not find the requested resource") {
-			return err
+		if !strings.Contains(err.Error(), "not found") {
+			return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
 		}
 	}
 

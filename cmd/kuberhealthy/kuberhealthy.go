@@ -781,7 +781,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	state := health.NewState()
 
 	// fetch a client for the master calculation
-	log.Debugln("Creating kubernetes client...")
+	log.Debugln("Calculating current master pod")
 
 	// calculate the current master and apply it to the status output
 	currentMaster, err := masterCalculation.CalculateMaster(kubernetesClient)
