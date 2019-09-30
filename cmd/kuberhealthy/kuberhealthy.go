@@ -27,6 +27,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
@@ -167,20 +168,68 @@ func (k *Kuberhealthy) Start() {
 	}
 }
 
+// watchForKHCheckChanges watches for changes to khcheck objects and returns them through the specified channel
+func (k *Kuberhealthy) watchForKHCheckChanges(c chan struct{}) {
+
+	log.Debugln("Spawned watcher for KH check changes")
+
+	for {
+		log.Debugln("Starting a watch for khcheck object changes")
+
+		// wait a second so we don't retry too quickly on error
+		time.Sleep(time.Second)
+
+		// start a watch on khcheck resources
+		watcher, err := khCheckClient.Watch(metav1.ListOptions{})
+		if err != nil {
+			log.Errorln("error watching khcheck objects", err)
+			watcher.Stop()
+			continue
+		}
+
+		// loop over results and return them to the calling channel until we hit an error, then close and restart
+		for khc := range watcher.ResultChan() {
+			switch khc.Type {
+			case watch.Added:
+				log.Debugln("khcheck monitor saw an added event")
+				c <- struct{}{}
+			case watch.Modified:
+				log.Debugln("khcheck monitor saw a modified event")
+				c <- struct{}{}
+			case watch.Deleted:
+				log.Debugln("khcheck monitor saw a deleted event")
+				c <- struct{}{}
+			case watch.Bookmark:
+				log.Debugln("khcheck monitor saw a bookmark event and ignored it")
+			case watch.Error:
+				log.Debugln("khcheck monitor saw an error event")
+				e := khc.Object.(*metav1.Status)
+				log.Errorln("Error when watching for khcheck changes:", e.Reason)
+				break
+			default:
+				log.Warningln("khcheck monitor saw an unknown event type and ignored it:", khc.Type)
+			}
+		}
+		watcher.Stop()
+	}
+}
+
 // monitorExternalChecks watches for changes to the external check CRDs
 func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 
 	// make a map of resource versions so we know when things change
 	knownSettings := make(map[string]khcheckcrd.CheckConfig)
 
-	// start polling for check changes all the time.
-	// TODO - watch is not implemented on the CRD package yet, but
-	// when it is we should use a watch instead of polling.
+	// start watching for events to changes in the background
+	c := make(chan struct{})
+	go k.watchForKHCheckChanges(c)
+
+	// each time  we see a change in our khcheck structs, we should look at every object to see if something has changed
 	for {
 
-		// rate limiting for watch restarts
-		time.Sleep(checkCRDScanInterval)
-		log.Debugln("Scanning for external check changes...")
+		// wait for the change channel to detect a change before scanning again
+		<-c
+		log.Debugln("Change notification received. Scanning for external check changes...")
 
 		// fetch all khcheck resources from all namespaces
 		l, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
