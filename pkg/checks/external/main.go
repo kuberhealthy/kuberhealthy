@@ -272,7 +272,10 @@ func (ext *Checker) RunOnce() error {
 			errorMessage = errorMessage + " and an error occurred when deleting the pod:" + err.Error()
 		}
 		return errors.New(errorMessage)
-	case <-ext.waitForPodRunning():
+	case err = <-ext.waitForPodRunning():
+		if err != nil {
+			return errors.New("error when waiting for pod to start: " + err.Error())
+		}
 		ext.log("External check pod is running:", ext.PodName)
 	}
 
@@ -536,6 +539,8 @@ func (ext *Checker) waitForPodRunning() chan error {
 			continue
 		}
 
+		// TODO - catch when the pod has an error image pull and return it as an error #201
+
 		// make sure the pod coming through the event channel has the right check uuid label
 		if p.Labels[kuberhealthyRunIDLabel] != ext.currentCheckUUID {
 			continue
@@ -550,7 +555,8 @@ func (ext *Checker) waitForPodRunning() chan error {
 		// if the context is done, we break the loop and return
 		select {
 		case <-ext.ctx.Done():
-			outChan <- errors.New("external checker pod startup watch aborted")
+			ext.log("external checker pod startup watch aborted due to context being aborted")
+			outChan <- nil
 			return outChan
 		default:
 			// context is not canceled yet, continue
