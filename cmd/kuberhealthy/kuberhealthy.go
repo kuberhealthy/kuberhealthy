@@ -319,7 +319,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		}
 
 		// parse the user specified timeout if present
-		c.RunInterval = khcheckcrd.DefaultTimeout
+		c.RunTimeout = khcheckcrd.DefaultTimeout
 		if len(i.Spec.Timeout) > 0 {
 			c.RunTimeout, err = time.ParseDuration(i.Spec.Timeout)
 			if err != nil {
