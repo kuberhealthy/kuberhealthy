@@ -385,8 +385,8 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context
 	// watch events and return when the pod is in state running
 	for {
 
-		// wait half a second between requests
-		time.Sleep(time.Second / 2)
+		// wait between requests to the api
+		time.Sleep(time.Second * 5)
 		log.Debugln("Waiting for external checker pod to report in...")
 
 		// if the context is canceled, we stop
@@ -426,15 +426,15 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 	// watch events and return when the pod is in state running
 	for {
 
+		// wait between requests
+		time.Sleep(time.Second * 5)
+
 		// if the context is canceled, we stop
 		select {
 		case <-ctx.Done():
 			outChan <- errors.New("waiting for pod to clear was aborted by context cancellation")
 		default:
 		}
-
-		// wait half a second between requests
-		time.Sleep(time.Second / 2)
 
 		// fetch the pod by name
 		_, err := podClient.Get(ext.PodName, metav1.GetOptions{})
@@ -696,7 +696,7 @@ func (ext *Checker) waitForShutdown(ctx context.Context) error {
 	// repeatedly fetch the pod until its gone or the context
 	// is canceled
 	for {
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 5)
 		exists, err := ext.podExists()
 		if err != nil {
 			return err
