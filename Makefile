@@ -11,4 +11,4 @@ buildExternalChecker:
 	docker build -t quay.io/comcast/testexternalcheck:latest -f cmd/testExternalCheck/Dockerfile .
 
 pushExternalChecker:
-	docker push quay.io/comcast/testexternalcheck:latest
+	docker push integrii/kh-test-check
