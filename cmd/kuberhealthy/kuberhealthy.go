@@ -318,6 +318,8 @@ func (k *Kuberhealthy) addExternalChecks() error {
 			c.RunInterval = time.Minute * 10
 		}
 
+		log.Debugln("RunInterval for check:", c.Name, "set to", c.RunInterval)
+
 		// parse the user specified timeout if present
 		c.RunTimeout = khcheckcrd.DefaultTimeout
 		if len(i.Spec.Timeout) > 0 {
@@ -327,6 +329,8 @@ func (k *Kuberhealthy) addExternalChecks() error {
 				log.Errorln("Defaulting check to a timeout of", khcheckcrd.DefaultTimeout)
 			}
 		}
+
+		log.Debugln("RunTimeout for check:", c.Name, "set to", c.RunTimeout)
 
 		// add on extra annotations and labels
 		c.ExtraAnnotations = i.Spec.ExtraAnnotations
