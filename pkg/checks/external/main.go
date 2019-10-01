@@ -646,6 +646,7 @@ func (ext *Checker) configureUserPodSpec() error {
 
 	// apply overwrite env vars on every container in the pod
 	for i := range ext.PodSpec.Containers {
+		ext.PodSpec.Containers[i].Env = resetInjectedContainerEnvVars(ext.PodSpec.Containers[i].Env, []string{KHReportingURL, KHRunUUID})
 		ext.PodSpec.Containers[i].Env = append(ext.PodSpec.Containers[i].Env, overwriteEnvVars...)
 	}
 
@@ -798,4 +799,27 @@ func (ext *Checker) setPodDeployed(status bool) {
 // getPodClient returns a client for Kubernetes pods
 func (ext *Checker) getPodClient() typedv1.PodInterface {
 	return ext.KubeClient.CoreV1().Pods(ext.Namespace)
+}
+
+// resetInjectedContainerEnvVars resets injected environment variables
+func resetInjectedContainerEnvVars(podVars []apiv1.EnvVar, injectedVars []string) []apiv1.EnvVar {
+	sanitizedVars := make([]apiv1.EnvVar, 0)
+	for _, podVar := range podVars {
+		if containsEnvVarName(podVar.Name, injectedVars) {
+			continue
+		}
+		sanitizedVars = append(sanitizedVars, podVar)
+	}
+	return sanitizedVars
+}
+
+// containsEnvVarName returns a boolean value based on whether or not
+// an env var is contained within a list
+func containsEnvVarName(envVar string, injectedVars []string) bool {
+	for _, injectedVar := range injectedVars {
+		if envVar == injectedVar {
+			return true
+		}
+	}
+	return false
 }
