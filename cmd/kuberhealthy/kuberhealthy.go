@@ -764,6 +764,15 @@ func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.R
 // as JSON to the client.
 func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
+
+	// If a request body was supplied, throw an error to ensure that checks don't report into the wrong url
+	body, err := ioutil.ReadAll(r.Body)
+	if len(body) > 0 {
+		log.Warningln("Unexpected body from status page request. Verify check is reporting to the right status url", r.RemoteAddr, r.RequestURI)
+		w.WriteHeader(http.StatusBadRequest)
+		return err
+	}
+
 	state, err := k.getCurrentState()
 	if err != nil {
 		k.writeHealthCheckError(w, r, err, state)
