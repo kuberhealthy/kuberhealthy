@@ -7,8 +7,10 @@ build:
 push:
 	docker push $(IMAGE):$(TAG)
 
+external: buildExternalChecker pushExternalChecker
+
 buildExternalChecker:
-	docker build -t integrii/kh-test-check:latest -f cmd/testExternalCheck/Dockerfile .
+	docker build -t quay.io/comcast/test-external-check:latest -f cmd/test-external-check/Dockerfile .
 
 pushExternalChecker:
 	docker push quay.io/comcast/test-external-check:latest
