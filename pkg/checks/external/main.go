@@ -5,6 +5,7 @@ package external
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -161,7 +162,6 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	}
 
 	return nil
-
 }
 
 // getCheck gets the CRD information for this check from the kubernetes API.
@@ -183,8 +183,8 @@ func (ext *Checker) setUUID(uuid string) error {
 	log.Debugln("Set expected UUID to:", uuid)
 	checkConfig, err := ext.getCheck()
 	if err != nil {
-		if !strings.Contains(err.Error(), "could not find the requested resource") {
-			return err
+		if !strings.Contains(err.Error(), "not found") {
+			return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
 		}
 	}
 
@@ -245,10 +245,24 @@ func (ext *Checker) RunOnce() error {
 		return errors.New("failed to clean up pods before starting external checker: " + err.Error())
 	}
 
+	// init a timeout for this whole check
+	timeoutChan := time.After(ext.RunTimeout)
+
 	// waiting for all checker pods are gone...
-	err = <-ext.waitForAllPodsToClear(ext.ctx)
-	if err != nil {
-		return errors.New("failed while waiting for pods to clean up: " + err.Error())
+	ext.log("Waiting for all existing pods to clean up")
+	select {
+	case <-timeoutChan:
+		ext.cancel() // cancel the watch context, we have timed out
+		errorMessage := "failed to see pod cleanup within timeout"
+		err := ext.deletePod()
+		if err != nil {
+			errorMessage = errorMessage + " and an error occurred when cleaning up the pod's name:" + err.Error()
+		}
+		return errors.New(errorMessage)
+	case err = <-ext.waitForAllPodsToClear(ext.ctx):
+		if err != nil {
+			return errors.New("failed while waiting for pods to clean up: " + err.Error())
+		}
 	}
 	ext.log("No checker pods exist.")
 
@@ -259,8 +273,6 @@ func (ext *Checker) RunOnce() error {
 		return errors.New("failed to create pod for checker: " + err.Error())
 	}
 	ext.log("Check", ext.Name(), "created pod", createdPod.Name, "in namespace", createdPod.Namespace)
-
-	timeoutChan := time.After(ext.RunTimeout)
 
 	// watch for pod to start with a timeout (include time for a new node to be created)
 	select {
@@ -304,6 +316,7 @@ func (ext *Checker) RunOnce() error {
 	}
 
 	// validate that the pod stopped running properly
+	ext.log("Waiting for pod to exit")
 	select {
 	case <-timeoutChan:
 		ext.log("Timed out waiting for pod to stop running:", ext.PodName)
@@ -314,7 +327,7 @@ func (ext *Checker) RunOnce() error {
 			errorMessage = errorMessage + " and an error occurred when deleting the pod:" + err.Error()
 		}
 		return errors.New(errorMessage)
-	case err = <-ext.waitForPodExit(ext.ctx):
+	case err = <-ext.waitForPodExit():
 		if err != nil {
 			ext.log("External checker had an error while waiting for pod to exit:", err.Error())
 			return err
@@ -329,16 +342,23 @@ func (ext *Checker) RunOnce() error {
 
 // Log writes a normal InfoLn message output prefixed with this checker's name on it
 func (ext *Checker) log(s ...string) {
-	log.Infoln(ext.CheckName+":", s)
+	log.Infoln(ext.Namespace+"/"+ext.CheckName+":", s)
 }
 
 // stopPod stops any pods running because of this external checker
 func (ext *Checker) deletePod() error {
-	ext.log("Deleting all checker pods")
+	ext.log("Deleting checker pods with name", ext.CheckName)
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
-	return podClient.DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
-		LabelSelector: kuberhealthyCheckNameLabel + "=" + ext.CheckName,
+	gracePeriodSeconds := int64(1)
+	deletionPolicy := metav1.DeletePropagationForeground
+	err := podClient.Delete(ext.PodName, &metav1.DeleteOptions{
+		GracePeriodSeconds: &gracePeriodSeconds,
+		PropagationPolicy:  &deletionPolicy,
 	})
+	if strings.Contains(err.Error(), "not found") {
+		return nil
+	}
+	return err
 }
 
 // sanityCheck runs a basic sanity check on the checker before running
@@ -377,6 +397,7 @@ func (ext *Checker) getCheckLastUpdateTime(ctx context.Context) (time.Time, erro
 
 // waitForPodStatusUpdate waits for a pod status to update from the specified time
 func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context.Context) chan error {
+	ext.log("waiting for pod to report in to status page...")
 
 	// make the output channel we will return and close it whenever we are done
 	outChan := make(chan error, 2)
@@ -387,12 +408,13 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context
 
 		// wait between requests to the api
 		time.Sleep(time.Second * 5)
-		log.Debugln("Waiting for external checker pod to report in...")
+		ext.log("waiting for external checker pod to report in...")
 
 		// if the context is canceled, we stop
 		select {
 		case <-ctx.Done():
 			outChan <- errors.New("waiting for pod to clear was aborted by context cancellation")
+			return outChan
 		default:
 		}
 
@@ -409,8 +431,6 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context
 			return outChan
 		}
 	}
-
-	return outChan
 }
 
 // waitForAllPodsToClear waits for all pods to clear up and be gone
@@ -425,6 +445,7 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 
 	// watch events and return when the pod is in state running
 	for {
+		log.Debugln("Waiting for checker pod", ext.PodName, "to clear...")
 
 		// wait between requests
 		time.Sleep(time.Second * 5)
@@ -433,6 +454,7 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 		select {
 		case <-ctx.Done():
 			outChan <- errors.New("waiting for pod to clear was aborted by context cancellation")
+			return outChan
 		default:
 		}
 
@@ -442,6 +464,8 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 		// if we got a "not found" message, then we are done.  This is the happy path.
 		if err != nil {
 			if strings.Contains(err.Error(), "not found") {
+				ext.log("all pods cleared")
+				outChan <- nil
 				return outChan
 			}
 
@@ -450,14 +474,13 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 			break
 		}
 
-		log.Debugln("Waiting for checker pod", ext.PodName, "to clear...")
 	}
 
 	return outChan
 }
 
 // waitForPodExit returns a channel that notifies when the checker pod exits
-func (ext *Checker) waitForPodExit(ctx context.Context) chan error {
+func (ext *Checker) waitForPodExit() chan error {
 
 	// make the output channel we will return
 	outChan := make(chan error, 2)
@@ -467,6 +490,7 @@ func (ext *Checker) waitForPodExit(ctx context.Context) chan error {
 	watcher, err := podClient.Watch(metav1.ListOptions{
 		LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
 	})
+	defer watcher.Stop()
 
 	// return the watch error as a channel if found
 	if err != nil {
@@ -486,10 +510,7 @@ func (ext *Checker) waitForPodExit(ctx context.Context) chan error {
 		// log.Debugln("Got event while watching for pod to stop:", e)
 
 		// make sure the pod coming through the event channel has the right check uuid label
-		if p.Labels[kuberhealthyRunIDLabel] != ext.currentCheckUUID {
-			continue
-		}
-
+		ext.log("pod state is now:", string(p.Status.Phase))
 		// read the status of this pod (its ours) and return if its succeeded or failed
 		if p.Status.Phase == apiv1.PodSucceeded || p.Status.Phase == apiv1.PodFailed {
 			outChan <- nil
@@ -498,15 +519,16 @@ func (ext *Checker) waitForPodExit(ctx context.Context) chan error {
 
 		// if the context is done, we break the loop and return
 		select {
-		case <-ctx.Done():
-			outChan <- errors.New("external checker pod completion watch aborted")
+		case <-ext.ctx.Done():
+			ext.log("external checker pod exit watch aborted due to check context being aborted")
+			outChan <- nil
 			return outChan
 		default:
 			// context is not canceled yet, continue
 		}
 	}
 
-	outChan <- errors.New("external checker watch aborted pre-maturely")
+	outChan <- errors.New("waitForPodExit watch ended unexpectedly without finding a pod state")
 	return outChan
 }
 
@@ -521,6 +543,7 @@ func (ext *Checker) waitForPodRunning() chan error {
 	watcher, err := podClient.Watch(metav1.ListOptions{
 		LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
 	})
+	defer watcher.Stop()
 
 	// return the watch error as a channel if found
 	if err != nil {
@@ -531,8 +554,6 @@ func (ext *Checker) waitForPodRunning() chan error {
 	// watch events and return when the pod is in state running
 	for e := range watcher.ResultChan() {
 
-		// log.Debugln("Got event while watching for pod to start running:", e)
-
 		// try to cast the incoming object to a pod and skip the event if we cant
 		p, ok := e.Object.(*apiv1.Pod)
 		if !ok {
@@ -541,13 +562,9 @@ func (ext *Checker) waitForPodRunning() chan error {
 
 		// TODO - catch when the pod has an error image pull and return it as an error #201
 
-		// make sure the pod coming through the event channel has the right check uuid label
-		if p.Labels[kuberhealthyRunIDLabel] != ext.currentCheckUUID {
-			continue
-		}
-
 		// read the status of this pod (its ours)
-		if p.Status.Phase == apiv1.PodRunning || p.Status.Phase == apiv1.PodFailed {
+		ext.log("pod state is now:", string(p.Status.Phase))
+		if p.Status.Phase == apiv1.PodRunning || p.Status.Phase == apiv1.PodFailed || p.Status.Phase == apiv1.PodSucceeded {
 			outChan <- nil
 			return outChan
 		}
@@ -555,7 +572,7 @@ func (ext *Checker) waitForPodRunning() chan error {
 		// if the context is done, we break the loop and return
 		select {
 		case <-ext.ctx.Done():
-			ext.log("external checker pod startup watch aborted due to context being aborted")
+			ext.log("external checker pod startup watch aborted due to check context being aborted")
 			outChan <- nil
 			return outChan
 		default:
@@ -563,7 +580,7 @@ func (ext *Checker) waitForPodRunning() chan error {
 		}
 	}
 
-	outChan <- errors.New("external checker watch aborted pre-maturely")
+	outChan <- errors.New("waitForPodRunning watch ended unexpectedly without finding a pod state")
 	return outChan
 }
 

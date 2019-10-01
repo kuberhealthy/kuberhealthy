@@ -670,12 +670,14 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	log.Infoln("Client connected to check report handler from", r.RemoteAddr, r.UserAgent())
 
 	// validate the calling pod to ensure that it has a proper KH_CHECK_NAME and KH_RUN_UUID
+	log.Debug("validating external check status report from", r.RemoteAddr)
 	ipReport, err := k.validateExternalRequest(r.RemoteAddr)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		log.Errorln("Failed to look up pod by IP:", r.RemoteAddr, err)
 		return nil
 	}
+	log.Debugln("Calling pod is", ipReport.Name, "in namespace", ipReport.Namespace)
 
 	// ensure the client is sending a valid payload in the request body
 	b, err := ioutil.ReadAll(r.Body)
@@ -713,6 +715,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	details.AuthoritativePod = hostname
 
 	// since the check is validated, we can proceed to update the status now
+	log.Debugln("Setting check with name", ipReport.Name, "to OK state", details.OK)
 	err = k.storeCheckState(ipReport.Name, ipReport.Namespace, details)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -781,7 +784,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	state := health.NewState()
 
 	// fetch a client for the master calculation
-	log.Debugln("Creating kubernetes client...")
+	log.Debugln("Calculating current master pod")
 
 	// calculate the current master and apply it to the status output
 	currentMaster, err := masterCalculation.CalculateMaster(kubernetesClient)
