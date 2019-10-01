@@ -355,10 +355,10 @@ func (ext *Checker) deletePod() error {
 		GracePeriodSeconds: &gracePeriodSeconds,
 		PropagationPolicy:  &deletionPolicy,
 	})
-	if strings.Contains(err.Error(), "not found") {
-		return nil
+	if err != nil && !strings.Contains(err.Error(), "not found") {
+		return err
 	}
-	return err
+	return nil
 }
 
 // sanityCheck runs a basic sanity check on the checker before running
