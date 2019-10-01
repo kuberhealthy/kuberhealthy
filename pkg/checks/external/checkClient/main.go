@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -53,6 +54,7 @@ func sendReport(s status.Report) error {
 
 	// fetch the server url
 	url, err := getKuberhealthyURL()
+	log.Println("Using kuberhealthy reporting URL:", url)
 	if err != nil {
 		return fmt.Errorf("failed to fetch the kuberhealthy url: %w", err)
 	}
