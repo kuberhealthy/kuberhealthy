@@ -351,10 +351,14 @@ func (ext *Checker) deletePod() error {
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 	gracePeriodSeconds := int64(1)
 	deletionPolicy := metav1.DeletePropagationForeground
-	return podClient.Delete(ext.PodName, &metav1.DeleteOptions{
+	err := podClient.Delete(ext.PodName, &metav1.DeleteOptions{
 		GracePeriodSeconds: &gracePeriodSeconds,
 		PropagationPolicy:  &deletionPolicy,
 	})
+	if err != nil && !strings.Contains(err.Error(), "not found") {
+		return err
+	}
+	return nil
 }
 
 // sanityCheck runs a basic sanity check on the checker before running
