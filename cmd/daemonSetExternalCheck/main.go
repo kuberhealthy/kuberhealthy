@@ -33,7 +33,7 @@ const daemonSetBaseName = "daemonset-test"
 const defaultDSCheckTimeout = "10m"
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var Namespace string
-var DSCheckTimeout string
+var Timeout time.Duration
 
 // DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
@@ -54,14 +54,22 @@ type Checker struct {
 
 func init() {
 	Namespace = os.Getenv("POD_NAMESPACE")
-	DSCheckTimeout = os.Getenv("DS_CHECKER_TIMEOUT")
 	if len(Namespace) == 0 {
-		log.Fatalln("ERROR: The POD_NAMESPACE environment variable has not been set.")
+		log.Errorln("ERROR: The POD_NAMESPACE environment variable has not been set.")
+		return
 	}
 
-	if len(DSCheckTimeout) == 0 {
+	dsCheckTimeout := os.Getenv("DS_CHECKER_TIMEOUT")
+	if len(dsCheckTimeout) == 0 {
 		log.Infoln("DS_CHECKER_TIMEOUT environment variable has not been set. Using default Daemonset Checker timeout", defaultDSCheckTimeout)
-		DSCheckTimeout = defaultDSCheckTimeout
+		dsCheckTimeout = defaultDSCheckTimeout
+	}
+
+	var err error
+	Timeout, err = time.ParseDuration(dsCheckTimeout)
+	if err != nil {
+		log.Errorln("Error parsing timeout for check", dsCheckTimeout, err)
+		return
 	}
 }
 
@@ -199,13 +207,8 @@ func (dsc *Checker) Interval() time.Duration {
 }
 
 // Timeout returns the maximum run time for this check before it times out
-func (dsc *Checker) Timeout() (time.Duration, error) {
-	timeout, err := time.ParseDuration(DSCheckTimeout)
-	if err != nil {
-		log.Errorln("Error parsing timeout for check", dsc.Name(), "in namespace", dsc.Namespace, err)
-		return timeout, err
-	}
-	return timeout, err
+func (dsc *Checker) Timeout() time.Duration {
+	return Timeout
 }
 
 // Shutdown signals the DS to begin a cleanup
@@ -216,14 +219,9 @@ func (dsc *Checker) Shutdown() error {
 	ctx := context.Background()
 	ctx, cancelCtx := context.WithCancel(ctx)
 
-	timeout, err := dsc.Timeout()
-	if err != nil {
-		return err
-	}
-
 	// cancel the shutdown context after the timeout
 	go func() {
-		<-time.After(timeout)
+		<-time.After(dsc.Timeout())
 		cancelCtx()
 	}()
 
@@ -514,10 +512,6 @@ func (dsc *Checker) Run(client *kubernetes.Clientset) error {
 	}(doneChan)
 
 	var err error
-	timeout, err := dsc.Timeout()
-	if err != nil {
-		return err
-	}
 	// wait for either a timeout or job completion
 	select {
 	case <-time.After(dsc.Interval()):
@@ -531,7 +525,7 @@ func (dsc *Checker) Run(client *kubernetes.Clientset) error {
 			return err
 		}
 		log.Println("Successfully reported failure to Kuberhealthy servers")
-	case <-time.After(timeout):
+	case <-time.After(dsc.Timeout()):
 		// The check has timed out after its specified timeout period
 		cancelCtx() // cancel context
 		errorMessage := "Failed to complete checks for " + dsc.Name() + " in time!  Timeout was reached."
