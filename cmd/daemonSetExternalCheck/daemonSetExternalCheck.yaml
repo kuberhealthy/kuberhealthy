@@ -5,6 +5,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 30s
+  timeout: 15m
   podSpec:
     containers:
       - env:
