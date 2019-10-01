@@ -11,4 +11,4 @@ buildExternalChecker:
 	docker build -t integrii/kh-test-check:latest -f cmd/testExternalCheck/Dockerfile .
 
 pushExternalChecker:
-	docker push integrii/kh-test-check
+	docker push quay.io/comcast/test-external-check:latest
