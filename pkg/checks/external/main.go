@@ -246,6 +246,7 @@ func (ext *Checker) RunOnce() error {
 	}
 
 	// init a timeout for this whole check
+	ext.log("Timeout set to", ext.RunTimeout.String())
 	timeoutChan := time.After(ext.RunTimeout)
 
 	// waiting for all checker pods are gone...
