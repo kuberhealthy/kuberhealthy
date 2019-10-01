@@ -134,7 +134,7 @@ func init() {
 		if len(podNamespace) == 0 {
 			log.Fatalln("KH_EXTERNAL_REPORTING_URL environment variable not set and POD_NAMESPACE environment variable was blank.  Could not determine Kuberhealthy callback URL.")
 		}
-		externalCheckReportingURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local"
+		externalCheckReportingURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local/externalCheckStatus"
 	}
 	log.Infoln("External check reporting URL set to:", externalCheckReportingURL)
 
