@@ -1,34 +1,16 @@
-<<<<<<< HEAD
-# IMAGE="quay.io/comcast/kuberhealthy"
-# TAG="2.0.0alpha4"
-
-# build:
-# 	docker build -t $(IMAGE):$(TAG) .
-
-# push:
-# 	docker push $(IMAGE):$(TAG)
-
-# buildExternalChecker:
-# 	docker build -t testexternalcheck:latest -f cmd/testExternalCheck/Dockerfile .
-
-VERSION="2.0.0alphajonny1"
-IMAGE="kuberhealthy:$(VERSION)"
-IMAGE_HOST="docker-proto.repo.theplatform.com"
-=======
 IMAGE="quay.io/comcast/kuberhealthy"
 TAG="2.0.0alpha5"
->>>>>>> 61cabfdc9eaf0dc3bf51baf874778c64cfbf40d3
 
 build:
-	docker build -t $(IMAGE) .
+	docker build -t $(IMAGE):$(TAG) .
 
-tag:
-	docker tag $(IMAGE) $(IMAGE_HOST)/$(IMAGE)
+push:
+	docker push $(IMAGE):$(TAG)
 
-push: tag
-	docker push $(IMAGE_HOST)/$(IMAGE)
+external: buildExternalChecker pushExternalChecker
+
 buildExternalChecker:
-	docker build -t integrii/kh-test-check:latest -f cmd/testExternalCheck/Dockerfile .
+	docker build -t quay.io/comcast/test-external-check:latest -f cmd/test-external-check/Dockerfile .
 
 pushExternalChecker:
-	docker push integrii/kh-test-check
+	docker push quay.io/comcast/test-external-check:latest

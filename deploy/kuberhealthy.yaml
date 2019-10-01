@@ -190,8 +190,7 @@ spec:
                   - kuberhealthy
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - image: quay.io/comcast/kuberhealthy:2.0.0alpha2
-      # - image: docker-proto.repo.theplatform.com/kuberhealthy:2.0.0alphajonny1
+      - image: quay.io/comcast/kuberhealthy:2.0.0alpha5
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
