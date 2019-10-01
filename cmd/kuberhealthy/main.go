@@ -64,6 +64,9 @@ var enableExternalChecks = true
 // external check configs
 const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"
 
+// default run interval set by kuberhealthy
+const DefaultRunInterval = time.Minute * 10
+
 var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
 
 // InfluxDB connection configuration
