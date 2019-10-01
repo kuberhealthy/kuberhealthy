@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Comcast/kuberhealthy/pkg/checks/external"
 	checkclient "github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient"
 )
 
@@ -21,6 +22,8 @@ func init() {
 }
 
 func main() {
+
+	log.Println("Using kuberhealthy reporting url", os.Getenv(external.KHReportingURL))
 	log.Println("Waiting 10 seconds before reporting success...")
 	time.Sleep(time.Second * 10)
 

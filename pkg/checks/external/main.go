@@ -245,10 +245,24 @@ func (ext *Checker) RunOnce() error {
 		return errors.New("failed to clean up pods before starting external checker: " + err.Error())
 	}
 
+	// init a timeout for this whole check
+	timeoutChan := time.After(ext.RunTimeout)
+
 	// waiting for all checker pods are gone...
-	err = <-ext.waitForAllPodsToClear(ext.ctx)
-	if err != nil {
-		return errors.New("failed while waiting for pods to clean up: " + err.Error())
+	ext.log("Waiting for all existing pods to clean up")
+	select {
+	case <-timeoutChan:
+		ext.cancel() // cancel the watch context, we have timed out
+		errorMessage := "failed to see pod cleanup within timeout"
+		err := ext.deletePod()
+		if err != nil {
+			errorMessage = errorMessage + " and an error occurred when cleaning up the pod's name:" + err.Error()
+		}
+		return errors.New(errorMessage)
+	case err = <-ext.waitForAllPodsToClear(ext.ctx):
+		if err != nil {
+			return errors.New("failed while waiting for pods to clean up: " + err.Error())
+		}
 	}
 	ext.log("No checker pods exist.")
 
@@ -259,8 +273,6 @@ func (ext *Checker) RunOnce() error {
 		return errors.New("failed to create pod for checker: " + err.Error())
 	}
 	ext.log("Check", ext.Name(), "created pod", createdPod.Name, "in namespace", createdPod.Namespace)
-
-	timeoutChan := time.After(ext.RunTimeout)
 
 	// watch for pod to start with a timeout (include time for a new node to be created)
 	select {
@@ -304,6 +316,7 @@ func (ext *Checker) RunOnce() error {
 	}
 
 	// validate that the pod stopped running properly
+	ext.log("Waiting for pod to exit")
 	select {
 	case <-timeoutChan:
 		ext.log("Timed out waiting for pod to stop running:", ext.PodName)
@@ -329,15 +342,18 @@ func (ext *Checker) RunOnce() error {
 
 // Log writes a normal InfoLn message output prefixed with this checker's name on it
 func (ext *Checker) log(s ...string) {
-	log.Infoln(ext.CheckName+":", s)
+	log.Infoln(ext.Namespace+"/"+ext.CheckName+":", s)
 }
 
 // stopPod stops any pods running because of this external checker
 func (ext *Checker) deletePod() error {
-	ext.log("Deleting all checker pods")
+	ext.log("Deleting checker pods with name", ext.CheckName)
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
-	return podClient.DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
-		LabelSelector: kuberhealthyCheckNameLabel + "=" + ext.CheckName,
+	gracePeriodSeconds := int64(1)
+	deletionPolicy := metav1.DeletePropagationForeground
+	return podClient.Delete(ext.PodName, &metav1.DeleteOptions{
+		GracePeriodSeconds: &gracePeriodSeconds,
+		PropagationPolicy:  &deletionPolicy,
 	})
 }
 
@@ -377,6 +393,7 @@ func (ext *Checker) getCheckLastUpdateTime(ctx context.Context) (time.Time, erro
 
 // waitForPodStatusUpdate waits for a pod status to update from the specified time
 func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context.Context) chan error {
+	ext.log("waiting for pod to report in to status page...")
 
 	// make the output channel we will return and close it whenever we are done
 	outChan := make(chan error, 2)
@@ -387,12 +404,13 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context
 
 		// wait between requests to the api
 		time.Sleep(time.Second * 5)
-		log.Debugln("Waiting for external checker pod to report in...")
+		ext.log("waiting for external checker pod to report in...")
 
 		// if the context is canceled, we stop
 		select {
 		case <-ctx.Done():
 			outChan <- errors.New("waiting for pod to clear was aborted by context cancellation")
+			return outChan
 		default:
 		}
 
@@ -409,8 +427,6 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context
 			return outChan
 		}
 	}
-
-	return outChan
 }
 
 // waitForAllPodsToClear waits for all pods to clear up and be gone
@@ -425,6 +441,7 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 
 	// watch events and return when the pod is in state running
 	for {
+		log.Debugln("Waiting for checker pod", ext.PodName, "to clear...")
 
 		// wait between requests
 		time.Sleep(time.Second * 5)
@@ -433,6 +450,7 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 		select {
 		case <-ctx.Done():
 			outChan <- errors.New("waiting for pod to clear was aborted by context cancellation")
+			return outChan
 		default:
 		}
 
@@ -442,6 +460,8 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 		// if we got a "not found" message, then we are done.  This is the happy path.
 		if err != nil {
 			if strings.Contains(err.Error(), "not found") {
+				ext.log("all pods cleared")
+				outChan <- nil
 				return outChan
 			}
 
@@ -450,7 +470,6 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 			break
 		}
 
-		log.Debugln("Waiting for checker pod", ext.PodName, "to clear...")
 	}
 
 	return outChan
