@@ -5,12 +5,16 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 30s
+  # Make sure this Kuberhealthy check timeout is GREATER THAN the daemonset checker timeout set in the env var DS_CHECKER_TIMEOUT. Default is set to 5m (5 minutes).
   timeout: 15m
   podSpec:
     containers:
       - env:
           - name: POD_NAMESPACE
             value: "kuberhealthy"
+          - name: DS_CHECKER_TIMEOUT
+            # Make sure this value is less than the Kuberhealthy check timeout. Default is set to 10m (10 minutes).
+            value: ""
         image: docker-proto.repo.theplatform.com/kh-check-daemonset:1.0.0
         imagePullPolicy: IfNotPresent
         name: main
