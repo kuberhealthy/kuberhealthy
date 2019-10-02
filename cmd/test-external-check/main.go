@@ -11,26 +11,38 @@ import (
 )
 
 var reportFailure bool
+var reportDelay time.Duration
 
 func init() {
 	var err error
+
+	// parse REPORT_FAILURE environment var
 	reportFailureStr := os.Getenv("REPORT_FAILURE")
 	reportFailure, err = strconv.ParseBool(reportFailureStr)
 	if err != nil {
 		log.Fatalln("Failed to parse REPORT_FAILURE env var:", err)
+	}
+
+	// parse REPORT_DELAY environment var
+	reportDelayStr := os.Getenv("REPORT_DELAY")
+	reportDelay, err = time.ParseDuration(reportDelayStr)
+	if err != nil {
+		log.Fatalln("Failed to parse REPORT_DELAY env var:", err)
 	}
 }
 
 func main() {
 
 	log.Println("Using kuberhealthy reporting url", os.Getenv(external.KHReportingURL))
-	log.Println("Waiting 10 seconds before reporting success...")
-	time.Sleep(time.Second * 10)
+	log.Println("Waiting", reportDelay, "seconds before reporting...")
+	time.Sleep(reportDelay)
 
 	var err error
 	if reportFailure {
+		log.Println("Reporting failure...")
 		err = checkclient.ReportFailure([]string{"Test has failed!"})
 	} else {
+		log.Println("Reporting success...")
 		err = checkclient.ReportSuccess()
 	}
 
