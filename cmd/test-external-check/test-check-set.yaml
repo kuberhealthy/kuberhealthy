@@ -13,6 +13,8 @@ spec:
     - env:
       - name: REPORT_FAILURE
         value: "false"
+      - name: REPORT_DELAY
+        value: "5s"
       image: integrii/kh-test-check:latest
       imagePullPolicy: Always
       name: main
@@ -38,6 +40,8 @@ spec:
     - env:
       - name: REPORT_FAILURE
         value: "false"
+      - name: REPORT_DELAY
+        value: "5s"
       image: integrii/kh-test-check:latest
       imagePullPolicy: Always
       name: main
@@ -61,6 +65,8 @@ spec:
   podSpec:
     containers:
     - env:
+      - name: REPORT_DELAY
+        value: "5s"
       - name: REPORT_FAILURE
         value: "false"
       image: integrii/kh-test-check:latest
@@ -108,9 +114,6 @@ spec:
     testLabel: testLabel
   podSpec:
     containers:
-    - env:
-      - name: REPORT_FAILURE
-        value: "false"
       image: integrii/kh-test-check:doesnotexist
       imagePullPolicy: Always
       name: main
@@ -132,16 +135,12 @@ spec:
   extraLabels:
     testLabel: testLabel
   podSpec:
-    containers:
-    - env:
-      - name: REPORT_FAILURE
-        value: "false"
       image: integrii/kh-test-check:latest
       imagePullPolicy: Always
       name: main
       resources:
         requests:
-          cpu: "80"
+          cpu: "800"
           memory: 50Mi
   runInterval: 30s
   timeout: 2m
@@ -159,6 +158,8 @@ spec:
   podSpec:
     containers:
     - env:
+      - name: REPORT_DELAY
+        value: "5s"
       - name: REPORT_FAILURE
         value: "true"
       image: integrii/kh-test-check:latest
@@ -184,6 +185,8 @@ spec:
   podSpec:
     containers:
     - env:
+      - name: REPORT_DELAY
+        value: "5s"
       - name: REPORT_FAILURE
         value: "false"
       image: integrii/kh-test-check:latest

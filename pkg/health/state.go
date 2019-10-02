@@ -54,7 +54,7 @@ func (h *State) WriteHTTPStatusResponse(w http.ResponseWriter) error {
 		return err
 	}
 
-	log.Infoln("Wrote response to client:", currentStatus)
+	// log.Infoln("Wrote response to client:", currentStatus)
 
 	return err
 }
