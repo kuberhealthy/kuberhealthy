@@ -416,34 +416,39 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context
 	outChan := make(chan error, 50)
 	defer close(outChan)
 
-	// watch events and return when the pod is in state running
-	for {
+	go func() {
 
-		// wait between requests to the api
-		time.Sleep(time.Second * 5)
-		ext.log("waiting for external checker pod to report in...")
+		// watch events and return when the pod is in state running
+		for {
 
-		// if the context is canceled, we stop
-		select {
-		case <-ctx.Done():
-			outChan <- errors.New("waiting for pod to clear was aborted by context cancellation")
-			return outChan
-		default:
+			// wait between requests to the api
+			time.Sleep(time.Second * 5)
+			ext.log("waiting for external checker pod to report in...")
+
+			// if the context is canceled, we stop
+			select {
+			case <-ctx.Done():
+				outChan <- errors.New("waiting for pod to clear was aborted by context cancellation")
+				return
+			default:
+			}
+
+			// fetch the lastUpdateTime from the khstate as of right now
+			currentUpdateTime, err := ext.getCheckLastUpdateTime(ctx)
+			if err != nil {
+				outChan <- err
+				return
+			}
+
+			// if the pod has updated, then we return and were done waiting
+			log.Debugln("Last report time was:", lastUpdateTime, "vs", currentUpdateTime)
+			if currentUpdateTime.After(lastUpdateTime) {
+				return
+			}
 		}
+	}()
 
-		// fetch the lastUpdateTime from the khstate as of right now
-		currentUpdateTime, err := ext.getCheckLastUpdateTime(ctx)
-		if err != nil {
-			outChan <- err
-			return outChan
-		}
-
-		// if the pod has updated, then we return and were done waiting
-		log.Debugln("Last report time was:", lastUpdateTime, "vs", currentUpdateTime)
-		if currentUpdateTime.After(lastUpdateTime) {
-			return outChan
-		}
-	}
+	return outChan
 }
 
 // waitForAllPodsToClear waits for all pods to clear up and be gone
@@ -458,38 +463,39 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
-	// watch events and return when the pod is in state running
-	for {
-		log.Debugln("Waiting for checker pod", ext.PodName, "to clear...")
+	go func() {
+		// watch events and return when the pod is in state running
+		for {
+			log.Debugln("Waiting for checker pod", ext.PodName, "to clear...")
 
-		// wait between requests
-		time.Sleep(time.Second * 5)
+			// wait between requests
+			time.Sleep(time.Second * 5)
 
-		// if the context is canceled, we stop
-		select {
-		case <-ctx.Done():
-			outChan <- errors.New("waiting for pod to clear was aborted by context cancellation")
-			return outChan
-		default:
-		}
-
-		// fetch the pod by name
-		_, err := podClient.Get(ext.PodName, metav1.GetOptions{})
-
-		// if we got a "not found" message, then we are done.  This is the happy path.
-		if err != nil {
-			if strings.Contains(err.Error(), "not found") {
-				ext.log("all pods cleared")
-				outChan <- nil
-				return outChan
+			// if the context is canceled, we stop
+			select {
+			case <-ctx.Done():
+				outChan <- errors.New("waiting for pod to clear was aborted by context cancellation")
+				return
+			default:
 			}
 
-			// if the error was anything else, we return it upstream
-			outChan <- err
-			break
-		}
+			// fetch the pod by name
+			_, err := podClient.Get(ext.PodName, metav1.GetOptions{})
 
-	}
+			// if we got a "not found" message, then we are done.  This is the happy path.
+			if err != nil {
+				if strings.Contains(err.Error(), "not found") {
+					ext.log("all pods cleared")
+					outChan <- nil
+					return
+				}
+
+				// if the error was anything else, we return it upstream
+				outChan <- err
+				return
+			}
+		}
+	}()
 
 	return outChan
 }
@@ -505,58 +511,62 @@ func (ext *Checker) waitForPodExit() chan error {
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
-	for {
+	go func() {
 
-		ext.log("starting pod exit watcher")
+		for {
 
-		// start a new watch request
-		watcher, err := podClient.Watch(metav1.ListOptions{
-			LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
-		})
+			ext.log("starting pod exit watcher")
 
-		// return the watch error as a channel if found
-		if err != nil {
-			outChan <- err
-			watcher.Stop()
-			return outChan
-		}
+			// start a new watch request
+			watcher, err := podClient.Watch(metav1.ListOptions{
+				LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
+			})
 
-		// watch events and return when the pod is in state running
-		for e := range watcher.ResultChan() {
-			ext.log("got a result when watching for pod to exit")
-
-			// try to cast the incoming object to a pod and skip the event if we cant
-			p, ok := e.Object.(*apiv1.Pod)
-			if !ok {
-				ext.log("got a watch event for a non-pod object and ignored it")
-				continue
-			}
-
-			// log.Debugln("Got event while watching for pod to stop:", e)
-
-			// make sure the pod coming through the event channel has the right check uuid label
-			ext.log("pod state is now:", string(p.Status.Phase))
-			// read the status of this pod (its ours) and return if its succeeded or failed
-			if p.Status.Phase == apiv1.PodSucceeded || p.Status.Phase == apiv1.PodFailed {
-				ext.log("pod has changed to either succeeded or failed")
+			// return the watch error as a channel if found
+			if err != nil {
+				outChan <- err
 				watcher.Stop()
-				outChan <- nil
-				return outChan
+				return
 			}
 
-			// if the context is done, we break the loop and return
-			select {
-			case <-ext.ctx.Done():
-				ext.log("external checker pod exit watch aborted due to check context being aborted")
-				watcher.Stop()
-				outChan <- nil
-				return outChan
-			default:
-				// context is not canceled yet, continue
+			// watch events and return when the pod is in state running
+			for e := range watcher.ResultChan() {
+				ext.log("got a result when watching for pod to exit")
+
+				// try to cast the incoming object to a pod and skip the event if we cant
+				p, ok := e.Object.(*apiv1.Pod)
+				if !ok {
+					ext.log("got a watch event for a non-pod object and ignored it")
+					continue
+				}
+
+				// log.Debugln("Got event while watching for pod to stop:", e)
+
+				// make sure the pod coming through the event channel has the right check uuid label
+				ext.log("pod state is now:", string(p.Status.Phase))
+				// read the status of this pod (its ours) and return if its succeeded or failed
+				if p.Status.Phase == apiv1.PodSucceeded || p.Status.Phase == apiv1.PodFailed {
+					ext.log("pod has changed to either succeeded or failed")
+					watcher.Stop()
+					outChan <- nil
+					return
+				}
+
+				// if the context is done, we break the loop and return
+				select {
+				case <-ext.ctx.Done():
+					ext.log("external checker pod exit watch aborted due to check context being aborted")
+					watcher.Stop()
+					outChan <- nil
+					return
+				default:
+					// context is not canceled yet, continue
+				}
 			}
 		}
-	}
+	}()
 
+	return outChan
 }
 
 // waitForPodRunning returns a channel that notifies when the checker pod is running
@@ -570,56 +580,61 @@ func (ext *Checker) waitForPodRunning() chan error {
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
-	// watch over and over again until we see our event or run out of time
-	for {
+	go func() {
 
-		ext.log("starting pod running watcher")
+		// watch over and over again until we see our event or run out of time
+		for {
 
-		// start watching
-		watcher, err := podClient.Watch(metav1.ListOptions{
-			LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
-		})
-		if err != nil {
-			outChan <- err
-			watcher.Stop()
-			return outChan
-		}
+			ext.log("starting pod running watcher")
 
-		// watch events and return when the pod is in state running
-		for e := range watcher.ResultChan() {
-
-			ext.log("got an event while waiting for pod to start running")
-
-			// try to cast the incoming object to a pod and skip the event if we cant
-			p, ok := e.Object.(*apiv1.Pod)
-			if !ok {
-				ext.log("got a watch event for a non-pod object and ignored it")
-				continue
-			}
-
-			// TODO - catch when the pod has an error image pull and return it as an error #201
-
-			// read the status of this pod (its ours)
-			ext.log("pod state is now:", string(p.Status.Phase))
-			if p.Status.Phase == apiv1.PodRunning || p.Status.Phase == apiv1.PodFailed || p.Status.Phase == apiv1.PodSucceeded {
-				ext.log("pod is now either running, failed, or succeeded")
-				outChan <- nil
+			// start watching
+			watcher, err := podClient.Watch(metav1.ListOptions{
+				LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
+			})
+			if err != nil {
+				outChan <- err
 				watcher.Stop()
-				return outChan
+				return
 			}
 
-			// if the context is done, we break the loop and return
-			select {
-			case <-ext.ctx.Done():
-				ext.log("external checker pod startup watch aborted due to check context being aborted")
-				outChan <- nil
-				watcher.Stop()
-				return outChan
-			default:
-				// context is not canceled yet, continue
+			// watch events and return when the pod is in state running
+			for e := range watcher.ResultChan() {
+
+				ext.log("got an event while waiting for pod to start running")
+
+				// try to cast the incoming object to a pod and skip the event if we cant
+				p, ok := e.Object.(*apiv1.Pod)
+				if !ok {
+					ext.log("got a watch event for a non-pod object and ignored it")
+					continue
+				}
+
+				// TODO - catch when the pod has an error image pull and return it as an error #201
+
+				// read the status of this pod (its ours)
+				ext.log("pod state is now:", string(p.Status.Phase))
+				if p.Status.Phase == apiv1.PodRunning || p.Status.Phase == apiv1.PodFailed || p.Status.Phase == apiv1.PodSucceeded {
+					ext.log("pod is now either running, failed, or succeeded")
+					outChan <- nil
+					watcher.Stop()
+					return
+				}
+
+				// if the context is done, we break the loop and return
+				select {
+				case <-ext.ctx.Done():
+					ext.log("external checker pod startup watch aborted due to check context being aborted")
+					outChan <- nil
+					watcher.Stop()
+					return
+				default:
+					// context is not canceled yet, continue
+				}
 			}
 		}
-	}
+	}()
+
+	return outChan
 }
 
 // validatePodSpec validates the user specified pod spec to ensure it looks like it
