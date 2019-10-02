@@ -189,7 +189,6 @@ func (k *Kuberhealthy) watchForKHCheckChanges(c chan struct{}) {
 
 		// loop over results and return them to the calling channel until we hit an error, then close and restart
 		for khc := range watcher.ResultChan() {
-			checkConfig := khc.Object.(khcheckcrd.)
 			switch khc.Type {
 			case watch.Added:
 				log.Debugln("khcheck monitor saw an added event")
