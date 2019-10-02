@@ -157,7 +157,7 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	ext.log("Running external check iteration")
 	err := ext.RunOnce()
 	if err != nil {
-		ext.log("Error with running external check:", err.Error())
+		ext.log("Error with running external check:", err)
 		ext.setError(err.Error())
 	}
 
@@ -190,10 +190,8 @@ func (ext *Checker) cleanup() {
 func (ext *Checker) setUUID(uuid string) error {
 	log.Debugln("Set expected UUID to:", uuid)
 	checkConfig, err := ext.getCheck()
-	if err != nil {
-		if !strings.Contains(err.Error(), "not found") {
-			return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
-		}
+	if err != nil && !strings.Contains(err.Error(), "not found") {
+		return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
 	}
 
 	// update the check config and write it back to the struct
@@ -266,7 +264,7 @@ func (ext *Checker) RunOnce() error {
 		ext.cancel() // cancel the watch context, we have timed out
 		ext.cleanup()
 		errorMessage := "failed to see pod cleanup within timeout"
-		ext.log(errorMessage + " " + err.Error())
+		ext.log(errorMessage)
 		return errors.New(errorMessage)
 	case err = <-ext.waitForAllPodsToClear(ext.ctx):
 		if err != nil {
@@ -297,7 +295,7 @@ func (ext *Checker) RunOnce() error {
 			ext.cancel() // cancel the watch context, we have timed out
 			ext.cleanup()
 			errorMessage := "error when waiting for pod to start: " + err.Error()
-			ext.log(errorMessage + " " + err.Error())
+			ext.log(errorMessage)
 			return errors.New(errorMessage)
 		}
 		ext.log("External check pod is running:", ext.PodName)
@@ -321,7 +319,7 @@ func (ext *Checker) RunOnce() error {
 			ext.cancel() // cancel the watch context, we have timed out
 			ext.cleanup()
 			errorMessage := "found an error when waiting for pod status to update: " + err.Error()
-			ext.log(errorMessage + " " + err.Error())
+			ext.log(errorMessage)
 			return errors.New(errorMessage)
 		}
 		ext.log("External check pod has reported status for this check iteration:", ext.PodName)
@@ -340,7 +338,7 @@ func (ext *Checker) RunOnce() error {
 		if err != nil {
 			ext.cancel() // cancel the watch context, we have timed out
 			errorMessage := "found an error when waiting for pod to exit: " + err.Error()
-			ext.log(errorMessage + " " + err.Error())
+			ext.log(errorMessage, err)
 			return errors.New(errorMessage)
 		}
 		ext.log("External check pod is done running:", ext.PodName)
@@ -352,7 +350,7 @@ func (ext *Checker) RunOnce() error {
 }
 
 // Log writes a normal InfoLn message output prefixed with this checker's name on it
-func (ext *Checker) log(s ...string) {
+func (ext *Checker) log(s ...interface{}) {
 	log.Infoln(ext.Namespace+"/"+ext.CheckName+":", s)
 }
 
@@ -395,11 +393,8 @@ func (ext *Checker) getCheckLastUpdateTime(ctx context.Context) (time.Time, erro
 
 	// fetch the khstate as it exists
 	khstate, err := ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.CheckName, ext.Namespace)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			return time.Time{}, nil
-		}
-		return time.Time{}, err
+	if err != nil && strings.Contains(err.Error(), "not found") {
+		return time.Time{}, nil
 	}
 
 	return khstate.Spec.LastRun, nil
@@ -730,11 +725,8 @@ func (ext *Checker) podExists() (bool, error) {
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 	p, err := podClient.Get(ext.PodName, metav1.GetOptions{})
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			return false, nil
-		}
-		return false, err
+	if err != nil && strings.Contains(err.Error(), "not found") {
+		return false, nil
 	}
 
 	// if the pod has a start time that isn't zero, it exists
@@ -788,12 +780,12 @@ func (ext *Checker) Shutdown() error {
 	if ext.podDeployed() {
 		err := ext.deletePod()
 		if err != nil {
-			ext.log("Error deleting pod during shutdown:", err.Error())
+			ext.log("Error deleting pod during shutdown:", err)
 			return err
 		}
 		err = ext.waitForShutdown(ctx)
 		if err != nil {
-			ext.log("Error waiting for pod removal during shutdown:", err.Error())
+			ext.log("Error waiting for pod removal during shutdown:", err)
 			return err
 		}
 	}
