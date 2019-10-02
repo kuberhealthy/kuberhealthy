@@ -159,6 +159,9 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	if err != nil {
 		ext.log("Error with running external check:", err)
 		ext.setError(err.Error())
+	} else {
+		ext.log("exited clean. clearing errors")
+		ext.setError("")
 	}
 
 	return nil
@@ -261,6 +264,7 @@ func (ext *Checker) RunOnce() error {
 	ext.log("Waiting for all existing pods to clean up")
 	select {
 	case <-timeoutChan:
+		ext.log("timed out")
 		ext.cancel() // cancel the watch context, we have timed out
 		ext.cleanup()
 		errorMessage := "failed to see pod cleanup within timeout"
@@ -280,6 +284,7 @@ func (ext *Checker) RunOnce() error {
 	ext.log("creating pod for external check:", ext.CheckName)
 	createdPod, err := ext.createPod()
 	if err != nil {
+		ext.log("error creating pod")
 		return errors.New("failed to create pod for checker: " + err.Error())
 	}
 	ext.log("Check", ext.Name(), "created pod", createdPod.Name, "in namespace", createdPod.Namespace)
@@ -287,6 +292,7 @@ func (ext *Checker) RunOnce() error {
 	// watch for pod to start with a timeout (include time for a new node to be created)
 	select {
 	case <-timeoutChan:
+		ext.log("timed out")
 		ext.cancel() // cancel the watch context, we have timed out
 		ext.cleanup()
 		return errors.New("failed to see pod running within timeout")
@@ -309,6 +315,7 @@ func (ext *Checker) RunOnce() error {
 	ext.log("Waiting for pod status to be reported from pod", ext.PodName, "in namespace", ext.Namespace)
 	select {
 	case <-timeoutChan:
+		ext.log("timed out")
 		ext.cancel() // cancel the watch context, we have timed out
 		ext.cleanup()
 		errorMessage := "timed out waiting for checker pod to report in"
@@ -329,23 +336,23 @@ func (ext *Checker) RunOnce() error {
 	ext.log("Waiting for pod to exit")
 	select {
 	case <-timeoutChan:
+		ext.log("timed out")
 		ext.cancel() // cancel the watch context, we have timed out
 		ext.cleanup()
 		errorMessage := "timed out waiting for pod to exit"
 		ext.log(errorMessage)
 		return errors.New(errorMessage)
 	case err = <-ext.waitForPodExit():
+		ext.log("External check pod is done running:", ext.PodName)
 		if err != nil {
 			ext.cancel() // cancel the watch context, we have timed out
 			errorMessage := "found an error when waiting for pod to exit: " + err.Error()
 			ext.log(errorMessage, err)
 			return errors.New(errorMessage)
 		}
-		ext.log("External check pod is done running:", ext.PodName)
 	}
 
 	ext.log("Run completed!")
-
 	return nil
 }
 
