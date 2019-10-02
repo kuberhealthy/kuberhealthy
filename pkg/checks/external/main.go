@@ -414,7 +414,6 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context
 
 	// make the output channel we will return and close it whenever we are done
 	outChan := make(chan error, 50)
-	defer close(outChan)
 
 	go func() {
 
@@ -458,7 +457,6 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 
 	// make the output channel we will return and close it whenever we are done
 	outChan := make(chan error, 2)
-	defer close(outChan)
 
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
