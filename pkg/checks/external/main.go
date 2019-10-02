@@ -411,7 +411,7 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context
 	ext.log("waiting for pod to report in to status page...")
 
 	// make the output channel we will return and close it whenever we are done
-	outChan := make(chan error, 2)
+	outChan := make(chan error, 50)
 	defer close(outChan)
 
 	// watch events and return when the pod is in state running
@@ -446,6 +446,8 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context
 
 // waitForAllPodsToClear waits for all pods to clear up and be gone
 func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
+
+	ext.log("waiting for pod to clear")
 
 	// make the output channel we will return and close it whenever we are done
 	outChan := make(chan error, 2)
@@ -493,83 +495,22 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 // waitForPodExit returns a channel that notifies when the checker pod exits
 func (ext *Checker) waitForPodExit() chan error {
 
-	// make the output channel we will return
-	outChan := make(chan error, 2)
-
-	// setup a pod watching client for our current KH pod
-	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
-	watcher, err := podClient.Watch(metav1.ListOptions{
-		LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
-	})
-	defer watcher.Stop()
-
-	// return the watch error as a channel if found
-	if err != nil {
-		outChan <- err
-		return outChan
-	}
-
-	// watch events and return when the pod is in state running
-	for e := range watcher.ResultChan() {
-
-		// try to cast the incoming object to a pod and skip the event if we cant
-		p, ok := e.Object.(*apiv1.Pod)
-		if !ok {
-			continue
-		}
-
-		// log.Debugln("Got event while watching for pod to stop:", e)
-
-		// make sure the pod coming through the event channel has the right check uuid label
-		ext.log("pod state is now:", string(p.Status.Phase))
-		// read the status of this pod (its ours) and return if its succeeded or failed
-		if p.Status.Phase == apiv1.PodSucceeded || p.Status.Phase == apiv1.PodFailed {
-			outChan <- nil
-			return outChan
-		}
-
-		// if the context is done, we break the loop and return
-		select {
-		case <-ext.ctx.Done():
-			ext.log("external checker pod exit watch aborted due to check context being aborted")
-			outChan <- nil
-			return outChan
-		default:
-			// context is not canceled yet, continue
-		}
-	}
-
-	outChan <- errors.New("waitForPodExit watch ended unexpectedly without finding a pod state")
-	return outChan
-}
-
-// waitForPodRunning returns a channel that notifies when the checker pod is running
-func (ext *Checker) waitForPodRunning() chan error {
+	ext.log("waiting for pod to exit")
 
 	// make the output channel we will return
-	outChan := make(chan error, 2)
+	outChan := make(chan error, 50)
 
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
-	// watch over and over again until we see our event or run out of time
 	for {
 
-		// if the context is done, we break the loop and return
-		select {
-		case <-ext.ctx.Done():
-			ext.log("external checker pod startup watch aborted due to check context being aborted")
-			outChan <- nil
-			return outChan
-		default:
-			// context is not canceled yet, continue
-		}
+		ext.log("starting pod exit watcher")
 
-		// start watching
+		// start a new watch request
 		watcher, err := podClient.Watch(metav1.ListOptions{
 			LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
 		})
-		// cleanup watcher nicely
 
 		// return the watch error as a channel if found
 		if err != nil {
@@ -580,10 +521,77 @@ func (ext *Checker) waitForPodRunning() chan error {
 
 		// watch events and return when the pod is in state running
 		for e := range watcher.ResultChan() {
+			ext.log("got a result when watching for pod to exit")
 
 			// try to cast the incoming object to a pod and skip the event if we cant
 			p, ok := e.Object.(*apiv1.Pod)
 			if !ok {
+				ext.log("got a watch event for a non-pod object and ignored it")
+				continue
+			}
+
+			// log.Debugln("Got event while watching for pod to stop:", e)
+
+			// make sure the pod coming through the event channel has the right check uuid label
+			ext.log("pod state is now:", string(p.Status.Phase))
+			// read the status of this pod (its ours) and return if its succeeded or failed
+			if p.Status.Phase == apiv1.PodSucceeded || p.Status.Phase == apiv1.PodFailed {
+				ext.log("pod has changed to either succeeded or failed")
+				watcher.Stop()
+				outChan <- nil
+				return outChan
+			}
+
+			// if the context is done, we break the loop and return
+			select {
+			case <-ext.ctx.Done():
+				ext.log("external checker pod exit watch aborted due to check context being aborted")
+				watcher.Stop()
+				outChan <- nil
+				return outChan
+			default:
+				// context is not canceled yet, continue
+			}
+		}
+	}
+
+}
+
+// waitForPodRunning returns a channel that notifies when the checker pod is running
+func (ext *Checker) waitForPodRunning() chan error {
+
+	ext.log("waiting for pod to be running")
+
+	// make the output channel we will return
+	outChan := make(chan error, 50)
+
+	// setup a pod watching client for our current KH pod
+	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
+
+	// watch over and over again until we see our event or run out of time
+	for {
+
+		ext.log("starting pod running watcher")
+
+		// start watching
+		watcher, err := podClient.Watch(metav1.ListOptions{
+			LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
+		})
+		if err != nil {
+			outChan <- err
+			watcher.Stop()
+			return outChan
+		}
+
+		// watch events and return when the pod is in state running
+		for e := range watcher.ResultChan() {
+
+			ext.log("got an event while waiting for pod to start running")
+
+			// try to cast the incoming object to a pod and skip the event if we cant
+			p, ok := e.Object.(*apiv1.Pod)
+			if !ok {
+				ext.log("got a watch event for a non-pod object and ignored it")
 				continue
 			}
 
@@ -592,6 +600,7 @@ func (ext *Checker) waitForPodRunning() chan error {
 			// read the status of this pod (its ours)
 			ext.log("pod state is now:", string(p.Status.Phase))
 			if p.Status.Phase == apiv1.PodRunning || p.Status.Phase == apiv1.PodFailed || p.Status.Phase == apiv1.PodSucceeded {
+				ext.log("pod is now either running, failed, or succeeded")
 				outChan <- nil
 				watcher.Stop()
 				return outChan
