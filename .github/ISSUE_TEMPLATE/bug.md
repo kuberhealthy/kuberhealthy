@@ -1,6 +1,9 @@
 ---
 name: Bug
 about: You have found a software bug
+title: ''
+labels: bug
+assignees: ''
 
 ---
 
