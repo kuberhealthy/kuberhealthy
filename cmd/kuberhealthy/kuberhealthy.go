@@ -297,21 +297,17 @@ func (k *Kuberhealthy) addExternalChecks() error {
 	log.Debugln("Found", len(l.Items), "external checks to load")
 
 	// iterate on each check CRD resource and add it as a check
-	for _, i := range l.Items {
-		log.Debugln("Loading check CRD:", i.Name)
-		r, err := khCheckClient.Get(metav1.GetOptions{}, checkCRDResource, i.Namespace, i.Name)
-		if err != nil {
-			return err
-		}
+	for _, r := range l.Items {
+		log.Debugln("Loading check CRD:", r.Name)
 
 		log.Debugf("External check custom resource loaded: %v", r)
 
 		// create a new kubernetes client for this external checker
 		log.Infoln("Enabling external check:", r.Name)
-		c := external.New(kubernetesClient, r, khCheckClient, khStateClient, externalCheckReportingURL)
+		c := external.New(kubernetesClient, &r, khCheckClient, khStateClient, externalCheckReportingURL)
 
 		// parse the run interval string from the custom resource and setup the run interval
-		c.RunInterval, err = time.ParseDuration(i.Spec.RunInterval)
+		c.RunInterval, err = time.ParseDuration(r.Spec.RunInterval)
 		if err != nil {
 			log.Errorln("Error parsing duration for check", c.CheckName, "in namespace", c.Namespace, err)
 			log.Errorln("Defaulting check to a runtime of ten minutes.")
@@ -322,8 +318,8 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 		// parse the user specified timeout if present
 		c.RunTimeout = khcheckcrd.DefaultTimeout
-		if len(i.Spec.Timeout) > 0 {
-			c.RunTimeout, err = time.ParseDuration(i.Spec.Timeout)
+		if len(r.Spec.Timeout) > 0 {
+			c.RunTimeout, err = time.ParseDuration(r.Spec.Timeout)
 			if err != nil {
 				log.Errorln("Error parsing timeout for check", c.CheckName, "in namespace", c.Namespace, err)
 				log.Errorln("Defaulting check to a timeout of", khcheckcrd.DefaultTimeout)
@@ -333,8 +329,8 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		log.Debugln("RunTimeout for check:", c.CheckName, "set to", c.RunTimeout)
 
 		// add on extra annotations and labels
-		c.ExtraAnnotations = i.Spec.ExtraAnnotations
-		c.ExtraLabels = i.Spec.ExtraLabels
+		c.ExtraAnnotations = r.Spec.ExtraAnnotations
+		c.ExtraLabels = r.Spec.ExtraLabels
 
 		// add the check into the checker
 		k.AddCheck(c)
