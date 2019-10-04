@@ -608,7 +608,14 @@ func (ext *Checker) waitForPodRunning() chan error {
 				}
 
 				// TODO - catch when the pod has an error image pull and return it as an error #201
-
+				for _, containerStat := range p.Status.ContainerStatuses {
+					if containerStat.State.Waiting.Reason == "ErrImagePull" {
+						ext.log("pod had an error image pull")
+						outChan <- errors.New(containerStat.State.Waiting.Reason)
+						watcher.Stop()
+						return
+					}
+				}
 				// read the status of this pod (its ours)
 				ext.log("pod state is now:", string(p.Status.Phase))
 				if p.Status.Phase == apiv1.PodRunning || p.Status.Phase == apiv1.PodFailed || p.Status.Phase == apiv1.PodSucceeded {
