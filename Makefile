@@ -14,3 +14,11 @@ buildExternalChecker:
 
 pushExternalChecker:
 	docker push integrii/test-external-check:latest
+
+daemonset: buildDaemonsetCheck pushDaemonsetCheck
+
+buildDaemonsetCheck:
+    docker build -t docker-proto.repo.theplatform.com/kh-check-daemonset:1.0.0 -f cmd/daemonSetExternalCheck/Dockerfile .
+
+pushDaemonsetCheck:
+	docker push docker-proto.repo.theplatform.com/kh-check-daemonset:1.0.0
