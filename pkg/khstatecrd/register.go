@@ -30,7 +30,10 @@ func ConfigureScheme(GroupName string, GroupVersion string) {
 		SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 		AddToScheme   = SchemeBuilder.AddToScheme
 	)
-	AddToScheme(scheme.Scheme)
+	err := AddToScheme(scheme.Scheme)
+	if err != nil {
+		return err
+	}
 }
 
 func addKnownTypes(scheme *runtime.Scheme) error {

@@ -362,7 +362,10 @@ func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.R
 	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
 	state, err := k.getCurrentState()
 	if err != nil {
-		metrics.WriteMetricError(w, state)
+		errMetric := metrics.WriteMetricError(w, state)
+		if errMetric != nil {
+			return errMetric
+		}
 		return err
 	}
 	metrics := metrics.GenerateMetrics(state)

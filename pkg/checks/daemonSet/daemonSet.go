@@ -174,8 +174,14 @@ func (dsc *Checker) Shutdown() error {
 
 	// if the ds is deployed, delete it
 	if dsc.DaemonSetDeployed {
-		dsc.remove()
-		dsc.waitForPodRemoval(ctx)
+		err := dsc.remove()
+		if err != nil {
+			return err
+		}
+		err = dsc.waitForPodRemoval(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Infoln(dsc.Name(), "Daemonset "+dsc.DaemonSetName+" ready for shutdown.")
@@ -502,10 +508,13 @@ func (dsc *Checker) doChecks(ctx context.Context) error {
 
 	// clean up any existing daemonsets that may be laying around
 	// waiting so not to cause a conflict.  Don't listen to errors here.
-	dsc.cleanUp(ctx)
+	err := dsc.cleanUp(ctx)
+	if err != nil {
+		return err
+	}
 
 	// deploy the daemonset
-	err := dsc.doDeploy(ctx)
+	err = dsc.doDeploy(ctx)
 	if err != nil {
 		return err
 	}
@@ -626,7 +635,10 @@ func (dsc *Checker) doDeploy(ctx context.Context) error {
 	err := dsc.deploy()
 	if err != nil {
 		log.Error("Something went wrong with daemonset deployment, cleaning things up...")
-		dsc.doRemove(ctx)
+		errRemove := dsc.doRemove(ctx)
+		if errRemove != nil {
+			return errRemove
+		}
 		return err
 	}
 
