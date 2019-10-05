@@ -16,7 +16,7 @@ spec:
             # Make sure this value is less than the Kuberhealthy check timeout. Default is set to 10m (10 minutes).
             value: ""
         image: docker-proto.repo.theplatform.com/kh-check-daemonset:1.0.0
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: main
         resources:
           requests:

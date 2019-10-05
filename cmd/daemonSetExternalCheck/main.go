@@ -82,10 +82,13 @@ func main() {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
-	ds, err := New()
+	ds, err := New(client)
 	if err != nil {
 		log.Fatalln("unable to create daemonset checker:", err)
 	}
+
+	// Create a context for this run
+	ds.ctx, ds.cancelFunc = context.WithCancel(context.Background())
 
 	// Cleanup any daemonsets from this check that should not exist right now
 	log.Infoln("Deleting any rogue daemonsets before deploying the daemonset check")
@@ -129,7 +132,7 @@ func main() {
 }
 
 // New creates a new Checker object
-func New() (*Checker, error) {
+func New(client *kubernetes.Clientset) (*Checker, error) {
 
 	hostname := getHostname()
 	var tolerations []apiv1.Toleration
@@ -140,6 +143,7 @@ func New() (*Checker, error) {
 		hostname:            hostname,
 		PauseContainerImage: "gcr.io/google-containers/pause:3.1",
 		Tolerations:         tolerations,
+		client:              client,
 	}
 
 	return &testDS, nil
