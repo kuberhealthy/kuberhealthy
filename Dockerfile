@@ -12,8 +12,7 @@ RUN mkdir /kuberhealthy
 RUN mv kuberhealthy /kuberhealthy/kuberhealthy
 
 FROM golang
-RUN apt-get update
-RUN apt-get upgrade -y
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 RUN apt-get remove mercurial -y
 RUN mkdir /app
 WORKDIR /app
