@@ -7,6 +7,7 @@ package main // import "github.com/Comcast/kuberhealthy/pkg/checks/daemonSetExte
 import (
 	"context"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -31,9 +32,15 @@ import (
 // TODO - RETURN ERROR MESSAGES TO KUBERHEALTHY STATUS PAGE
 const daemonSetBaseName = "daemonset-test"
 const defaultDSCheckTimeout = "10m"
+
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var Namespace string
 var Timeout time.Duration
+
+// Shutdown signal handling
+var sdSigChan chan os.Signal
+var sdDoneChan chan bool
+var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
 // DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
@@ -74,6 +81,10 @@ func init() {
 		log.Errorln("Error parsing timeout for check", dsCheckTimeout, err)
 		return
 	}
+
+	// Make neccessary shutdown channels (signal channel and done channel)
+	sdSigChan = make(chan os.Signal, 5)
+	sdDoneChan = make(chan bool, 5)
 }
 
 func main() {
@@ -87,37 +98,37 @@ func main() {
 		log.Fatalln("unable to create daemonset checker:", err)
 	}
 
+	// start listening for shutdown interrupts
+	go ds.listenForInterrupts()
+
 	// Create a context for this run
 	ds.ctx, ds.cancelFunc = context.WithCancel(context.Background())
 
-	// Cleanup any daemonsets from this check that should not exist right now
-	log.Infoln("Deleting any rogue daemonsets before deploying the daemonset check")
-	err = ds.cleanUpRogueDaemonSets()
+	// Cleanup any daemonsets and associated pods from this check that should not exist right now
+	log.Infoln("Deleting any rogue daemonsets or daemonset pods before deploying the daemonset check")
+	err = ds.cleanupOrphans()
 	if err != nil {
-		log.Errorln("Error cleaning up rogue daemonsets:", err)
+		log.Errorln("Error cleaning up rogue daemonsets or daemonset pods:", err)
 	}
 
-	// init a timeout for this whole check
+	// init a timeout for this whole deletion of daemonsets
 	log.Infoln("Timeout set to", Timeout.String())
 	timeoutChan := time.After(Timeout)
 
 	// waiting for all daemonsets to be gone...
-	log.Infoln("Waiting for all existing daemonsets to clean up")
+	log.Infoln("Waiting for all rogue daemonsets or daemonset pods to clean up")
 	select {
 	case <-timeoutChan:
 		log.Infoln("timed out")
 		ds.cancel() // cancel the watch context, we have timed out
-		ds.cleanup()
-		log.Errorln("failed to see daemonset cleanup within timeout")
-		// TO DO: return error messages
+		log.Errorln("failed to see rogue daemonset or daemonset pods cleanup within timeout")
 	case err = <-ds.waitForAllDaemonsetsToClear(ds.ctx):
 		if err != nil {
 			ds.cancel() // cancel the watch context, we have timed out
-			log.Errorln("error waiting for daemonset to clean up:", err)
-			// TO DO: return error messages
-			}
+			log.Errorln("error waiting for rogue daemonset or daemonset pods to clean up:", err)
+		}
+		log.Infoln("No rogue daemonsets or daemonset pods exist.")
 	}
-	log.Infoln("No checker pods exist.")
 
 	// allow the user to override the image used by the DSC - see #114
 	ds.overrideDSPauseContainerImage()
@@ -155,38 +166,6 @@ func (dsc *Checker) cancel() {
 		return
 	}
 	dsc.cancelFunc()
-}
-
-func (dsc *Checker) cleanup() {
-	log.Infoln("Cleaning up any deployed daemonsets")
-	err := dsc.cleanUpRogueDaemonSets()
-	if err != nil && !strings.Contains(err.Error(), "not found") {
-		log.Errorln("Error when cleaning up deployed daemonsets: ", err.Error())
-	}
-}
-
-// cleanUpRogueDaemonSets deletes all existing rogue daemonsets within the kuberhealthy namespace
-func (dsc *Checker) cleanUpRogueDaemonSets() error {
-	daemonSets, err := dsc.getAllDaemonsets()
-	if err != nil {
-		log.Errorln("Error fetching daemonsets for cleanup:", err)
-		return err
-	}
-
-	// Delete any rogue daemonsets
-	if len(daemonSets) > 0 {
-		for _, ds := range daemonSets {
-			log.Infoln("Found rogue daemonset:", ds.Name, ". Deleting daemonset.")
-
-			err = dsc.deleteDS(ds.Name)
-			if err != nil {
-				log.Errorln("Error deleting daemonset:", ds.Name, err)
-				return err
-			}
-
-		}
-	}
-	return err
 }
 
 func (dsc *Checker) overrideDSPauseContainerImage() {
@@ -296,7 +275,7 @@ func (dsc *Checker) Timeout() time.Duration {
 }
 
 // Shutdown signals the DS to begin a cleanup
-func (dsc *Checker) Shutdown() error {
+func (dsc *Checker) Shutdown() {
 	dsc.shuttingDown = true
 
 	// make a context to satisfy pod removal
@@ -316,8 +295,25 @@ func (dsc *Checker) Shutdown() error {
 	}
 
 	log.Infoln(dsc.Name(), "Daemonset "+dsc.DaemonSetName+" ready for shutdown.")
-	return nil
+	sdDoneChan <- true
+}
 
+// listenForInterrupts watches for termination signals and acts on them
+func (dsc *Checker) listenForInterrupts() {
+	signal.Notify(sdSigChan, os.Interrupt, os.Kill)
+	<-sdSigChan
+	log.Infoln("Shutting down...")
+	go dsc.Shutdown()
+	// wait for checks to be done shutting down before exiting
+	select {
+	case <-sdDoneChan:
+		log.Infoln("Shutdown gracefully completed!")
+	case <-sdSigChan:
+		log.Warningln("Shutdown forced from multiple interrupts!")
+	case <-time.After(terminationGracePeriod):
+		log.Errorln("Shutdown took too long.  Shutting down forcefully!")
+	}
+	os.Exit(0)
 }
 
 // findAllUniqueTolerations returns a list of all taints present on any node group in the cluster
@@ -478,10 +474,37 @@ func (dsc *Checker) cleanupOrphanedDaemonsets() error {
 // deleteDS deletes the DS with the specified name
 func (dsc *Checker) deleteDS(dsName string) error {
 
-	propagationForeground := metav1.DeletePropagationForeground
-	dsClient := dsc.getDaemonSetClient()
-	err := dsClient.Delete(dsName, &metav1.DeleteOptions{PropagationPolicy: &propagationForeground})
-	return err
+	// confirm the count we are removing before issuing a delete
+	podsClient := dsc.client.CoreV1().Pods(dsc.Namespace)
+	pods, err := podsClient.List(metav1.ListOptions{
+		LabelSelector: "app=" + dsName + ",source=kuberhealthy",
+	})
+	if err != nil {
+		return err
+	}
+	log.Infoln(dsc.Name(), "removing", len(pods.Items), "daemonset pods")
+
+	// delete the daemonset
+	log.Infoln(dsc.Name(), "removing daemonset:", dsName)
+	daemonSetClient := dsc.getDaemonSetClient()
+	err = daemonSetClient.Delete(dsName, &metav1.DeleteOptions{})
+	if err != nil {
+		log.Error("Failed to delete daemonset:", dsName, err)
+		return err
+	}
+
+	// issue a delete to every pod. removing the DS alone does not ensure all
+	// pods are removed
+	log.Infoln(dsc.Name(), "removing daemonset pods")
+	err = podsClient.DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
+		LabelSelector: "app=" + dsName + ",source=kuberhealthy",
+	})
+	if err != nil {
+		log.Error("Failed to delete daemonset pods:", err)
+		return err
+	}
+	return nil
+
 }
 
 // deletePod deletes a pod with the specified name
@@ -637,9 +660,10 @@ func (dsc *Checker) Run(client *kubernetes.Clientset) error {
 // doChecks actually runs checking procedures
 func (dsc *Checker) doChecks(ctx context.Context) error {
 
+	// clean up already happens before we call Run()
 	// clean up any existing daemonsets that may be laying around
 	// waiting so not to cause a conflict.  Don't listen to errors here.
-	_ = dsc.cleanUp(ctx)
+	//_ = dsc.cleanUp(dsc.ctx)
 
 	// deploy the daemonset
 	err := dsc.doDeploy(ctx)
@@ -658,49 +682,6 @@ func (dsc *Checker) doChecks(ctx context.Context) error {
 	go dsc.cleanupOrphans()
 
 	return nil
-}
-
-// cleanUp finds and removes any existing daemonsets in case they are
-// left abandoned from a race condition.
-func (dsc *Checker) cleanUp(ctx context.Context) error {
-
-	// get a DS client
-	dsClient := dsc.getDaemonSetClient()
-
-	// check for existing daemonset to cleanup
-	ds, err := dsClient.Get(dsc.DaemonSetName, metav1.GetOptions{})
-
-	// if a DS isn't found, then return nil. No cleanup is needed.
-	if err != nil && strings.Contains(err.Error(), "not found") {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-
-	// if a DS exists, then clean it up
-	if ds.Name != "" {
-		log.Warningln("Rogue or leftover daemonset.  Removing before running checks")
-
-		// if there wasnt an error, the DS exists and we need to clean it up.
-		err = dsc.remove()
-		if err != nil {
-			return err
-		}
-
-		// watch for the daemonset to not exist before returning
-		err = dsc.waitForDSRemoval(ctx)
-		if err != nil {
-			return err
-		}
-
-		// wait for ds pods to be deleted
-		err = dsc.waitForPodRemoval(ctx)
-		return err
-	}
-
-	return nil
-
 }
 
 // waitForAllDaemonsetsToClear
@@ -732,7 +713,7 @@ func (dsc *Checker) waitForAllDaemonsetsToClear(ctx context.Context) chan error 
 				outChan <- err
 				return
 			}
-				if len(dsList) == 0 {
+			if len(dsList) == 0 {
 				log.Info("all daemonsets cleared")
 				outChan <- nil
 				return
@@ -741,27 +722,6 @@ func (dsc *Checker) waitForAllDaemonsetsToClear(ctx context.Context) chan error 
 	}()
 
 	return outChan
-}
-
-
-// waitForDSRemoval waits for the daemonset to be removed before returning
-func (dsc *Checker) waitForDSRemoval(ctx context.Context) error {
-	// repeatedly fetch the DS until it goes away
-	for {
-		// check for our context to expire to break the loop
-		ctxErr := ctx.Err()
-		if ctxErr != nil {
-			return ctxErr
-		}
-		time.Sleep(time.Second / 2)
-		exists, err := dsc.fetchDS()
-		if err != nil {
-			return err
-		}
-		if !exists {
-			return nil
-		}
-	}
 }
 
 // fetchDS fetches the ds for the checker from the api server
@@ -1024,6 +984,26 @@ func (dsc *Checker) remove() error {
 	}
 	dsc.DaemonSetDeployed = false
 	return nil
+}
+
+// waitForDSRemoval waits for the daemonset to be removed before returning
+func (dsc *Checker) waitForDSRemoval(ctx context.Context) error {
+	// repeatedly fetch the DS until it goes away
+	for {
+		// check for our context to expire to break the loop
+		ctxErr := ctx.Err()
+		if ctxErr != nil {
+			return ctxErr
+		}
+		time.Sleep(time.Second / 2)
+		exists, err := dsc.fetchDS()
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return nil
+		}
+	}
 }
 
 // waitForPodRemoval waits for the daemonset to finish removal
