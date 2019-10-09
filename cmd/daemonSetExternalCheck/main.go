@@ -29,7 +29,6 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 )
 
-// TODO - RETURN ERROR MESSAGES TO KUBERHEALTHY STATUS PAGE
 const daemonSetBaseName = "daemonset-test"
 const defaultDSCheckTimeout = "10m"
 
