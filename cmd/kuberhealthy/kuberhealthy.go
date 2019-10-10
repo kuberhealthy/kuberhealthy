@@ -514,7 +514,7 @@ func (k *Kuberhealthy) StartWebServer() {
 	http.HandleFunc("/externalCheckStatus", func(w http.ResponseWriter, r *http.Request) {
 		err := k.externalCheckReportHandler(w, r)
 		if err != nil {
-			log.Errorln(err)
+			log.Errorln("externalCheckStatus endpoint error:", err)
 		}
 	})
 
