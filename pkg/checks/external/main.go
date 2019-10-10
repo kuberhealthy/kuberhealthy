@@ -78,8 +78,8 @@ type Checker struct {
 	ExtraLabels              map[string]string
 	currentCheckUUID         string             // the UUID of the current external checker running
 	Debug                    bool               // indicates we should run in debug mode - run once and stop
-	cancelFunc               context.CancelFunc // used to cancel things in-flight
-	ctx                      context.Context    // a context used for tracking check runs
+	shutdownCTXFunc          context.CancelFunc // used to cancel things in-flight when shutting down gracefully
+	shutdownCTX              context.Context    // a context used for shutting down the check gracefully
 }
 
 // New creates a new external checker
@@ -106,14 +106,6 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 		PodSpec:                  checkConfig.Spec.PodSpec,
 		KubeClient:               client,
 	}
-}
-
-// cancel cancels the context of this checker to shut things down gracefully
-func (ext *Checker) cancel() {
-	if ext.cancelFunc == nil {
-		return
-	}
-	ext.cancelFunc()
 }
 
 // CurrentStatus returns the status of the check as of right now
@@ -211,11 +203,11 @@ func (ext *Checker) setUUID(uuid string) error {
 func (ext *Checker) RunOnce() error {
 
 	// create a context for this run
-	ext.ctx, ext.cancelFunc = context.WithCancel(context.Background())
+	ext.shutdownCTX, ext.shutdownCTXFunc = context.WithCancel(context.Background())
 
 	// fetch the currently known lastReportTime for this check.  We will use this to know when the pod has
 	// fully reported back with a status before exiting
-	lastReportTime, err := ext.getCheckLastUpdateTime(ext.ctx)
+	lastReportTime, err := ext.getCheckLastUpdateTime()
 	if err != nil {
 		return err
 	}
@@ -265,18 +257,19 @@ func (ext *Checker) RunOnce() error {
 	select {
 	case <-timeoutChan:
 		ext.log("timed out")
-		ext.cancel() // cancel the watch context, we have timed out
 		ext.cleanup()
 		errorMessage := "failed to see pod cleanup within timeout"
 		ext.log(errorMessage)
 		return errors.New(errorMessage)
-	case err = <-ext.waitForAllPodsToClear(ext.ctx):
+	case err = <-ext.waitForAllPodsToClear():
 		if err != nil {
-			ext.cancel() // cancel the watch context, we have timed out
 			errorMessage := "error waiting for pod to clean up: " + err.Error()
 			ext.log(err.Error())
 			return errors.New(errorMessage)
 		}
+	case <-ext.shutdownCTX.Done():
+		ext.log("shutting down check")
+		return nil
 	}
 	ext.log("No checker pods exist.")
 
@@ -293,43 +286,44 @@ func (ext *Checker) RunOnce() error {
 	select {
 	case <-timeoutChan:
 		ext.log("timed out")
-		ext.cancel() // cancel the watch context, we have timed out
 		ext.cleanup()
 		return errors.New("failed to see pod running within timeout")
 	case err = <-ext.waitForPodRunning():
 		if err != nil {
-			ext.cancel() // cancel the watch context, we have timed out
 			ext.cleanup()
 			errorMessage := "error when waiting for pod to start: " + err.Error()
 			ext.log(errorMessage)
 			return errors.New(errorMessage)
 		}
+		// flag the pod as running until this run ends
+		ext.setPodDeployed(true)
+		defer ext.setPodDeployed(false)
 		ext.log("External check pod is running:", ext.PodName)
+	case <-ext.shutdownCTX.Done():
+		ext.log("shutting down check")
+		return nil
 	}
-
-	// flag the pod as running until this run ends
-	ext.setPodDeployed(true)
-	defer ext.setPodDeployed(false)
 
 	// validate that the pod was able to update its khstate
 	ext.log("Waiting for pod status to be reported from pod", ext.PodName, "in namespace", ext.Namespace)
 	select {
 	case <-timeoutChan:
 		ext.log("timed out")
-		ext.cancel() // cancel the watch context, we have timed out
 		ext.cleanup()
 		errorMessage := "timed out waiting for checker pod to report in"
 		ext.log(errorMessage)
 		return errors.New(errorMessage)
-	case err = <-ext.waitForPodStatusUpdate(lastReportTime, ext.ctx):
+	case err = <-ext.waitForPodStatusUpdate(lastReportTime):
 		if err != nil {
-			ext.cancel() // cancel the watch context, we have timed out
 			ext.cleanup()
 			errorMessage := "found an error when waiting for pod status to update: " + err.Error()
 			ext.log(errorMessage)
 			return errors.New(errorMessage)
 		}
 		ext.log("External check pod has reported status for this check iteration:", ext.PodName)
+	case <-ext.shutdownCTX.Done():
+		ext.log("shutting down check")
+		return nil
 	}
 
 	// validate that the pod stopped running properly
@@ -337,7 +331,6 @@ func (ext *Checker) RunOnce() error {
 	select {
 	case <-timeoutChan:
 		ext.log("timed out")
-		ext.cancel() // cancel the watch context, we have timed out
 		ext.cleanup()
 		errorMessage := "timed out waiting for pod to exit"
 		ext.log(errorMessage)
@@ -345,11 +338,13 @@ func (ext *Checker) RunOnce() error {
 	case err = <-ext.waitForPodExit():
 		ext.log("External check pod is done running:", ext.PodName)
 		if err != nil {
-			ext.cancel() // cancel the watch context, we have timed out
 			errorMessage := "found an error when waiting for pod to exit: " + err.Error()
 			ext.log(errorMessage, err)
 			return errors.New(errorMessage)
 		}
+	case <-ext.shutdownCTX.Done():
+		ext.log("shutting down check")
+		return nil
 	}
 
 	ext.log("Run completed!")
@@ -388,7 +383,11 @@ func (ext *Checker) sanityCheck() error {
 	}
 
 	if ext.KubeClient == nil {
-		return errors.New("KubeClient can not be nil")
+		return errors.New("kubeClient can not be nil")
+	}
+
+	if len(ext.PodSpec.Containers) == 0 {
+		return errors.New("pod has no configured containers")
 	}
 
 	return nil
@@ -396,7 +395,7 @@ func (ext *Checker) sanityCheck() error {
 
 // getCheckLastUpdateTime fetches the last time the khstate custom resource for this check was updated
 // as a time.Time.
-func (ext *Checker) getCheckLastUpdateTime(ctx context.Context) (time.Time, error) {
+func (ext *Checker) getCheckLastUpdateTime() (time.Time, error) {
 
 	// fetch the khstate as it exists
 	khstate, err := ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.CheckName, ext.Namespace)
@@ -404,12 +403,12 @@ func (ext *Checker) getCheckLastUpdateTime(ctx context.Context) (time.Time, erro
 		return time.Time{}, nil
 	}
 
-	return khstate.Spec.LastRun, nil
+	return khstate.Spec.LastRun, err
 
 }
 
 // waitForPodStatusUpdate waits for a pod status to update from the specified time
-func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context.Context) chan error {
+func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time) chan error {
 	ext.log("waiting for pod to report in to status page...")
 
 	// make the output channel we will return and close it whenever we are done
@@ -426,14 +425,14 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context
 
 			// if the context is canceled, we stop
 			select {
-			case <-ctx.Done():
-				outChan <- errors.New("waiting for pod to clear was aborted by context cancellation")
+			case <-ext.shutdownCTX.Done():
+				outChan <- nil
 				return
 			default:
 			}
 
 			// fetch the lastUpdateTime from the khstate as of right now
-			currentUpdateTime, err := ext.getCheckLastUpdateTime(ctx)
+			currentUpdateTime, err := ext.getCheckLastUpdateTime()
 			if err != nil {
 				outChan <- err
 				return
@@ -451,7 +450,7 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time, ctx context
 }
 
 // waitForAllPodsToClear waits for all pods to clear up and be gone
-func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
+func (ext *Checker) waitForAllPodsToClear() chan error {
 
 	ext.log("waiting for pod to clear")
 
@@ -471,8 +470,8 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 
 			// if the context is canceled, we stop
 			select {
-			case <-ctx.Done():
-				outChan <- errors.New("waiting for pod to clear was aborted by context cancellation")
+			case <-ext.shutdownCTX.Done():
+				outChan <- nil
 				return
 			default:
 			}
@@ -552,7 +551,7 @@ func (ext *Checker) waitForPodExit() chan error {
 
 				// if the context is done, we break the loop and return
 				select {
-				case <-ext.ctx.Done():
+				case <-ext.shutdownCTX.Done():
 					ext.log("external checker pod exit watch aborted due to check context being aborted")
 					watcher.Stop()
 					outChan <- nil
@@ -630,7 +629,7 @@ func (ext *Checker) waitForPodRunning() chan error {
 
 				// if the context is done, we break the loop and return
 				select {
-				case <-ext.ctx.Done():
+				case <-ext.shutdownCTX.Done():
 					ext.log("external checker pod startup watch aborted due to check context being aborted")
 					outChan <- nil
 					watcher.Stop()
@@ -794,17 +793,10 @@ func (ext *Checker) waitForShutdown(ctx context.Context) error {
 func (ext *Checker) Shutdown() error {
 
 	// cancel the context for this checker run
-	ext.cancel()
+	ext.shutdownCTXFunc()
 
 	// make a context to track pod removal and cleanup
-	ctx := context.Background()
-	ctx, cancelCtx := context.WithCancel(ctx)
-
-	// cancel the shutdown context after the timeout
-	go func() {
-		<-time.After(ext.Timeout())
-		cancelCtx()
-	}()
+	ctx, _ := context.WithTimeout(context.Background(), ext.Timeout())
 
 	// if the pod is deployed, delete it
 	if ext.podDeployed() {
