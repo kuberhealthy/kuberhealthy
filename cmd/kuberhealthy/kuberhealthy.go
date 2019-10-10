@@ -629,7 +629,7 @@ func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 	// find the pod by its IP address
 	podClient := kubernetesClient.CoreV1().Pods("")
 	listOptions := metav1.ListOptions{
-		FieldSelector: "status.podIP==" + remoteIP,
+		FieldSelector: "status.podIP==" + remoteIP + ",status.phase==Running",
 	}
 	podList, err := podClient.List(listOptions)
 	if err != nil {
