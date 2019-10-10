@@ -607,8 +607,11 @@ func (ext *Checker) waitForPodRunning() chan error {
 					continue
 				}
 
-				// TODO - catch when the pod has an error image pull and return it as an error #201
+				// catch when the pod has an error image pull and return it as an error #201
 				for _, containerStat := range p.Status.ContainerStatuses {
+					if containerStat.State.Waiting == nil {
+						continue
+					}
 					if containerStat.State.Waiting.Reason == "ErrImagePull" {
 						ext.log("pod had an error image pull")
 						outChan <- errors.New(containerStat.State.Waiting.Reason)
