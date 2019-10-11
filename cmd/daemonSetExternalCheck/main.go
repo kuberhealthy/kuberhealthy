@@ -36,11 +36,6 @@ var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var Namespace string
 var Timeout time.Duration
 
-// Shutdown signal handling
-var sdSigChan chan os.Signal
-var sdDoneChan chan bool
-var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
-
 // DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
 
@@ -80,10 +75,6 @@ func init() {
 		log.Errorln("Error parsing timeout for check", dsCheckTimeout, err)
 		return
 	}
-
-	// Make neccessary shutdown channels (signal channel and done channel)
-	sdSigChan = make(chan os.Signal, 5)
-	sdDoneChan = make(chan bool, 5)
 }
 
 func main() {
@@ -274,44 +265,48 @@ func (dsc *Checker) Timeout() time.Duration {
 }
 
 // Shutdown signals the DS to begin a cleanup
-func (dsc *Checker) Shutdown() {
+func (dsc *Checker) Shutdown(sdDoneChan chan error) {
 	dsc.shuttingDown = true
 
-	// make a context to satisfy pod removal
-	dsc.ctx, dsc.cancelFunc = context.WithCancel(context.Background())
-
-	// cancel the shutdown context after the timeout
-	go func() {
-		<-time.After(dsc.Timeout())
-		dsc.cancelFunc()
-	}()
-
+	var err error
 	// if the ds is deployed, delete it
 	if dsc.DaemonSetDeployed {
 		dsc.remove()
-		dsc.waitForPodRemoval()
+		err = dsc.waitForPodRemoval()
 	}
 
 	log.Infoln(dsc.Name(), "Daemonset "+dsc.DaemonSetName+" ready for shutdown.")
-	sdDoneChan <- true
+	sdDoneChan <- err
 }
 
 // listenForInterrupts watches for termination signals and acts on them
 func (dsc *Checker) listenForInterrupts() {
-	signal.Notify(sdSigChan, os.Interrupt, os.Kill)
-	<-sdSigChan
+	// Make neccessary shutdown channels (signal channel and done channel)
+	sigChan := make(chan os.Signal, 5)
+	doneChan := make(chan error, 5)
+
+	terminationGracePeriod := time.Minute * 5
+
+	signal.Notify(sigChan, os.Interrupt, os.Kill)
+	<-sigChan
 	log.Infoln("Shutting down...")
-	go dsc.Shutdown()
+	go dsc.Shutdown(doneChan)
 	// wait for checks to be done shutting down before exiting
 	select {
-	case <-sdDoneChan:
+	case err := <-doneChan:
+		if err != nil {
+			log.Errorln("Error waiting for pod removal during shut down")
+			os.Exit(1)
+		}
 		log.Infoln("Shutdown gracefully completed!")
-	case <-sdSigChan:
+		os.Exit(0)
+	case <-sigChan:
 		log.Warningln("Shutdown forced from multiple interrupts!")
+		os.Exit(1)
 	case <-time.After(terminationGracePeriod):
 		log.Errorln("Shutdown took too long.  Shutting down forcefully!")
+		os.Exit(2)
 	}
-	os.Exit(0)
 }
 
 // findAllUniqueTolerations returns a list of all taints present on any node group in the cluster
