@@ -10,7 +10,7 @@ push:
 external: buildExternalChecker pushExternalChecker
 
 buildExternalChecker:
-	docker build -t quay.io/comcast/test-external-check:latest -f cmd/test-external-check/Dockerfile .
+	docker build -t integrii/test-external-check:latest -f cmd/test-external-check/Dockerfile .
 
 pushExternalChecker:
-	docker push quay.io/comcast/test-external-check:latest
+	docker push integrii/test-external-check:latest
