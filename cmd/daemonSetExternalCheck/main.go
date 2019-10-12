@@ -379,8 +379,8 @@ func (dsc *Checker) cleanupOrphans() error {
 }
 
 // cleanupOrphanedPods cleans up daemonset pods that shouldn't exist because their
-// creating instance is gone.  Sometimes removing daemonsets isnt enough to clean up
-// orphaned pods.
+// creating instance is gone and ensures thay are not pods from an older run.
+// Sometimes removing daemonsets isnt enough to clean up orphaned pods.
 func (dsc *Checker) cleanupOrphanedPods() error {
 	pods, err := dsc.getAllPods()
 	if err != nil {
@@ -388,10 +388,10 @@ func (dsc *Checker) cleanupOrphanedPods() error {
 		return err
 	}
 
-	// loop on all the daemonsets and ensure that daemonset's creating pod exists.
+	// loop on all the daemonsets and ensure that daemonset's creating pod exists and that the pods are not from an older run
 	// if the creating pod does not exist, then we delete the daemonset.
 	for _, p := range pods {
-		log.Infoln("Checking if pod is orphaned:", p.Name, "creatingInstance:", p.Labels["creatingInstance"])
+		log.Infoln("Checking if pod is orphaned:", p.Name, "creatingInstance:", p.Labels["creatingInstance"], "checkRunTime:", CheckRunTime)
 
 		// fetch the creatingInstance label
 		creatingDSInstance := p.Labels["app"]
@@ -438,7 +438,7 @@ func (dsc *Checker) cleanupOrphanedPods() error {
 }
 
 // cleanupOrphanedDaemonsets cleans up daemonsets that should not exist based on their
-// creatingInstance label.
+// creatingInstance label and ensures they are not daemonsets from an older run
 func (dsc *Checker) cleanupOrphanedDaemonsets() error {
 
 	daemonSets, err := dsc.getAllDaemonsets()
@@ -447,10 +447,10 @@ func (dsc *Checker) cleanupOrphanedDaemonsets() error {
 		return err
 	}
 
-	// loop on all the daemonsets and ensure that daemonset's creating pod exists.
+	// loop on all the daemonsets and ensure that daemonset's creating pod exists and that the daemonsets are not from an older run.
 	// if the creating pod does not exist, then we delete the daemonset.
 	for _, ds := range daemonSets {
-		log.Infoln("Checking if daemonset is orphaned:", ds.Name, "creatingInstance:", ds.Labels["creatingInstance"])
+		log.Infoln("Checking if daemonset is orphaned:", ds.Name, "creatingInstance:", ds.Labels["creatingInstance"], "checkRunTime:", CheckRunTime)
 
 		// fetch the creatingInstance label
 		creatingInstance := ds.Labels["creatingInstance"]
