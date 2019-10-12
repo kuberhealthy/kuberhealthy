@@ -2,7 +2,7 @@
 // a daemonset to a cluster.  Includes validation of cleanup as well.  This
 // check provides a high level of confidence that the cluster is operating
 // normally.
-package main // import "github.com/Comcast/kuberhealthy/pkg/checks/daemonSetExternalCheck"
+package main
 
 import (
 	"context"
@@ -419,7 +419,7 @@ func (dsc *Checker) cleanupOrphanedPods() error {
 			}
 		}
 
-		// Check that the pod isn't from an older run.
+		// Check that the pod isn't from an older run
 		podCheckRunTime, err := strconv.ParseInt(p.Labels["checkRunTime"], 10, 64)
 		if err != nil {
 			log.Errorln("Error converting pod checkRunTime:", podCheckRunTime, "label to int:", err)
@@ -479,7 +479,7 @@ func (dsc *Checker) cleanupOrphanedDaemonsets() error {
 			}
 		}
 
-		// Check that the daemonset isn't from an older run.
+		// Check that the daemonset isn't from an older run
 		dsCheckRunTime, err := strconv.ParseInt(ds.Labels["checkRunTime"], 10, 64)
 		if err != nil {
 			log.Errorln("Error converting ds checkRunTime:", dsCheckRunTime,  "label to int:", err)
