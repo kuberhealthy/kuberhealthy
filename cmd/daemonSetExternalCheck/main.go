@@ -38,6 +38,7 @@ var Timeout time.Duration
 
 // DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
+var CheckRunTime int64 // use this to compare and find rogue daemonsets or pods
 
 // Checker implements a KuberhealthyCheck for daemonset
 // deployment and teardown checking.
@@ -75,6 +76,8 @@ func init() {
 		log.Errorln("Error parsing timeout for check", dsCheckTimeout, err)
 		return
 	}
+
+	CheckRunTime = time.Now().Unix()
 }
 
 func main() {
@@ -140,7 +143,7 @@ func New(client *kubernetes.Clientset) (*Checker, error) {
 
 	testDS := Checker{
 		Namespace:           Namespace,
-		DaemonSetName:       daemonSetBaseName + "-" + hostname + "-" + strconv.Itoa(int(time.Now().Unix())),
+		DaemonSetName:       daemonSetBaseName + "-" + hostname + "-" + strconv.Itoa(int(CheckRunTime)),
 		hostname:            hostname,
 		PauseContainerImage: "gcr.io/google-containers/pause:3.1",
 		Tolerations:         tolerations,
@@ -169,6 +172,7 @@ func (dsc *Checker) overrideDSPauseContainerImage() {
 // generateDaemonSetSpec generates a daemon set spec to deploy into the cluster
 func (dsc *Checker) generateDaemonSetSpec() {
 
+	checkRunTime := strconv.Itoa(int(CheckRunTime))
 	terminationGracePeriod := int64(1)
 	runAsUser := int64(1000)
 	log.Debug("Running daemon set as user 1000.")
@@ -192,6 +196,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 				"app":              dsc.DaemonSetName,
 				"source":           "kuberhealthy",
 				"creatingInstance": dsc.hostname,
+				"checkRunTime": checkRunTime,
 			},
 			Annotations: map[string]string{
 				"cluster-autoscaler.kubernetes.io/safe-to-evict": "true",
@@ -204,6 +209,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 					"app":              dsc.DaemonSetName,
 					"source":           "kuberhealthy",
 					"creatingInstance": dsc.hostname,
+					"checkRunTime": checkRunTime,
 				},
 			},
 			Template: apiv1.PodTemplateSpec{
@@ -212,6 +218,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 						"app":              dsc.DaemonSetName,
 						"source":           "kuberhealthy",
 						"creatingInstance": dsc.hostname,
+						"checkRunTime": checkRunTime,
 					},
 					Name: dsc.DaemonSetName,
 				},
@@ -401,10 +408,6 @@ func (dsc *Checker) cleanupOrphanedPods() error {
 
 		// check if the creatingInstance exists
 		exists := dsc.checkIfDSExists(creatingDSInstance)
-		if err != nil {
-			log.Errorln("error checking if kuberhealthy daemonset exists:", err)
-			return err
-		}
 
 		// if the owning kuberhealthy pod of the DS does not exist, then we delete the daemonset
 		if !exists {
@@ -414,6 +417,21 @@ func (dsc *Checker) cleanupOrphanedPods() error {
 				log.Warningln("error when removing orphaned pod", p.Name+": ", err)
 				return err
 			}
+		}
+
+		// Check that the pod isn't from an older run.
+		podCheckRunTime, err := strconv.ParseInt(p.Labels["checkRunTime"], 10, 64)
+		if err != nil {
+			log.Errorln("Error converting pod checkRunTime:", podCheckRunTime, "label to int:", err)
+		}
+
+		if podCheckRunTime < CheckRunTime {
+			log.Warningln("Pod:", p.Name, "has an older checkRunTime than the current daemonset running. This is a rogue pod, removing now.")
+			err := dsc.deletePod(p.Name)
+			if err != nil {
+				log.Warningln("error when removing rogue pod:", p.Name+": ", err)
+			}
+			continue
 		}
 	}
 	return nil
@@ -459,6 +477,21 @@ func (dsc *Checker) cleanupOrphanedDaemonsets() error {
 				log.Warningln("error when removing orphaned daemonset", ds.Name+": ", err)
 				return err
 			}
+		}
+
+		// Check that the daemonset isn't from an older run.
+		dsCheckRunTime, err := strconv.ParseInt(ds.Labels["checkRunTime"], 10, 64)
+		if err != nil {
+			log.Errorln("Error converting ds checkRunTime:", dsCheckRunTime,  "label to int:", err)
+		}
+
+		if dsCheckRunTime < CheckRunTime {
+			log.Warningln("Daemonset:", ds.Name, "has an older checkRunTime than the current daemonset running. This is a rogue daemonset, removing now.")
+			err := dsc.deleteDS(ds.Name)
+			if err != nil {
+				log.Warningln("error when removing rogue daemonset:", ds.Name+": ", err)
+			}
+			continue
 		}
 	}
 	return nil
@@ -652,11 +685,6 @@ func (dsc *Checker) Run(client *kubernetes.Clientset) error {
 
 // doChecks actually runs checking procedures
 func (dsc *Checker) doChecks() error {
-
-	// clean up already happens before we call Run()
-	// clean up any existing daemonsets that may be laying around
-	// waiting so not to cause a conflict.  Don't listen to errors here.
-	//_ = dsc.cleanUp(dsc.ctx)
 
 	// deploy the daemonset
 	err := dsc.doDeploy()
