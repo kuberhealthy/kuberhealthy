@@ -6,14 +6,13 @@ WORKDIR /go/src/github.com/Comcast/kuberhealthy/cmd/kuberhealthy
 ENV GO111MODULE=on
 ENV CGO_ENABLED=0
 RUN go version
-#RUN go test -v -short -- --debug --forceMaster
+RUN go test -v -short -- --debug --forceMaster
 RUN go build -v -o kuberhealthy
 RUN mkdir /kuberhealthy
 RUN mv kuberhealthy /kuberhealthy/kuberhealthy
 
 FROM golang
-RUN apt-get update
-RUN apt-get upgrade -y
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 RUN apt-get remove mercurial -y
 RUN mkdir /app
 WORKDIR /app

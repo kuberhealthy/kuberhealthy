@@ -18,16 +18,17 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/pkg/metrics"
-	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/componentStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
+	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
+	"github.com/Comcast/kuberhealthy/pkg/metrics"
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
 )
@@ -47,12 +48,14 @@ var terminationGracePeriodSeconds = time.Minute * 5 // keep calibrated with kube
 var enableForceMaster bool               // force master mode - for debugging
 var enableDebug bool                     // enable debug logging
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
+var DSTolerationOverride []string			 // specify an alternate list of taints to tolerate - see #178
 var logLevel = "info"
-var enableComponentStatusChecks = true
-var enableDaemonSetChecks = true
-var enablePodRestartChecks = true
-var enablePodStatusChecks = true
-var enableDnsStatusChecks = true
+
+var enableComponentStatusChecks = determineCheckStateFromEnvVar("COMPONENT_STATUS_CHECK")
+var enableDaemonSetChecks = determineCheckStateFromEnvVar("DAEMON_SET_CHECK")
+var enablePodRestartChecks = determineCheckStateFromEnvVar("POD_RESTARTS_CHECK")
+var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
+var enableDnsStatusChecks = determineCheckStateFromEnvVar("DNS_STATUS_CHECK")
 
 // InfluxDB flags
 var enableInflux = false
@@ -83,6 +86,8 @@ func getAllLogLevel() string {
 }
 
 func init() {
+
+	// setup flaggy
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
 	flaggy.String(&listenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
@@ -94,6 +99,7 @@ func init() {
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
 	flaggy.String(&DSPauseContainerImageOverride, "", "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
+	flaggy.StringSlice(&DSTolerationOverride, "", "tolerationOverride", "Specify a specific taint (in a key,value,effect format, ex. node-role.kubernetes.io/master,,NoSchedule or dedicated,someteam,NoSchedule)  to tolerate and force DaemonSetChecker to tolerate only nodes with that taint. Use the flag multiple times to add multiple tolerations. Default behavior is to tolerate all taints in the cluster.")
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
 	flaggy.String(&logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
 	flaggy.StringSlice(&dnsEndpoints, "", "dnsEndpoints", "The comma separated list of dns endpoints to check, if enabled. Defaults to kubernetes.default")
@@ -174,14 +180,23 @@ func main() {
 	// daemonset checking
 	if enableDaemonSetChecks {
 		dsc, err := daemonSet.New()
+		if err != nil {
+			log.Fatalln("unable to create daemonset checker:", err)
+		}
 		// allow the user to override the image used by the DSC - see #114
 		if len(DSPauseContainerImageOverride) > 0 {
 			log.Info("Setting DS pause container override image to:", DSPauseContainerImageOverride)
 			dsc.PauseContainerImage = DSPauseContainerImageOverride
 		}
-		if err != nil {
-			log.Fatalln("unable to create daemonset checker:", err)
-		}
+		// allow the user to override the tolerations used by the DSC - see #178
+		if len(DSPauseContainerImageOverride) > 0 {
+			log.Info("Setting DS Tolerations to:", DSTolerationOverride)
+			DSTolerationOverrideList, err := dsc.ParseTolerationOverride(DSTolerationOverride)
+			if err != nil {
+				log.Errorln("Error parsing tolerationOverride", err)
+			}
+			dsc.Tolerations = DSTolerationOverrideList
+			}
 		kuberhealthy.AddCheck(dsc)
 	}
 
@@ -234,4 +249,15 @@ func listenForInterrupts() {
 		log.Errorln("Shutdown took too long.  Shutting down forcefully!")
 	}
 	os.Exit(0)
+}
+
+// determineCheckStateFromEnvVar determines a check's enabled state based on
+// the supplied environment variable
+func determineCheckStateFromEnvVar(envVarName string) bool {
+	enabledState, err := strconv.ParseBool(os.Getenv(envVarName))
+	if err != nil {
+		log.Debugln("Had an error parsing the environment variable", envVarName, err)
+		return true // by default, the check is on
+	}
+	return enabledState
 }

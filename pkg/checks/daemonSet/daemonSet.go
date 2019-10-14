@@ -6,6 +6,7 @@ package daemonSet // import "github.com/Comcast/kuberhealthy/pkg/checks/daemonSe
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"os"
 	"strconv"
 	"strings"
@@ -38,7 +39,7 @@ type Checker struct {
 	DaemonSetName       string
 	PauseContainerImage string
 	hostname            string
-	tolerations         []apiv1.Toleration
+	Tolerations         []apiv1.Toleration
 	client              *kubernetes.Clientset
 }
 
@@ -53,8 +54,8 @@ func New() (*Checker, error) {
 		Namespace:           namespace,
 		DaemonSetName:       daemonSetBaseName + "-" + hostname + "-" + strconv.Itoa(int(time.Now().Unix())),
 		hostname:            hostname,
-		PauseContainerImage: "gcr.io/google_containers/pause:0.8.0",
-		tolerations:         tolerations,
+		PauseContainerImage: "gcr.io/google-containers/pause:3.1",
+		Tolerations:         tolerations,
 	}
 
 	return &testDS, nil
@@ -66,12 +67,15 @@ func (dsc *Checker) generateDaemonSetSpec() {
 	terminationGracePeriod := int64(1)
 	runAsUser := int64(1000)
 	log.Debug("Running daemon set as user 1000.")
-
-	// find all the taints in the cluster and create a toleration for each
 	var err error
-	dsc.tolerations, err = findAllUniqueTolerations(dsc.client)
-	if err != nil {
-		log.Warningln("Unable to generate list of pod scheduling tolerations", err)
+
+	// if a list of tolerations wasnt passed in, default to tolerating all taints
+	if len(dsc.Tolerations) == 0 {
+		// find all the taints in the cluster and create a toleration for each
+		dsc.Tolerations, err = findAllUniqueTolerations(dsc.client)
+		if err != nil {
+			log.Warningln("Unable to generate list of pod scheduling tolerations", err)
+		}
 	}
 
 	//create the DS object
@@ -83,6 +87,9 @@ func (dsc *Checker) generateDaemonSetSpec() {
 				"app":              dsc.DaemonSetName,
 				"source":           "kuberhealthy",
 				"creatingInstance": dsc.hostname,
+			},
+			Annotations: map[string]string{
+				"cluster-autoscaler.kubernetes.io/safe-to-evict":	"true",
 			},
 		},
 		Spec: betaapiv1.DaemonSetSpec{
@@ -127,8 +134,8 @@ func (dsc *Checker) generateDaemonSetSpec() {
 	}
 
 	// Add our generated list of tolerations or any the user input via flag
-	dsc.DaemonSet.Spec.Template.Spec.Tolerations = append(dsc.DaemonSet.Spec.Template.Spec.Tolerations, dsc.tolerations...)
 	log.Infoln("Deploying daemon set with tolerations: ", dsc.DaemonSet.Spec.Template.Spec.Tolerations)
+	dsc.DaemonSet.Spec.Template.Spec.Tolerations = append(dsc.DaemonSet.Spec.Template.Spec.Tolerations, dsc.Tolerations...)
 }
 
 // Name returns the name of this checker
@@ -205,6 +212,22 @@ func findAllUniqueTolerations(client *kubernetes.Clientset) ([]apiv1.Toleration,
 	}
 	log.Infoln("Found taints to tolerate:", uniqueTolerations)
 	return uniqueTolerations, nil
+}
+
+// ParseTolerationOverride parses a list of taints and returns them as a toleration object
+func (dsc *Checker) ParseTolerationOverride(taints []string) (tolerations []apiv1.Toleration, err error) {
+	for _, t := range taints {
+		s := strings.Split(t,",")
+		if len(s) != 3 {
+			return []apiv1.Toleration{}, errors.New("Unable to parse the passed in taint overrides - are they in the correct format?")
+		}
+		tolerations = append(tolerations, apiv1.Toleration{
+			Key:	s[0],
+			Value: 	s[1],
+			Effect:	apiv1.TaintEffect(s[2]),
+		})
+	}
+	return tolerations, err
 }
 
 // CurrentStatus returns the status of the check as of right now
@@ -713,10 +736,10 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 
 	// populate a node status map. default status is "false", meaning there is
 	// not a pod deployed to that node.  We are only adding nodes that tolerate
-	// our list of dsc.tolerations
+	// our list of dsc.Tolerations
 	nodeStatuses := make(map[string]bool)
 	for _, n := range nodes.Items {
-		if taintsAreTolerated(n.Spec.Taints, dsc.tolerations) {
+		if taintsAreTolerated(n.Spec.Taints, dsc.Tolerations) {
 			nodeStatuses[n.Name] = false
 		}
 	}
@@ -736,7 +759,7 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 				if nodeip.Type != "InternalIP" || nodeip.Address != pod.Status.HostIP {
 					continue
 				}
-				if taintsAreTolerated(node.Spec.Taints, dsc.tolerations) {
+				if taintsAreTolerated(node.Spec.Taints, dsc.Tolerations) {
 					nodeStatuses[node.Name] = true
 					break
 				}
@@ -890,3 +913,4 @@ func (dsc *Checker) getDaemonSetClient() v1beta1.DaemonSetInterface {
 	log.Debug("Creating Daemonset client.")
 	return dsc.client.ExtensionsV1beta1().DaemonSets(dsc.Namespace)
 }
+
