@@ -5,15 +5,21 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 15m
-  # Make sure this Kuberhealthy check timeout is GREATER THAN the daemonset checker timeout set in the env var DS_CHECKER_TIMEOUT. Default is set to 5m (5 minutes).
+  # Make sure this Kuberhealthy check timeout is GREATER THAN the daemonset checker timeout
+  # set in the env var DS_CHECKER_TIMEOUT. Default is set to 5m (5 minutes).
   timeout: 10m
+  extraAnnotations:
+    comcast.com/testAnnotation: test.annotation
+  extraLabels:
+    testLabel: testLabel
   podSpec:
     containers:
       - env:
           - name: POD_NAMESPACE
             value: "kuberhealthy"
           - name: DS_CHECKER_TIMEOUT
-            # Make sure this value is less than the Kuberhealthy check timeout. Default is set to 10m (10 minutes).
+            # Make sure this value is less than the Kuberhealthy check timeout.
+            # Default is set to 10m (10 minutes).
             value: "5m"
         image: docker-proto.repo.theplatform.com/kh-check-daemonset:1.0.0
         imagePullPolicy: Always
