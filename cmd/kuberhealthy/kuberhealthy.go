@@ -123,6 +123,9 @@ func (k *Kuberhealthy) StopChecks() {
 // Start inits Kuberhealthy checks and master monitoring
 func (k *Kuberhealthy) Start() {
 
+	log.Infoln("Loading initial configuration...")
+	kuberhealthy.configureChecks()
+
 	// if influxdb is enabled, configure it
 	if enableInflux {
 		k.configureInfluxForwarding()
@@ -765,7 +768,7 @@ func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, r *http.Requ
 }
 
 func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
-	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
+	log.Infoln("Client connected to prometheus metrics endpoint from", r.RemoteAddr, r.UserAgent())
 	state, err := k.getCurrentState()
 	if err != nil {
 		err = metrics.WriteMetricError(w, state)
@@ -826,6 +829,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	}
 
 	// loop over every check and apply the current state to the status return
+	log.Debugln("Current state is tracking", len(k.Checks), "checks")
 	for _, c := range k.Checks {
 		log.Debugln("Getting status of check for web request to status page:", c.Name())
 
