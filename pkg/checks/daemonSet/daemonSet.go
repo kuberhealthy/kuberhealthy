@@ -174,8 +174,14 @@ func (dsc *Checker) Shutdown() error {
 
 	// if the ds is deployed, delete it
 	if dsc.DaemonSetDeployed {
-		dsc.remove()
-		dsc.waitForPodRemoval(ctx)
+		err := dsc.remove()
+		if err != nil {
+			return err
+		}
+		err = dsc.waitForPodRemoval(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Infoln(dsc.Name(), "Daemonset "+dsc.DaemonSetName+" ready for shutdown.")
