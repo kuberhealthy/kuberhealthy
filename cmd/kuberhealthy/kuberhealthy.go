@@ -140,15 +140,15 @@ func (k *Kuberhealthy) Start() {
 	// loop and select channels to do appropriate thing when master changes
 	for {
 		select {
-		case <-becameMasterChan:
+		case <-becameMasterChan: // we have become the current master instance and should run checks
 			// reset checks and re-add from configuration settings
 			log.Infoln("Became master. Reconfiguring and starting checks.")
 			kuberhealthy.configureChecks()
 			k.StartChecks()
-		case <-lostMasterChan:
+		case <-lostMasterChan: // we are no longer master
 			log.Infoln("Lost master. Stopping checks.")
 			k.StopChecks()
-		case <-externalChecksUpdateChan:
+		case <-externalChecksUpdateChan: // external check change detected
 			log.Infoln("Witnessed a khcheck resource change...")
 
 			// if we are master, stop checks
@@ -238,14 +238,38 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 			continue
 		}
 
-		// check for changes in the incoming data
+		// this bool indicates if we should send a change signal to the channel
 		var foundChange bool
-		for _, i := range l.Items {
-			log.Debugln("Scanning khcheck CRD", i.Name, "for changes since last seen...")
 
+		// if a khcheck has been deleted, then we signal for change and purge it from the knownSettings map.
+		for mapName := range knownSettings {
+			var existsInItems bool // indicates the item exists in the item listing
+			for _, i := range l.Items {
+				itemMapName := i.Namespace + "/" + i.Name
+				if itemMapName == mapName {
+					existsInItems = true
+					break
+				}
+			}
+			if !existsInItems {
+				log.Debugln("Detected khcheck deletion for", mapName)
+				delete(knownSettings, mapName)
+				foundChange = true
+			}
+		}
+
+		// check for changes or additions in the incoming data
+		for _, i := range l.Items {
 			mapName := i.Namespace + "/" + i.Name
-			if len(mapName) == 1 {
-				log.Warning("Got khcheck update from object with no namespace or name...")
+
+			log.Debugln("Scanning khcheck CRD", mapName, "for changes since last seen...")
+
+			if len(i.Namespace) < 1 {
+				log.Warning("Got khcheck update from object with no namespace...")
+				continue
+			}
+			if len(i.Name) < 1 {
+				log.Warning("Got khcheck update from object with no name...")
 				continue
 			}
 
@@ -670,7 +694,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	log.Infoln("Client connected to check report handler from", r.RemoteAddr, r.UserAgent())
 
 	// validate the calling pod to ensure that it has a proper KH_CHECK_NAME and KH_RUN_UUID
-	log.Debug("validating external check status report from", r.RemoteAddr)
+	log.Debug("validating external check status report from: ", r.RemoteAddr)
 	ipReport, err := k.validateExternalRequest(r.RemoteAddr)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
