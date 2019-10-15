@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -123,8 +122,11 @@ func (k *Kuberhealthy) StopChecks() {
 // Start inits Kuberhealthy checks and master monitoring
 func (k *Kuberhealthy) Start() {
 
-	log.Infoln("Loading initial configuration...")
+	log.Infoln("Loading initial check configuration...")
 	kuberhealthy.configureChecks()
+
+	// Start the web server and restart it if it crashes
+	go kuberhealthy.StartWebServer()
 
 	// if influxdb is enabled, configure it
 	if enableInflux {
@@ -529,6 +531,7 @@ func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, 
 
 // StartWebServer starts a JSON status web server at the specified listener.
 func (k *Kuberhealthy) StartWebServer() {
+	log.Infoln("Configuring web server")
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		err := k.prometheusMetricsHandler(w, r)
 		if err != nil {
@@ -552,12 +555,15 @@ func (k *Kuberhealthy) StartWebServer() {
 		}
 	})
 
-	log.Infoln("Starting web services on port", k.ListenAddr)
-	err := http.ListenAndServe(k.ListenAddr, nil)
-	if err != nil {
-		log.Errorln(err)
+	// start web server any time it exits
+	for {
+		log.Infoln("Starting web services on port", k.ListenAddr)
+		err := http.ListenAndServe(k.ListenAddr, nil)
+		if err != nil {
+			log.Errorln("Web server error:", err)
+		}
+		time.Sleep(time.Second / 2)
 	}
-	os.Exit(1)
 }
 
 // PodReportIPInfo holds info about an incoming IP to the external check reporting endpoint
