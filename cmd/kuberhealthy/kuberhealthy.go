@@ -182,8 +182,7 @@ func (k *Kuberhealthy) watchForKHCheckChanges(c chan struct{}) {
 		// start a watch on khcheck resources
 		watcher, err := khCheckClient.Watch(metav1.ListOptions{})
 		if err != nil {
-			log.Errorln("error watching khcheck objects", err)
-			watcher.Stop()
+			log.Errorln("error watching khcheck objects:", err)
 			continue
 		}
 
