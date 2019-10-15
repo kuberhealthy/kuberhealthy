@@ -181,18 +181,16 @@ func init() {
 
 func main() {
 
-	// start listening for shutdown interrupts
-	go listenForInterrupts()
-
 	// Create a new Kuberhealthy struct
 	kuberhealthy = NewKuberhealthy()
 	kuberhealthy.ListenAddr = listenAddress
 
-	// tell Kuberhealthy to start all checks and master change monitoring
-	go kuberhealthy.Start()
+	// start listening for shutdown interrupts
+	go listenForInterrupts()
 
-	// Start the web server and restart it if it crashes
-	kuberhealthy.StartWebServer()
+	// tell Kuberhealthy to start all checks and master change monitoring
+	kuberhealthy.Start()
+
 }
 
 // listenForInterrupts watches for termination signals and acts on them
