@@ -202,7 +202,7 @@ func (ext *Checker) setUUID(uuid string) error {
 // watchForCheckerPodShutdown watches for the pod running checks to be shut down.  This means that either the pod
 // was evicted or manually killed by an admin.  In this case, we gracefully skip this run interval and log the event.
 // Two channels are passed in.  shutdownEventNotifyC will send a notification when the checker pod is deleted and
-// shutdownWatchAbortC will notify the checker that its watch has ended.
+// the context can be used to shutdown this checker gracefully.
 func (ext *Checker) watchForCheckerPodShutdown(shutdownEventNotifyC chan struct{}, ctx context.Context) {
 
 	// make a channel to abort the waiter with and start it in the background
