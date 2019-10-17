@@ -409,7 +409,7 @@ func (ext *Checker) RunOnce() error {
 		ext.log("timed out")
 		ext.cleanup()
 		return errors.New("failed to see pod running within timeout")
-	case err = <-shutdownEventNotifyC:
+	case <-shutdownEventNotifyC:
 		ext.log("witnessed checker pod removal. aborting watch for pod running. check run skipped gracefully")
 		return nil
 	case err = <-ext.waitForPodRunning():
@@ -437,7 +437,7 @@ func (ext *Checker) RunOnce() error {
 		errorMessage := "timed out waiting for checker pod to report in"
 		ext.log(errorMessage)
 		return errors.New(errorMessage)
-	case err = <-shutdownEventNotifyC:
+	case <-shutdownEventNotifyC:
 		ext.log("witnessed checker pod removal. aborting watch for pod status report. check run skipped gracefully")
 		return nil
 	case err = <-ext.waitForPodStatusUpdate(lastReportTime):
