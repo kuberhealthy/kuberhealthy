@@ -8,3 +8,4 @@ Make sure to add your check here:
 | --- | --- | --- | --- |
 | Daemonset Test | Ensures daemonsets can be successfully deployed | [daemonSetExternalCheck.yaml](../cmd/daemonSetExternalCheck/daemonSetExternalCheck.yaml) | @integrii @joshulyne |
 | Deployment Test | Ensures that a Deployment and Service can be provisioned and created within the Kubernetes cluster | ???? | @jonnydawg |
+| Pod Restarts Check | Checks for excessive pod restarts in any namespace | [podRestartsExternalCheck.yaml](../cmd/podRestartsExternalCheck/podRestartsExternalCheck.yaml) | @integrii @joshulyne |
