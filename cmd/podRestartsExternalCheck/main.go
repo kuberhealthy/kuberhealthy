@@ -41,14 +41,13 @@ type Checker struct {
 func init() {
 
 	// Grab and verify environment variables and set them as global vars
-	Namespace := os.Getenv("POD_NAMESPACE")
+	Namespace = os.Getenv("POD_NAMESPACE")
 	if len(Namespace) == 0 {
 		log.Errorln("ERROR: The POD_NAMESPACE environment variable has not been set.")
 		return
 	}
 
 	runWindow := os.Getenv("CHECK_RUN_WINDOW")
-	log.Infoln("Got check RunWindow:", runWindow)
 	if len(runWindow) == 0 {
 		log.Errorln("ERROR: The CHECK_RUN_WINDOW environment variable has not been set.")
 		return
@@ -58,6 +57,7 @@ func init() {
 	RunWindow, err = time.ParseDuration(runWindow)
 	if err != nil {
 		log.Errorln("Error parsing run window for check", runWindow, err)
+		return
 	}
 }
 
@@ -74,6 +74,8 @@ func main() {
 
 	// Add created client to the pod restarts checker
 	prc.client = client
+
+	log.Infoln("Enabling pod restarts checker")
 
 	// Populate the RestartObservations map for all current pods found with their restart count
 	err = prc.configurePodRestartCount()
@@ -110,6 +112,8 @@ func shutdownAfterDuration(duration time.Duration) {
 
 // configurePodRestartCount populates the RestartObservations map for all pods with their container restart counts
 func (prc *Checker) configurePodRestartCount() error {
+
+	log.Infoln("Configuring pod restart observations for all pods in namespace:", prc.Namespace)
 
 	l, err := prc.client.CoreV1().Pods(prc.Namespace).List(metav1.ListOptions{})
 	if err != nil {
@@ -208,6 +212,7 @@ func (prc *Checker) removeBadPodRestarts(podName string) {
 	BadPodRestarts.Range(func(_, _ interface{}) bool {
 		_, exists := BadPodRestarts.Load(podName)
 		if exists {
+			log.Infoln("Pod:", podName, "with too many restarts has been deleted. Removing from status report.")
 			BadPodRestarts.Delete(podName)
 		}
 		return true
@@ -217,6 +222,8 @@ func (prc *Checker) removeBadPodRestarts(podName string) {
 // statusReporter sends status reports to Kuberhealthy every minute on bad pod restarts
 func (prc *Checker) statusReporter() {
 	var err error
+
+	log.Infoln("Starting status reporter to send status reports to Kuberhealthy every minute")
 
 	// Start ticker for sending reports to Kuberhealthy
 	ticker := time.NewTicker(1 * time.Minute)
