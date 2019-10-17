@@ -728,6 +728,22 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		return nil
 	}
 
+	// ensure that if ok is set to false, then an error is provided
+	if !state.OK {
+		if len(state.Errors) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			log.Errorln("Client attempted to report OK false without any error strings")
+			return nil
+		}
+		for _, e := range state.Errors {
+			if len(e) == 0 {
+				w.WriteHeader(http.StatusBadRequest)
+				log.Errorln("Client attempted to report a blank error string")
+				return nil
+			}
+		}
+	}
+
 	// fetch the hostname of this pod because we will consider it authoritative
 	// of the last check update
 	hostname, err := getEnvVar("POD_NAME")
