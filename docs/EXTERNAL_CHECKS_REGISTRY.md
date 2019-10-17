@@ -7,4 +7,4 @@ Make sure to add your check here:
 | Check Name | Description | khcheck Resource | Contributor |
 | --- | --- | --- | --- |
 | Daemonset Test | Ensures daemonsets can be successfully deployed | [daemonSetExternalCheck.yaml](../cmd/daemonSetExternalCheck/daemonSetExternalCheck.yaml) | @integrii @joshulyne |
-| Deployment Test | Ensures load balancer can be hit successfully | ???? | @jonnydawg |
+| Deployment Test | Ensures that a Deployment and Service can be provisioned and created within the Kubernetes cluster | ???? | @jonnydawg |
