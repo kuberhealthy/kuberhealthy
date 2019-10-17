@@ -12,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
+	apiv1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -142,6 +143,13 @@ func (psc *Checker) podFailures() (failures []string, err error) {
 
 		for _, container := range pod.Status.ContainerStatuses {
 			currentlyFailedContainer := pod.Name + " ( " + container.Name + " ) "
+
+			// if this pod is completed, forget about all the containers in it
+			if pod.Status.Phase == apiv1.PodSucceeded {
+				delete(psc.FailureTimeStamp, currentlyFailedContainer)
+				continue
+			}
+
 			if container.Ready {
 				delete(psc.FailureTimeStamp, currentlyFailedContainer)
 				continue
