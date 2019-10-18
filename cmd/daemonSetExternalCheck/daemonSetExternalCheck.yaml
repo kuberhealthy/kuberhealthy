@@ -4,10 +4,10 @@ metadata:
   name: kh-daemonset-check
   namespace: kuberhealthy
 spec:
-  runInterval: 15m
+  runInterval: 20m
   # Make sure this Kuberhealthy check timeout is GREATER THAN the daemonset checker timeout
   # set in the env var DS_CHECKER_TIMEOUT. Default is set to 5m (5 minutes).
-  timeout: 10m
+  timeout: 18m
   extraAnnotations:
     comcast.com/testAnnotation: test.annotation
   extraLabels:
@@ -20,7 +20,7 @@ spec:
           - name: DS_CHECKER_TIMEOUT
             # Make sure this value is less than the Kuberhealthy check timeout.
             # Default is set to 10m (10 minutes).
-            value: "5m"
+            value: "15m"
         image: quay.io/comcast/kh-daemonset-check:1.0.0
         imagePullPolicy: Always
         name: main
