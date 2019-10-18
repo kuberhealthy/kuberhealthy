@@ -229,7 +229,7 @@ func (prc *Checker) statusReporter() {
 	ticker := time.NewTicker(1 * time.Minute)
 
 	for {
-		<- ticker.C
+		<-ticker.C
 
 		length := 0
 		BadPodRestarts.Range(func(_, _ interface{}) bool {
