@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -693,6 +694,10 @@ func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 	return podList.Items[0], nil
 }
 
+func (k *Kuberhealthy) externalCheckReportHandlerLog(s ...interface{}) {
+	log.Infoln(s...)
+}
+
 // externalCheckReportHandler handles requests coming from external checkers reporting their status.
 // This endpoint checks that the external check report is coming from the correct UUID before recording
 // the reported status of the corresponding external check.  This endpoint expects a JSON payload of
@@ -700,23 +705,26 @@ func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 // causes a check of the calling pod's spec via the API to ensure that the calling pod is expected
 // to be reporting its status.
 func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
-	log.Infoln("Client connected to check report handler from", r.RemoteAddr, r.UserAgent())
+	// make a request ID for tracking this request
+	requestID := uuid.New().String()
+
+	k.externalCheckReportHandlerLog(requestID, "Client connected to check report handler from", r.RemoteAddr, r.UserAgent())
 
 	// validate the calling pod to ensure that it has a proper KH_CHECK_NAME and KH_RUN_UUID
-	log.Debug("validating external check status report from: ", r.RemoteAddr)
+	k.externalCheckReportHandlerLog(requestID, "validating external check status report from: ", r.RemoteAddr)
 	ipReport, err := k.validateExternalRequest(r.RemoteAddr)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		log.Errorln("Failed to look up pod by IP:", r.RemoteAddr, err)
 		return nil
 	}
-	log.Debugln("Calling pod is", ipReport.Name, "in namespace", ipReport.Namespace)
+	k.externalCheckReportHandlerLog(requestID, "Calling pod is", ipReport.Name, "in namespace", ipReport.Namespace)
 
 	// ensure the client is sending a valid payload in the request body
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Errorln("Failed to read request body:", err, r.RemoteAddr)
+		k.externalCheckReportHandlerLog(requestID, "Failed to read request body:", err.Error(), r.RemoteAddr)
 		return nil
 	}
 
@@ -725,7 +733,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	err = json.Unmarshal(b, &state)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Errorln("Failed to unmarshal state json:", err, r.RemoteAddr)
+		k.externalCheckReportHandlerLog(requestID, "Failed to unmarshal state json:", err, r.RemoteAddr)
 		return nil
 	}
 
@@ -733,13 +741,13 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	if !state.OK {
 		if len(state.Errors) == 0 {
 			w.WriteHeader(http.StatusBadRequest)
-			log.Errorln("Client attempted to report OK false without any error strings")
+			k.externalCheckReportHandlerLog(requestID, "Client attempted to report OK false without any error strings")
 			return nil
 		}
 		for _, e := range state.Errors {
 			if len(e) == 0 {
 				w.WriteHeader(http.StatusBadRequest)
-				log.Errorln("Client attempted to report a blank error string")
+				k.externalCheckReportHandlerLog(requestID, "Client attempted to report a blank error string")
 				return nil
 			}
 		}
@@ -762,7 +770,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	details.AuthoritativePod = hostname
 
 	// since the check is validated, we can proceed to update the status now
-	log.Debugln("Setting check with name", ipReport.Name, "in namespace", ipReport.Namespace, "to 'OK' state", details.OK)
+	k.externalCheckReportHandlerLog(requestID, "Setting check with name", ipReport.Name, "in namespace", ipReport.Namespace, "to 'OK' state", details.OK)
 	err = k.storeCheckState(ipReport.Name, ipReport.Namespace, details)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -771,6 +779,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 
 	// write ok back to caller
 	w.WriteHeader(http.StatusOK)
+	k.externalCheckReportHandlerLog(requestID, "Request completed successfully.")
 	return nil
 }
 

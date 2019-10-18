@@ -298,16 +298,20 @@ func (ext *Checker) waitForDeletedEvent(eventsIn <-chan watch.Event, sawRemovalC
 		case watch.Deleted:
 			ext.log("checker pod shutdown monitor saw a deleted event!")
 			sawRemovalChan <- struct{}{}
+			return
 		case watch.Error:
-			log.Debugln("khcheck monitor saw an error event")
-			e := e.Object.(*metav1.Status)
-			log.Warningln("pod removal monitor had an error when watching for pod changes:", e.Reason)
+			ext.log("khcheck monitor saw an error event")
+			e, ok := e.Object.(*metav1.Status)
+			if ok {
+				ext.log("pod removal monitor had an error when watching for pod changes:", e.Reason)
+			}
 		default:
-			log.Debugln("pod removal monitor saw an irrelevant event type and ignored it:", e.Type)
+			ext.log("pod removal monitor saw an irrelevant event type and ignored it:", e.Type)
 		}
 	}
 
 	// if the watch ends for any reason, we notify the listeners that our watch has ended
+	ext.log("pod removal monitor ended unexpectedly")
 	stoppedChan <- struct{}{}
 
 }
@@ -411,6 +415,7 @@ func (ext *Checker) RunOnce() error {
 		return errors.New("failed to see pod running within timeout")
 	case <-shutdownEventNotifyC:
 		ext.log("witnessed checker pod removal. aborting watch for pod running. check run skipped gracefully")
+		ext.cleanup()
 		return nil
 	case err = <-ext.waitForPodRunning():
 		if err != nil {
@@ -439,6 +444,7 @@ func (ext *Checker) RunOnce() error {
 		return errors.New(errorMessage)
 	case <-shutdownEventNotifyC:
 		ext.log("witnessed checker pod removal. aborting watch for pod status report. check run skipped gracefully")
+		ext.cleanup()
 		return nil
 	case err = <-ext.waitForPodStatusUpdate(lastReportTime):
 		if err != nil {
