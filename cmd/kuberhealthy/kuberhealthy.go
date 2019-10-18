@@ -715,7 +715,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	ipReport, err := k.validateExternalRequest(r.RemoteAddr)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Errorln("Failed to look up pod by IP:", r.RemoteAddr, err)
+		k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by IP:", r.RemoteAddr, err)
 		return nil
 	}
 	k.externalCheckReportHandlerLog(requestID, "Calling pod is", ipReport.Name, "in namespace", ipReport.Namespace)
@@ -758,6 +758,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	hostname, err := getEnvVar("POD_NAME")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		k.externalCheckReportHandlerLog(requestID, "failed to fetch my hostname while handling an external check status report: %w", err)
 		return fmt.Errorf("failed to fetch my hostname while handling an external check status report: %w", err)
 	}
 
@@ -774,6 +775,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	err = k.storeCheckState(ipReport.Name, ipReport.Namespace, details)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		k.externalCheckReportHandlerLog(requestID, "failed to store check state for %s: %w", ipReport.Name, err)
 		return fmt.Errorf("failed to store check state for %s: %w", ipReport.Name, err)
 	}
 
