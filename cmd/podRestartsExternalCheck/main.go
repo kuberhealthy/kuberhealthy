@@ -263,6 +263,8 @@ func (prc *Checker) statusReporter() {
 		err = checkclient.ReportSuccess()
 		if err != nil {
 			log.Println("Error reporting success to Kuberhealthy servers:", err)
+
+			continue
 		}
 		log.Println("Successfully reported success to Kuberhealthy servers")
 	}
