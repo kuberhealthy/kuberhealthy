@@ -51,4 +51,6 @@ spec:
             memory: 50Mi
 ```
 
-![Daemonset Check Diagram:](../images/kh-ds-check.gif)
+#### Daemonset Check Diagram
+
+![](../../images/kh-ds-check.gif)
