@@ -18,7 +18,7 @@ pushExternalChecker:
 daemonset: buildDaemonsetCheck pushDaemonsetCheck
 
 buildDaemonsetCheck:
-	docker build -t docker-proto.repo.theplatform.com/kh-check-daemonset:1.0.0 -f cmd/daemonSetExternalCheck/Dockerfile .
+	docker build -t quay.io/comcast/kh-daemonset-check:1.0.0 -f cmd/daemonSetExternalCheck/Dockerfile .
 
 pushDaemonsetCheck:
-	docker push docker-proto.repo.theplatform.com/kh-check-daemonset:1.0.0
+	docker push quay.io/comcast/kh-daemonset-check:1.0.0
