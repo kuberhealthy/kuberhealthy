@@ -307,6 +307,15 @@ func (ext *Checker) waitForDeletedEvent(eventsIn <-chan watch.Event, sawRemovalC
 	for e := range eventsIn {
 		ext.log("got a result when watching for pod to remove")
 		switch e.Type {
+		case watch.Modified: // this section is entirely informational
+			ext.log("checker pod shutdown monitor saw a modified event.")
+			p, ok := e.Object.(*apiv1.Pod)
+			if !ok {
+				ext.log("checker pod shutdown monitor saw a modified event and the object was not a pod. skipped.")
+				continue
+			}
+			ext.log("checker pod shutdown monitor saw a modified event. the pod changed to ", p.Status.Phase)
+			return
 		case watch.Deleted:
 			ext.log("checker pod shutdown monitor saw a deleted event. notifying that pod has shutdown")
 			sawRemovalChan <- struct{}{}
@@ -326,6 +335,28 @@ func (ext *Checker) waitForDeletedEvent(eventsIn <-chan watch.Event, sawRemovalC
 	ext.log("pod removal monitor ended unexpectedly")
 	stoppedChan <- struct{}{}
 
+}
+
+// doFinalUpdateCheck is used to do one final update check before we conclude that the pod disappeared expectedly.
+func (ext *Checker) doFinalUpdateCheck(lastReportTime time.Time) (bool, error) {
+	ext.log("witnessed checker pod removal. aborting watch for pod status report. check run skipped gracefully")
+	// sometimes the shutdown event comes in before the status update notify, even if the pod did report in
+	// before the pod shut down.  So, we do one final check here to see if the pod has checked in before
+	// concluding that the pod has been shut down unexpectedly.
+
+	// fetch the lastUpdateTime from the khstate as of right now
+	currentUpdateTime, err := ext.getCheckLastUpdateTime()
+	if err != nil {
+		return false, err
+	}
+
+	// if the pod has not updated, we finally conclude that this pod has gone away unexpectedly
+	ext.log("Last report time was:", lastReportTime, "vs", currentUpdateTime)
+	if !currentUpdateTime.After(lastReportTime) {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // RunOnce runs one check loop.  This creates a checker pod and ensures it starts,
@@ -426,8 +457,7 @@ func (ext *Checker) RunOnce() error {
 		ext.cleanup()
 		return errors.New("failed to see pod running within timeout")
 	case <-shutdownEventNotifyC:
-		ext.log("witnessed checker pod removal. aborting watch for pod running. check run skipped gracefully")
-		ext.cleanup()
+		ext.log("pod removed expectedly while waiting for pod to start running")
 		return ErrPodRemovedExpectedly
 	case err = <-ext.waitForPodRunning():
 		if err != nil {
@@ -455,12 +485,19 @@ func (ext *Checker) RunOnce() error {
 		ext.log(errorMessage)
 		return errors.New(errorMessage)
 	case <-shutdownEventNotifyC:
-		ext.log("witnessed checker pod removal. aborting watch for pod status report. check run skipped gracefully")
-		ext.cleanup()
-		return ErrPodRemovedExpectedly
+		ext.log("got notification that pod has shutdown while waiting for it to report in")
+		hasUpdated, err := ext.doFinalUpdateCheck(lastReportTime)
+		if err != nil {
+			ext.log("got error when doing final check if pod has reported in after witnessing a pod removal", err)
+			return err
+		}
+		if !hasUpdated {
+			ext.log("pod removed expectedly while waiting for it to report in")
+			return ErrPodRemovedExpectedly
+		}
+		ext.log("External check pod has reported status for this check iteration:", ext.PodName)
 	case err = <-ext.waitForPodStatusUpdate(lastReportTime):
 		if err != nil {
-			ext.cleanup()
 			errorMessage := "found an error when waiting for pod status to update: " + err.Error()
 			ext.log(errorMessage)
 			return errors.New(errorMessage)
