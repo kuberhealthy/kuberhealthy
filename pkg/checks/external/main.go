@@ -45,6 +45,9 @@ const kuberhealthyCheckNameLabel = "kuberhealthy-check-name"
 // defaultTimeout is the default time a pod is allowed to run when this checker is created
 const defaultTimeout = time.Minute * 15
 
+// constant for the error when a pod is deleted expectedly during a check run
+var ErrPodRemovedExpectedly = errors.New("pod deleted expectedly")
+
 // DefaultName is used when no check name is supplied
 var DefaultName = "external-check"
 
@@ -149,14 +152,23 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	// run a check iteration
 	ext.log("Running external check iteration")
 	err := ext.RunOnce()
+
+	// if the pod was removed, we skip this run gracefully
+	if err != nil && err.Error() == ErrPodRemovedExpectedly.Error() {
+		ext.log("pod was removed during check expectedly.  skipping this run")
+		return nil
+	}
+
+	// if the pod had an error, we set the error
 	if err != nil {
 		ext.log("Error with running external check:", err)
 		ext.setError(err.Error())
-	} else {
-		ext.log("exited clean. clearing errors")
-		ext.setError("")
+		return nil
 	}
 
+	// no errors? set healthy check state
+	ext.log("exited clean. clearing errors")
+	ext.setError("")
 	return nil
 }
 
@@ -296,7 +308,7 @@ func (ext *Checker) waitForDeletedEvent(eventsIn <-chan watch.Event, sawRemovalC
 		ext.log("got a result when watching for pod to remove")
 		switch e.Type {
 		case watch.Deleted:
-			ext.log("checker pod shutdown monitor saw a deleted event!")
+			ext.log("checker pod shutdown monitor saw a deleted event. notifying that pod has shutdown")
 			sawRemovalChan <- struct{}{}
 			return
 		case watch.Error:
@@ -416,7 +428,7 @@ func (ext *Checker) RunOnce() error {
 	case <-shutdownEventNotifyC:
 		ext.log("witnessed checker pod removal. aborting watch for pod running. check run skipped gracefully")
 		ext.cleanup()
-		return nil
+		return ErrPodRemovedExpectedly
 	case err = <-ext.waitForPodRunning():
 		if err != nil {
 			ext.cleanup()
@@ -445,7 +457,7 @@ func (ext *Checker) RunOnce() error {
 	case <-shutdownEventNotifyC:
 		ext.log("witnessed checker pod removal. aborting watch for pod status report. check run skipped gracefully")
 		ext.cleanup()
-		return nil
+		return ErrPodRemovedExpectedly
 	case err = <-ext.waitForPodStatusUpdate(lastReportTime):
 		if err != nil {
 			ext.cleanup()
