@@ -13,7 +13,7 @@ spec:
             value: "kube-system"
           - name: CHECK_RUN_WINDOW
             value: "55m"
-        image: docker-proto.repo.theplatform.com/pod-restarts-check:1.0.0
+        image: quay.io/comcast/pod-restarts-check:1.0.0
         imagePullPolicy: Always
         name: main
         resources:

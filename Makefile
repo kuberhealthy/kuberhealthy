@@ -18,7 +18,7 @@ pushExternalChecker:
 podRestarts: buildPodRestartsCheck pushPodRestartsCheck
 
 buildPodRestartsCheck:
-	docker build -t docker-proto.repo.theplatform.com/pod-restarts-check:1.0.0 -f cmd/podRestartsExternalCheck/Dockerfile .
+	docker build -t quay.io/comcast/pod-restarts-check:1.0.0 -f cmd/podRestartsExternalCheck/Dockerfile .
 
 pushPodRestartsCheck:
-	docker push docker-proto.repo.theplatform.com/pod-restarts-check:1.0.0
+	docker push quay.io/comcast/pod-restarts-check:1.0.0
