@@ -32,6 +32,7 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
 	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/external"
+	"github.com/Comcast/kuberhealthy/pkg/checks/external/status"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/health"
@@ -719,8 +720,8 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		return nil
 	}
 
-	// decode the bytes into a kuberhealthy health struct
-	state := health.State{}
+	// decode the bytes into a status struct as used by the client
+	state := status.Report{}
 	err = json.Unmarshal(b, &state)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -749,21 +750,19 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	hostname, err := getEnvVar("POD_NAME")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		return fmt.Errorf("failed to fetch my hostname: %w", err)
+		return fmt.Errorf("failed to fetch my hostname while handling an external check status report: %w", err)
 	}
 
 	// create a details object from our incoming status report before storing it as a khstate custom resource
 	details := health.NewCheckDetails()
 	details.Errors = state.Errors
-	if len(state.Errors) == 0 {
-		details.OK = true
-	}
+	details.OK = state.OK
 	details.LastRun = time.Now()
 	details.Namespace = ipReport.Namespace
 	details.AuthoritativePod = hostname
 
 	// since the check is validated, we can proceed to update the status now
-	log.Debugln("Setting check with name", ipReport.Name, "to OK state", details.OK)
+	log.Debugln("Setting check with name", ipReport.Name, "in namespace", ipReport.Namespace, "to 'OK' state", details.OK)
 	err = k.storeCheckState(ipReport.Name, ipReport.Namespace, details)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
