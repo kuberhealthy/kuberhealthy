@@ -50,3 +50,5 @@ spec:
             cpu: 10m
             memory: 50Mi
 ```
+
+![Daemonset Check Diagram:](../images/kh-ds-check.gif)
