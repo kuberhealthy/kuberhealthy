@@ -624,7 +624,7 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time) chan error 
 			}
 
 			// if the pod has updated, then we return and were done waiting
-			log.Debugln("Last report time was:", lastUpdateTime, "vs", currentUpdateTime)
+			ext.log("Last report time was:", lastUpdateTime, "vs", currentUpdateTime)
 			if currentUpdateTime.After(lastUpdateTime) {
 				return
 			}

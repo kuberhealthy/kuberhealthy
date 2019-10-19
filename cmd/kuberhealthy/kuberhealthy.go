@@ -861,7 +861,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	}
 
 	// loop over every check and apply the current state to the status return
-	log.Debugln("Current state is tracking", len(k.Checks), "checks")
+	log.Debugln("Currently tracking", len(k.Checks), "check(s)")
 	for _, c := range k.Checks {
 		log.Debugln("Getting status of check for web request to status page:", c.Name())
 
