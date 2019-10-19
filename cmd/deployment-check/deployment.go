@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -71,11 +70,13 @@ func createDeploymentConfig(useRollImage bool) *v1.Deployment {
 	container = createContainerConfig(checkImage)
 	containers = append(containers, container)
 
+	graceSeconds := int64(1)
+
 	// Make and define a pod spec with containers.
 	podSpec := corev1.PodSpec{
 		Containers:                    containers,
 		RestartPolicy:                 corev1.RestartPolicyAlways,
-		TerminationGracePeriodSeconds: aws.Int64(1),
+		TerminationGracePeriodSeconds: &graceSeconds,
 	}
 
 	// Make labels for pod and deployment.
@@ -116,10 +117,11 @@ func createDeploymentConfig(useRollImage bool) *v1.Deployment {
 	}
 
 	// Make a deployment spec.
+	replicas := int32(checkDeploymentReplicas)
 	deploySpec := v1.DeploymentSpec{
 		Strategy:        deployStrategy,
 		MinReadySeconds: defaultMinReadySeconds,
-		Replicas:        aws.Int32(int32(checkDeploymentReplicas)),
+		Replicas:        &replicas,
 		Selector:        &labelSelector,
 		Template:        podTemplateSpec,
 	}
@@ -356,8 +358,9 @@ func deleteDeployment() error {
 
 	// Make a delete options object to delete the deployment.
 	deletePolicy := metav1.DeletePropagationForeground
+	graceSeconds := int64(1)
 	deleteOpts := metav1.DeleteOptions{
-		GracePeriodSeconds: aws.Int64(1),
+		GracePeriodSeconds: &graceSeconds,
 		PropagationPolicy:  &deletePolicy,
 	}
 
@@ -433,8 +436,9 @@ func cleanUpOrphanedDeployment() error {
 
 	// Make a delete options object to delete the service.
 	deletePolicy := metav1.DeletePropagationForeground
+	graceSeconds := int64(1)
 	deleteOpts := metav1.DeleteOptions{
-		GracePeriodSeconds: aws.Int64(1),
+		GracePeriodSeconds: &graceSeconds,
 		PropagationPolicy:  &deletePolicy,
 	}
 
