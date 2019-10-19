@@ -1,0 +1,28 @@
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: kh-deployment-check
+  namespace: kuberhealthy
+spec:
+  runInterval: 30m
+  timeout: 6m
+  podSpec:
+    containers:
+    - name: kh-deployment-check
+      image: <image>
+      imagePullPolicy: Always
+      env:
+        - name: CHECK_DEPLOYMENT_REPLICAS
+          value: "6"
+        - name: CHECK_TIME_LIMIT_SECONDS
+          value: "360"
+        - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
+          value: "true"
+        - name: SHUTDOWN_GRACE_PERIOD_SECONDS
+          value: "30"
+      resources:
+        requests:
+          cpu: 25m
+          memory: 15Mi
+      restartPolicy: Always
+      
