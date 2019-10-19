@@ -250,7 +250,6 @@ func cleanUpOrphanedResources() chan error {
 		serviceExists, err := findPreviousService()
 		if err != nil {
 			cleanUpChan <- errors.New("error listing services: " + err.Error())
-			return
 		}
 
 		// Clean it up if it exists.
@@ -258,7 +257,6 @@ func cleanUpOrphanedResources() chan error {
 			err = cleanUpOrphanedService()
 			if err != nil {
 				cleanUpChan <- errors.New("error cleaning up old service: " + err.Error())
-				return
 			}
 		}
 
@@ -266,7 +264,6 @@ func cleanUpOrphanedResources() chan error {
 		deploymentExists, err := findPreviousDeployment()
 		if err != nil {
 			cleanUpChan <- errors.New("error listing deployments: " + err.Error())
-			return
 		}
 
 		// Clean it up if it exists.
@@ -274,7 +271,6 @@ func cleanUpOrphanedResources() chan error {
 			err = cleanUpOrphanedDeployment()
 			if err != nil {
 				cleanUpChan <- errors.New("error cleaning up old deployment: " + err.Error())
-				return
 			}
 		}
 	}()

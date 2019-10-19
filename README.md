@@ -150,6 +150,16 @@ A command-line flag exists `--dnsEndpoints` which can optionally include a comma
 - Check name: `dnsStatus`
 
 
+#### Deployment and Service
+
+Deploys a `deployment` to the `kuberhealthy` namespace with `2` replicas, waits for pods and service to be in the 'Ready' state and serving a hostname, then makes a request to the endpoint for a `200 OK`, then terminates them and ensures deployment and service terminations were successful.  Containers are deployed with their resource requirements set to 15 millicores and 20Mi units of memory.  The check uses the latest Nginx web server container (`nginx:latest`) for the deployment.  A success means that a deployment and service can be brought up and that the corresponding hostname endpoint can return a `200 OK`.  If `CHECK_DEPLOYMENT_ROLLING_UPDATE` is set to `true`, the check will initially deploy Nginx's alpine web server container and roll to the latest (`nginx:alpine` -> `nginx:latest`) and look for a second `200 OK`.  A failure means that an error occurs anywhere in the deployment creation, service creation, HTTP request, and tear down resulting in an error report to Kuberhealthy.
+
+- Namespace: kuberhealthy
+- Timeout: 5 minutes
+- Check Interval: 30 minutes
+- Check name: `deploymentCheck`
+
+
 ### Security Considerations
 
 By default, Kuberhealthy exposes an insecure (non-HTTPS) status endpoint without authentication. You should never expose this endpoint to the public internet. Exposing Kuberhealthy's status page to the public internet could result in private cluster information being exposed to the public internet when errors occur and are displayed on the page.
