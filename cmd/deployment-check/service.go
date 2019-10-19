@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -177,8 +176,9 @@ func deleteService() error {
 
 	// Make a delete options object to delete the service.
 	deletePolicy := metav1.DeletePropagationForeground
+	graceSeconds := int64(1)
 	deleteOpts := metav1.DeleteOptions{
-		GracePeriodSeconds: aws.Int64(1),
+		GracePeriodSeconds: &graceSeconds,
 		PropagationPolicy:  &deletePolicy,
 	}
 
@@ -250,12 +250,12 @@ func cleanUpOrphanedService() error {
 
 	// Make a delete options object to delete the service.
 	deletePolicy := metav1.DeletePropagationForeground
+	graceSeconds := int64(1)
 	deleteOpts := metav1.DeleteOptions{
-		GracePeriodSeconds: aws.Int64(1),
+		GracePeriodSeconds: &graceSeconds,
 		PropagationPolicy:  &deletePolicy,
 	}
 
-	// Hammer the API with a couple of delete requests.
 	err := client.CoreV1().Services(checkNamespace).Delete(checkServiceName, &deleteOpts)
 	if err != nil {
 		return errors.New("failed to delete previous service: " + err.Error())
