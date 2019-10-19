@@ -1,0 +1,135 @@
+package main
+
+import (
+	"errors"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	log "github.com/sirupsen/logrus"
+)
+
+// RequestResult represents a HTTP request result.
+type RequestResult struct {
+	Response *http.Response
+	Err      error
+}
+
+// makeRequestToDeploymentCheckService attempts to make an HTTP request to the service
+// hostname and returns a boolean value. Returns a chan of errors.
+func makeRequestToDeploymentCheckService(hostname string) chan error {
+
+	requestChan := make(chan error)
+
+	go func() {
+		log.Infoln("Looking for a response from the endpoint.")
+
+		defer close(requestChan)
+
+		if len(hostname) == 0 {
+			err := errors.New("given blank hostname for service load balancer endpoint -- skipping HTTP call")
+			requestChan <- err
+			return
+		}
+
+		// Prepend the hostname with a HTTP protocol.
+		if !strings.HasPrefix(hostname, "http://") {
+			hostname = "http://" + hostname
+		}
+
+		// Try to make requests to the hostname endpoint and wait for a result.
+		select {
+		case result := <-getRequestBackoff(hostname):
+			log.Infoln("Got a result from", http.MethodGet, "request backoff:", result.Response.Status)
+			if result.Response.StatusCode != http.StatusOK || result.Err != nil {
+				requestChan <- result.Err
+				return
+			}
+			requestChan <- nil
+		case <-ctx.Done():
+			log.Errorln("Context expired while waiting for a", http.StatusOK, "from "+hostname+".")
+			err := cleanUp()
+			if err != nil {
+				err = fmt.Errorf("failed to clean up properly: %w", err)
+			}
+			requestChan <- err
+		}
+
+	}()
+
+	return requestChan
+}
+
+// getRequestBackoff returns a channel that reports the result of a GET backoff loop from the hostname endpoint.
+func getRequestBackoff(hostname string) chan RequestResult {
+
+	requestResultChan := make(chan RequestResult)
+
+	// Make requests to the hostname endpoint in the background.
+	go func() {
+
+		defer close(requestResultChan)
+
+		requestResult := RequestResult{}
+
+		// Make a request to the hostname endpoint.
+		resp, err := http.Get(hostname)
+		if err != nil {
+			if !strings.Contains(err.Error(), "no such host") {
+				log.Infoln("An error occurred making a", http.MethodGet, "request:", err)
+			}
+		}
+
+		// Return if the call was ok.
+		if err == nil && resp.StatusCode == http.StatusOK {
+			log.Infoln("Got a", resp.StatusCode, "with a", http.MethodGet, "to", hostname)
+			resp.Body.Close()
+			requestResult.Response = resp
+			requestResultChan <- requestResult
+			return
+		}
+
+		// Backoff time = attempts * 5 seconds.
+		retrySleep := func(t int) {
+			log.Infoln("Retrying in", t*5, "seconds.")
+			time.Sleep(time.Duration(t) * 5 * time.Second)
+		}
+
+		// Backoff loop here for HTTP GET request.
+		attempts := 1
+		maxRetries := 10
+		log.Infoln("Beginning backoff loop for http", http.MethodGet, "request.")
+		for err != nil { // Loop on http.Get() errors.
+			if attempts > maxRetries {
+				log.Infoln("Could not successfully make an http request after", attempts, "attempts.")
+				requestResult.Err = err
+				requestResultChan <- requestResult
+				return
+			}
+
+			log.Debugln("Making", http.MethodGet, "to", hostname)
+			resp, err := http.Get(hostname)
+			if err == nil && resp.StatusCode == http.StatusOK {
+				log.Infoln("Successfully made an http request on attempt:", attempts)
+				log.Infoln("Got a", resp.StatusCode, "with a", http.MethodGet, "to", hostname)
+				resp.Body.Close()
+				requestResult.Response = resp
+				requestResultChan <- requestResult
+				return
+			}
+
+			retrySleep(attempts)
+			attempts++
+		}
+		if err != nil {
+			log.Errorln("Could not make a", http.MethodGet, "request to", hostname, "due to:", err.Error())
+			requestResult.Err = fmt.Errorf("failed to hit hostname endpoint after backoff loop: %w", err)
+		}
+
+		requestResultChan <- requestResult
+		return
+	}()
+
+	return requestResultChan
+}
