@@ -885,11 +885,17 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 			continue
 		}
 
-		// parse check status from CRD and add it to the status
-		state.AddError(checkDetails.Errors...)
-		if !checkDetails.OK {
-			log.Debugln("Status page: Setting OK to false due to check details not being OK")
-			state.OK = false
+		// parse check status from CRD and add it to the status. Skip blank errors
+		for _, e := range checkDetails.Errors {
+			if len(strings.TrimSpace(e)) == 0 {
+				log.Warningln("Skipped an error that was blank when adding check details to current state.")
+				continue
+			}
+			state.AddError(e)
+			if !checkDetails.OK {
+				log.Debugln("Status page: Setting OK to false due to check details not being OK")
+				state.OK = false
+			}
 		}
 
 		state.CheckDetails[c.Name()] = checkDetails
