@@ -28,9 +28,9 @@ const (
 	defaultImagePullPolicy = "IfNotPresent"
 
 	// Default container resource requests values.
-	defaultMillicoreRequest = 35               // Calculated in decimal SI units (50 = 50m cpu).
+	defaultMillicoreRequest = 15               // Calculated in decimal SI units (50 = 50m cpu).
 	defaultMillicoreLimit   = 75               // Calculted in decimal SI units (100 = 100m cpu).
-	defaultMemoryRequest    = 30 * 1024 * 1024 // Calculated in binary SI units (50 * 1024^2 = 50Mi memory).
+	defaultMemoryRequest    = 20 * 1024 * 1024 // Calculated in binary SI units (50 * 1024^2 = 50Mi memory).
 	defaultMemoryLimit      = 60 * 1024 * 1024 // Calculated in binary SI units (100 * 1024^2 = 100Mi memory).
 
 	// Default container probe values.

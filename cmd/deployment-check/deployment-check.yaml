@@ -5,17 +5,17 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 30m
-  timeout: 6m
+  timeout: 5m
   podSpec:
     containers:
     - name: kh-deployment-check
       image: <image>
-      imagePullPolicy: Always
+      imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
           value: "6"
         - name: CHECK_TIME_LIMIT_SECONDS
-          value: "360"
+          value: "300"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
         - name: SHUTDOWN_GRACE_PERIOD_SECONDS

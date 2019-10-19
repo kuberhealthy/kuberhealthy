@@ -8,6 +8,7 @@ replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.3.0
 
 require (
 	github.com/Pallinder/go-randomdata v1.1.0
+	github.com/aws/aws-sdk-go v1.25.16
 	github.com/ghodss/yaml v1.0.0
 	github.com/gogo/protobuf v1.3.0 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect

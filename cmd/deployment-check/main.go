@@ -50,7 +50,7 @@ var (
 	checkDeploymentReplicasEnv = os.Getenv("CHECK_DEPLOYMENT_REPLICAS")
 	checkDeploymentReplicas    int
 
-	// Check time limit
+	// Check time limit.
 	checkTimeLimitSecondsEnv = os.Getenv("CHECK_TIME_LIMIT_SECONDS")
 	checkTimeLimit           time.Duration
 
@@ -171,16 +171,16 @@ func listenForInterrupts() {
 
 	select {
 	case <-signalChan:
-		// If there is an interrupt signal, interrupt the test and clean up.
+		// If there is an interrupt signal, interrupt the run.
 		log.Warnln("Received a secsond interrupt signal from the signal channel.")
 	case err := <-cleanUpAndWait():
-		// If there is a done signal, the clean up is complete.
+		// If the clean up is complete, exit.
 		log.Infoln("Received a complete signal, clean up completed.")
 		if err != nil {
 			log.Errorln("failed to clean up check resources properly:", err.Error())
 		}
 	case <-time.After(time.Duration(shutdownGracePeriodSeconds)):
-		// Continue if the clean up took too long to complete.
+		// Exit if the clean up took to long to provide a response.
 		log.Infoln("Clean up took too long to complete and timed out.")
 	}
 
@@ -207,6 +207,7 @@ func reportErrorsToKuberhealthy(errs []string) {
 
 // reportOKToKuberhealthy reports that there were no errors on this check run to Kuberhealthy.
 func reportOKToKuberhealthy() {
+	log.Infoln("Reporting success to Kuberhealthy.")
 	reportToKuberhealthy(true, []string{})
 }
 
@@ -216,17 +217,17 @@ func reportToKuberhealthy(ok bool, errs []string) {
 	var err error
 
 	retry := func() {
-		log.Infoln("Retrying a report to kuberhealthy in 5 seconds.")
+		log.Infoln("Retrying a report to Kuberhealthy in 5 seconds.")
 		time.Sleep(time.Second * 5)
 	}
 
 	// Keep retrying until it works.
 	for {
 		attempts++
-		log.Infoln("Reporting status to kuberhealthy:", ok)
+		log.Infoln("Reporting status to Kuberhealthy:", ok)
 
 		if attempts > 1 {
-			log.Infoln("Attempt", attempts, "reporting status to kuberhealthy.")
+			log.Infoln("Attempt", attempts, "reporting status to Kuberhealthy.")
 		}
 
 		if ok {
