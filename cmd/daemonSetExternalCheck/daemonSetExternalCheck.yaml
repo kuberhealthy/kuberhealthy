@@ -30,7 +30,7 @@ spec:
             memory: 50Mi
     serviceAccountName: daemonset-khcheck
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: daemonset-khcheck
@@ -44,7 +44,7 @@ subjects:
     name: daemonset-khcheck
     namespace: kuberhealthy
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: ds-admin
