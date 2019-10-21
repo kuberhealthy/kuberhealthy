@@ -541,7 +541,7 @@ func (ext *Checker) log(s ...interface{}) {
 	log.Infoln(ext.Namespace+"/"+ext.CheckName+":", s)
 }
 
-// stopPod stops any pods running because of this external checker
+// deletePod deletes any pods running because of this external checker
 func (ext *Checker) deletePod() error {
 	ext.log("Deleting checker pods with name", ext.CheckName)
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
