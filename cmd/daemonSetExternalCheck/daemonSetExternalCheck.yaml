@@ -72,3 +72,5 @@ kind: ServiceAccount
 metadata:
   name: daemonset-khcheck
   namespace: kuberhealthy
+secrets:
+  - name: daemonset-khcheck-token-bjnxp
