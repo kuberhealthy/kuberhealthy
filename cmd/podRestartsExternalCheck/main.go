@@ -1,3 +1,14 @@
+// Copyright 2018 Comcast Cable Communications Management, LLC
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//     http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Package podRestarts implements a checking tool for pods that are
 // restarting too much.
 
@@ -22,12 +33,13 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 )
 
-const maxFailuresAllowed = 5
+const defaultMaxFailuresAllowed = "5"
 
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var Namespace string
 var RunWindow time.Duration
 var BadPodRestarts sync.Map
+var MaxFailuresAllowed int
 
 // Checker represents a long running pod restart checker.
 type Checker struct {
@@ -57,6 +69,19 @@ func init() {
 	RunWindow, err = time.ParseDuration(runWindow)
 	if err != nil {
 		log.Errorln("Error parsing run window for check", runWindow, err)
+		return
+	}
+
+	maxFailuresAllowed := os.Getenv("MAX_FAILURES_ALLOWED")
+	if len(maxFailuresAllowed) == 0 {
+		log.Infoln("MAX_FAILURES_ALLOWED environment variable has not been set. " +
+			"Using default max failures allowed: ", defaultMaxFailuresAllowed)
+		maxFailuresAllowed = defaultMaxFailuresAllowed
+	}
+
+	MaxFailuresAllowed, err = strconv.Atoi(maxFailuresAllowed)
+	if err != nil {
+		log.Errorln("Error converting maxFailuresAllowed:", maxFailuresAllowed, "to int, err:", err)
 		return
 	}
 }
@@ -98,7 +123,7 @@ func New() *Checker {
 	return &Checker{
 		RestartObservations: make(map[string]map[string]int32),
 		Namespace:           Namespace,
-		MaxFailuresAllowed:  maxFailuresAllowed,
+		MaxFailuresAllowed:  MaxFailuresAllowed,
 		errorMessages:       []string{},
 	}
 }
