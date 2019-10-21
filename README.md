@@ -152,12 +152,23 @@ A command-line flag exists `--dnsEndpoints` which can optionally include a comma
 
 #### Deployment and Service
 
-Deploys a `deployment` to the `kuberhealthy` namespace with `2` replicas, waits for pods and service to be in the 'Ready' state and serving a hostname, then makes a request to the endpoint for a `200 OK`, then terminates them and ensures deployment and service terminations were successful.  Containers are deployed with their resource requirements set to 15 millicores and 20Mi units of memory.  The check uses the latest Nginx web server container (`nginx:latest`) for the deployment.  A success means that a deployment and service can be brought up and that the corresponding hostname endpoint can return a `200 OK`.  If `CHECK_DEPLOYMENT_ROLLING_UPDATE` is set to `true`, the check will initially deploy Nginx's alpine web server container and roll to the latest (`nginx:alpine` -> `nginx:latest`) and look for a second `200 OK`.  A failure means that an error occurs anywhere in the deployment creation, service creation, HTTP request, and tear down resulting in an error report to Kuberhealthy.
+The check deploys a `deployment` to the `kuberhealthy` namespace with `2` replicas and waits for pods and service to be in the 'Ready' state and serve a hostname.  Once rady, the check makes a request to the endpoint for a `200 OK` response and then proceeds to terminate them and ensures that the deployment and service terminations were successful.  Containers are deployed with their resource requirements set to 15 millicores and 20Mi units of memory and uses the latest Nginx web server container (`nginx:latest`) for the deployment.  A successful check run implies that a deployment and service can be brought up and the corresponding hostname endpoint returns a `200 OK` response.  If `CHECK_DEPLOYMENT_ROLLING_UPDATE` is set to `true`, the check will initially deploy Nginx's `alpine` web server container, roll to the latest (`nginx:alpine` -> `nginx:latest`), and look for a second `200 OK` response.  A failure implies that an error occurred anywhere in the deployment creation, service creation, HTTP request, or tear down process -- resulting in an error report to the Kuberhealthy status page.
 
 - Namespace: kuberhealthy
 - Timeout: 5 minutes
 - Check Interval: 30 minutes
-- Check name: `deploymentCheck`
+- Check name: `kh-deployment-check`
+- Configurable check environment variables:
+  - `CHECK_IMAGE`: Initial container image.
+  - `CHECK_IMAGE_ROLL_TO`: Container image to roll to.
+  - `CHECK_DEPLOYMENT_NAME`: Name for the check's deployment.
+  - `CHECK_SERVICE_NAME`: Name for the check's service.
+  - `CHECK_NAMESPACE`: Namespace for the check (default=`kuberhealthy`).
+  - `CHECK_DEPLOYMENT_REPLICAS`: Number of replicas in the deployment (default=`2`).
+  - `CHECK_TIME_LIMIT_SECONDS`: Number of seconds the check will allow itself before timing out.
+  - `CHECK_DEPLOYMENT_ROLLING_UPDATE`: Boolean to enable rolling-update (default=`false`).
+  - `ADDITIONAL_ENV_VARS`: `Key`=`Pair` delimited list of variables passed into the pod's containers.
+  - `SHUTDOWN_GRACE_PERIOD_SECONDS`: Amount of time in seconds the shutdown will allow itself to clean up after interrupt.
 
 
 ### Security Considerations
