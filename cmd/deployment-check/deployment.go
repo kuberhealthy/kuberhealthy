@@ -39,15 +39,15 @@ const (
 	defaultImagePullPolicy = "IfNotPresent"
 
 	// Default container resource requests values.
-	defaultMillicoreRequest = 15               // Calculated in decimal SI units (50 = 50m cpu).
-	defaultMillicoreLimit   = 75               // Calculted in decimal SI units (100 = 100m cpu).
-	defaultMemoryRequest    = 20 * 1024 * 1024 // Calculated in binary SI units (50 * 1024^2 = 50Mi memory).
-	defaultMemoryLimit      = 60 * 1024 * 1024 // Calculated in binary SI units (100 * 1024^2 = 100Mi memory).
+	defaultMillicoreRequest = 15               // Calculated in decimal SI units (15 = 15m cpu).
+	defaultMillicoreLimit   = 75               // Calculted in decimal SI units (75 = 75m cpu).
+	defaultMemoryRequest    = 20 * 1024 * 1024 // Calculated in binary SI units (20 * 1024^2 = 20Mi memory).
+	defaultMemoryLimit      = 60 * 1024 * 1024 // Calculated in binary SI units (60 * 1024^2 = 60Mi memory).
 
 	// Default container probe values.
 	defaultProbeFailureThreshold    = 5  // Number of consecutive failures for the probe to be considered failed (k8s default = 3).
 	defaultProbeSuccessThreshold    = 1  // Number of consecutive successes for the probe to be considered successful after having failed (k8s default = 1).
-	defaultProbeInitialDelaySeconds = 2  // Number of seconds after container has tarted before probes are initiated.
+	defaultProbeInitialDelaySeconds = 2  // Number of seconds after container has started before probes are initiated.
 	defaultProbeTimeoutSeconds      = 2  // Number of seconds after which the probe times out (k8s default = 1).
 	defaultProbePeriodSeconds       = 15 // How often to perform the probe (k8s default = 10).
 )
