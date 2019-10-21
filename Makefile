@@ -15,6 +15,14 @@ buildExternalChecker:
 pushExternalChecker:
 	docker push integrii/test-external-check:latest
 
+daemonset: buildDaemonsetCheck pushDaemonsetCheck
+
+buildDaemonsetCheck:
+	docker build -t quay.io/comcast/kh-daemonset-check:1.0.0 -f cmd/daemonSetExternalCheck/Dockerfile .
+
+pushDaemonsetCheck:
+	docker push quay.io/comcast/kh-daemonset-check:1.0.0
+
 podRestarts: buildPodRestartsCheck pushPodRestartsCheck
 
 buildPodRestartsCheck:
