@@ -131,10 +131,12 @@ func parseInputValues() {
 	log.Infoln("Check time limit set to:", checkTimeLimit)
 
 	// Parse incoming deployment rolling-update environment variable
-	var err error
-	rollingUpdate, err = strconv.ParseBool(rollingUpdateEnv)
-	if err != nil {
-		log.Fatalln("Failed to parse rolling-update boolean variable:", err)
+	if len(rollingUpdateEnv) != 0 {
+		var err error
+		rollingUpdate, err = strconv.ParseBool(rollingUpdateEnv)
+		if err != nil {
+			log.Fatalln("Failed to parse rolling-update boolean variable:", err)
+		}
 	}
 	log.Infoln("Parsed CHECK_DEPLOYMENT_ROLLING_UPDATE:", rollingUpdate)
 	if rollingUpdate {
