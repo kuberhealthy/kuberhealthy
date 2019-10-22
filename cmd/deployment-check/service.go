@@ -194,7 +194,6 @@ func deleteService() error {
 	err := client.CoreV1().Services(checkNamespace).Delete(checkServiceName, &deleteOpts)
 	if err != nil {
 		log.Infoln("Could not delete service:", checkServiceName)
-		log.Infoln("Beginning backoff retry loop to delete service.")
 	}
 
 	return <-deleteChan
@@ -339,6 +338,7 @@ func waitForServiceToDelete() chan bool {
 			_, err := client.CoreV1().Services(checkNamespace).Get(checkServiceName, metav1.GetOptions{})
 			if err != nil {
 				if strings.Contains(err.Error(), "not found") {
+					log.Debugln("Service deleted.")
 					deleteChan <- true
 					return
 				}
