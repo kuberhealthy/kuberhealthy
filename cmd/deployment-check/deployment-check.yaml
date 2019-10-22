@@ -9,7 +9,7 @@ spec:
   podSpec:
     containers:
     - name: kh-deployment-check
-      image: <image>
+      image: quay.io/comcast/deployment-check:1.0.0
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
