@@ -14,3 +14,11 @@ buildExternalChecker:
 
 pushExternalChecker:
 	docker push integrii/test-external-check:latest
+
+deploymentCheck: buildDeploymentCheck pushDeploymentCheck
+
+buildDeploymentCheck:
+	docker build -t quay.io/comcast/deployment-check:1.0.0 -f cmd/deployment-check/Dockerfile .
+
+pushDeploymentCheck:
+	docker push quay.io/comcast/deployment-check:1.0.0
