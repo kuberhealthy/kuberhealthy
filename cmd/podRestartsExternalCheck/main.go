@@ -33,7 +33,7 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 )
 
-const defaultMaxFailuresAllowed = "5"
+const defaultMaxFailuresAllowed = 5
 
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var Namespace string
@@ -72,17 +72,14 @@ func init() {
 		return
 	}
 
+	MaxFailuresAllowed = defaultMaxFailuresAllowed
 	maxFailuresAllowed := os.Getenv("MAX_FAILURES_ALLOWED")
-	if len(maxFailuresAllowed) == 0 {
-		log.Infoln("MAX_FAILURES_ALLOWED environment variable has not been set. " +
-			"Using default max failures allowed: ", defaultMaxFailuresAllowed)
-		maxFailuresAllowed = defaultMaxFailuresAllowed
-	}
-
-	MaxFailuresAllowed, err = strconv.Atoi(maxFailuresAllowed)
-	if err != nil {
-		log.Errorln("Error converting maxFailuresAllowed:", maxFailuresAllowed, "to int, err:", err)
-		return
+	if len(maxFailuresAllowed) != 0 {
+		MaxFailuresAllowed, err = strconv.Atoi(maxFailuresAllowed)
+		if err != nil {
+			log.Errorln("Error converting maxFailuresAllowed:", maxFailuresAllowed, "to int, err:", err)
+			return
+		}
 	}
 }
 
@@ -265,7 +262,7 @@ func (prc *Checker) statusReporter() {
 		if length > 0 {
 			log.Println("Bad pod with restarts found, reporting check failure to Kuberhealthy servers")
 
-			prc.errorMessages = nil //clear error messages before every failure report
+			prc.errorMessages = []string{} // clear error messages before every failure report
 
 			BadPodRestarts.Range(func(k, v interface{}) bool {
 
@@ -293,5 +290,4 @@ func (prc *Checker) statusReporter() {
 		}
 		log.Println("Successfully reported success to Kuberhealthy servers")
 	}
-
 }
