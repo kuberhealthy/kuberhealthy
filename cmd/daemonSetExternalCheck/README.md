@@ -54,3 +54,24 @@ spec:
 #### Daemonset Check Diagram
 
 ![](../../images/kh-ds-check.gif)
+
+
+#### How-to
+
+To implement the Daemonset Check with Kuberhealthy, apply the configuration file [daemonSetExternalCheck.yaml](daemonSetExternalCheck.yaml) to your Kubernetes Cluster.
+Make sure you are using the latest release of Kuberhealthy 2.0.0. 
+
+The configuration file contains:
+- KuberhealthyCheck
+- Role
+- Rolebinding
+- Service
+- Secret
+
+The role, rolebinding, service, and secret are all required to create and delete all daemonsets and pods from the check
+in the given namespaces you apply the KHCheck to. The assumed default service account does not give you the permissions 
+to do so. 
+
+You can also create the service account directly by running: `kubectl create serviceaccount daemonset-khcheck`. 
+This will create and apply the necessary secret to your service account. Once you've created the service account, make 
+sure to apply the rest of the configurations for the Role, RoleBinding, and Kuberhealthy check. 
