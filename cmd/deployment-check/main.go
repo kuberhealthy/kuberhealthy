@@ -158,11 +158,7 @@ func main() {
 	go listenForInterrupts()
 
 	// Start deployment check.
-	err = runDeploymentCheck()
-	if err != nil {
-		log.Errorln("Error when running check:", err)
-		os.Exit(1)
-	}
+	runDeploymentCheck()
 }
 
 // listenForInterrupts watches the signal and done channels for termination.

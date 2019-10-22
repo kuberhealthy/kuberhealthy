@@ -16,6 +16,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
@@ -23,6 +24,7 @@ import (
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	watchpkg "k8s.io/apimachinery/pkg/watch"
 )
 
 const (
@@ -40,9 +42,9 @@ const (
 
 	// Default container resource requests values.
 	defaultMillicoreRequest = 15               // Calculated in decimal SI units (15 = 15m cpu).
-	defaultMillicoreLimit   = 75               // Calculted in decimal SI units (75 = 75m cpu).
+	defaultMillicoreLimit   = 75               // Calculated in decimal SI units (75 = 75m cpu).
 	defaultMemoryRequest    = 20 * 1024 * 1024 // Calculated in binary SI units (20 * 1024^2 = 20Mi memory).
-	defaultMemoryLimit      = 60 * 1024 * 1024 // Calculated in binary SI units (60 * 1024^2 = 60Mi memory).
+	defaultMemoryLimit      = 75 * 1024 * 1024 // Calculated in binary SI units (75 * 1024^2 = 75Mi memory).
 
 	// Default container probe values.
 	defaultProbeFailureThreshold    = 5  // Number of consecutive failures for the probe to be considered failed (k8s default = 3).
@@ -53,17 +55,13 @@ const (
 )
 
 // createDeploymentConfig creates and configures a k8s deployment and returns the struct (ready to apply with client).
-func createDeploymentConfig(useRollImage bool) *v1.Deployment {
+func createDeploymentConfig(image string) *v1.Deployment {
 
 	// Make a k8s deployment.
 	deployment := &v1.Deployment{}
 
 	// Use a different image if useRollImage is true, to
-	// create a rolling-update deployment config by using a different image.
-	checkImage := checkImageURL
-	if useRollImage {
-		checkImage = checkImageURLB
-	}
+	checkImage := image
 
 	log.Infoln("Creating deployment resource with", checkDeploymentReplicas, "replica(s) in", checkNamespace, "namespace using image ["+checkImage+"] with environment variables:", additionalEnvVars)
 
@@ -350,7 +348,7 @@ func deleteDeployment() error {
 				log.Debugln("Received an event watching for deployment changes:", d.Name, "got event", event.Type)
 
 				// We want an event type of DELETED here.
-				if event.Type == "DELETED" {
+				if event.Type == watchpkg.Deleted {
 					log.Infoln("Received a", event.Type, "while watching for deployment with name ["+d.Name+"] to be deleted.")
 					deleteChan <- nil
 					return
@@ -362,10 +360,6 @@ func deleteDeployment() error {
 	}()
 
 	log.Infoln("Attempting to delete deployment in", checkNamespace, "namespace.")
-	if client == nil {
-		err := errors.New("nil kubernetes client")
-		return err
-	}
 
 	// Make a delete options object to delete the deployment.
 	deletePolicy := metav1.DeletePropagationForeground
@@ -423,7 +417,7 @@ func cleanUpOrphanedDeployment() error {
 				log.Debugln("Received an event watching for deployment changes:", d.Name, "got event", event.Type)
 
 				// We want an event type of DELETED here.
-				if event.Type == "DELETED" {
+				if event.Type == watchpkg.Deleted {
 					log.Infoln("Received a", event.Type, "while watching for deployment with name ["+d.Name+"] to be deleted")
 					cleanUpChan <- nil
 					return
@@ -441,9 +435,6 @@ func cleanUpOrphanedDeployment() error {
 	}()
 
 	log.Infoln("Removing previous deployment in", checkNamespace, "namespace.")
-	if client == nil {
-		return errors.New("nil kubernetes client")
-	}
 
 	// Make a delete options object to delete the service.
 	deletePolicy := metav1.DeletePropagationForeground
@@ -516,7 +507,7 @@ func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 
 		result := DeploymentResult{}
 
-		// Get the names of the current pods and ignore them when checking for completed rolling-update.
+		// Get the names of the current pods and ignore them when checking for a completed rolling-update.
 		log.Infoln("Creating a blacklist with the current pods that exist.")
 		oldPodNames := getPodNames()
 
@@ -599,6 +590,7 @@ func waitForDeploymentToDelete() chan bool {
 					return
 				}
 			}
+			time.Sleep(time.Millisecond * 250)
 		}
 	}()
 
@@ -619,7 +611,7 @@ func rollingUpdateComplete(statuses map[string]bool, oldPodNames []string) bool 
 		return false
 	}
 
-	// Look at each pod and see if the deployment is complete.
+	// Look at each pod and see if the deployment update is complete.
 	for _, pod := range podList.Items {
 		if containsString(pod.Name, oldPodNames) {
 			log.Debugln("Skipping", pod.Name, "because it was found in the blacklist.")

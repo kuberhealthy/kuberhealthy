@@ -12,7 +12,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -39,7 +38,7 @@ func makeRequestToDeploymentCheckService(hostname string) chan error {
 		defer close(requestChan)
 
 		if len(hostname) == 0 {
-			err := errors.New("given blank hostname for service load balancer endpoint -- skipping HTTP call")
+			err := fmt.Errorf("given blank hostname for service load balancer endpoint -- skipping HTTP call")
 			requestChan <- err
 			return
 		}
