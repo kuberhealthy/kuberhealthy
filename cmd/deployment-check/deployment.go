@@ -373,7 +373,6 @@ func deleteDeployment() error {
 	err := client.AppsV1().Deployments(checkNamespace).Delete(checkDeploymentName, &deleteOpts)
 	if err != nil {
 		log.Infoln("Could not delete deployment:", checkDeploymentName)
-		log.Infoln("Beginning backoff retry loop to delete deployment.")
 	}
 
 	return <-deleteChan

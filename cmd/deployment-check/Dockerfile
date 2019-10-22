@@ -1,8 +1,8 @@
-FROM golang:1.13 AS builder
+FROM golang:alpine AS builder
 ADD . /go/src/app
 WORKDIR /go/src/app/cmd/deployment-check
-RUN go build -o app -v
+RUN GOOS=linux GOARCH=amd64 go build -o app -v
 
-FROM golang:alpine
+FROM scratch
 COPY --from=builder /go/src/app/cmd/deployment-check /app/app
 ENTRYPOINT /app/app
