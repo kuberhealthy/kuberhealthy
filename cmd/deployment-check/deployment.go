@@ -495,7 +495,8 @@ func findPreviousDeployment() (bool, error) {
 	return false, nil
 }
 
-// updateDeployment performs an update on a deployment with a given deployment configuration.
+// updateDeployment performs an update on a deployment with a given deployment configuration.  The DeploymentResult
+// channel is notified when the rolling update is complete.
 func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 
 	updateChan := make(chan DeploymentResult)
