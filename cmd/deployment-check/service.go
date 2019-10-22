@@ -15,11 +15,13 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	watchpkg "k8s.io/apimachinery/pkg/watch"
 )
 
 // createServiceConfig creates and configures a k8s service and returns the struct (ready to apply with client).
@@ -167,7 +169,7 @@ func deleteService() error {
 				}
 
 				// We want an event type of DELETED here.
-				if event.Type == "DELETED" {
+				if event.Type == watchpkg.Deleted {
 					log.Infoln("Received a", event.Type, "while watching for service with name ["+s.Name+"] to be deleted.")
 					deleteChan <- nil
 					return
@@ -179,11 +181,6 @@ func deleteService() error {
 	}()
 
 	log.Infoln("Attempting to delete service in", checkNamespace, "namespace.")
-	if client == nil {
-		err := errors.New("nil kubernetes client")
-		log.Debugln("deleteService:", err)
-		return err
-	}
 
 	// Make a delete options object to delete the service.
 	deletePolicy := metav1.DeletePropagationForeground
@@ -235,7 +232,7 @@ func cleanUpOrphanedService() error {
 				}
 
 				// We want an event type of DELETED here.
-				if event.Type == "DELETED" {
+				if event.Type == watchpkg.Deleted {
 					log.Infoln("Received a", event.Type, "while watching for service with name ["+s.Name+"] to be deleted.")
 					cleanUpChan <- nil
 					return
@@ -255,9 +252,6 @@ func cleanUpOrphanedService() error {
 	}()
 
 	log.Infoln("Removing previous service in", checkNamespace, "namespace.")
-	if client == nil {
-		return errors.New("nil kubernetes client")
-	}
 
 	// Make a delete options object to delete the service.
 	deletePolicy := metav1.DeletePropagationForeground
@@ -349,6 +343,7 @@ func waitForServiceToDelete() chan bool {
 					return
 				}
 			}
+			time.Sleep(time.Millisecond * 250)
 		}
 	}()
 
