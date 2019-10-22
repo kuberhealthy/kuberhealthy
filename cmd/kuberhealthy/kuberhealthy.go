@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +33,7 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
 	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/external"
+	"github.com/Comcast/kuberhealthy/pkg/checks/external/status"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/health"
@@ -692,6 +694,10 @@ func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 	return podList.Items[0], nil
 }
 
+func (k *Kuberhealthy) externalCheckReportHandlerLog(s ...interface{}) {
+	log.Infoln(s...)
+}
+
 // externalCheckReportHandler handles requests coming from external checkers reporting their status.
 // This endpoint checks that the external check report is coming from the correct UUID before recording
 // the reported status of the corresponding external check.  This endpoint expects a JSON payload of
@@ -699,33 +705,52 @@ func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 // causes a check of the calling pod's spec via the API to ensure that the calling pod is expected
 // to be reporting its status.
 func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
-	log.Infoln("Client connected to check report handler from", r.RemoteAddr, r.UserAgent())
+	// make a request ID for tracking this request
+	requestID := uuid.New().String()
+
+	k.externalCheckReportHandlerLog(requestID, "Client connected to check report handler from", r.RemoteAddr, r.UserAgent())
 
 	// validate the calling pod to ensure that it has a proper KH_CHECK_NAME and KH_RUN_UUID
-	log.Debug("validating external check status report from: ", r.RemoteAddr)
+	k.externalCheckReportHandlerLog(requestID, "validating external check status report from: ", r.RemoteAddr)
 	ipReport, err := k.validateExternalRequest(r.RemoteAddr)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Errorln("Failed to look up pod by IP:", r.RemoteAddr, err)
+		k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by IP:", r.RemoteAddr, err)
 		return nil
 	}
-	log.Debugln("Calling pod is", ipReport.Name, "in namespace", ipReport.Namespace)
+	k.externalCheckReportHandlerLog(requestID, "Calling pod is", ipReport.Name, "in namespace", ipReport.Namespace)
 
 	// ensure the client is sending a valid payload in the request body
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Errorln("Failed to read request body:", err, r.RemoteAddr)
+		k.externalCheckReportHandlerLog(requestID, "Failed to read request body:", err.Error(), r.RemoteAddr)
 		return nil
 	}
 
-	// decode the bytes into a kuberhealthy health struct
-	state := health.State{}
+	// decode the bytes into a status struct as used by the client
+	state := status.Report{}
 	err = json.Unmarshal(b, &state)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Errorln("Failed to unmarshal state json:", err, r.RemoteAddr)
+		k.externalCheckReportHandlerLog(requestID, "Failed to unmarshal state json:", err, r.RemoteAddr)
 		return nil
+	}
+
+	// ensure that if ok is set to false, then an error is provided
+	if !state.OK {
+		if len(state.Errors) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			k.externalCheckReportHandlerLog(requestID, "Client attempted to report OK false without any error strings")
+			return nil
+		}
+		for _, e := range state.Errors {
+			if len(e) == 0 {
+				w.WriteHeader(http.StatusBadRequest)
+				k.externalCheckReportHandlerLog(requestID, "Client attempted to report a blank error string")
+				return nil
+			}
+		}
 	}
 
 	// fetch the hostname of this pod because we will consider it authoritative
@@ -733,29 +758,30 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	hostname, err := getEnvVar("POD_NAME")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		return fmt.Errorf("failed to fetch my hostname: %w", err)
+		k.externalCheckReportHandlerLog(requestID, "failed to fetch my hostname while handling an external check status report: %w", err)
+		return fmt.Errorf("failed to fetch my hostname while handling an external check status report: %w", err)
 	}
 
 	// create a details object from our incoming status report before storing it as a khstate custom resource
 	details := health.NewCheckDetails()
 	details.Errors = state.Errors
-	if len(state.Errors) == 0 {
-		details.OK = true
-	}
+	details.OK = state.OK
 	details.LastRun = time.Now()
 	details.Namespace = ipReport.Namespace
 	details.AuthoritativePod = hostname
 
 	// since the check is validated, we can proceed to update the status now
-	log.Debugln("Setting check with name", ipReport.Name, "to OK state", details.OK)
+	k.externalCheckReportHandlerLog(requestID, "Setting check with name", ipReport.Name, "in namespace", ipReport.Namespace, "to 'OK' state", details.OK)
 	err = k.storeCheckState(ipReport.Name, ipReport.Namespace, details)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		k.externalCheckReportHandlerLog(requestID, "failed to store check state for %s: %w", ipReport.Name, err)
 		return fmt.Errorf("failed to store check state for %s: %w", ipReport.Name, err)
 	}
 
 	// write ok back to caller
 	w.WriteHeader(http.StatusOK)
+	k.externalCheckReportHandlerLog(requestID, "Request completed successfully.")
 	return nil
 }
 
@@ -835,7 +861,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	}
 
 	// loop over every check and apply the current state to the status return
-	log.Debugln("Current state is tracking", len(k.Checks), "checks")
+	log.Debugln("Currently tracking", len(k.Checks), "check(s)")
 	for _, c := range k.Checks {
 		log.Debugln("Getting status of check for web request to status page:", c.Name())
 
@@ -859,11 +885,17 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 			continue
 		}
 
-		// parse check status from CRD and add it to the status
-		state.AddError(checkDetails.Errors...)
-		if !checkDetails.OK {
-			log.Debugln("Status page: Setting OK to false due to check details not being OK")
-			state.OK = false
+		// parse check status from CRD and add it to the status. Skip blank errors
+		for _, e := range checkDetails.Errors {
+			if len(strings.TrimSpace(e)) == 0 {
+				log.Warningln("Skipped an error that was blank when adding check details to current state.")
+				continue
+			}
+			state.AddError(e)
+			if !checkDetails.OK {
+				log.Debugln("Status page: Setting OK to false due to check details not being OK")
+				state.OK = false
+			}
 		}
 
 		state.CheckDetails[c.Name()] = checkDetails
