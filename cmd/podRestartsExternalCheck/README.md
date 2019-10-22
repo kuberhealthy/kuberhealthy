@@ -12,8 +12,7 @@ back either a failure or success depending on whether or not it found pods with 
 `MAX_FAILURES_ALLOWED` count. If the check does not complete within the given timeout it will report a timeout error on 
 the status page. 
 
-
-Pod Restarts Check Kube Spec:
+#### Pod Restarts Check Kube Spec:
 
 ```$xslt
 apiVersion: comcast.github.io/v1
