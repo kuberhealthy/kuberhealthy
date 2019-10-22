@@ -720,6 +720,8 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	}
 	k.externalCheckReportHandlerLog(requestID, "Calling pod is", ipReport.Name, "in namespace", ipReport.Namespace)
 
+	requestID = requestID + " (" + ipReport.Namespace + "/" + ipReport.Name + ")"
+
 	// ensure the client is sending a valid payload in the request body
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
