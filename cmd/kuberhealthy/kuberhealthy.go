@@ -69,8 +69,6 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace s
 		details.Namespace = check.CheckNamespace()
 	}
 	details.OK = false
-	details.AuthoritativePod = podHostname
-
 	details.Errors = []string{"Check execution error: " + exErr.Error()}
 	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors)
 
@@ -720,6 +718,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	}
 	k.externalCheckReportHandlerLog(requestID, "Calling pod is", ipReport.Name, "in namespace", ipReport.Namespace)
 
+	// append pod info to request id for easy check tracing in logs
 	requestID = requestID + " (" + ipReport.Namespace + "/" + ipReport.Name + ")"
 
 	// ensure the client is sending a valid payload in the request body
@@ -768,12 +767,10 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	details := health.NewCheckDetails()
 	details.Errors = state.Errors
 	details.OK = state.OK
-	details.LastRun = time.Now()
 	details.Namespace = ipReport.Namespace
-	details.AuthoritativePod = hostname
 
 	// since the check is validated, we can proceed to update the status now
-	k.externalCheckReportHandlerLog(requestID, "Setting check with name", ipReport.Name, "in namespace", ipReport.Namespace, "to 'OK' state", details.OK)
+	k.externalCheckReportHandlerLog(requestID, "Setting check with name", ipReport.Name, "in namespace", ipReport.Namespace, "to 'OK' state:", details.OK)
 	err = k.storeCheckState(ipReport.Name, ipReport.Namespace, details)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
