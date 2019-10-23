@@ -597,8 +597,9 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	}
 	ip := ipPortString[0]
 
-	// fetch the pod from the api using its ip
-	pod, err := k.fetchPodByIP(ip)
+	// fetch the pod from the api using its ip.  We keep retrying for some time to avoid kubernetes control plane
+	// api race conditions wherein fast reporting pods are not found in pod listings
+	pod, err := k.fetchPodByIPForDuration(ip, time.Second*10)
 	if err != nil {
 		return reportInfo, err
 	}
@@ -660,6 +661,26 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	return reportInfo, nil
 }
 
+// fetchPodByIPForDuration attempts to fetch a pod by its IP repeatedly for the supplied duration.  If the pod is found,
+// then we return it.  If the pod is not found after the duraiton, we return an error
+func (k *Kuberhealthy) fetchPodByIPForDuration(remoteIP string, d time.Duration) (v1.Pod, error) {
+	endTime := time.Now().Add(d)
+
+	for {
+		if time.Now().After(endTime) {
+			return v1.Pod{}, errors.New("Failed to fetch source pod with IP " + remoteIP + " after trying for " + d.String())
+		}
+
+		p, err := k.fetchPodByIP(remoteIP)
+		if err != nil {
+			log.Warningln("was unable to find calling pod with remote IP", remoteIP, "while watching for duration")
+			continue
+		}
+
+		return p, err
+	}
+}
+
 // fetchPodByIP fetches the pod by it's IP address.
 func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 	var pod v1.Pod
@@ -684,7 +705,7 @@ func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 	// ensure that we only got back one pod, because two means something awful has happened and 0 means we
 	// didnt find one
 	if len(podList.Items) == 0 {
-		return pod, errors.New("failed to fetch pod with remote ip " + remoteIP)
+		return pod, errors.New("failed to find a pod with the remote ip " + remoteIP)
 	}
 	if len(podList.Items) > 1 {
 		return pod, errors.New("failed to fetch pod with remote ip " + remoteIP + " - found two or more with same ip")
