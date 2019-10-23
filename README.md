@@ -1,18 +1,17 @@
 <center><img src="https://github.com/Comcast/kuberhealthy/blob/master/images/kuberhealthy.png?raw=true"></center><br />
 
-Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supplements other solutions like [Prometheus](https://prometheus.io/) nicely.
+An extensible [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_monitoring) operator for [Kubernetes](https://kubernetes.io).  Write your own tests in your own container and Kuberhealthy will manage everything else.  Automatically creates and sends metrics to [Prometheus](https://prometheus.io) and [InfluxDB](https://www.influxdata.com/).  Included JSON status page. Supplements other solutions like [Prometheus](https://prometheus.io/) very nicely!
 
 [![Docker Repository on Quay](https://quay.io/repository/comcast/kuberhealthy/status "Kuberhealthy Docker Repository on Quay")](https://quay.io/repository/comcast/kuberhealthy)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Comcast/kuberhealthy)](https://goreportcard.com/report/github.com/Comcast/kuberhealthy)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2822/badge)](https://bestpractices.coreinfrastructure.org/projects/2822)
 
-## Community
+## Community Support
 
 You can reach out to us on the [Kubernetes Slack](http://slack.k8s.io/) in the [#kuberhealthy channel](https://kubernetes.slack.com/messages/CB9G7HWTE).
 
-## Installation
-
+## Installation (TODO issue #189)
 To install using [Helm](https://helm.sh) *without* Prometheus:
 `helm install stable/kuberhealthy`
 
@@ -28,7 +27,7 @@ After installation, Kuberhealthy will only be available from within the cluster 
 
 RBAC bindings and roles are included in all configurations.
 
-Kuberhealthy is currently tested on Kubernetes `1.9.x`, `1.10.x`, and `1.11.x`.
+Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.14.x`.
 
 ### Prometheus Alerts
 
@@ -37,9 +36,7 @@ A `ServiceMonitor` configuration is available at [deploy/servicemonitor.yaml](ht
 
 ### Grafana Dashboard
 
-A `Grafana` dashboard is available at [deploy/grafana/dashboard.json](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/grafana/dashboard.json)
-
-To install this dashboard, follow the instructions [here](http://docs.grafana.org/reference/export_import/#importing-a-dashboard).
+A `Grafana` dashboard is available at [deploy/grafana/dashboard.json](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/grafana/dashboard.json).  To install this dashboard, follow the instructions [here](http://docs.grafana.org/reference/export_import/#importing-a-dashboard).
 
 ## What is Kuberhealthy?
 
@@ -104,71 +101,6 @@ The state of checks is centralized as [custom resource](https://kubernetes.io/do
 ## Checks
 
 Kuberhealthy performs the following checks in parallel at all times:
-
-#### Daemonset Deployment and Termination
-
-Deploys a `daemonset` to the `kuberhealthy` namespace, waits for all pods to be in the 'Ready' state, then terminates them and ensures all pod terminations were successful.  Containers are deployed with their resource requirements set to 0 cores and 0 memory and use the pause container from Google (`gcr.io/google_containers/pause:0.8.0`), which is likely already cached on your nodes.  The `node-role.kubernetes.io/master` `NoSchedule` taint is tolerated by daemonset testing pods.  The pause container is already used by kubelet to do various tasks and should be cached at all times.  If a failure occurs anywhere in the daemonset deployment or tear down, an error is shown on the status page describing the issue.
-
-- Namespace: kuberhealthy
-- Timeout: 5 minutes
-- Check Interval: 15 minutes
-- Check name: `daemonSet`
-
-#### Excessive Pod Restarts
-
-Checks for excessive pod restarts in the `kube-system` namespace.  If a pod has restarted more than five times in an hour, an error is indicated on the status page.  The exact pod's name will be shown as one of the `Error` field's strings.
-
-A command line flag exists `--podCheckNamespaces` which can optionally contain a comma-separated list of namespaces on which to run the podRestarts checks.  The default value is `kube-system`.  Each namespace for which the check is configured will require the `get` and `list` verbs on the `pods` resource within that namespace.
-
-- Namespace: kube-system
-- Timeout: 3 minutes
-- Check Interval: 5 minutes
-- Tolerated restarts per pod over 1 hour: 5
-- Check name: `podRestarts`  
-
-#### Pod Status
-
-Checks for pods older than ten minutes in the `kube-system` namespace that are in an incorrect lifecycle phase (anything that is not 'Ready').  If a `podStatus` detects a pod down for 5 minutes, an alert is shown on the status page. When a pod is found to be in error, the exact pod's name will be shown as one of the `Error` field's strings.
-
-A command line flag exists `--podCheckNamespaces` which can optionally contain a comma-separated list of namespaces on which to run the podStatus checks.  The default value is `kube-system`.  Each namespace for which the check is configured will require the `get` and `list` [RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/) verbs on the `pods` resource within that namespace.
-
-- Namespace: kube-system
-- Timeout: 1 minutes
-- Check Interval: 2 minutes
-- Error state toleration: 5 minutes
-- Check name: `podStatus`
-
-#### DNS
-
-Checks for failures with DNS, including resolving within the cluster and outside of the cluster. By default, only `kubernetes.default` is checked because external internet access is not assumed.
-
-A command-line flag exists `--dnsEndpoints` which can optionally include a comma separated list of DNS endpoints to test. 
-
-- Timeout: 1 minutes
-- Check Interval: 30 seconds
-- Error state toleration: 1 minute
-- Check name: `dnsStatus`
-
-
-#### Deployment and Service
-
-The check deploys a `deployment` to the `kuberhealthy` namespace with `2` replicas and waits for pods and service to be in the 'Ready' state and serve a hostname.  Once rady, the check makes a request to the endpoint for a `200 OK` response and then proceeds to terminate them and ensures that the deployment and service terminations were successful.  Containers are deployed with their resource requirements set to 15 millicores and 20Mi units of memory and uses the latest Nginx web server container (`nginx:latest`) for the deployment.  A successful check run implies that a deployment and service can be brought up and the corresponding hostname endpoint returns a `200 OK` response.  If `CHECK_DEPLOYMENT_ROLLING_UPDATE` is set to `true`, the check will initially deploy Nginx's `alpine` web server container, roll to the latest (`nginx:alpine` -> `nginx:latest`), and look for a second `200 OK` response.  A failure implies that an error occurred anywhere in the deployment creation, service creation, HTTP request, or tear down process -- resulting in an error report to the Kuberhealthy status page.
-
-- Namespace: kuberhealthy
-- Timeout: 5 minutes
-- Check Interval: 30 minutes
-- Check name: `kh-deployment-check`
-- Configurable check environment variables:
-  - `CHECK_IMAGE`: Initial container image.
-  - `CHECK_IMAGE_ROLL_TO`: Container image to roll to.
-  - `CHECK_DEPLOYMENT_NAME`: Name for the check's deployment.
-  - `CHECK_SERVICE_NAME`: Name for the check's service.
-  - `CHECK_NAMESPACE`: Namespace for the check (default=`kuberhealthy`).
-  - `CHECK_DEPLOYMENT_REPLICAS`: Number of replicas in the deployment (default=`2`).
-  - `CHECK_TIME_LIMIT_SECONDS`: Number of seconds the check will allow itself before timing out.
-  - `CHECK_DEPLOYMENT_ROLLING_UPDATE`: Boolean to enable rolling-update (default=`false`).
-  - `ADDITIONAL_ENV_VARS`: `Key`=`Pair` delimited list of variables passed into the pod's containers.
-  - `SHUTDOWN_GRACE_PERIOD_SECONDS`: Amount of time in seconds the shutdown will allow itself to clean up after interrupt.
 
 
 ### Security Considerations
