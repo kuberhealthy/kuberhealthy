@@ -611,6 +611,7 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time) chan error 
 			// if the context is canceled, we stop
 			select {
 			case <-ext.shutdownCTX.Done():
+				ext.log("aborting wait for external checker pod to report in due to context cancellation")
 				outChan <- nil
 				return
 			default:
@@ -619,6 +620,7 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time) chan error 
 			// fetch the lastUpdateTime from the khstate as of right now
 			currentUpdateTime, err := ext.getCheckLastUpdateTime()
 			if err != nil {
+				ext.log("aborting wait for pod status update due to error fetching last update time")
 				outChan <- err
 				return
 			}
@@ -626,6 +628,8 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time) chan error 
 			// if the pod has updated, then we return and were done waiting
 			ext.log("Last report time was:", lastUpdateTime, "vs", currentUpdateTime)
 			if currentUpdateTime.After(lastUpdateTime) {
+				ext.log("saw pod update!")
+				outChan <- nil
 				return
 			}
 		}
@@ -976,6 +980,7 @@ func (ext *Checker) waitForShutdown(ctx context.Context) error {
 func (ext *Checker) Shutdown() error {
 
 	// cancel the context for this checker run
+	ext.log("aborting context for this check due to shutdown call")
 	ext.shutdownCTXFunc()
 
 	// make a context to track pod removal and cleanup

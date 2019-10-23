@@ -453,7 +453,9 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		// break out if context cancels
 		select {
 		case <-ctx.Done():
-			log.Infoln("Shutting down check due to context cancellation:", c.Name(), "in namespace", c.CheckNamespace())
+			// we don't need to call a check shutdown here because the same func that cancels this context calls
+			// shutdown on all the checks configured in the kuberhealthy struct.
+			log.Infoln("Shutting down check run due to context cancellation:", c.Name(), "in namespace", c.CheckNamespace())
 			return
 		default:
 		}
@@ -728,6 +730,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		k.externalCheckReportHandlerLog(requestID, "Failed to read request body:", err.Error(), r.RemoteAddr)
 		return nil
 	}
+	log.Debugln("Check report body:", string(b))
 
 	// decode the bytes into a status struct as used by the client
 	state := status.Report{}
@@ -737,6 +740,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		k.externalCheckReportHandlerLog(requestID, "Failed to unmarshal state json:", err, r.RemoteAddr)
 		return nil
 	}
+	log.Debugf("Check report after unmarshal: +%v\n", state)
 
 	// ensure that if ok is set to false, then an error is provided
 	if !state.OK {
