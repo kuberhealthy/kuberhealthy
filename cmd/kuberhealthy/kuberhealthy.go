@@ -754,15 +754,6 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		}
 	}
 
-	// fetch the hostname of this pod because we will consider it authoritative
-	// of the last check update
-	hostname, err := getEnvVar("POD_NAME")
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		k.externalCheckReportHandlerLog(requestID, "failed to fetch my hostname while handling an external check status report: %w", err)
-		return fmt.Errorf("failed to fetch my hostname while handling an external check status report: %w", err)
-	}
-
 	// create a details object from our incoming status report before storing it as a khstate custom resource
 	details := health.NewCheckDetails()
 	details.Errors = state.Errors
