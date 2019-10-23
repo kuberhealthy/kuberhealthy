@@ -15,6 +15,7 @@ var reportDelay time.Duration
 
 func init() {
 
+	// enable debug logging on the check client
 	checkclient.Debug = true
 
 	var err error
