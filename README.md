@@ -11,6 +11,17 @@ An extensible [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_mon
 
 You can reach out to us on the [Kubernetes Slack](http://slack.k8s.io/) in the [#kuberhealthy channel](https://kubernetes.slack.com/messages/CB9G7HWTE).
 
+## What is Kuberhealthy?
+
+Kuberhealthy is an [operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) for running synthetic checks.  You create a custom resource (`khcheck`) to enable various checks (you can write your own) and Kuberhealthy does all the work of scheduling your checks, ensuring they run, maintaining up/down state, and producing metrics.  There are [lots of useful checks available]("docs/EXTERNAL_CHECKS_REGISTRY.md") to ensure core functionality of Kubernetes.  By default, a core set of lightweight but valuable checks are included.  If you like, you can easily [write your own checks (TODO)]() in any language! 
+
+Kuberhealthy serves a JSON status page, a [Prometheus](https://prometheus.io/) metrics endpoint, and allows for forwarding to an InfluxDB endpoint for integration into your choice of alerting solution.
+
+Here is an illustration of how Kuberhealthy runs checks each in their own pod.  In this example, the checker pod both deploys a daemonset and tears it down while carefully watching for errors.  The result of the check is then sent back to Kuberhealthy and channeled into upstream metrics and status pages.
+
+<img src="images/kh-ds-check.gif">
+
+
 ## Installation (TODO issue #189)
 To install using [Helm](https://helm.sh) *without* Prometheus:
 `helm install stable/kuberhealthy`
@@ -38,11 +49,11 @@ A `ServiceMonitor` configuration is available at [deploy/servicemonitor.yaml](ht
 
 A `Grafana` dashboard is available at [deploy/grafana/dashboard.json](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/grafana/dashboard.json).  To install this dashboard, follow the instructions [here](http://docs.grafana.org/reference/export_import/#importing-a-dashboard).
 
-## What is Kuberhealthy?
+### Why Are Synthetic Tests Important?
 
-Kuberhealthy performs synthetic tests from within Kubernetes clusters in order to catch issues that would otherwise go unnoticed.  Instead of trying to identify all the things that could potentially go wrong, Kuberhealthy replicates real workflow and watches carefully for the expected Kubernetes behavior to occur.  Kuberhealthy serves both a JSON status page and a [Prometheus](https://prometheus.io/) metrics endpoint for integration into your choice of alerting solution.  More checks will be added in future versions to better cover [service provisioning](https://github.com/Comcast/kuberhealthy/issues/11), [DNS resolution](https://github.com/Comcast/kuberhealthy/issues/16), [disk provisioning](https://github.com/Comcast/kuberhealthy/issues/9), and more.
+Instead of trying to identify all the things that could potentially go wrong in your application or cluster with never-ending metrics and alert configurations, synthetic tests replicate real workflow and carefully check for the expected behavior to occur.  By default, Kuberhealthy monitors all basic Kubernetes cluster functionality including deployments, daemonsets, services, nodes, kube-system health and more.
 
-Some examples of errors Kuberhealthy has detected in production:
+Some examples of problems Kuberhealthy has detected in production with just the default checks enabled:
 
 - Nodes where new pods get stuck in `Terminating` due to CNI communication failures
 - Nodes where new pods get stuck in `ContainerCreating` due to disk provisoning errors
@@ -60,7 +71,7 @@ Some examples of errors Kuberhealthy has detected in production:
 
 ##### Status Page
 
-If you choose to alert from the JSON status page, you can access the status on `http://kuberhealthy.kuberhealthy`.  The status page displays server status in the format shown below.  The boolean `OK` field can be used to indicate up/down status, while the `Errors` array will contain a list of potential error descriptions.  Granular, per-check information, including the last time a check was run, and the Kuberhealthy pod that ran that specific check is available under the `CheckDetails` object.
+If you choose to alert from the JSON status page, you can access the status on `http://kuberhealthy.kuberhealthy`.  The status page displays server status in the format shown below.  The boolean `OK` field can be used to indicate global up/down status, while the `Errors` array will contain a list of all check error descriptions.  Granular, per-check information, including the last time a check was run, and the Kuberhealthy pod ran that specific check is available under the `CheckDetails` object.
 
 ```json
   {
@@ -92,19 +103,15 @@ If you choose to alert from the JSON status page, you can access the status on `
 
 #### High Availability
 
-Kuberhealthy scales horizontally in order to be fault tolerant.  By default, two instances are used with a [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) and [RollingUpdate](https://kubernetes.io/docs/tasks/run-application/rolling-update-replication-controller/) strategy to ensure high availability.  
+Kuberhealthy scales horizontally in order to be fault tolerant.  By default, two instances are used with a [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) and [RollingUpdate](https://kubernetes.io/docs/tasks/run-application/rolling-update-replication-controller/) strategy to ensure high availability.
 
 ##### Centralized Check State State
 
 The state of checks is centralized as [custom resource](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) records for each check.  This allows Kuberhealthy to always serve the same result, no matter which node in the pool you hit.  The current master running checks is calculated by all nodes in the deployment by simply querying the Kubernetes API for 'Ready' Kuberhealthy pods of the correct label, and sorting them alphabetically by name.  The node that comes first is master.
 
-## Checks
-
-Kuberhealthy performs the following checks in parallel at all times:
-
 
 ### Security Considerations
 
-By default, Kuberhealthy exposes an insecure (non-HTTPS) status endpoint without authentication. You should never expose this endpoint to the public internet. Exposing Kuberhealthy's status page to the public internet could result in private cluster information being exposed to the public internet when errors occur and are displayed on the page.
+By default, Kuberhealthy exposes an insecure (non-HTTPS) JSON status endpoint without authentication. You should never expose this endpoint to the public internet. Exposing Kuberhealthy's status page to the public internet could result in private cluster information being exposed to the public internet when errors occur and are displayed on the page.
 
 Vulnerabilities or other security related issues should be logged as git issues in this project and immediately reported to The Security Incident Response Team (SIRT) via email at NETO_SIRT@comcast.com.  Please do not post sensitive information in git issues.
