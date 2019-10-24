@@ -31,7 +31,7 @@ Simply build your program into a container, `docker push` it to somewhere your c
 
 ### Creating Your `khcheck` Resource
 
-Every check needs a `khcheck` to enable and configure it.  As soon as this resource is applied to the cluster, Kuberhealthy will begin running it.  Whenever you make a change, Kuberhealthy will re-load the check and restart any checks currently in progress.
+Every check needs a `khcheck` to enable and configure it.  As soon as this resource is applied to the cluster, Kuberhealthy will begin running your check.  Whenever you make a change, Kuberhealthy will automatically re-load the check and restart any checks currently in progress gracefully.
 
 Here is a minimal `khcheck` resource to start hacking with:
 
