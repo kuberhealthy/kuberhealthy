@@ -1,46 +1,49 @@
 ### External Checks
 
-External checks are pods that Kuberhealthy spins up to run any image the user specifies.  Checks are specified via custom resources (khcheckcrd package) that look like this:
+External checks are configured using `khcheck` custom resources.  These `khchecks` can create pods from any Kuberhealthy check image the user specifies.  Pods are created in the namespace that their `khcheck` was placed into.  A list of pre-made checks that you can easily enable are listed [in the external checks registry](../docs/EXTERNAL_CHECKS_REGISTRY.md).  
 
+As soon as your `khcheck` resource is applied to the cluster, Kuberhealthy will begin running it.  If a change is made, Kuberhealthy will shut down any active checks gracefully and restart them with the updated configuration.
+
+### `khcheck` Anatomy
+
+A `khcheck` looks like this:
 
 ```yaml
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: test-check
-  namespace: kuberhealthy
+  name: kh-test-check # the name of this check and the checker pod
+  namespace: kuberhealthy # the namespace the checker pod will run in
 spec:
-  CurrentUUID: 390922a4-0573-4fff-b14d-a0d7f63cc73e
-  PodSpec:
-    containers: null // TODO
-  RunInterval: 600000000000 // TODO
+  runInterval: 30s # The interval that Kuberhealthy will run your check on 
+  timeout: 2m # After this much time, Kuberhealthy will kill your check and consider it "failed"
+  extraAnnotations: # Optional extra annotations your pod can have
+    comcast.com/testAnnotation: test.annotation
+  extraLabels: # Optional extra labels your pod can be configured with
+    testLabel: testLabel
+  podSpec: # The exact pod spec that will run.  All normal pod spec is valid here.
+    containers:
+    - env: # Environment variables are optional but a recommended way to configure check behavior
+      - name: REPORT_FAILURE
+        value: "false"
+      - name: REPORT_DELAY
+        value: 6s
+      image: quay.io/comcast/test-external-check:latest # The image of the check you want to run.
+      imagePullPolicy: Always # During check development, it helps to set this to 'Always' to prevent on-node image caching.
+      name: main
+      resources:
+        requests:
+          cpu: 10m
+          memory: 50Mi
 ```
 
-External check pods are injected with the following environment variables reguardless of the `PodSpec` set by the user:
+### Visualized
 
-- `KH_CHECK_NAME` - The name of the check that spawned this pod.  Normally the name of the khstate custom resource.
-- `KH_RUN_UUID` - A unique ID for the specific check run instance.  Used in validating that the calling pod IP is currently allowed to report status.
-- `KH_REPORTING_URL` - The URL that pods should send a GET request back to.  The body should be a `health.State` struct in JSON like below:
+Here is an illustration of how Kuberhealthy runs checks each in their own pod.  In this example, the checker pod both deploys a daemonset and tears it down while carefully watching for errors.  The result of the check is then sent back to Kuberhealthy and channeled into upstream metrics and status pages to indicate basic Kubernetes cluster functionality across all nodes in a cluster.
 
-```json
-// TODO
-```
+<img src="../images/kh-ds-check.gif">
 
-Checks can be written in anything as long as its turned into a docker image.  The spec for the pod that needs run should be set in the yaml above.  The pod should then
-send its status json payload to the exact URL in the `KH_REPORTING_URL` environment variable.
+### Creating Your Own Checks
 
-
-
-
-#### TODO 
-
-- run interval should be in seconds
-- test that loads spec from CRD and runs entire check to completion
-- monitoring of khcheck custom resource changes
-- creation of checks from khcheck resources
-- updating of checks from khcheck resources
-- write client under pkg/checks/external/client
-- create framework getting started project for people to fork
-- more docs and walkthroughs
-- add khcheck custom resource to helm chart
+To learn how to write your own checks of any kind, check out the [documentation for it here](../docs/EXTERNAL_CHECK_CREATION.md).
 
