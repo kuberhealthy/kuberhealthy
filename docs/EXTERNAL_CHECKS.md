@@ -1,7 +1,12 @@
 ### External Checks
 
-External checks (`khchecks`) are pods spun up to run any Kuberhealthy check image the user specifies.  Images are specified in a `khcheck` like this:
+External checks are configured using `khcheck` custom resources.  These `khchecks` can create pods from any Kuberhealthy check image the user specifies.  Pods are created in the namespace that their `khcheck` was placed into.  A list of pre-made checks that you can easily enable are listed [in the external checks registry](../docs/EXTERNAL_CHECKS_REGISTRY.md).  
 
+As soon as your `khcheck` resource is applied to the cluster, Kuberhealthy will begin running it.  If a change is made, Kuberhealthy will shut down any active checks gracefully and restart them with the updated configuration.
+
+### `khcheck` Anatomy
+
+A `khcheck` looks like this:
 
 ```yaml
 apiVersion: comcast.github.io/v1
@@ -32,8 +37,13 @@ spec:
           memory: 50Mi
 ```
 
-#### TODO
+### Visualized
 
-- create framework getting started project for people to fork
-- more docs and walkthroughs
+Here is an illustration of how Kuberhealthy runs checks each in their own pod.  In this example, the checker pod both deploys a daemonset and tears it down while carefully watching for errors.  The result of the check is then sent back to Kuberhealthy and channeled into upstream metrics and status pages to indicate basic Kubernetes cluster functionality across all nodes in a cluster.
+
+<img src="../images/kh-ds-check.gif">
+
+### Creating Your Own Checks
+
+To learn how to write your own checks of any kind, check out the [documentation for it here](../docs/EXTERNAL_CHECK_CREATION.md).
 
