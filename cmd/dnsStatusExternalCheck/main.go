@@ -3,6 +3,7 @@
 package main
 
 import (
+	"errors"
 	"net"
 	"os"
 	"path/filepath"
@@ -20,6 +21,7 @@ import (
 )
 
 const maxTimeInFailure = 60 * time.Second
+
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var CheckTimeout time.Duration
 var Hostname string
@@ -28,7 +30,7 @@ var Hostname string
 type Checker struct {
 	client           *kubernetes.Clientset
 	MaxTimeInFailure time.Duration
-	Hostname       	 string
+	Hostname         string
 }
 
 func init() {
@@ -52,8 +54,6 @@ func init() {
 		log.Errorln("ERROR: The ENDPOINT environment variable has not been set.")
 		return
 	}
-
-	checkclient.Debug = true
 }
 
 func main() {
@@ -74,7 +74,7 @@ func main() {
 // New returns a new DNS Checker
 func New() *Checker {
 	return &Checker{
-		Hostname:        Hostname,
+		Hostname:         Hostname,
 		MaxTimeInFailure: maxTimeInFailure,
 	}
 }
@@ -103,7 +103,10 @@ func (dc *Checker) Run(client *kubernetes.Clientset) error {
 		}
 		return err
 	case err := <-doneChan:
-		return err
+		if err != nil {
+			return reportKHFailure(err.Error())
+		}
+		return reportKHSuccess()
 	}
 }
 
@@ -111,27 +114,34 @@ func (dc *Checker) Run(client *kubernetes.Clientset) error {
 func (dc *Checker) doChecks() error {
 
 	log.Infoln("DNS Status check testing hostname:", dc.Hostname)
-
 	_, err := net.LookupHost(dc.Hostname)
 	if err != nil {
 		errorMessage := "DNS Status check determined that " + dc.Hostname + " is DOWN: " + err.Error()
 		log.Errorln(errorMessage)
-		err = checkclient.ReportFailure([]string{errorMessage})
-		if err != nil {
-			log.Println("Error reporting failure to Kuberhealthy servers:", err)
-			return err
-		}
-		log.Println("Successfully reported failure to Kuberhealthy servers")
-		return err
+		return errors.New(errorMessage)
 	}
-
 	log.Infoln("DNS Status check determined that", dc.Hostname, "was OK.")
-	err = checkclient.ReportSuccess()
+	return nil
+}
+
+// reportKHSuccess reports success to Kuberhealthy servers and verifies the report successfully went through
+func reportKHSuccess() error {
+	err := checkclient.ReportSuccess()
 	if err != nil {
 		log.Println("Error reporting success to Kuberhealthy servers:", err)
 		return err
 	}
 	log.Println("Successfully reported success to Kuberhealthy servers")
 	return err
+}
 
+// reportKHFailure reports failure to Kuberhealthy servers and verifies the report successfully went through
+func reportKHFailure(errorMessage string) error {
+	err := checkclient.ReportFailure([]string{errorMessage})
+	if err != nil {
+		log.Println("Error reporting failure to Kuberhealthy servers:", err)
+		return err
+	}
+	log.Println("Successfully reported failure to Kuberhealthy servers")
+	return err
 }
