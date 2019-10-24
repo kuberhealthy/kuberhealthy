@@ -27,7 +27,7 @@ Your check only needs to do a few things:
 
 Never send `"OK": true` if `Errors` has values or you will be given a `400` return code.
 
-Simply build your program into a container, `docker push` it to somewhere your cluster has access` and craft a `khcheck` resource to enable it in your cluster where Kuberhealthy is installed.
+Simply build your program into a container, `docker push` it to somewhere your cluster has access and craft a `khcheck` resource to enable it in your cluster where Kuberhealthy is installed.
 
 ### Creating Your `khcheck` Resource
 
