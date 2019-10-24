@@ -2,10 +2,10 @@
 
 The *DNS Status Check* checks for failures with DNS, including resolving within the cluster and outside of the cluster. 
 Each check lookups and verifies one hostname. Default KHCheck configurations applied are:
-- [internalDNSStatusExternalCheck.yaml](internalDNSStatusExternalCheck.yaml) 
+- [internalDNSStatusCheck.yaml](internalDNSStatusCheck.yaml)
     - Hostname: kubernetes.default
     - Check Name: dns-status-check-internal
-- [externalDNSStatusExternalCheck.yaml](externalDNSStatusExternalCheck.yaml)
+- [externalDNSStatusCheck.yaml](externalDNSStatusCheck.yaml)
     - Hostname: google.com
     - Check Name: dns-status-check-external
 
@@ -43,5 +43,5 @@ spec:
 
 #### How-to
 
-To implement the DNS Status Check with Kuberhealthy, apply both configuration files [internalDNSStatusExternalCheck.yaml](internalDNSStatusExternalCheck.yaml), 
-[externalDNSStatusExternalCheck.yaml](externalDNSStatusExternalCheck.yaml), to your Kubernetes Cluster. Make sure you are using the latest release of Kuberhealthy 2.0.0. 
+To implement the DNS Status Check with Kuberhealthy, apply both configuration files [internalDNSStatusCheck.yaml](internalDNSStatusCheck.yaml), 
+[externalDNSStatusCheck.yaml](externalDNSStatusCheck.yaml), to your Kubernetes Cluster. Make sure you are using the latest release of Kuberhealthy 2.0.0. 
