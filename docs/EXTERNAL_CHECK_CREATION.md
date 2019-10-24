@@ -2,7 +2,7 @@
 
 ### Using Go 
 
-Creating your own `khcheck` is very easy.  If you are using Go, we have an easy to use package at [github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient](https://godoc.org/github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient).
+Creating your own `khcheck` is very easy.  If you are using Go, we have an easy to use client package at [github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient](https://godoc.org/github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient).
 
 <img src="../images/example check.png">
 
