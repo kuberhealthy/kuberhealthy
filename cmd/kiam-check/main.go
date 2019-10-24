@@ -17,9 +17,6 @@ var (
 	awsRegionEnv = os.Getenv("AWS_REGION")
 	awsRegion    string
 
-	useLambdasEnv = os.Getenv("LAMBDA")
-	useLambdas    bool
-
 	expectedLambdaCountEnv = os.Getenv("LAMBDA_COUNT")
 	expectedLambdaCount    int
 
@@ -35,7 +32,6 @@ var (
 
 const (
 	// Default AWS region.
-	// Sorry we live in US PNW :)
 	defaultAWSRegion = "us-west-2" // Default is Oregon.
 )
 
@@ -68,21 +64,16 @@ func main() {
 
 	go listenForInterrupts()
 
-	switch {
-	case useLambdas:
-		select {
-		case err = <-runLambdaCheck():
-			if err != nil {
-				err = fmt.Errorf("error occurred during Lambda check: %w", err)
-				reportErrorsToKuberhealthy([]string{err.Error()})
-				return
-			}
-			log.Infoln("AWS Lambda check successful.")
-		case <-ctx.Done():
+	select {
+	case err = <-runLambdaCheck():
+		if err != nil {
+			err = fmt.Errorf("error occurred during Lambda check: %w", err)
+			reportErrorsToKuberhealthy([]string{err.Error()})
 			return
 		}
-	default:
-		log.Fatalln("No given AWS service to test.")
+		log.Infoln("AWS Lambda check successful.")
+	case <-ctx.Done():
+		return
 	}
 
 	reportOKToKuberhealthy()

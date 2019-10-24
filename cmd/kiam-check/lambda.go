@@ -13,42 +13,54 @@ import (
 func createLambdaClient(s *session.Session, region string) *lambda.Lambda {
 
 	// build a lambda client
-	log.Infoln("Building Lambda client.")
-	c := lambda.New(s, &aws.Config{Region: aws.String(region)})
-
-	return c
+	log.Infoln("Building Lambda client for " + region + " region.")
+	return lambda.New(s, &aws.Config{Region: aws.String(region)})
 }
 
 // listLambdas returns a list of Lambda functions.
 func listLambdas(c *lambda.Lambda) ([]*lambda.FunctionConfiguration, error) {
 
 	// Create an output object for the list query.
-	var marker string
 	list := make([]*lambda.FunctionConfiguration, 0)
 
 	// Query Lambdas.
-	log.Infoln("Querying lambda functions.")
-	for {
-		results, err := c.ListFunctions(&lambda.ListFunctionsInput{
-			MaxItems: aws.Int64(1000),
+	log.Infoln("Querying Lambda functions.")
+
+	results, err := c.ListFunctions(&lambda.ListFunctionsInput{
+		MaxItems: aws.Int64(100),
+	})
+	if err != nil {
+		return list, err
+	}
+	log.Infoln("Queried", len(results.Functions), "Lambdas.")
+	list = append(list, results.Functions...)
+
+	// Keep querying until the API gives us everything.
+	var marker string
+	for results.NextMarker != nil {
+		log.Debugln("There are more results to be queried.")
+
+		marker = *results.NextMarker
+		results, err = c.ListFunctions(&lambda.ListFunctionsInput{
+			MaxItems: aws.Int64(100),
 			Marker:   aws.String(marker),
 		})
 		if err != nil {
 			return list, err
 		}
-		list = append(list, results.Functions...)
 
-		if results.NextMarker == nil {
-			break
-		}
-		marker = *results.NextMarker
+		log.Infoln("Queried", len(results.Functions), "Lambdas.")
+		list = append(list, results.Functions...)
 	}
+
 	return list, nil
 }
 
 func runLambdaCheck() chan error {
 
 	checkChan := make(chan error, 0)
+
+	log.Debugln("Starting Lambda check.")
 
 	go func() {
 		defer close(checkChan)
@@ -62,6 +74,7 @@ func runLambdaCheck() chan error {
 			checkChan <- err
 			return
 		}
+		log.Infoln("Found", len(list), "Lambdas.")
 
 		// If an expected count is given, we expect the number of Lambdas to be the same.
 		if expectedLambdaCount != 0 {
@@ -79,7 +92,7 @@ func runLambdaCheck() chan error {
 			return
 		}
 
-		// If not expected count is given and no Lambdas were found, we assume a failure.
+		// If an expected count is given and no Lambdas were found, we assume a failure.
 		checkChan <- fmt.Errorf("could not find any Lambdas")
 		return
 	}()

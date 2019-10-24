@@ -1,27 +1,27 @@
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: kiam-check
+  name: kh-kiam-check
   namespace: kuberhealthy
 spec:
   extraAnnotations:
-    # iam.amazonaws.com/role: arn:aws:iam::303027209135:role/OneCloud/kiam-lambda-list-test
-  runInterval: 5m
-  timeout: 2m
+    iam.amazonaws.com/role: <role-arn>
+  runInterval: 1m
+  timeout: 45s
   podSpec:
     containers:
-    - env:
-        name: LAMBDA
-        value: "true"
-        name: AWS_REGION
-        value: us-west-2
-        name: DEBUG
-        value: "true"
-      name: kiam-check
-      image: <image>
+    - name: kh-kiam-check
+      image: quay.io/comcast/kiam-check:1.0.0
       imagePullPolicy: IfNotPresent
+      env:
+      - name: AWS_REGION
+        value: us-west-2
       resources:
         requests:
           cpu: 15m
           memory: 10Mi
+        limits:
+          cpu: 30m
+      restartPolicy: Always
+
           
