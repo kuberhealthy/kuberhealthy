@@ -37,6 +37,11 @@ spec:
           memory: 50Mi
 ```
 
+### Visualized
+
+Here is an illustration of how Kuberhealthy runs checks each in their own pod.  In this example, the checker pod both deploys a daemonset and tears it down while carefully watching for errors.  The result of the check is then sent back to Kuberhealthy and channeled into upstream metrics and status pages to indicate basic Kubernetes cluster functionality across all nodes in a cluster.
+
+<img src="../images/kh-ds-check.gif">
 
 ### Creating Your Own Checks
 
