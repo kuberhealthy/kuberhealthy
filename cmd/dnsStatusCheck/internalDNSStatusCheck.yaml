@@ -13,7 +13,7 @@ spec:
             value: "45s"
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: docker-proto.repo.theplatform.com/dns-status-check:1.0.0
+        image: quay.io/comcast/dns-status-check:1.0.0
         imagePullPolicy: Always
         name: main
         resources:
