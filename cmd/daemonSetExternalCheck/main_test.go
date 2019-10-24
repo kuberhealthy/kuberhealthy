@@ -46,14 +46,6 @@ func TestGenerateDaemonSetSpec(t *testing.T) {
 	t.Logf("Daemonset: %s has been correctly generated: %v", dsc.DaemonSetName, dsc.DaemonSet)
 }
 
-func TestCheckIfDSExists(t *testing.T) {
-
-}
-
-func TestCheckIfPodExists(t *testing.T) {
-
-}
-
 func TestCleanupOrphans(t *testing.T) {
 	checker, err := testSetup()
 	if err != nil {
@@ -75,26 +67,26 @@ func TestCleanupOrphans(t *testing.T) {
 	}
 }
 
-//func TestPauseContainerOverride(t *testing.T) {
-//	// verify that we are getting the expected default value from a new dsc
-//	dsc, err := testSetup()
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//	if dsc.PauseContainerImage != "gcr.io/google_containers/pause:0.8.0" {
-//		t.Fatal("Default Pause Container Image is not set or an unexpected value, actual value:", dsc.PauseContainerImage)
-//	}
-//
-//	dscO, err := New()
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//	// Silly, yes, but this mimics how the program is setting the override value
-//	dscO.PauseContainerImage = "another-image-repo/pause:0.8.0"
-//	if dscO.PauseContainerImage != "another-image-repo/pause:0.8.0" {
-//		t.Fatal("Overridden Pause Container Image is not set or an unexpected value, actual value:", dscO.PauseContainerImage)
-//	}
-//}
+func TestPauseContainerOverride(t *testing.T) {
+	// verify that we are getting the expected default value from a new dsc
+	dsc, err := testSetup()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dsc.PauseContainerImage != "gcr.io/google-containers/pause:3.1" {
+		t.Fatal("Default Pause Container Image is not set or an unexpected value, actual value:", dsc.PauseContainerImage)
+	}
+
+	dscO, err := testSetup()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Silly, yes, but this mimics how the program is setting the override value
+	dscO.PauseContainerImage = "gcr.io/google-containers/pause:3.1"
+	if dscO.PauseContainerImage != "gcr.io/google-containers/pause:3.1" {
+		t.Fatal("Overridden Pause Container Image is not set or an unexpected value, actual value:", dscO.PauseContainerImage)
+	}
+}
 
 func TestGetAllAndDeleteDaemonsetsAndPods(t *testing.T) {
 	checker, err := testSetup()
@@ -109,7 +101,7 @@ func TestGetAllAndDeleteDaemonsetsAndPods(t *testing.T) {
 	}
 
 	// Wait for daemonset and pods to come up
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 20)
 
 	dsList, err := checker.getAllDaemonsets()
 	if err != nil {
@@ -143,7 +135,7 @@ func TestGetAllAndDeleteDaemonsetsAndPods(t *testing.T) {
 	}
 
 	// Wait for daemonset and pods to delete
-	time.Sleep(time.Second * 50)
+	time.Sleep(time.Second * 100)
 
 	postPodList, err := checker.getAllPods()
 	if err != nil {
@@ -171,19 +163,6 @@ func TestGetAllAndDeleteDaemonsetsAndPods(t *testing.T) {
 		t.Fatal("Daemonset has not been deleted / cleaned up.")
 	}
 	t.Logf("Daemonset has been deleted / cleaned up.")
-}
-
-func TestChecker(t *testing.T) {
-	checker, err := testSetup()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = checker.Run(checker.client)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 }
 
 func TestParseTolerationOverride(t *testing.T) {
