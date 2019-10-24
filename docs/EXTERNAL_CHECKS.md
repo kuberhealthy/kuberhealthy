@@ -2,6 +2,8 @@
 
 External checks are configured using `khcheck` custom resources.  These `khchecks` can create pods from any Kuberhealthy check image the user specifies.  Pods are created in the namespace that their `khcheck` was placed into.  A list of pre-made checks that you can easily enable are listed [in the external checks registry](../docs/EXTERNAL_CHECKS_REGISTRY.md).  
 
+As soon as your `khcheck` resource is applied to the cluster, Kuberhealthy will begin running it.  If a change is made, Kuberhealthy will shut down any active checks gracefully and restart them with the updated configuration.
+
 ### `khcheck` Anatomy
 
 A `khcheck` looks like this:
