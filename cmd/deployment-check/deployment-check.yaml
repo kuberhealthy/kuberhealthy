@@ -6,7 +6,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 30m
-  timeout: 7m
+  timeout: 10m
   podSpec:
     containers:
     - name: kh-deployment-check
