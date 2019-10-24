@@ -15,9 +15,11 @@ Kuberhealthy is an [operator](https://kubernetes.io/docs/concepts/extend-kuberne
 
 Kuberhealthy serves a JSON status page, a [Prometheus](https://prometheus.io/) metrics endpoint, and allows for forwarding to an InfluxDB endpoint for integration into your choice of alerting solution.
 
-Here is an illustration of how Kuberhealthy runs checks each in their own pod.  In this example, the checker pod both deploys a daemonset and tears it down while carefully watching for errors.  The result of the check is then sent back to Kuberhealthy and channeled into upstream metrics and status pages to indicate basic Kubernetes cluster functionality across all nodes in a cluster.
+Here is an illustration of how Kuberhealthy runs checks in their own pods.  In this example, the checker pod both deploys a daemonset and tears it down while carefully watching for errors.  The result of the check is then sent back to Kuberhealthy and channeled into upstream metrics and status pages to indicate basic Kubernetes cluster functionality across all nodes in a cluster.
 
 <img src="images/kh-ds-check.gif">
+
+Read more about how external checks are configured in the documentation [here](docs/EXTERNAL_CHECKS.md) and learn how to create your own check in any lanugage [here](docs/EXTERNAL_CHECK_CREATION.md).
 
 
 ## Installation (TODO issue #189)
