@@ -27,7 +27,13 @@ Your check only needs to do a few things:
 
 Never send `"OK": true` if `Errors` has values or you will be given a `400` return code.
 
-Simply build your program into a container, `docker push` it to somewhere your cluster has access` and craft a `khcheck` configuration like so:
+Simply build your program into a container, `docker push` it to somewhere your cluster has access` and craft a `khcheck` resource to enable it in your cluster where Kuberhealthy is installed.
+
+### Creating Your `khcheck` Resource
+
+Every check needs a `khcheck` to enable and configure it.  As soon as this resource is applied to the cluster, Kuberhealthy will begin running it.  Whenever you make a change, Kuberhealthy will re-load the check and restart any checks currently in progress.
+
+Here is a minimal `khcheck` resource to start hacking with:
 
 ```yaml
 apiVersion: comcast.github.io/v1
@@ -47,7 +53,7 @@ spec:
       name: main
 ```
 
-That's it!  Kuberhealthy will begin running your check, serving prometheus metrics for it, and displaying status JSON on the status page.
+That's it!  As soon as this `khcheck` is applied, Kuberhealthy will begin running your check, serving prometheus metrics for it, and displaying status JSON on the status page.
 
 ### Contribute Your Check
 
