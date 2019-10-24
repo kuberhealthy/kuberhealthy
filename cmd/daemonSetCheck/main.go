@@ -9,7 +9,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package daemonSetExternalCheck contains a Kuberhealthy check for the ability to roll out
+// Package daemonSetCheck contains a Kuberhealthy check for the ability to roll out
 // a daemonset to a cluster.  Includes validation of cleanup as well.  This
 // check provides a high level of confidence that the cluster is operating
 // normally.
@@ -75,9 +75,9 @@ func init() {
 		return
 	}
 
-	dsCheckTimeout := os.Getenv("DS_CHECKER_TIMEOUT")
+	dsCheckTimeout := os.Getenv("CHECK_POD_TIMEOUT")
 	if len(dsCheckTimeout) == 0 {
-		log.Infoln("DS_CHECKER_TIMEOUT environment variable has not been set. Using default Daemonset Checker timeout", defaultDSCheckTimeout)
+		log.Infoln("CHECK_POD_TIMEOUT environment variable has not been set. Using default Daemonset Checker timeout", defaultDSCheckTimeout)
 		dsCheckTimeout = defaultDSCheckTimeout
 	}
 
@@ -277,7 +277,7 @@ func (dsc *Checker) Interval() time.Duration {
 }
 
 // Timeout returns the maximum run time for this check before it times out
-// Default is 10 minutes if the DS_CHECKER_TIMEOUT env var is not set in the Kuberhealthy external check spec
+// Default is 10 minutes if the CHECK_POD_TIMEOUT env var is not set in the Kuberhealthy external check spec
 func (dsc *Checker) Timeout() time.Duration {
 	return Timeout
 }
