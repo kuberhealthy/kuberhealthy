@@ -1,7 +1,6 @@
 ### External Checks
 
-External checks are configured using `khcheck` custom resources.  These `khchecks` can create pods from any Kuberhealthy check image the user specifies.  Pods are created in the namespace that their `khcheck` was placed into.  A list of pre-made checks that you can easily enable are listed [here](docs/EXTERNAL_CHECKS_REGISTRY.md).  To learn how to write your own checks of any kind, 
-
+External checks are configured using `khcheck` custom resources.  These `khchecks` can create pods from any Kuberhealthy check image the user specifies.  Pods are created in the namespace that their `khcheck` was placed into.  A list of pre-made checks that you can easily enable are listed [here](docs/EXTERNAL_CHECKS_REGISTRY.md).  
 
 ### `khcheck` Anatomy
 
@@ -35,3 +34,9 @@ spec:
           cpu: 10m
           memory: 50Mi
 ```
+
+
+### Creating Your Own Checks
+
+To learn how to write your own checks of any kind, check out the [documentation for it here](docs/EXTERNAL_CHECK_CREATION.md).
+
