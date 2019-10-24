@@ -22,19 +22,19 @@ import (
 const maxTimeInFailure = 60 * time.Second
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var CheckTimeout time.Duration
-var Endpoint string
+var Hostname string
 
 // Checker validates that DNS is functioning correctly
 type Checker struct {
 	client           *kubernetes.Clientset
 	MaxTimeInFailure time.Duration
-	Endpoint       	 string
+	Hostname       	 string
 }
 
 func init() {
 
 	// Grab and verify environment variables and set them as global vars
-	checkTimeout := os.Getenv("CHECK_TIMEOUT")
+	checkTimeout := os.Getenv("CHECK_POD_TIMEOUT")
 	if len(checkTimeout) == 0 {
 		log.Errorln("ERROR: The CHECK_TIMEOUT environment variable has not been set.")
 		return
@@ -47,11 +47,13 @@ func init() {
 		return
 	}
 
-	Endpoint = os.Getenv("ENDPOINT")
-	if len(Endpoint) == 0 {
+	Hostname = os.Getenv("HOSTNAME")
+	if len(Hostname) == 0 {
 		log.Errorln("ERROR: The ENDPOINT environment variable has not been set.")
 		return
 	}
+
+	checkclient.Debug = true
 }
 
 func main() {
@@ -64,15 +66,15 @@ func main() {
 
 	err = dc.Run(client)
 	if err != nil {
-		log.Errorln("Error running DNS Status check for endpoint:", Endpoint)
+		log.Errorln("Error running DNS Status check for hostname:", Hostname)
 	}
-	log.Infoln("Done running DNS Status check for endpoint:", Endpoint)
+	log.Infoln("Done running DNS Status check for hostname:", Hostname)
 }
 
 // New returns a new DNS Checker
 func New() *Checker {
 	return &Checker{
-		Endpoint:        Endpoint,
+		Hostname:        Hostname,
 		MaxTimeInFailure: maxTimeInFailure,
 	}
 }
@@ -105,14 +107,14 @@ func (dc *Checker) Run(client *kubernetes.Clientset) error {
 	}
 }
 
-// doChecks does validations on DNS calls to various endpoints
+// doChecks does validations on the DNS call to the endpoint
 func (dc *Checker) doChecks() error {
 
-	log.Infoln("DNS Status check testing endpoint:", dc.Endpoint)
+	log.Infoln("DNS Status check testing hostname:", dc.Hostname)
 
-	_, err := net.LookupHost(dc.Endpoint)
+	_, err := net.LookupHost(dc.Hostname)
 	if err != nil {
-		errorMessage := "DNS Status check determined that " + dc.Endpoint + " is DOWN: " + err.Error()
+		errorMessage := "DNS Status check determined that " + dc.Hostname + " is DOWN: " + err.Error()
 		log.Errorln(errorMessage)
 		err = checkclient.ReportFailure([]string{errorMessage})
 		if err != nil {
@@ -120,9 +122,10 @@ func (dc *Checker) doChecks() error {
 			return err
 		}
 		log.Println("Successfully reported failure to Kuberhealthy servers")
+		return err
 	}
 
-	log.Infoln("DNS Status check determined that", dc.Endpoint, "was OK.")
+	log.Infoln("DNS Status check determined that", dc.Hostname, "was OK.")
 	err = checkclient.ReportSuccess()
 	if err != nil {
 		log.Println("Error reporting success to Kuberhealthy servers:", err)
