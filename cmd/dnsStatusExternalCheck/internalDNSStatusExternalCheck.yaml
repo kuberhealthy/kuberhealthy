@@ -1,7 +1,7 @@
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: dns-status-check
+  name: dns-status-check-internal
   namespace: kuberhealthy
 spec:
   runInterval: 1m

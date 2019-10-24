@@ -16,14 +16,17 @@ func TestDoChecks(t *testing.T) {
 
 		err := dc.doChecks()
 
-		if err == nil && dc.Hostname == "google.com" {
+		switch err {
+		case nil:
+			if dc.Hostname != "google.com" {
+				t.Fatalf("doChecks failed to validate hostname correctly. Hostname: %s, Expected Check Result: %v", arg, expectedValue)
+			}
 			t.Logf("doChecks correctly validated hostname. ")
-			return
+		default:
+			if err.Error() != expectedValue.Error() {
+				t.Fatalf("doChecks failed to validate hostname correctly. Hostname: %s, Expected Check Result: %v", arg, expectedValue)
+			}
+			t.Logf("doChecks correctly validated hostname. ")
 		}
-
-		if err.Error() != expectedValue.Error() {
-			t.Fatalf("doChecks failed to validate hostname correctly. Hostname: %s, Expected Check Result: %s", arg, expectedValue)
-		}
-		t.Logf("doChecks correctly validated hostname. ")
 	}
 }
