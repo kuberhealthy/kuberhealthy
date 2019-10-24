@@ -19,7 +19,7 @@ Here is an illustration of how Kuberhealthy runs checks each in their own pod.  
 
 <img src="images/kh-ds-check.gif">
 
-Read more about how external checks are configured in the documentation [here](https://github.com/Comcast/kuberhealthy/blob/2.0.0/docs/EXTERNAL_CHECKS.md) and learn how to create your own check in any lanugage [here](https://github.com/Comcast/kuberhealthy/blob/2.0.0/docs/EXTERNAL_CHECK_CREATION.md).
+Read more about how external checks are configured in the documentation [here](docs/EXTERNAL_CHECKS.md) and learn how to create your own check in any lanugage [here](docs/EXTERNAL_CHECK_CREATION.md).
 
 
 ## Installation (TODO issue #189)
