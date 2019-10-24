@@ -326,6 +326,8 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 	// iterate on each check CRD resource and add it as a check
 	for _, r := range l.Items {
+		var isZero bool = false
+
 		log.Debugln("Loading check CRD:", r.Name)
 
 		log.Debugf("External check custom resource loaded: %v", r)
@@ -334,12 +336,11 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		log.Infoln("Enabling external check:", r.Name)
 		c := external.New(kubernetesClient, &r, khCheckClient, khStateClient, externalCheckReportingURL)
 
-		// parse the run interval string from the custom resource and setup the run interval
+		// parse the run interval string from the custom resource and setup the run interval to use the default zero interval
 		c.RunInterval, err = time.ParseDuration(r.Spec.RunInterval)
 		if err != nil {
 			log.Errorln("Error parsing duration for check", c.CheckName, "in namespace", c.Namespace, err)
 			log.Errorln("Defaulting check to a runtime of ten minutes.")
-			c.RunInterval = DefaultRunInterval
 		}
 
 		log.Debugln("RunInterval for check:", c.CheckName, "set to", c.RunInterval)
@@ -361,7 +362,9 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		c.ExtraLabels = r.Spec.ExtraLabels
 
 		// add the check into the checker
-		k.AddCheck(c)
+		if ( !isZero ) {
+			k.AddCheck(c)
+		}
 	}
 
 	return nil
