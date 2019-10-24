@@ -7,7 +7,7 @@ state, then terminates them and ensures all pod terminations were successful.
 
 The check runs every 15 minutes (spec.runInterval), with a check timeout set to 10 minutes (spec.timeout). If the check 
 does not complete within the given timeout it will report a timeout error on the status page. The check takes in a 
-DS_CHECKER_TIMEOUT environment variable that ensures the clean up of rogue daemonsets or daemonset pods after the check
+CHECK_POD_TIMEOUT environment variable that ensures the clean up of rogue daemonsets or daemonset pods after the check
 has finished within this timeout. 
 
 Containers are deployed with their resource requirements set to 0 cores and 0 memory and use the pause container from 
@@ -27,7 +27,7 @@ metadata:
 spec:
   runInterval: 15m
   # Make sure this Kuberhealthy check timeout is GREATER THAN the daemonset checker timeout
-  # set in the env var DS_CHECKER_TIMEOUT. Default is set to 5m (5 minutes).
+  # set in the env var CHECK_POD_TIMEOUT. Default is set to 5m (5 minutes).
   timeout: 10m
   extraAnnotations:
     comcast.com/testAnnotation: test.annotation
@@ -38,7 +38,7 @@ spec:
       - env:
           - name: POD_NAMESPACE
             value: "kuberhealthy"
-          - name: DS_CHECKER_TIMEOUT
+          - name: CHECK_POD_TIMEOUT
             # Make sure this value is less than the Kuberhealthy check timeout.
             # Default is set to 10m (10 minutes).
             value: "5m"
@@ -58,7 +58,7 @@ spec:
 
 #### How-to
 
-To implement the Daemonset Check with Kuberhealthy, apply the configuration file [daemonSetExternalCheck.yaml](daemonSetExternalCheck.yaml) to your Kubernetes Cluster.
+To implement the Daemonset Check with Kuberhealthy, apply the configuration file [daemonSetCheck.yaml](daemonSetCheck.yaml) to your Kubernetes Cluster.
 Make sure you are using the latest release of Kuberhealthy 2.0.0. 
 
 The configuration file contains:

@@ -1,3 +1,4 @@
+---
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
@@ -5,7 +6,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 30m
-  timeout: 5m
+  timeout: 10m
   podSpec:
     containers:
     - name: kh-deployment-check
@@ -13,13 +14,11 @@ spec:
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
-          value: "6"
+          value: "4"
         - name: CHECK_TIME_LIMIT_SECONDS
           value: "300"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
-        - name: SHUTDOWN_GRACE_PERIOD_SECONDS
-          value: "30"
       resources:
         requests:
           cpu: 25m
@@ -27,4 +26,63 @@ spec:
         limits:
           cpu: 40m
       restartPolicy: Always
-      
+    serviceAccountName: deployment-khcheck
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deployment-khcheck
+  namespace: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: deployment-service-admin
+subjects:
+  - kind: ServiceAccount
+    name: deployment-khcheck
+    namespace: kuberhealthy
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deployment-service-admin
+  namespace: kuberhealthy
+rules:
+  - apiGroups:
+      - "apps"
+    resources:
+      - deployments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - services
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deployment-khcheck
+  namespace: kuberhealthy
