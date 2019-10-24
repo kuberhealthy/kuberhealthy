@@ -36,13 +36,15 @@ spec:
   podSpec: # The exact pod spec that will run.  All normal pod spec is valid here.
     containers:
     - env: # Environment variables are optional but a recommended way to configure check behavior
-        - name: REPORT_FAILURE
-          value: "false"
+        - name: MY_OPTION_ENV_VAR
+          value: "option_setting_here"
       image: quay.io/comcast/test-external-check:latest # The image of the check you just pushed
       imagePullPolicy: Always # During check development, it helps to set this to 'Always' to prevent on-node image caching.
       name: main
 ```
 
 That's it!  Kuberhealthy will begin running your check, serving prometheus metrics for it, and displaying status JSON on the status page.
+
+### Contribute Your Check
 
 You can see a list of checks that others have written on the [check registry](docs/EXTERNAL_CHECKS_REGISTRY.md).  If you have a check that may be useful to others and want to contribute, consider adding it to the registry!  Just fork this repository and send a PR.  This is made easy by simply checking the `Edit` pencil on the check registry page.
