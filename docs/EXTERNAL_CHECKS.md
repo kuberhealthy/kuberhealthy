@@ -1,10 +1,10 @@
 ### External Checks
 
-External checks are configured using `khcheck` custom resources.  These `khchecks` can create pods from any Kuberhealthy check image the user specifies.  Pods are created in the namespace that their `khcheck` was placed into.  A list of pre-made checks that you can easily enable are listed [here](../docs/EXTERNAL_CHECKS_REGISTRY.md).  
+External checks are configured using `khcheck` custom resources.  These `khchecks` can create pods from any Kuberhealthy check image the user specifies.  Pods are created in the namespace that their `khcheck` was placed into.  A list of pre-made checks that you can easily enable are listed [in the external checks registry](../docs/EXTERNAL_CHECKS_REGISTRY.md).  
 
 ### `khcheck` Anatomy
 
-A `khcheck` like this:
+A `khcheck` looks like this:
 
 ```yaml
 apiVersion: comcast.github.io/v1
