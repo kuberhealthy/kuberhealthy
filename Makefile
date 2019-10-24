@@ -38,3 +38,11 @@ buildPodRestartsCheck:
 
 pushPodRestartsCheck:
 	docker push quay.io/comcast/pod-restarts-check:1.0.0
+
+dnsStatus: buildDNSStatusCheck pushDNSStatusCheck
+
+buildDNSStatusCheck:
+	docker build -t docker-proto.repo.theplatform.com/dns-status-check:1.0.0 -f cmd/dnsStatusExternalCheck/Dockerfile .
+
+pushDNSStatusCheck:
+	docker push docker-proto.repo.theplatform.com/dns-status-check:1.0.0

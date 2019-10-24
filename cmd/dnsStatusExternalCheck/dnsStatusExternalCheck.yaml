@@ -5,13 +5,13 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 1m
-  timeout: 1m
+  timeout: 55s
   podSpec:
     containers:
       - env:
-          - name: CHECK_TIMEOUT
-              value: "45s"
-          - name: ENDPOINT
+          - name: CHECK_POD_TIMEOUT
+            value: "45s"
+          - name: HOSTNAME
             value: "kubernetes.default"
         image: docker-proto.repo.theplatform.com/dns-status-check:1.0.0
         imagePullPolicy: Always
