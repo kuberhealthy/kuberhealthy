@@ -6,7 +6,7 @@ Creating your own `khcheck` is very easy.  If you are using Go, we have an easy 
 
 <img src="../images/example check.png">
 
-An example check with working Dockerfile is available to use as an example [here](cmd/test-external-check/main.go).
+An example check with working Dockerfile is available to use as an example [here](../cmd/test-external-check/main.go).
 
 ### Using Another Language
 
