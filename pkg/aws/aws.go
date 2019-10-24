@@ -6,9 +6,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// CreateAWSSession creates and returns and AWS session.
+// CreateAWSSession creates and returns an AWS session.
 func CreateAWSSession() *session.Session {
-	// Build an AWs client.
-	log.Infoln("Building AWS client.")
+	// Build an AWS session.
+	log.Infoln("Building AWS session.")
 	return session.Must(session.NewSession(aws.NewConfig()))
 }

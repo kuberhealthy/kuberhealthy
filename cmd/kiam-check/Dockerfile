@@ -1,10 +1,8 @@
 FROM golang:1.13 AS builder
 ADD . /build
 WORKDIR /build/cmd/kiam-check
-ENV GOOS=linux GOARCH=amd64 CGO_ENABLED=0
-RUN go build -v
+RUN CGO_ENABLED=0 go build -v
 
-FROM golang:1.13.3
-RUN mkdir /app
-COPY --from=builder /build/cmd/kiam-check/kiam-check /app
-ENTRYPOINT /app/kiam-check
+FROM golang:1.13.3-alpine
+COPY --from=builder /build/cmd/kiam-check/kiam-check /app/kiam-check
+ENTRYPOINT ["/app/kiam-check"]
