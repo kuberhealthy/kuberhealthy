@@ -42,7 +42,7 @@ pushPodRestartsCheck:
 dnsStatus: buildDNSStatusCheck pushDNSStatusCheck
 
 buildDNSStatusCheck:
-	docker build -t docker-proto.repo.theplatform.com/dns-status-check:1.0.0 -f cmd/dnsStatusExternalCheck/Dockerfile .
+	docker build -t docker-proto.repo.theplatform.com/dns-status-check:1.0.0 -f cmd/dnsStatusCheck/Dockerfile .
 
 pushDNSStatusCheck:
 	docker push docker-proto.repo.theplatform.com/dns-status-check:1.0.0
