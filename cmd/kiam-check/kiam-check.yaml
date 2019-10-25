@@ -6,8 +6,8 @@ metadata:
 spec:
   extraAnnotations:
     iam.amazonaws.com/role: <role-arn>
-  runInterval: 1m
-  timeout: 45s
+  runInterval: 5m
+  timeout: 4m45s
   podSpec:
     containers:
     - name: kh-kiam-check
