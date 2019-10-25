@@ -79,7 +79,7 @@ func runDeploymentCheck() {
 	}
 
 	// Create a service resource.
-	serviceConfig := createServiceConfig(deploymentResult.Deployment.Labels)
+	serviceConfig := createServiceConfig(deploymentResult.Deployment.Spec.Template.Labels)
 	log.Infoln("Created service resource.")
 
 	// Apply the service struct manifest to the cluster.
@@ -111,19 +111,23 @@ func runDeploymentCheck() {
 	}
 
 	// Get an ingress hostname associated with the service.
-	hostname := getServiceLoadBalancerHostname()
-	if len(hostname) == 0 {
+	// hostname := getServiceLoadBalancerHostname()
+	ipAddress := getServiceClusterIP()
+	if len(ipAddress) == 0 {
+		// if len(hostname) == 0 {
 		// If the retrieved address is empty or nil, clean up and exit.
-		log.Infoln("Cleaning up check and exiting because the load balancer hostname is nil.")
+		// log.Infoln("Cleaning up check and exiting because the load balancer hostname is nil.")
+		log.Infoln("Cleaning up check and exiting because the cluster IP is nil: ", ipAddress)
 		errorReport := []string{} // Make a slice for errors here, because there can be more than 1 error.
 		// Clean up the check. A deployment was brought up, but no ingress was created.
 		cleanUpError := cleanUp()
 		if cleanUpError != nil {
 			errorReport = append(errorReport, cleanUpError.Error())
 		}
-		hostnameError := fmt.Errorf("service load balancer ingress hostname is nil: %s", hostname)
+		// hostnameError := fmt.Errorf("service load balancer ingress hostname is nil: %s", hostname)
+		addressError := fmt.Errorf("service load balancer ingress hostname is nil: %s", ipAddress)
 		// Report errors to Kuberhealthy and exit.
-		errorReport = append(errorReport, hostnameError.Error())
+		errorReport = append(errorReport, addressError.Error())
 		reportErrorsToKuberhealthy(errorReport)
 		return
 	}
@@ -132,7 +136,7 @@ func runDeploymentCheck() {
 	// Utilize a backoff loop for the request, the hostname needs to be allotted enough time
 	// for the hostname to resolve and come up.
 	select {
-	case err := <-makeRequestToDeploymentCheckService(hostname):
+	case err := <-makeRequestToDeploymentCheckService(ipAddress):
 		if err != nil {
 			// Handle errors when the HTTP request process completes.
 			log.Errorln("error occurred making request to service in cluster:", err)
@@ -196,7 +200,7 @@ func runDeploymentCheck() {
 
 		// Hit the service again, looking for a 200.
 		select {
-		case err := <-makeRequestToDeploymentCheckService(hostname):
+		case err := <-makeRequestToDeploymentCheckService(ipAddress):
 			// Handle errors when the HTTP request process completes.
 			if err != nil {
 				log.Errorln("error occurred creating service in cluster:", err)
