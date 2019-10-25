@@ -15,8 +15,6 @@ spec:
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
           value: "4"
-        - name: CHECK_TIME_LIMIT_SECONDS
-          value: "300"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
       resources:
