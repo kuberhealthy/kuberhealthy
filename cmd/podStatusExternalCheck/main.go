@@ -1,10 +1,9 @@
 // Package podStatus implements a pod health checker for Kuberhealthy.  Pods are checked
 // to ensure they are not restarting too much and are in a healthy lifecycle
 // phase.
-package main // import "github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
+package main
 
 import (
-	"errors"
 	"fmt"
 	checkclient "github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient"
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
@@ -142,6 +141,8 @@ func (psc *Checker) doChecks() error {
 			errorReports = append(errorReports, errorMessage)
 		}
 		psc.Errors = podStatus
+
+		// reports failure to Kuberhealthy servers with list of pods
 		err := checkclient.ReportFailure(errorReports)
 		if err != nil{
 			log.Println("Error reporting failure to Kuberhealthy servers:", err)
@@ -150,6 +151,7 @@ func (psc *Checker) doChecks() error {
 		return nil
 	}
 
+	// reports success to Kuberhealthy servers no unhealthy pods found
 	err = checkclient.ReportSuccess()
 	if err != nil{
 		log.Println("Success reported to Kuberhealthy servers.")
