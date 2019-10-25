@@ -326,8 +326,6 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 	// iterate on each check CRD resource and add it as a check
 	for _, r := range l.Items {
-		var isZero bool = false
-
 		log.Debugln("Loading check CRD:", r.Name)
 
 		log.Debugf("External check custom resource loaded: %v", r)
@@ -336,23 +334,22 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		log.Infoln("Enabling external check:", r.Name)
 		c := external.New(kubernetesClient, &r, khCheckClient, khStateClient, externalCheckReportingURL)
 
-		// parse the run interval string from the custom resource and setup the run interval to use the default zero interval
+		// parse the run interval string from the custom resource and setup the run interval, error if interval not set properly
 		c.RunInterval, err = time.ParseDuration(r.Spec.RunInterval)
 		if err != nil {
-			log.Errorln("Error parsing duration for check", c.CheckName, "in namespace", c.Namespace, err)
-			log.Errorln("Defaulting check to a runtime of ten minutes.")
+			errorMessage := "Error parsing duration for check " + c.CheckName + " in namespace " + c.Namespace + err.Error()
+			log.Errorln(errorMessage)
+			return errors.New(errorMessage)
 		}
 
 		log.Debugln("RunInterval for check:", c.CheckName, "set to", c.RunInterval)
 
-		// parse the user specified timeout if present
-		c.RunTimeout = khcheckcrd.DefaultTimeout
-		if len(r.Spec.Timeout) > 0 {
-			c.RunTimeout, err = time.ParseDuration(r.Spec.Timeout)
-			if err != nil {
-				log.Errorln("Error parsing timeout for check", c.CheckName, "in namespace", c.Namespace, err)
-				log.Errorln("Defaulting check to a timeout of", khcheckcrd.DefaultTimeout)
-			}
+		// parse the user specified timeout if present, error if timeout not set properly
+		c.RunTimeout, err = time.ParseDuration(r.Spec.Timeout)
+		if err != nil {
+			errorMessage := "Error parsing timeout for check " + c.CheckName + " in namespace " + c.Namespace + err.Error()
+			log.Errorln(errorMessage)
+			return errors.New(errorMessage)
 		}
 
 		log.Debugln("RunTimeout for check:", c.CheckName, "set to", c.RunTimeout)
@@ -362,9 +359,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		c.ExtraLabels = r.Spec.ExtraLabels
 
 		// add the check into the checker
-		if ( !isZero ) {
-			k.AddCheck(c)
-		}
+		k.AddCheck(c)
 	}
 
 	return nil
