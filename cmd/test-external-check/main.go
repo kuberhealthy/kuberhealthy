@@ -14,6 +14,10 @@ var reportFailure bool
 var reportDelay time.Duration
 
 func init() {
+
+	// enable debug logging on the check client
+	checkclient.Debug = true
+
 	var err error
 
 	// parse REPORT_FAILURE environment var

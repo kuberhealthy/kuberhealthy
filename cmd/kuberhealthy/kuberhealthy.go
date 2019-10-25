@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +33,7 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
 	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/external"
+	"github.com/Comcast/kuberhealthy/pkg/checks/external/status"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/health"
@@ -67,8 +69,6 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace s
 		details.Namespace = check.CheckNamespace()
 	}
 	details.OK = false
-	details.AuthoritativePod = podHostname
-
 	details.Errors = []string{"Check execution error: " + exErr.Error()}
 	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors)
 
@@ -453,7 +453,9 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		// break out if context cancels
 		select {
 		case <-ctx.Done():
-			log.Infoln("Shutting down check due to context cancellation:", c.Name(), "in namespace", c.CheckNamespace())
+			// we don't need to call a check shutdown here because the same func that cancels this context calls
+			// shutdown on all the checks configured in the kuberhealthy struct.
+			log.Infoln("Shutting down check run due to context cancellation:", c.Name(), "in namespace", c.CheckNamespace())
 			return
 		default:
 		}
@@ -462,6 +464,10 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		log.Infoln("Running check:", c.Name())
 		err := c.Run(kubernetesClient)
 		if err != nil {
+			if strings.Contains(err.Error(), "pod deleted expectedly") {
+				log.Infoln("Skipping this run due to expected pod removal before completion")
+				<-ticker.C
+			}
 			// set any check run errors in the CRD
 			k.setCheckExecutionError(c.Name(), c.CheckNamespace(), err)
 			log.Errorln("Error running check:", c.Name(), "in namespace", c.CheckNamespace()+":", err)
@@ -591,8 +597,9 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	}
 	ip := ipPortString[0]
 
-	// fetch the pod from the api using its ip
-	pod, err := k.fetchPodByIP(ip)
+	// fetch the pod from the api using its ip.  We keep retrying for some time to avoid kubernetes control plane
+	// api race conditions wherein fast reporting pods are not found in pod listings
+	pod, err := k.fetchPodByIPForDuration(ip, time.Second*10)
 	if err != nil {
 		return reportInfo, err
 	}
@@ -654,6 +661,27 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	return reportInfo, nil
 }
 
+// fetchPodByIPForDuration attempts to fetch a pod by its IP repeatedly for the supplied duration.  If the pod is found,
+// then we return it.  If the pod is not found after the duraiton, we return an error
+func (k *Kuberhealthy) fetchPodByIPForDuration(remoteIP string, d time.Duration) (v1.Pod, error) {
+	endTime := time.Now().Add(d)
+
+	for {
+		if time.Now().After(endTime) {
+			return v1.Pod{}, errors.New("Failed to fetch source pod with IP " + remoteIP + " after trying for " + d.String())
+		}
+
+		p, err := k.fetchPodByIP(remoteIP)
+		if err != nil {
+			log.Warningln("was unable to find calling pod with remote IP", remoteIP, "while watching for duration")
+			time.Sleep(time.Millisecond * 330)
+			continue
+		}
+
+		return p, err
+	}
+}
+
 // fetchPodByIP fetches the pod by it's IP address.
 func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 	var pod v1.Pod
@@ -678,7 +706,7 @@ func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 	// ensure that we only got back one pod, because two means something awful has happened and 0 means we
 	// didnt find one
 	if len(podList.Items) == 0 {
-		return pod, errors.New("failed to fetch pod with remote ip " + remoteIP)
+		return pod, errors.New("failed to find a pod with the remote ip " + remoteIP)
 	}
 	if len(podList.Items) > 1 {
 		return pod, errors.New("failed to fetch pod with remote ip " + remoteIP + " - found two or more with same ip")
@@ -692,6 +720,10 @@ func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 	return podList.Items[0], nil
 }
 
+func (k *Kuberhealthy) externalCheckReportHandlerLog(s ...interface{}) {
+	log.Infoln(s...)
+}
+
 // externalCheckReportHandler handles requests coming from external checkers reporting their status.
 // This endpoint checks that the external check report is coming from the correct UUID before recording
 // the reported status of the corresponding external check.  This endpoint expects a JSON payload of
@@ -699,79 +731,77 @@ func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 // causes a check of the calling pod's spec via the API to ensure that the calling pod is expected
 // to be reporting its status.
 func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
-	log.Infoln("Client connected to check report handler from", r.RemoteAddr, r.UserAgent())
+	// make a request ID for tracking this request
+	requestID := uuid.New().String()
+
+	k.externalCheckReportHandlerLog(requestID, "Client connected to check report handler from", r.RemoteAddr, r.UserAgent())
 
 	// validate the calling pod to ensure that it has a proper KH_CHECK_NAME and KH_RUN_UUID
-	log.Debug("validating external check status report from: ", r.RemoteAddr)
+	k.externalCheckReportHandlerLog(requestID, "validating external check status report from: ", r.RemoteAddr)
 	ipReport, err := k.validateExternalRequest(r.RemoteAddr)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Errorln("Failed to look up pod by IP:", r.RemoteAddr, err)
+		k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by IP:", r.RemoteAddr, err)
 		return nil
 	}
-	log.Debugln("Calling pod is", ipReport.Name, "in namespace", ipReport.Namespace)
+	k.externalCheckReportHandlerLog(requestID, "Calling pod is", ipReport.Name, "in namespace", ipReport.Namespace)
+
+	// append pod info to request id for easy check tracing in logs
+	requestID = requestID + " (" + ipReport.Namespace + "/" + ipReport.Name + ")"
 
 	// ensure the client is sending a valid payload in the request body
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Errorln("Failed to read request body:", err, r.RemoteAddr)
+		k.externalCheckReportHandlerLog(requestID, "Failed to read request body:", err.Error(), r.RemoteAddr)
 		return nil
 	}
+	log.Debugln("Check report body:", string(b))
 
-	// decode the bytes into a kuberhealthy health struct
-	state := health.State{}
+	// decode the bytes into a status struct as used by the client
+	state := status.Report{}
 	err = json.Unmarshal(b, &state)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Errorln("Failed to unmarshal state json:", err, r.RemoteAddr)
+		k.externalCheckReportHandlerLog(requestID, "Failed to unmarshal state json:", err, r.RemoteAddr)
 		return nil
 	}
+	log.Debugf("Check report after unmarshal: +%v\n", state)
 
 	// ensure that if ok is set to false, then an error is provided
 	if !state.OK {
 		if len(state.Errors) == 0 {
 			w.WriteHeader(http.StatusBadRequest)
-			log.Errorln("Client attempted to report OK false without any error strings")
+			k.externalCheckReportHandlerLog(requestID, "Client attempted to report OK false without any error strings")
 			return nil
 		}
 		for _, e := range state.Errors {
 			if len(e) == 0 {
 				w.WriteHeader(http.StatusBadRequest)
-				log.Errorln("Client attempted to report a blank error string")
+				k.externalCheckReportHandlerLog(requestID, "Client attempted to report a blank error string")
 				return nil
 			}
 		}
 	}
 
-	// fetch the hostname of this pod because we will consider it authoritative
-	// of the last check update
-	hostname, err := getEnvVar("POD_NAME")
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return fmt.Errorf("failed to fetch my hostname: %w", err)
-	}
-
 	// create a details object from our incoming status report before storing it as a khstate custom resource
 	details := health.NewCheckDetails()
 	details.Errors = state.Errors
-	if len(state.Errors) == 0 {
-		details.OK = true
-	}
-	details.LastRun = time.Now()
+	details.OK = state.OK
 	details.Namespace = ipReport.Namespace
-	details.AuthoritativePod = hostname
 
 	// since the check is validated, we can proceed to update the status now
-	log.Debugln("Setting check with name", ipReport.Name, "to OK state", details.OK)
+	k.externalCheckReportHandlerLog(requestID, "Setting check with name", ipReport.Name, "in namespace", ipReport.Namespace, "to 'OK' state:", details.OK)
 	err = k.storeCheckState(ipReport.Name, ipReport.Namespace, details)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		k.externalCheckReportHandlerLog(requestID, "failed to store check state for %s: %w", ipReport.Name, err)
 		return fmt.Errorf("failed to store check state for %s: %w", ipReport.Name, err)
 	}
 
 	// write ok back to caller
 	w.WriteHeader(http.StatusOK)
+	k.externalCheckReportHandlerLog(requestID, "Request completed successfully.")
 	return nil
 }
 
@@ -851,7 +881,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 	}
 
 	// loop over every check and apply the current state to the status return
-	log.Debugln("Current state is tracking", len(k.Checks), "checks")
+	log.Debugln("Currently tracking", len(k.Checks), "check(s)")
 	for _, c := range k.Checks {
 		log.Debugln("Getting status of check for web request to status page:", c.Name())
 
@@ -875,11 +905,17 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 			continue
 		}
 
-		// parse check status from CRD and add it to the status
-		state.AddError(checkDetails.Errors...)
-		if !checkDetails.OK {
-			log.Debugln("Status page: Setting OK to false due to check details not being OK")
-			state.OK = false
+		// parse check status from CRD and add it to the status. Skip blank errors
+		for _, e := range checkDetails.Errors {
+			if len(strings.TrimSpace(e)) == 0 {
+				log.Warningln("Skipped an error that was blank when adding check details to current state.")
+				continue
+			}
+			state.AddError(e)
+			if !checkDetails.OK {
+				log.Debugln("Status page: Setting OK to false due to check details not being OK")
+				state.OK = false
+			}
 		}
 
 		state.CheckDetails[c.Name()] = checkDetails

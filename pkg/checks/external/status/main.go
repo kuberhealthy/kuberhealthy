@@ -5,17 +5,22 @@ package status
 
 // Report is the format expected by the /externalCheckStatus endpoint
 type Report struct {
-	UUID           string
-	Errors         []string
-	CheckName      string
-	CheckNamespace string
+	Errors []string
+	OK     bool
 }
 
 // NewReport creates a new error report to be sent to the server.  If
 // errors are left out, then we assume the status report is OK.  If
 // any error is present, we assume the status is DOWN.
 func NewReport(errorMessages []string) Report {
+
+	// if no errors are supplied, we assume OK is true
+	var ok bool
+	if len(errorMessages) == 0 {
+		ok = true
+	}
 	return Report{
-		Errors:         errorMessages,
+		Errors: errorMessages,
+		OK:     ok,
 	}
 }

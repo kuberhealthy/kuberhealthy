@@ -37,21 +37,14 @@ func setCheckStateResource(checkName string, checkNamespace string, state health
 	}
 	resourceVersion := existingState.GetResourceVersion()
 
-	// set ourselves as the authoritative pod here
-	myName, err := getEnvVar("POD_NAME")
-	if err != nil {
-		return err
-	}
-	state.AuthoritativePod = myName
-	state.LastRun = time.Now()
-
-	// TODO - if "try again" message found in error, then try again
-	log.Debugln("Writing details to CRD:", state)
+	// set the pod name that wrote the khstate
+	state.AuthoritativePod = podHostname
+	state.LastRun = time.Now() // set the time the khstate was last
 
 	khState := khstatecrd.NewKuberhealthyState(name, state)
 	khState.SetResourceVersion(resourceVersion)
-
-	log.Debugln("Updating the CRD for:", checkName, "to", khState)
+	// TODO - if "try again" message found in error, then try again
+	log.Debugln(checkNamespace, checkName, "writing khstate with ok:", state.OK, "and errors:", state.Errors, "at last run:", state.LastRun)
 	_, err = khStateClient.Update(&khState, stateCRDResource, name, checkNamespace)
 	return err
 }
