@@ -12,6 +12,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -47,6 +48,11 @@ func makeRequestToDeploymentCheckService(hostname string) chan error {
 		if !strings.HasPrefix(hostname, "http://") {
 			hostname = "http://" + hostname
 		}
+
+		// Postpend the cluster IP address with a port.
+		// if !strings.HasSuffix(hostname, ":80") {
+		// 	hostname = hostname + ":80"
+		// }
 
 		// Try to make requests to the hostname endpoint and wait for a result.
 		select {
@@ -95,34 +101,17 @@ func getRequestBackoff(hostname string) chan RequestResult {
 
 		requestResult := RequestResult{}
 
-		// Make a request to the hostname endpoint.
-		resp, err := http.Get(hostname)
-		if err != nil {
-			if !strings.Contains(err.Error(), "no such host") {
-				log.Infoln("An error occurred making a", http.MethodGet, "request:", err)
-			}
-		}
-
-		// Return if the call was ok.
-		if err == nil && resp.StatusCode == http.StatusOK {
-			log.Infoln("Got a", resp.StatusCode, "with a", http.MethodGet, "to", hostname)
-			resp.Body.Close()
-			requestResult.Response = resp
-			requestResultChan <- requestResult
-			return
-		}
-
 		// Backoff time = attempts * 5 seconds.
 		retrySleep := func(t int) {
-			log.Infoln("Retrying in", 30, "seconds.")
-			time.Sleep(time.Duration(t) * 30 * time.Second)
+			log.Infoln("Retrying in", t*5, "seconds.")
+			time.Sleep(time.Duration(t) * 5 * time.Second)
 		}
 
 		// Backoff loop here for HTTP GET request.
 		attempts := 1
 		maxRetries := 10
-		retrySleep(attempts)
 		log.Infoln("Beginning backoff loop for HTTP", http.MethodGet, "request.")
+		err := errors.New("")
 		for err != nil { // Loop on http.Get() errors.
 			if attempts > maxRetries {
 				log.Infoln("Could not successfully make an HTTP request after", attempts, "attempts.")

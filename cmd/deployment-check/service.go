@@ -40,12 +40,14 @@ func createServiceConfig(labels map[string]string) *corev1.Service {
 			IntVal: checkContainerPort,
 			StrVal: strconv.Itoa(int(checkContainerPort)),
 		},
+		Protocol: corev1.ProtocolTCP,
 	}
 	ports = append(ports, basicPort)
 
 	// Make a service spec.
 	serviceSpec := corev1.ServiceSpec{
-		Type:     corev1.ServiceTypeLoadBalancer,
+		// Type:     corev1.ServiceTypeLoadBalancer,
+		Type:     corev1.ServiceTypeClusterIP,
 		Ports:    ports,
 		Selector: labels,
 	}
@@ -100,34 +102,35 @@ func createService(serviceConfig *corev1.Service) chan ServiceResult {
 			}
 
 			// There can be 2 events here: Service ingress has at least 1 hostname endpoint or Context timeout.
-			for event := range watch.ResultChan() {
+			select {
+			case event := <-watch.ResultChan():
 				log.Debugln("Received an event watching for service changes:", event.Type)
 
 				s, ok := event.Object.(*corev1.Service)
-				if !ok { // Skip the event if it cannot be casted as a corev1.Service.
+				if !ok { // Skip the event if it cannot be casted as a corev1.Service
 					log.Debugln("Got a watch event for a non-service object -- ignoring.")
 					continue
 				}
 
-				// Look at the length of the ingress list;
-				// we want there to be at least 1 hostname endpoint.
+				// Look at the length of the ClusterIP.
 				if serviceAvailable(s) {
 					result.Service = s
 					createChan <- result
 					return
 				}
-
-				select {
-				case <-ctx.Done(): // Watch for a context cancellation.
-					log.Errorln("Context expired while waiting for service to create.")
-					err = cleanUp() // Clean up the service and deployment.
-					if err != nil {
-						result.Err = err
-					}
-					createChan <- result
-					return
-				default:
+			case s := <-serviceHasClusterIP():
+				log.Debugln("A cluster IP belonging to the created service has been found:")
+				result.Service = s
+				createChan <- result
+				return
+			case <-ctx.Done():
+				log.Errorln("context expired while waiting for service to create.")
+				err = cleanUp()
+				if err != nil {
+					result.Err = err
 				}
+				createChan <- result
+				return
 			}
 
 			watch.Stop()
@@ -326,6 +329,23 @@ func getServiceLoadBalancerHostname() string {
 	return ""
 }
 
+// getServiceClusterIP retrieves the cluster IP address utilized for the service
+func getServiceClusterIP() string {
+
+	svc, err := client.CoreV1().Services(checkNamespace).Get(checkServiceName, metav1.GetOptions{})
+	if err != nil {
+		log.Infoln("Error occurred attempting to list service while retrieving service cluster IP:", err)
+		return ""
+	}
+
+	log.Debugln("Retrieving a cluster IP belonging to:", svc.Name)
+	if len(svc.Spec.ClusterIP) != 0 {
+		log.Infoln("Found service cluster IP address:", svc.Spec.ClusterIP)
+		return svc.Spec.ClusterIP
+	}
+	return ""
+}
+
 // waitForServiceToDelete waits for the service to be deleted.
 func waitForServiceToDelete() chan bool {
 
@@ -353,9 +373,39 @@ func waitForServiceToDelete() chan bool {
 // serviceAvailable checks the amount of ingress endpoints associated to the service.
 // This will return a true if there is at least 1 hostname endpoint.
 func serviceAvailable(service *corev1.Service) bool {
-	if len(service.Status.LoadBalancer.Ingress) != 0 {
-		log.Infoln("Service ingress hostname found:", service.Status.LoadBalancer.Ingress[0].Hostname)
+	if len(service.Spec.ClusterIP) != 0 {
+		log.Infoln("Cluster IP found:", service.Spec.ClusterIP)
 		return true
 	}
+	// if len(service.Status.LoadBalancer.Ingress) != 0 {
+	// 	log.Infoln("Service ingress hostname found:", service.Status.LoadBalancer.Ingress[0].Hostname)
+	// 	return true
+	// }
 	return false
+}
+
+// serviceHasClusterIP checks the service object to see if a cluster IP has been
+// allocated to it yet and returns when a cluster IP exists.
+func serviceHasClusterIP() chan *corev1.Service {
+
+	resultChan := make(chan *corev1.Service)
+
+	go func() {
+		defer close(resultChan)
+
+		for {
+			svc, err := client.CoreV1().Services(checkNamespace).Get(checkServiceName, metav1.GetOptions{})
+			if err != nil {
+				time.Sleep(time.Second)
+				continue
+			}
+
+			if len(svc.Spec.ClusterIP) != 0 {
+				resultChan <- svc
+				return
+			}
+		}
+	}()
+
+	return resultChan
 }
