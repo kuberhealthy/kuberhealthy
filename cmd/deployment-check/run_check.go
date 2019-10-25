@@ -89,7 +89,13 @@ func runDeploymentCheck() {
 		// Handle errors when the service creation process completes.
 		if serviceResult.Err != nil {
 			log.Errorln("error occurred creating service in cluster:", serviceResult.Err)
-			reportErrorsToKuberhealthy([]string{serviceResult.Err.Error()})
+			errorReport := []string{serviceResult.Err.Error()} // Make a slice for errors here, because tehre can be more than 1 error.
+			// Clean up the check. A deployment and service was brought up, but could not get a 200 OK from requests.
+			cleanUpError := cleanUp()
+			if cleanUpError != nil {
+				errorReport = append(errorReport, cleanUpError.Error())
+			}
+			reportErrorsToKuberhealthy(errorReport)
 			return
 		}
 		// Continue with the check if there is no error.
@@ -129,8 +135,14 @@ func runDeploymentCheck() {
 	case err := <-makeRequestToDeploymentCheckService(hostname):
 		if err != nil {
 			// Handle errors when the HTTP request process completes.
-			log.Errorln("error occurred creating service in cluster:", err)
-			reportErrorsToKuberhealthy([]string{err.Error()})
+			log.Errorln("error occurred making request to service in cluster:", err)
+			errorReport := []string{err.Error()} // Make a slice for errors here, because tehre can be more than 1 error.
+			// Clean up the check. A deployment and service was brought up, but could not get a 200 OK from requests.
+			cleanUpError := cleanUp()
+			if cleanUpError != nil {
+				errorReport = append(errorReport, cleanUpError.Error())
+			}
+			reportErrorsToKuberhealthy(errorReport)
 			return
 		}
 		// Continue with the check if there is no error.
@@ -161,7 +173,13 @@ func runDeploymentCheck() {
 			// Handle errors when the deployment creation process completes.
 			if updateDeploymentResult.Err != nil {
 				log.Errorln("error occurred applying rolling-update to deployment in cluster:", updateDeploymentResult.Err)
-				reportErrorsToKuberhealthy([]string{updateDeploymentResult.Err.Error()})
+				errorReport := []string{updateDeploymentResult.Err.Error()} // Make a slice for errors here, because tehre can be more than 1 error.
+				// Clean up the check. A deployment and service was brought up, but could not get a 200 OK from requests.
+				cleanUpError := cleanUp()
+				if cleanUpError != nil {
+					errorReport = append(errorReport, cleanUpError.Error())
+				}
+				reportErrorsToKuberhealthy(errorReport)
 				return
 			}
 			// Continue with the check if there is no error.
@@ -182,6 +200,12 @@ func runDeploymentCheck() {
 			// Handle errors when the HTTP request process completes.
 			if err != nil {
 				log.Errorln("error occurred creating service in cluster:", err)
+				errorReport := []string{err.Error()} // Make a slice for errors here, because tehre can be more than 1 error.
+				// Clean up the check. A deployment and service was brought up, but could not get a 200 OK from requests.
+				cleanUpError := cleanUp()
+				if cleanUpError != nil {
+					errorReport = append(errorReport, cleanUpError.Error())
+				}
 				reportErrorsToKuberhealthy([]string{err.Error()})
 				return
 			}
