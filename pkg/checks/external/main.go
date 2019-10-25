@@ -422,7 +422,7 @@ func (ext *Checker) RunOnce() error {
 	case <-timeoutChan:
 		ext.log("timed out")
 		ext.cleanup()
-		errorMessage := "failed to see pod cleanup within timeout"
+		errorMessage := "failed to see pod " + ext.Name() + " in the namespace " + ext.CheckNamespace() + " cleanup within timeout"
 		ext.log(errorMessage)
 		return errors.New(errorMessage)
 	case err = <-ext.waitForAllPodsToClear():
@@ -458,7 +458,7 @@ func (ext *Checker) RunOnce() error {
 	case <-timeoutChan:
 		ext.log("timed out")
 		ext.cleanup()
-		return errors.New("failed to see pod running within timeout")
+		return errors.New("failed to see pod " + ext.Name() + " in the namespace " + ext.CheckNamespace() + " running within timeout")
 	case <-shutdownEventNotifyC:
 		ext.log("pod removed expectedly while waiting for pod to start running")
 		return ErrPodRemovedExpectedly
