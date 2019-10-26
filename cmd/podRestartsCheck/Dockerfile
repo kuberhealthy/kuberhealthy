@@ -2,7 +2,8 @@ FROM golang:1.13-alpine AS builder
 RUN apk upgrade
 ADD . /build
 WORKDIR /build/cmd/podRestartsCheck
-CMD CGO_ENABLED=0 go test ./...
+ENV CGO_ENABLED=0
+RUN go test -v
 RUN go build -v
 
 FROM golang:1.13-alpine

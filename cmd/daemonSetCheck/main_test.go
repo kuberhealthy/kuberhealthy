@@ -14,30 +14,35 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func testSetup() (*Checker, error) {
+func testSetup(clientNeeded bool) (*Checker, error) {
 	CheckRunTime = time.Now().Unix()
 	Namespace = "kuberhealthy"
 
 	var err error
 
-	client, err := kubeClient.Create(KubeConfigFile)
-	if err != nil {
-		log.Fatalln("Unable to create kubernetes client", err)
-	}
+	dsc, err := New()
 
-	dsc, err := New(client)
 	if err != nil {
 		log.Fatalln("Unable to create daemon set checker", err)
+	}
+
+	if clientNeeded {
+		client, err := kubeClient.Create(KubeConfigFile)
+		if err != nil {
+			log.Fatalln("Unable to create kubernetes client", err)
+		}
+		dsc.client = client
 	}
 	return dsc, err
 }
 
 func TestGenerateDaemonSetSpec(t *testing.T) {
-	dsc, err := testSetup()
+	dsc, err := testSetup(false)
 	if err != nil {
 		log.Fatalln("Failed to create test setup", err)
 	}
 
+	dsc.Tolerations = []apiv1.Toleration{{Key: "node-role.kubernetes.io/master", Effect: apiv1.TaintEffect("NoSchedule")}}
 	dsc.generateDaemonSetSpec()
 
 	if dsc.DaemonSet == nil || dsc.DaemonSet.Name != dsc.DaemonSetName {
@@ -47,7 +52,9 @@ func TestGenerateDaemonSetSpec(t *testing.T) {
 }
 
 func TestCleanupOrphans(t *testing.T) {
-	checker, err := testSetup()
+	t.Skip("Skipping cause this test requires the kubernetes client")
+
+	checker, err := testSetup(true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +76,7 @@ func TestCleanupOrphans(t *testing.T) {
 
 func TestPauseContainerOverride(t *testing.T) {
 	// verify that we are getting the expected default value from a new dsc
-	dsc, err := testSetup()
+	dsc, err := testSetup(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +84,7 @@ func TestPauseContainerOverride(t *testing.T) {
 		t.Fatal("Default Pause Container Image is not set or an unexpected value, actual value:", dsc.PauseContainerImage)
 	}
 
-	dscO, err := testSetup()
+	dscO, err := testSetup(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +96,9 @@ func TestPauseContainerOverride(t *testing.T) {
 }
 
 func TestGetAllAndDeleteDaemonsetsAndPods(t *testing.T) {
-	checker, err := testSetup()
+	t.Skip("Skipping cause this test requires the kubernetes client")
+
+	checker, err := testSetup(true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,7 +226,7 @@ func TestParseTolerationOverride(t *testing.T) {
 		},
 	}
 
-	checker, err := testSetup()
+	checker, err := testSetup(false)
 	if err != nil {
 		t.Fatal(err)
 	}
