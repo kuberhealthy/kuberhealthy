@@ -43,5 +43,9 @@ spec:
 
 #### How-to
 
-To implement the DNS Status Check with Kuberhealthy, apply both configuration files [internalDNSStatusCheck.yaml](internalDNSStatusCheck.yaml), 
-[externalDNSStatusCheck.yaml](externalDNSStatusCheck.yaml), to your Kubernetes Cluster. Make sure you are using the latest release of Kuberhealthy 2.0.0. 
+To implement the DNS Status Check with Kuberhealthy, run 
+
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/dnsStatusCheck/externalDNSStatusCheck.yaml`
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/dnsStatusCheck/internalDNSStatusCheck.yaml`
+
+ Make sure you are using the latest release of Kuberhealthy 2.0.0. 
