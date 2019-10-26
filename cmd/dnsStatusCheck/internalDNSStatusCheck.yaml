@@ -1,0 +1,22 @@
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: dns-status-check-internal
+  namespace: kuberhealthy
+spec:
+  runInterval: 1m
+  timeout: 55s
+  podSpec:
+    containers:
+      - env:
+          - name: CHECK_POD_TIMEOUT
+            value: "45s"
+          - name: HOSTNAME
+            value: "kubernetes.default"
+        image: quay.io/comcast/dns-status-check:1.0.0
+        imagePullPolicy: Always
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
