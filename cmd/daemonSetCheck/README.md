@@ -58,7 +58,10 @@ spec:
 
 #### How-to
 
-To implement the Daemonset Check with Kuberhealthy, apply the configuration file [daemonSetCheck.yaml](daemonSetCheck.yaml) to your Kubernetes Cluster.
+To implement the Daemonset Check with Kuberhealthy, run:
+ 
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/daemonSetCheck/daemonSetCheck.yaml`
+ 
 Make sure you are using the latest release of Kuberhealthy 2.0.0. 
 
 The configuration file contains:
