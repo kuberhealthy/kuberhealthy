@@ -1,6 +1,6 @@
 ## Deployment and Service
 
-This check tests if a `deployment` and `service` can be created within your Kubernetes cluster. It will attempt to bring up a `deployment` with `2` replicas and a `service` of type `LoadBalancer` in the `kuberhealthy` namespace and waits for the pods to come up. Once the `deployment` is ready, the check makes a request to the hostname looking for a `200 OK`. The check then proceeds to terminate them and ensures that the deployment and service terminations were successful. A complete tear down of the `deployment` and `service` after receiving a `200 OK` marks a successful test run.
+This check tests if a `deployment` and `service` can be created within your Kubernetes cluster. It will attempt to bring up a `deployment` with `2` replicas and a `service` of type `ClusterIP` in the `kuberhealthy` namespace and waits for the pods to come up. Once the `deployment` is ready, the check makes a request to the hostname looking for a `200 OK`. The check then proceeds to terminate them and ensures that the deployment and service terminations were successful. A complete tear down of the `deployment` and `service` after receiving a `200 OK` marks a successful test run.
 
 Container resource requests are set to `15 millicores` of CPU and `20Mi` units of memory and use the Nginx's latest image `nginx:latest` for the deployment. If the environment variable `CHECK_DEPLOYMENT_ROLLING_UPDATE` is set to `true`, the check will attempt to perform a rolling-update on the `deployment`. Once this rolling-update completes, the check makes another request to the hostname looking fora `200 OK` again before cleaning up. By default, the check will initially deploy Nginx's `nginx:latest` image, and update to `nginx:alpine`. 
 
@@ -9,6 +9,24 @@ Custom images can be used for this check and can be specified with the `CHECK_IM
 The number of replicas the `deployment` brings up can be adjusted with the `CHECK_DEPLOYMENT_REPLICAS` environment variable. By default the amount of replicas used is `2`, but this can be customized for different scenarios and environments. `maxSurge` and `maxUnavailable` values for the deployment is calculated to be %50 of the deployment replicas (rounded-up).
 
 A successful run implies that a deployment and service can be brought up and the corresponding hostname endpoint returns a `200 OK` response.  A failure implies that an error occurred anywhere in the deployment creation, service creation, HTTP request, or tear down process -- resulting in an error report to the _Kuberhealthy_ status page.
+
+#### Deployment Check Diagram
+
+![](../../images/kh-deployment-check.gif)
+
+#### Check Steps
+
+This check follows the list of actions in order during the run of the check:
+1.  Looks for old services and deployments belonging to this check and cleans them up.
+2.  Creates a deployment configuration, applies it to the namespace, and waits for the deployment to come up.
+3.  Creates a service configuration, applies it to the namespace, and waits for the service to come up.
+4.  Makes an HTTP Get request to the service endpoint, looking for a `200 OK`.
+
+__IF ROLLING-UPDATE OPTION IS ENABLED__
+5.  Creates an updated deployment configuration, applies it to the namespace, and waits for the deployment to complete its rolling-update.
+6.  Makes a second HTTP Get request to the servicee endpoint, looking for another `200 OK`.
+
+#### Check Details
 
 - Namespace: kuberhealthy
 - Timeout: 5 minutes
@@ -24,8 +42,7 @@ A successful run implies that a deployment and service can be brought up and the
   - `CHECK_TIME_LIMIT_SECONDS`: Number of seconds the check will allow itself before timing out.
   - `CHECK_DEPLOYMENT_ROLLING_UPDATE`: Boolean to enable rolling-update (default=`false`).
   - `ADDITIONAL_ENV_VARS`: Comma separated list of `key=value` variables passed into the pod's containers.
-  - `SHUTDOWN_GRACE_PERIOD_SECONDS`: Amount of time in seconds the shutdown will allow itself to clean up after an interrupt signal. (default=`30s`)
-
+  - `SHUTDOWN_GRACE_PERIOD_SECONDS`: Amount of time in seconds the shutdown will allow itself to clean up after an interrupt signal (default=`30s`).
 
 #### Example KuberhealthyCheck Spec
 
