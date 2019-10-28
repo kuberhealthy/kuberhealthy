@@ -10,6 +10,9 @@ The number of replicas the `deployment` brings up can be adjusted with the `CHEC
 
 A successful run implies that a deployment and service can be brought up and the corresponding hostname endpoint returns a `200 OK` response.  A failure implies that an error occurred anywhere in the deployment creation, service creation, HTTP request, or tear down process -- resulting in an error report to the _Kuberhealthy_ status page.
 
+#### Deployment Check Diagram
+
+![](../../images/kh-deployment-check.gif)
 
 #### Check Steps
 
