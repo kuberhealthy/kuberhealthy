@@ -46,3 +46,11 @@ buildDNSStatusCheck:
 
 pushDNSStatusCheck:
 	docker push quay.io/comcast/dns-status-check:1.0.0
+
+podStatus: buildPodStatusCheck pushPodStatusCheck
+
+buildPodStatusCheck:
+	docker build -t quay.io/comcast/pod-status-check:1.0.0 -f cmd/podStatusCheck/Dockerfile .
+
+pushPodStatusCheck:
+	docker push quay.io/comcast/pod-status-check:1.0.0

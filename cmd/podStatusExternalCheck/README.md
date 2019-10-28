@@ -37,5 +37,13 @@ spec:
 To implement the Pod Status Check with Kuberhealthy, apply the configuration file [podStatusCheck.yaml](podStatusCheck.yaml)
 to your Kubernetes Cluster.  Make sure that you are using the latest release of Kuberhealthy 2.0.0.
 
+To implement in a single namespace
+
+To implement in multiple namespace
+
+TO implement in ALL namespaces
+
+
+
 
 
