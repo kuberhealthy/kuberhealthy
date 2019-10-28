@@ -52,6 +52,7 @@ func main() {
 	}
 	// report success to Kuberhealthy servers if there were no failed pods in our list.
 	err = checkclient.ReportSuccess()
+	log.Infoln("Reporting Success, no unhealthy pods found.")
 	if err != nil {
 		log.Println("Error reporting success to Kuberhealthy servers", err)
 		os.Exit(1)
@@ -61,12 +62,19 @@ func main() {
 // findPodsNotRunning gets a list of pods that are older than 10 minutes and contain all Pod status phases
 // that are NOT healthy/Running.
 func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
+
+	log.Infoln("Finding pods not running in namespace: ", namespace)
+
 	var failures []string
+
 	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+
 	if err != nil {
 		return failures, err
 	}
 	for _, pod := range pods.Items {
+
+		log.Infoln("Checking pod: ", pod.Name)
 
 		// dont check pod health if the pod is less than 10 minutes old.
 		if time.Now().Sub(pod.CreationTimestamp.Time).Minutes() < 10 {
