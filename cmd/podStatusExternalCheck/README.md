@@ -6,7 +6,7 @@ on the status page. When a pod is found to be in error, the exact pod's name wil
 field's strings.  This check defaults to the `kube-system` namespace if nothing is specified via the `TARGET_NAMESPACE`
 environment variable.
 
-#### Pod Status Check Kube Spec:
+#### Example Pod Status KuberhealtyCheck Spec
 ```yaml
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
