@@ -32,6 +32,8 @@ spec:
             memory: 50Mi
 ```
 
+
+
 #### How-to
 
 To implement the Pod Status Check with Kuberhealthy, apply the configuration file [podStatusCheck.yaml](podStatusCheck.yaml)
@@ -41,9 +43,6 @@ To implement in a single namespace
 
 To implement in multiple namespace
 
-TO implement in ALL namespaces
-
-
-
+To implement in ALL namespaces
 
 
