@@ -1,6 +1,5 @@
 // Package podStatus implements a pod health checker for Kuberhealthy.  Pods are checked
-// to ensure they are not restarting too much and are in a healthy lifecycle
-// phase.
+// to ensure they are not restarting too much and are in a healthy lifecycle phase.
 package main
 
 import (
@@ -32,6 +31,7 @@ func main() {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
+	// get our list of failed pods, if there are any errors, report failures to Kuberhealthy servers.
 	failures, err := findPodsNotRunning(client)
 	if err != nil {
 		err = checkclient.ReportFailure([]string{err.Error()})
@@ -41,6 +41,7 @@ func main() {
 		}
 		return
 	}
+	// report our list of failed pods to Kuberhealthy servers.
 	if len(failures) >= 1 {
 		err = checkclient.ReportFailure(failures)
 		if err != nil {
@@ -49,6 +50,7 @@ func main() {
 		}
 		return
 	}
+	// report success to Kuberhealthy servers if there were no failed pods in our list.
 	err = checkclient.ReportSuccess()
 	if err != nil {
 		log.Println("Error reporting success to Kuberhealthy servers", err)
@@ -56,8 +58,8 @@ func main() {
 	}
 }
 
-
-
+// findPodsNotRunning gets a list of pods that are older than 10 minutes and contain all Pod status phases
+// that are NOT healthy/Running.
 func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
 	var failures []string
 	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{})
@@ -66,12 +68,13 @@ func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
 	}
 	for _, pod := range pods.Items {
 
-		// dont check pod health if the pod is less than 10 minutes old
+		// dont check pod health if the pod is less than 10 minutes old.
 		if time.Now().Sub(pod.CreationTimestamp.Time).Minutes() < 10 {
 			continue
 		}
+		// create a list of of unhealthy pods that were found.
 		if pod.Status.Phase != v1.PodRunning {
-			failures = append(failures, pod.Name + " has bad state " + string(pod.Status.Phase))
+			failures = append(failures, pod.Name+" has bad state "+string(pod.Status.Phase))
 		}
 
 	}
