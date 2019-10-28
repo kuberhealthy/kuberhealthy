@@ -49,11 +49,6 @@ func makeRequestToDeploymentCheckService(hostname string) chan error {
 			hostname = "http://" + hostname
 		}
 
-		// Postpend the cluster IP address with a port.
-		// if !strings.HasSuffix(hostname, ":80") {
-		// 	hostname = hostname + ":80"
-		// }
-
 		// Try to make requests to the hostname endpoint and wait for a result.
 		select {
 		case result := <-getRequestBackoff(hostname):
