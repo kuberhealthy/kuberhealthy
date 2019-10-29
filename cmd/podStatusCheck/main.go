@@ -80,6 +80,10 @@ func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
 		if time.Now().Sub(pod.CreationTimestamp.Time).Minutes() < 10 {
 			continue
 		}
+
+		// debug
+		log.Infoln("Pod: ", pod.Name+" has a status of ", pod.Status.Phase)
+
 		// create a list of of unhealthy pods that were found.
 		if pod.Status.Phase != v1.PodRunning {
 			failures = append(failures, pod.Name+" has bad state "+string(pod.Status.Phase))
