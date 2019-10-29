@@ -1,12 +1,14 @@
 ## KIAM Check
 
-This check tests `KIAM` servers and agents running within your cluster can properly intercept AWS metadata service requests. This check utilizes a `KIAM` annotation for querying Lambdas which can be set via your `KuberhealthyCheck` custom resource by passing in a field under `spec` like so:
+This check tests `KIAM` servers and agents running within your cluster can properly intercept AWS metadata service requests. Utilizes a `KIAM` annotation for querying Lambdas, which can be set via your `KuberhealthyCheck` custom resource by passing in a field under `spec` like so:
 
 ```yaml
 spec:
   extraAnnotations:
     iam.amazonaws.com/role: <role-arn>
 ```
+
+The `KIAM` annotation AWS ARN needs to allow permissions for access to perform reads on the Lambda. Should you need to create a new role, attaching the AWS-provided `AWSLambdaReadOnlyAccess` policy should allow enough permissions for the check to run.
 
 The check will report a success if it is able to list any amount of Lambda configurations from AWS; otherwise it will report a failure.
 
