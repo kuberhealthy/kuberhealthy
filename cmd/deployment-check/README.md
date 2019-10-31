@@ -23,6 +23,7 @@ This check follows the list of actions in order during the run of the check:
 4.  Makes an HTTP Get request to the service endpoint, looking for a `200 OK`.
 
 __IF ROLLING-UPDATE OPTION IS ENABLED__
+
 5.  Creates an updated deployment configuration, applies it to the namespace, and waits for the deployment to complete its rolling-update.
 6.  Makes a second HTTP Get request to the servicee endpoint, looking for another `200 OK`.
 
