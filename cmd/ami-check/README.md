@@ -1,13 +1,15 @@
-## Kops AMI Check
+## kops AMI Check
 
-This check looks to see if the images used for Kops instance groups still exist in the AWS Amazon marketplace. Pulls object contents from AWS S3 and parses them into Kops-instance-group structs and then pulls a list of available images from AWS EC2 AMI marketplace. Images used for these Kops-instance-groups are checked against the available list of AMIs to ensure that the instance-group image is available for new nodes.
+This check looks to see if the images used for kops instance groups still exist in the AWS Amazon marketplace. The check 
+pulls object contents from AWS S3, parsing them into kops-instance-group structs and then pulls a list of available 
+images from the AWS EC2 AMI marketplace. Images used for these kops-instance-groups are checked against the available 
+list of AMIs to ensure that the instance-group image is available for new nodes.
 
 #### Check Steps
 
-This check follows the list of actions in order during the run of the check:
-1.  Queries bucket object contents from AWS S3 for the Kops state store.
+1.  Queries bucket object contents from AWS S3 for the kops state store.
 2.  Queries available images from AWS EC2.
-3.  Checks both lists to make sure that they exist.
+3.  Verifies that images grabbed from AWS S3 exist amongst the images grabbed from the AWS EC2 AMI marketplace.
 
 #### Check Details
 
@@ -17,7 +19,7 @@ This check follows the list of actions in order during the run of the check:
 - Check name: `kh-ami-check`
 - Configurable check environment variables:
   - `AWS_REGION`: The region that the S3 bucket exists in. (Although S3 buckets are global, their creation location matters.)
-  - `AWS_S3_BUCKET_NAME`: The name of the S3 bucket for the Kops state store.
+  - `AWS_S3_BUCKET_NAME`: The name of the S3 bucket for the kops state store.
   - `CLUSTER_FQDN`: The fully qualified domain name for the cluster.
 
 #### Example KuberhealthyCheck Spec
