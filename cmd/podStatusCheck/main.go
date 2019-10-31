@@ -23,6 +23,7 @@ var namespace string
 
 func init() {
 	namespace = os.Getenv("TARGET_NAMESPACE")
+	checkclient.Debug = true
 }
 
 func main() {
@@ -43,6 +44,7 @@ func main() {
 	}
 	// report our list of failed pods to Kuberhealthy servers.
 	if len(failures) >= 1 {
+		log.Infoln("Amount of failures found: ", len(failures))
 		err = checkclient.ReportFailure(failures)
 		if err != nil {
 			log.Println("Error reporting failures to Kuberhealthy servers", err)
@@ -83,7 +85,7 @@ func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
 			continue
 		}
 		// filter out pods that are not Running
-		if pod.Status.Phase != v1.PodRunning {
+		if pod.Status.Phase != v1.PodRunning && pod.Status.Phase != v1.PodSucceeded {
 			log.Infoln("Found pod: ", pod.Name)
 			failures = append(failures, pod.Name+" has bad state "+string(pod.Status.Phase))
 			continue
@@ -92,7 +94,7 @@ func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
 		var containersNotReady bool
 		for _, container := range pod.Status.ContainerStatuses {
 			if !container.Ready	{
-				log.Infoln("Found bad container: ", container.Name, "in", pod.Name)
+				log.Infoln("Found bad container: ", container.Name, "in pod", pod.Name)
 				containersNotReady = true
 				break
 			}
@@ -101,7 +103,7 @@ func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
 		    failures = append(failures, pod.Name+" has containers that are not ready.")
 		}
 	}
-log.Infoln("Here are the list of failed pods: ", failures)
+log.Infoln("Here is the list of failed pods returned from findPodsNotRunning func: ", failures)
 
 return failures, nil
 
