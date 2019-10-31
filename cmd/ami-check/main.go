@@ -51,10 +51,10 @@ const (
 	defaultAWSRegion = "us-east-1"
 
 	// Default AWS S3 bucket name.
-	defaultAWSS3BucketName = "k8s-lab.theplatform.com"
+	defaultAWSS3BucketName = "kops-state-store"
 
 	// Default cluster FQDN
-	defaultClusterName = "bravo.k8s.aort.theplatform.com"
+	defaultClusterName = "cluster-fqdn"
 )
 
 func init() {
