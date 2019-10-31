@@ -44,5 +44,5 @@ spec:
 
 #### How-to 
 
-To implement the Pod Restarts Check with Kuberhealthy, apply the configuration file [podRestartsExternalCheck.yaml](podRestartsExternalCheck.yaml) to your Kubernetes Cluster.
+To implement the Pod Restarts Check with Kuberhealthy, apply the configuration file [podRestartsCheck.yaml](podRestartsCheck.yaml) to your Kubernetes Cluster.
 Make sure you are using the latest release of Kuberhealthy 2.0.0. 
