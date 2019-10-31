@@ -59,6 +59,10 @@ spec:
 #### Install
 
 To use the *Deployment Check* with Kuberhealthy, apply the configuration file [ami-check.yaml](ami-check.yaml) to your Kubernetes Cluster.
+The following command will also apply the configuration file to your current context:
+
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/ami-check/ami-check.yaml`
+
 Make sure you are using the latest release of Kuberhealthy 2.0.0. 
 
 The check configuration file contains:
