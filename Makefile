@@ -23,6 +23,14 @@ buildDeploymentCheck:
 pushDeploymentCheck:
 	docker push quay.io/comcast/deployment-check:1.0.0alpha1
 
+amiCheck: buildAMICheck pushAMICheck
+
+buildAMICheck:
+	docker build -t quay.io/comcast/ami-check:1.0.0 -f cmd/ami-check/Dockerfile .
+
+pushAMICheck:
+	docker push quay.io/comcast/ami-check:1.0.0
+
 daemonset: buildDaemonsetCheck pushDaemonsetCheck
 
 buildDaemonsetCheck:
