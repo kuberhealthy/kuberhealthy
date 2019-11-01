@@ -34,7 +34,6 @@ import (
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var listenAddress = ":8080"
 var podCheckNamespaces = "kube-system"
-var dnsEndpoints []string
 var podNamespace = os.Getenv("POD_NAMESPACE")
 var isMaster bool // indicates this instance is the master and should be running checks
 
@@ -55,10 +54,7 @@ var logLevel = "info"
 // the hostname of this pod
 var podHostname string
 
-var enableDaemonSetChecks = determineCheckStateFromEnvVar("DAEMON_SET_CHECK")
-var enablePodRestartChecks = determineCheckStateFromEnvVar("POD_RESTARTS_CHECK")
 var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
-var enableDNSStatusChecks = determineCheckStateFromEnvVar("DNS_STATUS_CHECK")
 var enableExternalChecks = true
 
 // external check configs
@@ -100,10 +96,7 @@ func init() {
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
 	flaggy.String(&listenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
-	flaggy.Bool(&enableDaemonSetChecks, "", "daemonsetChecks", "Set to false to disable cluster daemonset deployment and termination checking.")
-	flaggy.Bool(&enablePodRestartChecks, "", "podRestartChecks", "Set to false to disable pod restart checking.")
 	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
-	flaggy.Bool(&enableDNSStatusChecks, "", "dnsStatusChecks", "Set to false to disable DNS checks.")
 	flaggy.Bool(&enableExternalChecks, "", "externalChecks", "Set to false to disable external checks.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
@@ -111,7 +104,6 @@ func init() {
 	flaggy.StringSlice(&DSTolerationOverride, "", "tolerationOverride", "Specify a specific taint (in a key,value,effect format, ex. node-role.kubernetes.io/master,,NoSchedule or dedicated,someteam,NoSchedule)  to tolerate and force DaemonSetChecker to tolerate only nodes with that taint. Use the flag multiple times to add multiple tolerations. Default behavior is to tolerate all taints in the cluster.")
 	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
 	flaggy.String(&logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
-	flaggy.StringSlice(&dnsEndpoints, "", "dnsEndpoints", "The comma separated list of dns endpoints to check, if enabled. Defaults to kubernetes.default")
 	// Influx flags
 	flaggy.String(&influxUsername, "", "influxUser", "Username for the InfluxDB instance")
 	flaggy.String(&influxPassword, "", "influxPassword", "Password for the InfluxDB instance")

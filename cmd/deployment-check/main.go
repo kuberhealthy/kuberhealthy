@@ -118,7 +118,7 @@ const (
 	// Default number of replicas the deployment should bring up.
 	defaultCheckDeploymentReplicas = 2
 
-	defaultCheckTimeLimit             = time.Duration(time.Minute * 5)
+	defaultCheckTimeLimit             = time.Duration(time.Minute * 10)
 	defaultShutdownGracePeriodSeconds = 30 // grace period for the check to shutdown after receiving a shutdown signal
 )
 
