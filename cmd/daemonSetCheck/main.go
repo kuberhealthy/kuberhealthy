@@ -1,16 +1,30 @@
-// Package daemonSet contains a Kuberhealthy check for the ability to roll out
+// Copyright 2018 Comcast Cable Communications Management, LLC
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//     http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package daemonSetCheck contains a Kuberhealthy check for the ability to roll out
 // a daemonset to a cluster.  Includes validation of cleanup as well.  This
 // check provides a high level of confidence that the cluster is operating
 // normally.
-package daemonSet // import "github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
+package main
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"os"
+	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	log "github.com/sirupsen/logrus"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
@@ -21,19 +35,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
+
+	checkclient "github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient"
+	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 )
 
-// TODO - ingest daemonset name and namespace with flags?
 const daemonSetBaseName = "daemonset-test"
+const defaultDSCheckTimeout = "10m"
 
-var namespace = os.Getenv("POD_NAMESPACE")
+var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+var Namespace string
+var Timeout time.Duration
+
+// DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
+var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
+var CheckRunTime int64 // use this to compare and find rogue daemonsets or pods
 
 // Checker implements a KuberhealthyCheck for daemonset
 // deployment and teardown checking.
 type Checker struct {
 	Namespace           string
 	DaemonSet           *betaapiv1.DaemonSet
-	ErrorMessages       []string
 	shuttingDown        bool
 	DaemonSetDeployed   bool
 	DaemonSetName       string
@@ -41,29 +63,127 @@ type Checker struct {
 	hostname            string
 	Tolerations         []apiv1.Toleration
 	client              *kubernetes.Clientset
+	cancelFunc          context.CancelFunc // used to cancel things in-flight
+	ctx                 context.Context    // a context used for tracking check runs
+}
+
+func init() {
+	// Set global vars from env variables
+	Namespace = os.Getenv("POD_NAMESPACE")
+	if len(Namespace) == 0 {
+		log.Errorln("ERROR: The POD_NAMESPACE environment variable has not been set.")
+		return
+	}
+
+	dsCheckTimeout := os.Getenv("CHECK_POD_TIMEOUT")
+	if len(dsCheckTimeout) == 0 {
+		log.Infoln("CHECK_POD_TIMEOUT environment variable has not been set. Using default Daemonset Checker timeout", defaultDSCheckTimeout)
+		dsCheckTimeout = defaultDSCheckTimeout
+	}
+
+	var err error
+	Timeout, err = time.ParseDuration(dsCheckTimeout)
+	if err != nil {
+		log.Errorln("Error parsing timeout for check", dsCheckTimeout, err)
+		return
+	}
+
+	CheckRunTime = time.Now().Unix()
+}
+
+func main() {
+	client, err := kubeClient.Create(KubeConfigFile)
+	if err != nil {
+		log.Fatalln("Unable to create kubernetes client", err)
+	}
+
+	ds, err := New(client)
+	if err != nil {
+		log.Fatalln("unable to create daemonset checker:", err)
+	}
+
+	// start listening for shutdown interrupts
+	go ds.listenForInterrupts()
+
+	// Create a context for this cleanup
+	ds.ctx, ds.cancelFunc = context.WithCancel(context.Background())
+
+	// Cleanup any daemonsets and associated pods from this check that should not exist right now
+	log.Infoln("Deleting any rogue daemonsets or daemonset pods before deploying the daemonset check")
+	err = ds.cleanupOrphans()
+	if err != nil {
+		log.Errorln("Error cleaning up rogue daemonsets or daemonset pods:", err)
+	}
+
+	// init a timeout for this whole deletion of daemonsets
+	log.Infoln("Timeout set to", Timeout.String())
+	timeoutChan := time.After(Timeout)
+
+	// waiting for all daemonsets to be gone...
+	log.Infoln("Waiting for all rogue daemonsets or daemonset pods to clean up")
+	select {
+	case <-timeoutChan:
+		log.Infoln("timed out")
+		ds.cancel() // cancel the watch context, we have timed out
+		log.Errorln("failed to see rogue daemonset or daemonset pods cleanup within timeout")
+	case err = <-ds.waitForAllDaemonsetsToClear():
+		if err != nil {
+			ds.cancel() // cancel the watch context, we have timed out
+			log.Errorln("error waiting for rogue daemonset or daemonset pods to clean up:", err)
+		}
+		log.Infoln("No rogue daemonsets or daemonset pods exist.")
+	}
+
+	// allow the user to override the image used by the DSC - see #114
+	ds.overrideDSPauseContainerImage()
+
+	log.Infoln("Enabling daemonset checker")
+
+	err = ds.Run(client)
+	if err != nil {
+		log.Errorln("Error running check:", ds.Name(), "in namespace", ds.CheckNamespace()+":", err)
+	}
+	log.Debugln("Done running check:", ds.Name(), "in namespace", ds.CheckNamespace())
 }
 
 // New creates a new Checker object
-func New() (*Checker, error) {
+func New(client *kubernetes.Clientset) (*Checker, error) {
 
 	hostname := getHostname()
 	var tolerations []apiv1.Toleration
 
 	testDS := Checker{
-		ErrorMessages:       []string{},
-		Namespace:           namespace,
-		DaemonSetName:       daemonSetBaseName + "-" + hostname + "-" + strconv.Itoa(int(time.Now().Unix())),
+		Namespace:           Namespace,
+		DaemonSetName:       daemonSetBaseName + "-" + hostname + "-" + strconv.Itoa(int(CheckRunTime)),
 		hostname:            hostname,
 		PauseContainerImage: "gcr.io/google-containers/pause:3.1",
 		Tolerations:         tolerations,
+		client:              client,
 	}
 
 	return &testDS, nil
 }
 
+// cancel cancels the context of this checker to shut things down gracefully
+func (dsc *Checker) cancel() {
+	if dsc.cancelFunc == nil {
+		return
+	}
+	dsc.cancelFunc()
+}
+
+func (dsc *Checker) overrideDSPauseContainerImage() {
+	// allow the user to override the image used by the DSC - see #114
+	if len(DSPauseContainerImageOverride) > 0 {
+		log.Info("Setting DS pause container override image to:", DSPauseContainerImageOverride)
+		dsc.PauseContainerImage = DSPauseContainerImageOverride
+	}
+}
+
 // generateDaemonSetSpec generates a daemon set spec to deploy into the cluster
 func (dsc *Checker) generateDaemonSetSpec() {
 
+	checkRunTime := strconv.Itoa(int(CheckRunTime))
 	terminationGracePeriod := int64(1)
 	runAsUser := int64(1000)
 	log.Debug("Running daemon set as user 1000.")
@@ -87,9 +207,10 @@ func (dsc *Checker) generateDaemonSetSpec() {
 				"app":              dsc.DaemonSetName,
 				"source":           "kuberhealthy",
 				"creatingInstance": dsc.hostname,
+				"checkRunTime": checkRunTime,
 			},
 			Annotations: map[string]string{
-				"cluster-autoscaler.kubernetes.io/safe-to-evict":	"true",
+				"cluster-autoscaler.kubernetes.io/safe-to-evict": "true",
 			},
 		},
 		Spec: betaapiv1.DaemonSetSpec{
@@ -99,6 +220,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 					"app":              dsc.DaemonSetName,
 					"source":           "kuberhealthy",
 					"creatingInstance": dsc.hostname,
+					"checkRunTime": checkRunTime,
 				},
 			},
 			Template: apiv1.PodTemplateSpec{
@@ -107,6 +229,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 						"app":              dsc.DaemonSetName,
 						"source":           "kuberhealthy",
 						"creatingInstance": dsc.hostname,
+						"checkRunTime": checkRunTime,
 					},
 					Name: dsc.DaemonSetName,
 				},
@@ -154,39 +277,54 @@ func (dsc *Checker) Interval() time.Duration {
 }
 
 // Timeout returns the maximum run time for this check before it times out
+// Default is 10 minutes if the CHECK_POD_TIMEOUT env var is not set in the Kuberhealthy external check spec
 func (dsc *Checker) Timeout() time.Duration {
-	return time.Minute * 10
+	return Timeout
 }
 
 // Shutdown signals the DS to begin a cleanup
-func (dsc *Checker) Shutdown() error {
+func (dsc *Checker) Shutdown(sdDoneChan chan error) {
 	dsc.shuttingDown = true
 
-	// make a context to satisfy pod removal
-	ctx := context.Background()
-	ctx, cancelCtx := context.WithCancel(ctx)
-
-	// cancel the shutdown context after the timeout
-	go func() {
-		<-time.After(dsc.Timeout())
-		cancelCtx()
-	}()
-
+	var err error
 	// if the ds is deployed, delete it
 	if dsc.DaemonSetDeployed {
-		err := dsc.remove()
-		if err != nil {
-			return err
-		}
-		err = dsc.waitForPodRemoval(ctx)
-		if err != nil {
-			return err
-		}
+		dsc.remove()
+		err = dsc.waitForPodRemoval()
 	}
 
 	log.Infoln(dsc.Name(), "Daemonset "+dsc.DaemonSetName+" ready for shutdown.")
-	return nil
+	sdDoneChan <- err
+}
 
+// listenForInterrupts watches for termination signals and acts on them
+func (dsc *Checker) listenForInterrupts() {
+	// Make neccessary shutdown channels (signal channel and done channel)
+	sigChan := make(chan os.Signal, 5)
+	doneChan := make(chan error, 5)
+
+	terminationGracePeriod := time.Minute * 5
+
+	signal.Notify(sigChan, os.Interrupt, os.Kill)
+	<-sigChan
+	log.Infoln("Shutting down...")
+	go dsc.Shutdown(doneChan)
+	// wait for checks to be done shutting down before exiting
+	select {
+	case err := <-doneChan:
+		if err != nil {
+			log.Errorln("Error waiting for pod removal during shut down")
+			os.Exit(1)
+		}
+		log.Infoln("Shutdown gracefully completed!")
+		os.Exit(0)
+	case <-sigChan:
+		log.Warningln("Shutdown forced from multiple interrupts!")
+		os.Exit(1)
+	case <-time.After(terminationGracePeriod):
+		log.Errorln("Shutdown took too long.  Shutting down forcefully!")
+		os.Exit(2)
+	}
 }
 
 // findAllUniqueTolerations returns a list of all taints present on any node group in the cluster
@@ -223,30 +361,17 @@ func findAllUniqueTolerations(client *kubernetes.Clientset) ([]apiv1.Toleration,
 // ParseTolerationOverride parses a list of taints and returns them as a toleration object
 func (dsc *Checker) ParseTolerationOverride(taints []string) (tolerations []apiv1.Toleration, err error) {
 	for _, t := range taints {
-		s := strings.Split(t,",")
+		s := strings.Split(t, ",")
 		if len(s) != 3 {
 			return []apiv1.Toleration{}, errors.New("Unable to parse the passed in taint overrides - are they in the correct format?")
 		}
 		tolerations = append(tolerations, apiv1.Toleration{
-			Key:	s[0],
-			Value: 	s[1],
-			Effect:	apiv1.TaintEffect(s[2]),
+			Key:    s[0],
+			Value:  s[1],
+			Effect: apiv1.TaintEffect(s[2]),
 		})
 	}
 	return tolerations, err
-}
-
-// CurrentStatus returns the status of the check as of right now
-func (dsc *Checker) CurrentStatus() (bool, []string) {
-	if len(dsc.ErrorMessages) > 0 {
-		return false, dsc.ErrorMessages
-	}
-	return true, dsc.ErrorMessages
-}
-
-// clearErrors clears all errors from the checker
-func (dsc *Checker) clearErrors() {
-	dsc.ErrorMessages = []string{}
 }
 
 // cleanupOrphans cleans up orphaned pods and daemonsets, if they exist
@@ -265,8 +390,8 @@ func (dsc *Checker) cleanupOrphans() error {
 }
 
 // cleanupOrphanedPods cleans up daemonset pods that shouldn't exist because their
-// creating instance is gone.  Sometimes removing daemonsets isnt enough to clean up
-// orphaned pods.
+// creating instance is gone and ensures thay are not pods from an older run.
+// Sometimes removing daemonsets isnt enough to clean up orphaned pods.
 func (dsc *Checker) cleanupOrphanedPods() error {
 	pods, err := dsc.getAllPods()
 	if err != nil {
@@ -274,10 +399,10 @@ func (dsc *Checker) cleanupOrphanedPods() error {
 		return err
 	}
 
-	// loop on all the daemonsets and ensure that daemonset's creating pod exists.
+	// loop on all the daemonsets and ensure that daemonset's creating pod exists and that the pods are not from an older run
 	// if the creating pod does not exist, then we delete the daemonset.
 	for _, p := range pods {
-		log.Infoln("Checking if pod is orphaned:", p.Name, "creatingInstance:", p.Labels["creatingInstance"])
+		log.Infoln("Checking if pod is orphaned:", p.Name, "creatingInstance:", p.Labels["creatingInstance"], "checkRunTime:", CheckRunTime)
 
 		// fetch the creatingInstance label
 		creatingDSInstance := p.Labels["app"]
@@ -294,10 +419,6 @@ func (dsc *Checker) cleanupOrphanedPods() error {
 
 		// check if the creatingInstance exists
 		exists := dsc.checkIfDSExists(creatingDSInstance)
-		if err != nil {
-			log.Errorln("error checking if kuberhealthy daemonset exists:", err)
-			return err
-		}
 
 		// if the owning kuberhealthy pod of the DS does not exist, then we delete the daemonset
 		if !exists {
@@ -308,12 +429,27 @@ func (dsc *Checker) cleanupOrphanedPods() error {
 				return err
 			}
 		}
+
+		// Check that the pod isn't from an older run
+		podCheckRunTime, err := strconv.ParseInt(p.Labels["checkRunTime"], 10, 64)
+		if err != nil {
+			log.Errorln("Error converting pod checkRunTime:", podCheckRunTime, "label to int:", err)
+		}
+
+		if podCheckRunTime < CheckRunTime {
+			log.Warningln("Pod:", p.Name, "has an older checkRunTime than the current daemonset running. This is a rogue pod, removing now.")
+			err := dsc.deletePod(p.Name)
+			if err != nil {
+				log.Warningln("error when removing rogue pod:", p.Name+": ", err)
+			}
+			continue
+		}
 	}
 	return nil
 }
 
 // cleanupOrphanedDaemonsets cleans up daemonsets that should not exist based on their
-// creatingInstance label.
+// creatingInstance label and ensures they are not daemonsets from an older run
 func (dsc *Checker) cleanupOrphanedDaemonsets() error {
 
 	daemonSets, err := dsc.getAllDaemonsets()
@@ -322,10 +458,10 @@ func (dsc *Checker) cleanupOrphanedDaemonsets() error {
 		return err
 	}
 
-	// loop on all the daemonsets and ensure that daemonset's creating pod exists.
+	// loop on all the daemonsets and ensure that daemonset's creating pod exists and that the daemonsets are not from an older run.
 	// if the creating pod does not exist, then we delete the daemonset.
 	for _, ds := range daemonSets {
-		log.Infoln("Checking if daemonset is orphaned:", ds.Name, "creatingInstance:", ds.Labels["creatingInstance"])
+		log.Infoln("Checking if daemonset is orphaned:", ds.Name, "creatingInstance:", ds.Labels["creatingInstance"], "checkRunTime:", CheckRunTime)
 
 		// fetch the creatingInstance label
 		creatingInstance := ds.Labels["creatingInstance"]
@@ -353,6 +489,21 @@ func (dsc *Checker) cleanupOrphanedDaemonsets() error {
 				return err
 			}
 		}
+
+		// Check that the daemonset isn't from an older run
+		dsCheckRunTime, err := strconv.ParseInt(ds.Labels["checkRunTime"], 10, 64)
+		if err != nil {
+			log.Errorln("Error converting ds checkRunTime:", dsCheckRunTime,  "label to int:", err)
+		}
+
+		if dsCheckRunTime < CheckRunTime {
+			log.Warningln("Daemonset:", ds.Name, "has an older checkRunTime than the current daemonset running. This is a rogue daemonset, removing now.")
+			err := dsc.deleteDS(ds.Name)
+			if err != nil {
+				log.Warningln("error when removing rogue daemonset:", ds.Name+": ", err)
+			}
+			continue
+		}
 	}
 	return nil
 }
@@ -360,10 +511,37 @@ func (dsc *Checker) cleanupOrphanedDaemonsets() error {
 // deleteDS deletes the DS with the specified name
 func (dsc *Checker) deleteDS(dsName string) error {
 
-	propagationForeground := metav1.DeletePropagationForeground
-	dsClient := dsc.getDaemonSetClient()
-	err := dsClient.Delete(dsName, &metav1.DeleteOptions{PropagationPolicy: &propagationForeground})
-	return err
+	// confirm the count we are removing before issuing a delete
+	podsClient := dsc.client.CoreV1().Pods(dsc.Namespace)
+	pods, err := podsClient.List(metav1.ListOptions{
+		LabelSelector: "app=" + dsName + ",source=kuberhealthy",
+	})
+	if err != nil {
+		return err
+	}
+	log.Infoln(dsc.Name(), "removing", len(pods.Items), "daemonset pods")
+
+	// delete the daemonset
+	log.Infoln(dsc.Name(), "removing daemonset:", dsName)
+	daemonSetClient := dsc.getDaemonSetClient()
+	err = daemonSetClient.Delete(dsName, &metav1.DeleteOptions{})
+	if err != nil {
+		log.Error("Failed to delete daemonset:", dsName, err)
+		return err
+	}
+
+	// issue a delete to every pod. removing the DS alone does not ensure all
+	// pods are removed
+	log.Infoln(dsc.Name(), "removing daemonset pods")
+	err = podsClient.DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
+		LabelSelector: "app=" + dsName + ",source=kuberhealthy",
+	})
+	if err != nil {
+		log.Error("Failed to delete daemonset pods:", err)
+		return err
+	}
+	return nil
+
 }
 
 // deletePod deletes a pod with the specified name
@@ -465,7 +643,7 @@ func (dsc *Checker) getAllDaemonsets() ([]betaapiv1.DaemonSet, error) {
 func (dsc *Checker) Run(client *kubernetes.Clientset) error {
 
 	// make a context for this run
-	ctx, cancelCtx := context.WithCancel(context.Background())
+	dsc.ctx, dsc.cancelFunc = context.WithCancel(context.Background())
 
 	doneChan := make(chan error)
 
@@ -473,26 +651,43 @@ func (dsc *Checker) Run(client *kubernetes.Clientset) error {
 
 	// run the check in a goroutine and notify the doneChan when completed
 	go func(doneChan chan error) {
-		err := dsc.doChecks(ctx)
+		err := dsc.doChecks()
 		doneChan <- err
 	}(doneChan)
 
+	var err error
 	// wait for either a timeout or job completion
 	select {
 	case <-time.After(dsc.Interval()):
 		// The check has timed out because its time to run again
-		cancelCtx() // cancel context
+		dsc.cancelFunc() // cancel context
 		errorMessage := "Failed to complete checks for " + dsc.Name() + " in time!  Next run came up but check was still running."
-		dsc.ErrorMessages = []string{errorMessage}
-		log.Errorln(dsc.Name(), errorMessage)
+		//log.Errorln(dsc.Name(), errorMessage)
+		err = checkclient.ReportFailure([]string{errorMessage})
+		if err != nil {
+			log.Println("Error reporting failure to Kuberhealthy servers:", err)
+			return err
+		}
+		log.Println("Successfully reported failure to Kuberhealthy servers")
 	case <-time.After(dsc.Timeout()):
 		// The check has timed out after its specified timeout period
-		cancelCtx() // cancel context
+		dsc.cancelFunc() // cancel context
 		errorMessage := "Failed to complete checks for " + dsc.Name() + " in time!  Timeout was reached."
-		dsc.ErrorMessages = []string{errorMessage}
-		log.Errorln(dsc.Name(), errorMessage)
+		//log.Errorln(dsc.Name(), errorMessage)
+		err = checkclient.ReportFailure([]string{errorMessage})
+		if err != nil {
+			log.Println("Error reporting failure to Kuberhealthy servers:", err)
+			return err
+		}
+		log.Println("Successfully reported failure to Kuberhealthy servers")
 	case err := <-doneChan:
-		cancelCtx()
+		dsc.cancelFunc()
+		err = checkclient.ReportSuccess()
+		if err != nil {
+			log.Println("Error reporting success to Kuberhealthy servers:", err)
+			return err
+		}
+		log.Println("Successfully reported success to Kuberhealthy servers")
 		return err
 	}
 
@@ -500,26 +695,20 @@ func (dsc *Checker) Run(client *kubernetes.Clientset) error {
 }
 
 // doChecks actually runs checking procedures
-func (dsc *Checker) doChecks(ctx context.Context) error {
-
-	// clean up any existing daemonsets that may be laying around
-	// waiting so not to cause a conflict.  Don't listen to errors here.
-	_ = dsc.cleanUp(ctx)
+func (dsc *Checker) doChecks() error {
 
 	// deploy the daemonset
-	err := dsc.doDeploy(ctx)
+	err := dsc.doDeploy()
 	if err != nil {
 		return err
 	}
 
 	// clean up the daemonset.  Does not return until removed completely or
 	// an error occurs
-	err = dsc.doRemove(ctx)
+	err = dsc.doRemove()
 	if err != nil {
 		return err
 	}
-
-	dsc.clearErrors() // clear errors if checks are all good
 
 	// fire off an orphan cleanup in the background on each check run
 	go dsc.cleanupOrphans()
@@ -527,67 +716,44 @@ func (dsc *Checker) doChecks(ctx context.Context) error {
 	return nil
 }
 
-// cleanUp finds and removes any existing daemonsets in case they are
-// left abandoned from a race condition.
-func (dsc *Checker) cleanUp(ctx context.Context) error {
+// waitForAllDaemonsetsToClear
+func (dsc *Checker) waitForAllDaemonsetsToClear() chan error {
+	log.Infoln("waiting for all daemonsets to clear")
 
-	// get a DS client
-	dsClient := dsc.getDaemonSetClient()
+	// make the output channel we will return and close it whenever we are done
+	outChan := make(chan error, 2)
 
-	// check for existing daemonset to cleanup
-	ds, err := dsClient.Get(dsc.DaemonSetName, metav1.GetOptions{})
+	go func() {
+		// watch events and return when the pod is in state running
+		for {
+			log.Debugln("Waiting for daemonset", dsc.Name(), "to clear...")
 
-	// if a DS isn't found, then return nil. No cleanup is needed.
-	if err != nil && strings.Contains(err.Error(), "not found") {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
+			// wait between requests
+			time.Sleep(time.Second * 5)
 
-	// if a DS exists, then clean it up
-	if ds.Name != "" {
-		log.Warningln("Rogue or leftover daemonset.  Removing before running checks")
+			// if the context is canceled, we stop
+			select {
+			case <-dsc.ctx.Done():
+				outChan <- errors.New("waiting for daemonset to clear was aborted by context cancellation")
+				return
+			default:
+			}
 
-		// if there wasnt an error, the DS exists and we need to clean it up.
-		err = dsc.remove()
-		if err != nil {
-			return err
+			// fetch the pod by name
+			dsList, err := dsc.getAllDaemonsets()
+			if err != nil {
+				outChan <- err
+				return
+			}
+			if len(dsList) == 0 {
+				log.Info("all daemonsets cleared")
+				outChan <- nil
+				return
+			}
 		}
+	}()
 
-		// watch for the daemonset to not exist before returning
-		err = dsc.waitForDSRemoval(ctx)
-		if err != nil {
-			return err
-		}
-
-		// wait for ds pods to be deleted
-		err = dsc.waitForPodRemoval(ctx)
-		return err
-	}
-
-	return nil
-
-}
-
-// waitForDSRemoval waits for the daemonset to be removed before returning
-func (dsc *Checker) waitForDSRemoval(ctx context.Context) error {
-	// repeatedly fetch the DS until it goes away
-	for {
-		// check for our context to expire to break the loop
-		ctxErr := ctx.Err()
-		if ctxErr != nil {
-			return ctxErr
-		}
-		time.Sleep(time.Second / 2)
-		exists, err := dsc.fetchDS()
-		if err != nil {
-			return err
-		}
-		if !exists {
-			return nil
-		}
-	}
+	return outChan
 }
 
 // fetchDS fetches the ds for the checker from the api server
@@ -621,14 +787,14 @@ func (dsc *Checker) fetchDS() (bool, error) {
 }
 
 // doDeploy actually deploys the DS into the cluster
-func (dsc *Checker) doDeploy(ctx context.Context) error {
+func (dsc *Checker) doDeploy() error {
 
 	// create DS
 	dsc.DaemonSetDeployed = true
 	err := dsc.deploy()
 	if err != nil {
 		log.Error("Something went wrong with daemonset deployment, cleaning things up...", err)
-		err2 := dsc.doRemove(ctx)
+		err2 := dsc.doRemove()
 		if err2 != nil {
 			log.Error("Something went wrong when removing the deployment after a deployment error:", err2)
 		}
@@ -636,12 +802,12 @@ func (dsc *Checker) doDeploy(ctx context.Context) error {
 	}
 
 	// wait for ds pods to be created
-	err = dsc.waitForPodsToComeOnline(ctx)
+	err = dsc.waitForPodsToComeOnline()
 	return err
 }
 
 // doRemove remotes the daemonset from the cluster
-func (dsc *Checker) doRemove(ctx context.Context) error {
+func (dsc *Checker) doRemove() error {
 	// delete ds
 	err := dsc.remove()
 	if err != nil {
@@ -649,26 +815,26 @@ func (dsc *Checker) doRemove(ctx context.Context) error {
 	}
 
 	// wait for daemonset to be removed
-	err = dsc.waitForDSRemoval(ctx)
+	err = dsc.waitForDSRemoval()
 	if err != nil {
 		return err
 	}
 
 	// wait for ds pods to be deleted
-	err = dsc.waitForPodRemoval(ctx)
+	err = dsc.waitForPodRemoval()
 	dsc.DaemonSetDeployed = true
 	return err
 }
 
 // waitForPodsToComeOnline blocks until all pods of the daemonset are deployed and online
-func (dsc *Checker) waitForPodsToComeOnline(ctx context.Context) error {
+func (dsc *Checker) waitForPodsToComeOnline() error {
 
 	// counter for DS status check below
 	var counter int
 	var nodesMissingDSPod []string
 
 	for {
-		ctxErr := ctx.Err()
+		ctxErr := dsc.ctx.Err()
 		if ctxErr != nil {
 			log.Infoln(dsc.Name(), "Nodes which were unable to schedule before context was cancelled:", nodesMissingDSPod)
 			return ctxErr
@@ -732,7 +898,7 @@ func (dsc *Checker) getNodesMissingDSPod() ([]string, error) {
 
 	// get a list of DS pods
 	pods, err := dsc.client.CoreV1().Pods(dsc.Namespace).List(metav1.ListOptions{
-		LabelSelector:        "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
+		LabelSelector: "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
 	})
 	if err != nil {
 		return nodesMissingDSPods, err
@@ -822,7 +988,7 @@ func (dsc *Checker) remove() error {
 	// confirm the count we are removing before issuing a delete
 	podsClient := dsc.client.CoreV1().Pods(dsc.Namespace)
 	pods, err := podsClient.List(metav1.ListOptions{
-		LabelSelector:        "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
+		LabelSelector: "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
 	})
 	if err != nil {
 		return err
@@ -842,7 +1008,7 @@ func (dsc *Checker) remove() error {
 	// pods are removed
 	log.Infoln(dsc.Name(), "removing daemonset pods")
 	err = podsClient.DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
-		LabelSelector:        "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
+		LabelSelector: "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
 	})
 	if err != nil {
 		log.Error("Failed to delete daemonset pods:", err)
@@ -852,8 +1018,28 @@ func (dsc *Checker) remove() error {
 	return nil
 }
 
+// waitForDSRemoval waits for the daemonset to be removed before returning
+func (dsc *Checker) waitForDSRemoval() error {
+	// repeatedly fetch the DS until it goes away
+	for {
+		// check for our context to expire to break the loop
+		ctxErr := dsc.ctx.Err()
+		if ctxErr != nil {
+			return ctxErr
+		}
+		time.Sleep(time.Second / 2)
+		exists, err := dsc.fetchDS()
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return nil
+		}
+	}
+}
+
 // waitForPodRemoval waits for the daemonset to finish removal
-func (dsc *Checker) waitForPodRemoval(ctx context.Context) error {
+func (dsc *Checker) waitForPodRemoval() error {
 
 	podsClient := dsc.client.CoreV1().Pods(dsc.Namespace)
 
@@ -865,13 +1051,13 @@ func (dsc *Checker) waitForPodRemoval(ctx context.Context) error {
 	// loop until all our daemonset pods are deleted
 	for {
 		// check for our context to expire to break the loop
-		ctxErr := ctx.Err()
+		ctxErr := dsc.ctx.Err()
 		if ctxErr != nil {
 			return ctxErr
 		}
 
 		pods, err := podsClient.List(metav1.ListOptions{
-			LabelSelector:        "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
+			LabelSelector: "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
 		})
 		if err != nil {
 			return err
@@ -885,7 +1071,7 @@ func (dsc *Checker) waitForPodRemoval(ctx context.Context) error {
 		case <-deleteTicker.C:
 			log.Infoln(dsc.Name(), "Re-issuing a pod delete command for daemonset checkers.")
 			err = podsClient.DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
-				LabelSelector:        "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
+				LabelSelector: "app=" + dsc.DaemonSetName + ",source=kuberhealthy",
 			})
 			if err != nil {
 				return err
@@ -913,4 +1099,3 @@ func (dsc *Checker) getDaemonSetClient() v1beta1.DaemonSetInterface {
 	log.Debug("Creating Daemonset client.")
 	return dsc.client.ExtensionsV1beta1().DaemonSets(dsc.Namespace)
 }
-
