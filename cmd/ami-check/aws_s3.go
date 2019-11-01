@@ -64,6 +64,7 @@ func listKopsInstanceGroups() chan KOPSResult {
 	return listChan
 }
 
+// getObjects lists objects representing kops instance groups (stored in S3).
 func getObjects(awsS3 *s3.S3) ([]*s3.Object, error) {
 	var marker string
 	log.Infoln("Querying object keys from S3 bucket.")
@@ -107,6 +108,8 @@ func getObjects(awsS3 *s3.S3) ([]*s3.Object, error) {
 	return results, nil
 }
 
+// getObjectContents downloads and unmarshals S3 kops instance group objects into a
+// slice of instance group structs.
 func getObjectContents(awsS3 *s3.S3, objects []*s3.Object) ([]*kops.InstanceGroup, error) {
 	log.Infoln("Reading S3 object contents.")
 
