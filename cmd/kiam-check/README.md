@@ -1,18 +1,12 @@
 ## KIAM Check
 
-The KIAM check tests that `KIAM` servers and agents running within your cluster can properly intercept AWS metadata 
-service requests. The check utilizes a `KIAM` annotation for querying Lambdas, which can be set via your 
-`KuberhealthyCheck` custom resource by passing in a field under `spec`:
+The `KIAM` check tests that `KIAM` servers and agents running within your cluster can properly intercept AWS metadata service requests. AWS Lambdas are utilized for various event triggers and can be utilized for monitoring and alerting. This check queries Lambdas utilizing a `KIAM` annotation, which can be set via your `KuberhealthyCheck` custom resource by passing in a field under `spec`:
 
 ```yaml
 spec:
   extraAnnotations:
     iam.amazonaws.com/role: <role-arn>
 ```
-
-The `KIAM` annotation AWS ARN needs to have the necessary permissions to perform reads on the Lambda. If you need to 
-create a role for this, attaching the AWS-provided `AWSLambdaReadOnlyAccess` policy should allow enough permissions for 
-the check to run.
 
 The check will report a success if it is able to list any amount of Lambda configurations from AWS; otherwise it will report a failure.
 
@@ -33,7 +27,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   extraAnnotations:
-    iam.amazonaws.com/role: <role-arn>
+    iam.amazonaws.com/role: <role-arn> # Replace this value with your ARN
   runInterval: 5m
   timeout: 5m30s
   podSpec:
@@ -50,14 +44,15 @@ spec:
           memory: 10Mi
         limits:
           cpu: 30m
-      restartPolicy: Always 
+      restartPolicy: Always
+
 ```
 
 #### Install
 
-To use the *Deployment Check* with Kuberhealthy, apply the configuration file [kiam-check.yaml](kiam-check.yaml) to your Kubernetes Cluster. The following command will also apply the configuration file to your current context:
- 
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/kiam-check/kiam-check.yaml`
+You must first configure a valid role ARN via IAM in your AWS account. The ARN needs to have enough permissions to perform reads on the Lambda service. If you need to create or update a role for this, attaching the AWS-provided `AWSLambdaReadOnlyAccess` policy should allow enough permissions for the check to run.
+
+To use the *Deployment Check* with Kuberhealthy, replace the `<role-arn>` value in the configuration file at [kiam-check](kiam-check.yaml). Then apply it to your Kubernetes Cluster `kubectl apply -f kiam-check.yaml`. 
 
 Make sure you are using the latest release of Kuberhealthy 2.0.0. 
 

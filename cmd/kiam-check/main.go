@@ -14,16 +14,20 @@ import (
 )
 
 var (
+	// AWS region to query Lambdas from.
 	awsRegionEnv = os.Getenv("AWS_REGION")
 	awsRegion    string
 
+	// Expected AWS Lambda count.
 	expectedLambdaCountEnv = os.Getenv("LAMBDA_COUNT")
 	expectedLambdaCount    int
 
 	ctx context.Context
 
+	// AWS session.
 	sess *session.Session
 
+	// Channel for interrupt signals.
 	signalChan chan os.Signal
 
 	debugEnv = os.Getenv("DEBUG")
@@ -46,6 +50,7 @@ func init() {
 
 	ctx = context.Background()
 	signalChan = make(chan os.Signal, 2)
+
 	// Relay incoming OS interrupt signals to the signalChan.
 	signal.Notify(signalChan, os.Interrupt, os.Kill)
 }
@@ -62,11 +67,14 @@ func main() {
 		return
 	}
 
+	// Start listening for interrupts.
 	go listenForInterrupts()
 
+	// Run the Lambda list check.
 	select {
 	case err = <-runLambdaCheck():
 		if err != nil {
+			// Report a failure if there an error occurred during the check.
 			err = fmt.Errorf("error occurred during Lambda check: %w", err)
 			reportErrorsToKuberhealthy([]string{err.Error()})
 			return
