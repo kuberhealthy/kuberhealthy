@@ -30,11 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
-	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
 	"github.com/Comcast/kuberhealthy/pkg/checks/external"
 	"github.com/Comcast/kuberhealthy/pkg/checks/external/status"
-	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
 	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/health"
 	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
@@ -941,34 +938,6 @@ func (k *Kuberhealthy) configureChecks() {
 	// wipe all existing checks before we configure
 	k.Checks = []KuberhealthyCheck{}
 
-	// add daemonset checking if enabled
-	if enableDaemonSetChecks {
-		ds, err := daemonSet.New()
-		// allow the user to override the image used by the DSC - see #114
-		if len(DSPauseContainerImageOverride) > 0 {
-			log.Info("Setting DS pause container override image to:", DSPauseContainerImageOverride)
-			ds.PauseContainerImage = DSPauseContainerImageOverride
-		}
-		if err != nil {
-			log.Fatalln("unable to create daemonset checker:", err)
-		}
-		log.Infoln("Enabling daemonset checker")
-		kuberhealthy.AddCheck(ds)
-	}
-
-	// add pod restart checking if enabled
-	if enablePodRestartChecks {
-		log.Infoln("Enabling pod restart checker")
-		// Split the podCheckNamespaces into a []string
-		namespaces := strings.Split(podCheckNamespaces, ",")
-		for _, namespace := range namespaces {
-			n := strings.TrimSpace(namespace)
-			if len(n) > 0 {
-				kuberhealthy.AddCheck(podRestarts.New(n))
-			}
-		}
-	}
-
 	// add pod status checking if enabled
 	if enablePodStatusChecks {
 		log.Infoln("Enabling pod status checker")
@@ -980,12 +949,6 @@ func (k *Kuberhealthy) configureChecks() {
 				kuberhealthy.AddCheck(podStatus.New(n))
 			}
 		}
-	}
-
-	// add dns resolution checking if enabled
-	if enableDNSStatusChecks {
-		log.Infoln("Enabling dns checker")
-		kuberhealthy.AddCheck(dnsStatus.New(dnsEndpoints))
 	}
 
 	// check external check configurations
