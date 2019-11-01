@@ -9,23 +9,29 @@ import (
 	"k8s.io/kops/pkg/apis/kops"
 )
 
-// runCheck runs the KOPS + AMI check.
+// runCheck runs the kops AMI check. This queries the kops state store
+// S3 bucket and retrieves kops instance group information as well as
+// the AWS EC2 marketplace for available AMIs. Instance group images
+// are checked against the list of available AMIs and creates an error
+// for each instance group that does not have an available AMI. Reports
+// an error to Kuberhealthy if any errors are found. Otherwise, if all
+// instance group AMIs are available, reports success.
 func runCheck() {
 
 	log.Infoln("Running check.")
 
-	// Get a list of instance groups utilized by Kops (from AWS S3).
+	// Get a list of instance groups utilized by kops (from AWS S3).
 	var kopsResult KOPSResult
 	select {
 	case kopsResult = <-listKopsInstanceGroups():
-		// Handle errors from listing KOPS instance groups.
+		// Handle errors from listing kops instance groups.
 		if kopsResult.Err != nil {
 			log.Errorln("failed to list kops instance groups:", kopsResult.Err.Error())
 			err := fmt.Errorf("failed to list kops instance groups: %w", kopsResult.Err)
 			reportErrorsToKuberhealthy([]string{err.Error()})
 			return
 		}
-		log.Infoln("Retreived Kops instance groups.")
+		log.Infoln("Retreived kops instance groups.")
 	case <-ctx.Done():
 		// If there is a context cancellation, exit the check.
 		log.Infoln("Exiting check due to cancellation:", ctx.Err().Error())
@@ -50,6 +56,7 @@ func runCheck() {
 		return
 	}
 
+	// Create a report for each instance group.
 	var instanceGroupReport map[string]error
 	select {
 	case instanceGroupReport = <-checkIfImagesAreStillAvailable(kopsResult.InstanceGroups, amiResult.Images):
@@ -64,7 +71,7 @@ func runCheck() {
 			reportErrorsToKuberhealthy(errorReport)
 			return
 		}
-		log.Infoln("Kops used images are available.")
+		log.Infoln("kops used images are available.")
 	case <-ctx.Done():
 		// If there is a context cancellation, exit the check.
 		log.Infoln("Exiting check due to cancellation:", ctx.Err().Error())
@@ -74,7 +81,12 @@ func runCheck() {
 	reportOKToKuberhealthy()
 }
 
+// checkIfImagesAreStillAvailable checks kops instance groups against a list of available
+// AWS AMIs. Returns a channel of map[string]error that represents a report on each instance
+// group in the kops state store. If all instance group AMIs are found, the returned map will
+// have 0 keys.
 func checkIfImagesAreStillAvailable(igs []*kops.InstanceGroup, images []*ec2.Image) chan map[string]error {
+	// Make a channel for maps that associate instance groups with their errors.
 	errorChan := make(chan map[string]error)
 
 	go func() {
@@ -97,7 +109,6 @@ func checkIfImagesAreStillAvailable(igs []*kops.InstanceGroup, images []*ec2.Ima
 			igImageName := igNameSplits[1]
 
 			for _, image := range images {
-
 				// Look through the list of images to see if it exists.
 				if image.Name != nil {
 					if strings.Contains(strings.TrimSpace(*image.Name), strings.TrimSpace(igImageName)) {
