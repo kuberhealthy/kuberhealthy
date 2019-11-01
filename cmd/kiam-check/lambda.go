@@ -9,10 +9,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// createLambdaClient creates and returns an AWS Lambda client
+// createLambdaClient creates and returns an AWS Lambda client.
 func createLambdaClient(s *session.Session, region string) *lambda.Lambda {
-
-	// build a lambda client
+	// Build a Lambda client.
 	log.Infoln("Building Lambda client for " + region + " region.")
 	return lambda.New(s, &aws.Config{Region: aws.String(region)})
 }
@@ -25,13 +24,13 @@ func listLambdas(c *lambda.Lambda) ([]*lambda.FunctionConfiguration, error) {
 
 	// Query Lambdas.
 	log.Infoln("Querying Lambda functions.")
-
 	results, err := c.ListFunctions(&lambda.ListFunctionsInput{
 		MaxItems: aws.Int64(100),
 	})
 	if err != nil {
 		return list, err
 	}
+
 	log.Infoln("Queried", len(results.Functions), "Lambdas.")
 	list = append(list, results.Functions...)
 
@@ -56,8 +55,15 @@ func listLambdas(c *lambda.Lambda) ([]*lambda.FunctionConfiguration, error) {
 	return list, nil
 }
 
+// runLambdaCheck runs the check. Returns a channel of errors and runs the check in the background.
+// Lists Lambdas from AWS and sends an error through the channel if the query fails to return any Lambda
+// configurations. If an expected Lambda count was given, this expects the number of Lambda
+// configurations to match the given count and sends an error through the channel if the amounts
+// mismatch. Otherwise if no expected Lambda count is given, being able to query ANY amount of Lambda
+// configurations will send a nil down the channel.
 func runLambdaCheck() chan error {
 
+	// Create a channel for the check.
 	checkChan := make(chan error, 0)
 
 	log.Debugln("Starting Lambda check.")

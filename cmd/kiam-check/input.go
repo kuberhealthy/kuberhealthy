@@ -7,7 +7,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// parseDebugSettings parses incoming debug settings (environment variables).
 func parseDebugSettings() {
+
 	// Enable debug logging if required.
 	if len(debugEnv) != 0 {
 		var err error
@@ -25,6 +27,7 @@ func parseDebugSettings() {
 	log.Debugln(os.Args)
 }
 
+// parseInputValues parses incoming input values (environment variables).
 func parseInputValues() {
 
 	// Parse incoming AWS region.
