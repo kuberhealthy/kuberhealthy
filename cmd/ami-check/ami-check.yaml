@@ -12,7 +12,7 @@ spec:
   podSpec:
     containers:
     - name: kh-ami-check
-      image: 
+      image: quay.io/comcast/ami-check:1.0.0
       imagePullPolicy: IfNotPresent
       env:
         - name: AWS_REGION
