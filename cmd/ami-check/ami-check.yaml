@@ -5,8 +5,8 @@ metadata:
   name: kh-ami-check
   namespace: kuberhealthy
 spec:
-  runInterval: 10m
-  timeout: 15m
+  runInterval: 30m
+  timeout: 10m
   extraAnnotations:
     iam.amazonaws.com/role: <role-arn> # Replace this value with your ARN
   podSpec:
