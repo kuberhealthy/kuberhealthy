@@ -1,10 +1,9 @@
 ## Pod Status Check
 
 The *Pod Status Check* checks for pods older than ten minutes in the desired namespace that are in an incorrect 
-lifecycle phase (anything that is not 'Ready').  If a `podStatus` detects a pod down for 5 minutes, an alert is shown 
+lifecycle phase (anything that is not 'Ready' or 'Succeeded').  If a `podStatus` detects a pod down, an alert is shown 
 on the status page. When a pod is found to be in error, the exact pod's name will be shown as one of the `Error` 
-field's strings.  This check defaults to the `kube-system` namespace if nothing is specified via the `TARGET_NAMESPACE`
-environment variable.
+field's strings.  Set `metadata.namespace` to the intended namespace otherwise this check defaults to the `kube-system`.
 
 #### Example Pod Status KuberhealtyCheck Spec
 ```yaml
@@ -14,8 +13,8 @@ metadata:
   name: pod-status-check
   namespace: kuberhealthy
 spec:
-  runInterval: 2m
-  timeout: 1e
+  runInterval: 5m
+  timeout: 15m
   podSpec:
     containers:
       - env:
@@ -24,7 +23,7 @@ spec:
               fieldRef:
                 fieldPath: metadata.namespace
         image: quay.io/comcast/pod-status-check:1.0.0
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: main
         resources:
           requests:
