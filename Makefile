@@ -47,6 +47,14 @@ buildPodRestartsCheck:
 pushPodRestartsCheck:
 	docker push quay.io/comcast/pod-restarts-check:1.0.0
 
+kiamCheck: buildKIAMCheck pushKIAMCheck
+
+buildKIAMCheck:
+	docker build -t quay.io/comcast/kiam-check:1.0.0 -f cmd/kiam-check/Dockerfile .
+
+pushKIAMCheck:
+	docker push quay.io/comcast/kiam-check:1.0.0
+
 dnsStatus: buildDNSStatusCheck pushDNSStatusCheck
 
 buildDNSStatusCheck:
@@ -54,3 +62,4 @@ buildDNSStatusCheck:
 
 pushDNSStatusCheck:
 	docker push quay.io/comcast/dns-status-check:1.0.0
+  
