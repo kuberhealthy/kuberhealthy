@@ -76,18 +76,12 @@ func init() {
 	awsS3BucketName = defaultAWSS3BucketName
 	if len(awsS3BucketNameEnv) != 0 {
 		awsS3BucketName = awsS3BucketNameEnv
-		if len(awsS3BucketName) == 0 {
-			log.Fatalln("Given AWS_S3_BUCKET_NAME is empty:", awsS3BucketName)
-		}
 	}
 
 	// Parse CLUSTER_FQDN environment variable.
 	clusterName = defaultClusterName
 	if len(clusterNameEnv) != 0 {
 		clusterName = clusterNameEnv
-		if len(clusterName) == 0 {
-			log.Fatalln("Given CLUSTER_FQDN is empty:", clusterName)
-		}
 	}
 
 	// Create a signal chan for interrupts.
