@@ -1,6 +1,6 @@
 ## KIAM Check
 
-The `KIAM` check tests that `KIAM` servers and agents running within your cluster can properly intercept AWS metadata service requests. AWS Lambdas are utilized for various event triggers and can be utilized for monitoring and alerting. This check queries Lambdas utilizing a `KIAM` annotation, which can be set via your `KuberhealthyCheck` custom resource by passing in a field under `spec`:
+The (`KIAM`)[https://github.com/uswitch/kiam] check tests that `KIAM` servers and agents running within your cluster can properly intercept AWS metadata service requests. This check queries Lambdas utilizing a `KIAM` annotation, which can be set via your `KuberhealthyCheck` custom resource by passing in a field under `spec`:
 
 ```yaml
 spec:
@@ -9,13 +9,6 @@ spec:
 ```
 
 The check will report a success if it is able to list any amount of Lambda configurations from AWS; otherwise it will report a failure.
-
-#### Check Details
-
-- Namespace: kuberhealthy
-- Timeout: 5 minutes 30 seconds
-- Check Interval: 5 minutes
-- Check name: `kh-kiam-check`
 
 #### Example KuberhealthyCheck Spec
 
