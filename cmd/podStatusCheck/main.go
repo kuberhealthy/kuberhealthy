@@ -61,8 +61,53 @@ func main() {
 	}
 }
 
-// testing a different way to find failed container statuses
-// seen instances where Pods that are "Running" but are in "Crashloopbackoff" due to container "Waiting"
+
+// testing with a switch
+// in the case where we have a pod status of "Running" but has a container error in "Crashloopbackoff"
+// needs to be further researched, as this specific scenario may always be caught by the podRestarts check
+// are there any other conditions that we need to look for where a pod is Running or Succeeded but the
+// containers within them are unhealty???
+func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
+
+	var failures []string
+
+	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+	if err != nil {
+		return failures, err
+	}
+	// start iteration over pods
+	for _, pod := range pods.Items {
+		// check if the pod age is over 10 minutes
+		if time.Now().Sub(pod.CreationTimestamp.Time).Minutes() < 10 {
+			continue
+		}
+
+		// find pods that are Running/Succeeded and return if ok
+		// find pods that are Pending/Failed/Unknown add add to list failed pods
+		// log if there is no match to the 5 possible pod status phases
+		switch {
+		case pod.Status.Phase == v1.PodRunning:
+			continue
+		case pod.Status.Phase == v1.PodSucceeded:
+			continue
+		case pod.Status.Phase == v1.PodPending:
+			failures = append(failures, pod.Name+" is in pod status phase "+string(pod.Status.Phase))
+		case pod.Status.Phase == v1.PodFailed:
+			failures = append(failures, pod.Name+" is in pod status phase "+string(pod.Status.Phase))
+		case pod.Status.Phase == v1.PodUnknown:
+			failures = append(failures, pod.Name+" is in pod status phase "+string(pod.Status.Phase))
+		default:
+			log.Info(pod.Name+" is not in one of the 5 possible pod status phases "+string(pod.Status.Phase))
+		}
+	}
+
+return failures, nil
+
+}
+
+
+/* testing a different way to find failed container statuses
+// found instances where Pods that are "Running" but are in "Crashloopbackoff" due to container "Waiting"
 // need to hit "Running" statuses in both Pod and Container
 // possible pod status phases
 // Pending | Running | Succeeded | Failed | Unknown
@@ -85,7 +130,7 @@ func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
 			continue
 		}
 		// filter out pods that are not Running
-		if pod.Status.Phase != v1.PodRunning && pod.Status.Phase != v1.PodSucceeded {
+		if pod.Status.Phase != v1.PodRunning {
 			log.Infoln("Found pod: ", pod.Name)
 			failures = append(failures, pod.Name+" has bad state "+string(pod.Status.Phase))
 			continue
@@ -94,7 +139,7 @@ func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
 		var containersNotReady bool
 		for _, container := range pod.Status.ContainerStatuses {
 			if !container.Ready	{
-				log.Infoln("Found bad container: ", container.Name, "in pod", pod.Name)
+				log.Infoln("Found a container that is not ready: ", container.Name, "in pod", pod.Name)
 				containersNotReady = true
 				break
 			}
@@ -108,6 +153,7 @@ log.Infoln("Here is the list of failed pods returned from findPodsNotRunning fun
 return failures, nil
 
 }
+*/
 
 
 /* findPodsNotRunning gets a list of pods that are older than 10 minutes and contain all Pod status phases
