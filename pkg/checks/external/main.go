@@ -914,6 +914,14 @@ func (ext *Checker) configureUserPodSpec() error {
 			Name:  KHRunUUID,
 			Value: ext.currentCheckUUID,
 		},
+		{
+			Name: "KH_POD_NAMESPACE",
+			ValueFrom: &apiv1.EnvVarSource{
+				FieldRef: &apiv1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
 	}
 
 	// apply overwrite env vars on every container in the pod
