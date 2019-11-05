@@ -366,6 +366,11 @@ func (ext *Checker) doFinalUpdateCheck(lastReportTime time.Time) (bool, error) {
 	return true, nil
 }
 
+// newError returns an error from the provided string by pre-pending the pod's name and namespace to it
+func (ext *Checker) newError(s string) error {
+	return errors.New(ext.CheckNamespace() + "/" + ext.Name() + ": " + s)
+}
+
 // RunOnce runs one check loop.  This creates a checker pod and ensures it starts,
 // then ensures it changes to Running properly
 func (ext *Checker) RunOnce() error {
@@ -398,7 +403,7 @@ func (ext *Checker) RunOnce() error {
 	ext.log("Configuring spec of external check")
 	err = ext.configureUserPodSpec()
 	if err != nil {
-		return errors.New("failed to configure pod spec for Kubernetes from user specified pod spec: " + err.Error())
+		return ext.newError("failed to configure pod spec for Kubernetes from user specified pod spec: " + err.Error())
 	}
 
 	// sanity check our settings
@@ -413,7 +418,7 @@ func (ext *Checker) RunOnce() error {
 	if err != nil {
 		errorMessage := "failed to clean up pods before starting external checker pod: " + err.Error()
 		ext.log(errorMessage)
-		return errors.New(errorMessage)
+		return ext.newError(errorMessage)
 	}
 
 	// init a timeout for this whole check
@@ -428,12 +433,12 @@ func (ext *Checker) RunOnce() error {
 		ext.cleanup()
 		errorMessage := "failed to see pod cleanup within timeout"
 		ext.log(errorMessage)
-		return errors.New(errorMessage)
+		return ext.newError(errorMessage)
 	case err = <-ext.waitForAllPodsToClear():
 		if err != nil {
 			errorMessage := "error waiting for pod to clean up: " + err.Error()
 			ext.log(err.Error())
-			return errors.New(errorMessage)
+			return ext.newError(errorMessage)
 		}
 	case <-ext.shutdownCTX.Done():
 		ext.log("shutting down check")
@@ -453,7 +458,7 @@ func (ext *Checker) RunOnce() error {
 	createdPod, err := ext.createPod()
 	if err != nil {
 		ext.log("error creating pod")
-		return errors.New("failed to create pod for checker: " + err.Error())
+		return ext.newError("failed to create pod for checker: " + err.Error())
 	}
 	ext.log("Check", ext.Name(), "created pod", createdPod.Name, "in namespace", createdPod.Namespace)
 
@@ -462,7 +467,7 @@ func (ext *Checker) RunOnce() error {
 	case <-timeoutChan:
 		ext.log("timed out")
 		ext.cleanup()
-		return errors.New("failed to see pod running within timeout")
+		return ext.newError("failed to see pod running within timeout")
 	case <-shutdownEventNotifyC:
 		ext.log("pod removed expectedly while waiting for pod to start running")
 		return ErrPodRemovedExpectedly
@@ -471,7 +476,7 @@ func (ext *Checker) RunOnce() error {
 			ext.cleanup()
 			errorMessage := "error when waiting for pod to start: " + err.Error()
 			ext.log(errorMessage)
-			return errors.New(errorMessage)
+			return ext.newError(errorMessage)
 		}
 		// flag the pod as running until this run ends
 		ext.setPodDeployed(true)
@@ -490,7 +495,7 @@ func (ext *Checker) RunOnce() error {
 		ext.cleanup()
 		errorMessage := "timed out waiting for checker pod to report in"
 		ext.log(errorMessage)
-		return errors.New(errorMessage)
+		return ext.newError(errorMessage)
 	case <-shutdownEventNotifyC:
 		ext.log("got notification that pod has shutdown while waiting for it to report in")
 		hasUpdated, err := ext.doFinalUpdateCheck(lastReportTime)
@@ -507,7 +512,7 @@ func (ext *Checker) RunOnce() error {
 		if err != nil {
 			errorMessage := "found an error when waiting for pod status to update: " + err.Error()
 			ext.log(errorMessage)
-			return errors.New(errorMessage)
+			return ext.newError(errorMessage)
 		}
 		ext.log("External check pod has reported status for this check iteration:", ext.PodName)
 	case <-ext.shutdownCTX.Done():
@@ -526,13 +531,13 @@ func (ext *Checker) RunOnce() error {
 		ext.cleanup()
 		errorMessage := "timed out waiting for pod to exit"
 		ext.log(errorMessage)
-		return errors.New(errorMessage)
+		return ext.newError(errorMessage)
 	case err = <-ext.waitForPodExit():
 		ext.log("External check pod is done running:", ext.PodName)
 		if err != nil {
 			errorMessage := "found an error when waiting for pod to exit: " + err.Error()
 			ext.log(errorMessage, err)
-			return errors.New(errorMessage)
+			return ext.newError(errorMessage)
 		}
 	case <-ext.shutdownCTX.Done():
 		ext.log("shutting down check")
@@ -914,8 +919,12 @@ func (ext *Checker) configureUserPodSpec() error {
 			Value: ext.currentCheckUUID,
 		},
 		{
-			Name:  KHPodNamespace,
-			Value: ext.Namespace,
+			Name: KHPodNamespace,
+			ValueFrom: &apiv1.EnvVarSource{
+				FieldRef: &apiv1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
 		},
 	}
 
