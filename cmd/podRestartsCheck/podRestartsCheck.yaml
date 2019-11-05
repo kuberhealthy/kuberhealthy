@@ -1,11 +1,11 @@
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: pod-restarts-check
+  name: pod-restarts
   namespace: kuberhealthy
 spec:
   runInterval: 60m
-  timeout: 58m
+  timeout: 62m
   podSpec:
     containers:
       - env:

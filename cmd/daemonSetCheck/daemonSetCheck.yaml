@@ -1,7 +1,7 @@
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: kh-daemonset-check
+  name: daemonset
   namespace: kuberhealthy
 spec:
   runInterval: 15m
