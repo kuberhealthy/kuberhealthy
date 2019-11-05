@@ -18,7 +18,7 @@ The check will report a success if it is able to list any amount of Lambda confi
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: kh-kiam-check
+  name: kiam
   namespace: kuberhealthy
 spec:
   extraAnnotations:
@@ -27,7 +27,7 @@ spec:
   timeout: 5m
   podSpec:
     containers:
-    - name: kh-kiam-check
+    - name: kiam
       image: quay.io/comcast/kiam-check:1.0.0
       imagePullPolicy: IfNotPresent
       env:

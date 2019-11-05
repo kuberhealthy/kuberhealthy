@@ -53,14 +53,14 @@ The following configuration will create a deployment with 4 replicas and roll fr
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: kh-deployment-check
+  name: deployment
   namespace: kuberhealthy
 spec:
   runInterval: 30m
   timeout: 10m
   podSpec:
     containers:
-    - name: kh-deployment-check
+    - name: deployment
       image: quay.io/comcast/deployment-check:1.0.0
       imagePullPolicy: IfNotPresent
       env:

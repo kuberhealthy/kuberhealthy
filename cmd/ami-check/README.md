@@ -29,7 +29,7 @@ list of AMIs to ensure that the instance-group image is available for new nodes.
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: kh-ami-check
+  name: ami
   namespace: kuberhealthy
 spec:
   runInterval: 10m
@@ -38,7 +38,7 @@ spec:
     iam.amazonaws.com/role: <role-arn> # Replace this value with your ARN
   podSpec:
     containers:
-    - name: kh-ami-check
+    - name: ami
       image: 
       imagePullPolicy: IfNotPresent
       env:
