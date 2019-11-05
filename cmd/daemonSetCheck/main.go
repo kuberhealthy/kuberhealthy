@@ -97,10 +97,12 @@ func main() {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
-	ds, err := New(client)
+	ds, err := New()
 	if err != nil {
 		log.Fatalln("unable to create daemonset checker:", err)
 	}
+
+	ds.client = client
 
 	// start listening for shutdown interrupts
 	go ds.listenForInterrupts()
@@ -147,7 +149,7 @@ func main() {
 }
 
 // New creates a new Checker object
-func New(client *kubernetes.Clientset) (*Checker, error) {
+func New() (*Checker, error) {
 
 	hostname := getHostname()
 	var tolerations []apiv1.Toleration
@@ -158,7 +160,6 @@ func New(client *kubernetes.Clientset) (*Checker, error) {
 		hostname:            hostname,
 		PauseContainerImage: "gcr.io/google-containers/pause:3.1",
 		Tolerations:         tolerations,
-		client:              client,
 	}
 
 	return &testDS, nil
