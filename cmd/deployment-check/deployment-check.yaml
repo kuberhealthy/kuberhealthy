@@ -24,7 +24,7 @@ spec:
         limits:
           cpu: 40m
       restartPolicy: Always
-    serviceAccountName: deployment-khcheck
+    serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -38,7 +38,7 @@ roleRef:
   name: deployment-service-role
 subjects:
   - kind: ServiceAccount
-    name: deployment-check-rb
+    name: deployment-sa
     namespace: kuberhealthy
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -83,5 +83,5 @@ rules:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: deployment-check-rb
+  name: deployment-sa
   namespace: kuberhealthy
