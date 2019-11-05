@@ -32,6 +32,10 @@ const KHReportingURL = "KH_REPORTING_URL"
 // can be de-duplicated on the server side.
 const KHRunUUID = "KH_RUN_UUID"
 
+// KHPodNamespace is the namespace variable used to tell external checks their namespace to perform
+// checks in.
+const KHPodNamespace = "KH_POD_NAMESPACE"
+
 // DefaultKuberhealthyReportingURL is the default location that external checks
 // are expected to report into.
 const DefaultKuberhealthyReportingURL = "http://kuberhealthy.kuberhealthy.svc.cluster.local/externalCheckStatus"
@@ -915,7 +919,7 @@ func (ext *Checker) configureUserPodSpec() error {
 			Value: ext.currentCheckUUID,
 		},
 		{
-			Name: "KH_POD_NAMESPACE",
+			Name: KHPodNamespace,
 			ValueFrom: &apiv1.EnvVarSource{
 				FieldRef: &apiv1.ObjectFieldSelector{
 					FieldPath: "metadata.namespace",
@@ -926,7 +930,7 @@ func (ext *Checker) configureUserPodSpec() error {
 
 	// apply overwrite env vars on every container in the pod
 	for i := range ext.PodSpec.Containers {
-		ext.PodSpec.Containers[i].Env = resetInjectedContainerEnvVars(ext.PodSpec.Containers[i].Env, []string{KHReportingURL, KHRunUUID})
+		ext.PodSpec.Containers[i].Env = resetInjectedContainerEnvVars(ext.PodSpec.Containers[i].Env, []string{KHReportingURL, KHRunUUID, KHPodNamespace})
 		ext.PodSpec.Containers[i].Env = append(ext.PodSpec.Containers[i].Env, overwriteEnvVars...)
 	}
 
