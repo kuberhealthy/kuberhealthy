@@ -7,6 +7,6 @@ Make sure to add your check here:
 | Check Name | Description | khcheck Resource | Contributor |
 | --- | --- | --- | --- |
 | [Daemonset Check](../cmd/daemonSetCheck/README.md) | Ensures daemonsets can be successfully deployed | [daemonSetCheck.yaml](../cmd/daemonSetCheck/daemonSetCheck.yaml) | @integrii @joshulyne |
-| [Deployment Check](../cmd/deployment-check/README.md) | Ensures that a Deployment and Service can be provisioned and created within the Kubernetes cluster | [deployment-check.yaml](../cmd/deployment-check/deployment-check.yaml) | @jonnydawg |
+| Deployment Test | Ensures that a Deployment and Service can be provisioned and created within the Kubernetes cluster | ???? | @jonnydawg |
 | [Pod Restarts Check](../cmd/podRestartsCheck/README.md) | Checks for excessive pod restarts in any namespace | [podRestartsCheck.yaml](../cmd/podRestartsCheck/podRestartsCheck.yaml) | @integrii @joshulyne |
-| [DNS Status Check](../cmd/dnsStatusCheck/README.md) | Checks for failures with DNS, including resolving within the cluster and outside of the cluster | [internalDNSStatusCheck.yaml](../cmd/dnsStatusCheck/internalDNSStatusCheck.yaml) [externalDNSStatusCheck.yaml](../cmd/dnsStatusCheck/externalDNSStatusCheck.yaml) | @integrii @joshulyne |
+| [Pod Status Check](../cmd/podStatusCheck/README.md) | Checks for unhealthy pod statuses in a target namespace | [podStatusCheck.yaml](../cmd/podStatusCheck/podStatusCheck.yaml) | @integrii @rukatm |
