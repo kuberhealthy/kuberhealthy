@@ -33,7 +33,7 @@ const (
 	defaultLabelValueBase  = "unix-"
 	defaultMinReadySeconds = 5
 
-	// Default deployment strategy valuies.
+	// Default deployment strategy values.
 	defaultMaxSurge       = 2
 	defaultMaxUnavailable = 2
 
@@ -235,7 +235,6 @@ func createContainerConfig(imageURL string) corev1.Container {
 	// Set up a basic container port [default is 80 for HTTP].
 	basicPort := corev1.ContainerPort{
 		ContainerPort: checkContainerPort,
-		HostPort:      checkContainerPort,
 	}
 	containerPorts := []corev1.ContainerPort{basicPort}
 
