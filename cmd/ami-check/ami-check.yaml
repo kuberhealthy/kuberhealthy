@@ -2,7 +2,7 @@
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: kh-ami-check
+  name: ami
   namespace: kuberhealthy
 spec:
   runInterval: 30m
