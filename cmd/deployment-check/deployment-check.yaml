@@ -2,14 +2,14 @@
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: kh-deployment-check
+  name: deployment
   namespace: kuberhealthy
 spec:
   runInterval: 30m
   timeout: 10m
   podSpec:
     containers:
-    - name: kh-deployment-check
+    - name: deployment
       image: quay.io/comcast/deployment-check:1.0.0
       imagePullPolicy: IfNotPresent
       env:
@@ -25,26 +25,26 @@ spec:
           cpu: 40m
       restartPolicy: Always
     serviceAccountName: deployment-khcheck
-    terminationGracePeriodSeconds: 120
+    terminationGracePeriodSeconds: 60
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: deployment-khcheck
+  name: deployment-check-rb
   namespace: kuberhealthy
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: deployment-service-admin
+  name: deployment-service-role
 subjects:
   - kind: ServiceAccount
-    name: deployment-khcheck
+    name: deployment-check-rb
     namespace: kuberhealthy
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: deployment-service-admin
+  name: deployment-service-role
   namespace: kuberhealthy
 rules:
   - apiGroups:
@@ -83,5 +83,5 @@ rules:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: deployment-khcheck
+  name: deployment-check-rb
   namespace: kuberhealthy

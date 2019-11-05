@@ -2,7 +2,7 @@
 
 This check tests if a `deployment` and `service` can be created within your Kubernetes cluster. It will attempt to bring up a `deployment` with `2` replicas and a `service` of type `ClusterIP` in the `kuberhealthy` namespace and waits for the pods to come up. Once the `deployment` is ready, the check makes a request to the hostname looking for a `200 OK`. The check then proceeds to terminate them and ensures that the deployment and service terminations were successful. A complete tear down of the `deployment` and `service` after receiving a `200 OK` marks a successful test run.
 
-Container resource requests are set to `15 millicores` of CPU and `20Mi` units of memory and use the Nginx's latest image `nginx:latest` for the deployment. If the environment variable `CHECK_DEPLOYMENT_ROLLING_UPDATE` is set to `true`, the check will attempt to perform a rolling-update on the `deployment`. Once this rolling-update completes, the check makes another request to the hostname looking fora `200 OK` again before cleaning up. By default, the check will initially deploy Nginx's `nginx:latest` image, and update to `nginx:alpine`. 
+Container resource requests are set to `15 millicores` of CPU and `20Mi` units of memory and use the Nginx's latest image `nginx:latest` for the deployment. If the environment variable `CHECK_DEPLOYMENT_ROLLING_UPDATE` is set to `true`, the check will attempt to perform a rolling-update on the `deployment`. Once this rolling-update completes, the check makes another request to the hostname looking for a `200 OK` again before cleaning up. By default, the check will initially deploy Nginx's `nginx:latest` image, and update to `nginx:alpine`. 
 
 Custom images can be used for this check and can be specified with the `CHECK_IMAGE` and `CHECK_IMAGE_ROLL_TO` environment variables. If a custom image requires the use of environment variables, they can be passed down into your container by setting the environment variable `ADDITIONAL_ENV_VARS` to a string of comma-separated values (`"X=foo,Y=bar"`).
 
@@ -25,7 +25,7 @@ This check follows the list of actions in order during the run of the check:
 __IF ROLLING-UPDATE OPTION IS ENABLED__
 
 5.  Creates an updated deployment configuration, applies it to the namespace, and waits for the deployment to complete its rolling-update.
-6.  Makes a second HTTP Get request to the servicee endpoint, looking for another `200 OK`.
+6.  Makes a second HTTP Get request to the service endpoint, looking for another `200 OK`.
 
 #### Check Details
 
@@ -47,18 +47,20 @@ __IF ROLLING-UPDATE OPTION IS ENABLED__
 
 #### Example KuberhealthyCheck Spec
 
+The following configuration will create a deployment with 4 replicas and roll from `nginx:1.17-perl` to `nginx:1.17.5-perl`:
+
 ```yaml
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: kh-deployment-check
+  name: deployment
   namespace: kuberhealthy
 spec:
   runInterval: 30m
-  timeout: 7m
+  timeout: 10m
   podSpec:
     containers:
-    - name: kh-deployment-check
+    - name: deployment
       image: quay.io/comcast/deployment-check:1.0.0
       imagePullPolicy: IfNotPresent
       env:
@@ -76,16 +78,19 @@ spec:
           value: "var1=foo,var2=bar"
       resources:
         requests:
-          cpu: 25m
+          cpu: 15m
           memory: 15Mi
         limits:
-          cpu: 40m
+          cpu: 25m
       restartPolicy: Always
 ```
 
 #### Install
 
-To use the *Deployment Check* with Kuberhealthy, apply the configuration file [deployment-check.yaml](deployment-check.yaml) to your Kubernetes Cluster.
+To use the *Deployment Check* with Kuberhealthy, apply the configuration file [deployment-check.yaml](deployment-check.yaml) to your Kubernetes Cluster. The following command will also apply the configuration file to your current context:
+
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/deployment-check/deployment-check.yaml`
+
 Make sure you are using the latest release of Kuberhealthy 2.0.0. 
 
 The check configuration file contains:
@@ -95,7 +100,3 @@ The check configuration file contains:
 - ServiceAccount
 
 The role, rolebinding, and service account are all required to create and delete all deployments and services from the check in the given namespaces you install the check for. The assumed default service account does not provide enough permissions for this check to run. 
-
-You can also create the service account directly by running: `kubectl create serviceaccount deployment-khcheck`. 
-This will create and apply the necessary secrets and tokens to your service account. Once you've created the service account, make 
-sure to apply the rest of the configurations for the Role, RoleBinding, and Kuberhealthy check. 

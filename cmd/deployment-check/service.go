@@ -46,7 +46,6 @@ func createServiceConfig(labels map[string]string) *corev1.Service {
 
 	// Make a service spec.
 	serviceSpec := corev1.ServiceSpec{
-		// Type:     corev1.ServiceTypeLoadBalancer,
 		Type:     corev1.ServiceTypeClusterIP,
 		Ports:    ports,
 		Selector: labels,
