@@ -41,7 +41,7 @@ func makeRestartObservationsMap(podName string, containerName string, restartCou
 
 func TestAddPodRestartCount(t *testing.T) {
 
-	expectedRestartObservations := makeRestartObservationsMap("test-pod", "container-name", 3)
+	expectedRestartObservations := makeRestartObservationsMap("test-pod", "container-name", 5)
 
 	var testCase = struct {
 		description string

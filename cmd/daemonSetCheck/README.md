@@ -5,7 +5,7 @@ is applied to your cluster, Kuberhealthy recognizes it as a KHCheck resource and
 Daemonset Check. The Daemonset Check deploys a Daemonset, and waits for all the daemonset pods to be in the 'Ready' 
 state, then terminates them and ensures all pod terminations were successful. 
 
-The check runs every 15 minutes (spec.runInterval), with a check timeout set to 10 minutes (spec.timeout). If the check 
+The check runs every 15 minutes (spec.runInterval), with a check timeout set to 12 minutes (spec.timeout). If the check 
 does not complete within the given timeout it will report a timeout error on the status page. The check takes in a 
 CHECK_POD_TIMEOUT environment variable that ensures the clean up of rogue daemonsets or daemonset pods after the check
 has finished within this timeout. 
@@ -22,13 +22,13 @@ deployment or tear down, an error is shown on the status page describing the iss
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: kh-daemonset-check
+  name: daemonset
   namespace: kuberhealthy
 spec:
   runInterval: 15m
   # Make sure this Kuberhealthy check timeout is GREATER THAN the daemonset checker timeout
   # set in the env var CHECK_POD_TIMEOUT. Default is set to 5m (5 minutes).
-  timeout: 10m
+  timeout: 12m
   extraAnnotations:
     comcast.com/testAnnotation: test.annotation
   extraLabels:
@@ -41,7 +41,7 @@ spec:
           - name: CHECK_POD_TIMEOUT
             # Make sure this value is less than the Kuberhealthy check timeout.
             # Default is set to 10m (10 minutes).
-            value: "5m"
+            value: "10m"
         image: quay.io/comcast/kh-daemonset-check:1.0.0
         imagePullPolicy: Always
         name: main
@@ -58,7 +58,10 @@ spec:
 
 #### How-to
 
-To implement the Daemonset Check with Kuberhealthy, apply the configuration file [daemonSetCheck.yaml](daemonSetCheck.yaml) to your Kubernetes Cluster.
+To implement the Daemonset Check with Kuberhealthy, run:
+ 
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/daemonSetCheck/daemonSetCheck.yaml`
+ 
 Make sure you are using the latest release of Kuberhealthy 2.0.0. 
 
 The configuration file contains:
