@@ -14,7 +14,7 @@ spec:
           - name: HOSTNAME
             value: "kubernetes.default"
         image: quay.io/comcast/dns-status-check:1.0.0
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: main
         resources:
           requests:
