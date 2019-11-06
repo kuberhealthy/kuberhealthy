@@ -76,8 +76,8 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace s
 	}
 }
 
-// AddCheck adds a check to Kuberhealthy.  Must be done before StartChecking
-// is called.
+// AddCheck adds a check to Kuberhealthy.  Must be done before Start or StartChecks
+// are called.
 func (k *Kuberhealthy) AddCheck(c KuberhealthyCheck) {
 	k.Checks = append(k.Checks, c)
 }
@@ -915,7 +915,7 @@ func (k *Kuberhealthy) getCurrentState() (health.State, error) {
 			}
 		}
 
-		state.CheckDetails[c.Name()] = checkDetails
+		state.CheckDetails[c.CheckNamespace()+"/"+c.Name()] = checkDetails
 	}
 	return state, nil
 }
