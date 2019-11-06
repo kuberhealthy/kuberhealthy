@@ -69,7 +69,6 @@ const stateCRDResource = "khstates"
 type Checker struct {
 	CheckName                string // the name of this checker
 	Namespace                string
-	ErrorMessages            []string
 	RunInterval              time.Duration // how often this check runs a loop
 	RunTimeout               time.Duration // time check must run completely within
 	KubeClient               *kubernetes.Clientset
@@ -100,7 +99,6 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 
 	// build the checker object
 	return &Checker{
-		ErrorMessages:            []string{},
 		Namespace:                checkConfig.Namespace,
 		KHCheckClient:            khCheckClient,
 		KHStateClient:            khStateClient,
@@ -116,15 +114,27 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 	}
 }
 
-// CurrentStatus returns the status of the check as of right now
+// CurrentStatus returns the status of the check as of right now.  For the external checker, this means checking
+// the khstatus resources on the cluster.
 func (ext *Checker) CurrentStatus() (bool, []string) {
-	ext.log("length of error message slice:", len(ext.ErrorMessages), ext.ErrorMessages)
-	if len(ext.ErrorMessages) > 0 {
-		ext.log("reporting OK FALSE due to error messages > 0")
-		return false, ext.ErrorMessages
+
+	// fetch the state from the resource
+	state, err := ext.getKHState()
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			// if the resource is not found, we default to "up" so not to throw alarms before the first run completes
+			return true, []string{}
+		}
+		return false, []string{err.Error()} // any other errors in fetching state will be seen as the check being down
 	}
-	ext.log("reporting OK TRUE due to error messages not > 0")
-	return true, ext.ErrorMessages
+
+	ext.log("length of error message slice:", len(state.Spec.Errors), state.Spec.Errors)
+	if len(state.Spec.Errors) > 0 {
+		ext.log("reporting check as OK=FALSE due to error messages > 0")
+		return false, state.Spec.Errors
+	}
+	ext.log("reporting OK=TRUE due to error messages NOT > 0")
+	return true, state.Spec.Errors
 }
 
 // Name returns the name of this check.  This name is used
@@ -169,13 +179,9 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	// if the pod had an error, we set the error
 	if err != nil {
 		ext.log("Error with running external check:", err)
-		ext.setError(err.Error())
-		return nil
+		return err
 	}
 
-	// no errors? set healthy check state
-	ext.log("exited clean. clearing errors")
-	ext.clearErrors()
 	return nil
 }
 
@@ -590,18 +596,23 @@ func (ext *Checker) sanityCheck() error {
 	return nil
 }
 
+// getKHState gets the khstate for this check from the resource in the API server
+func (ext *Checker) getKHState() (*khstatecrd.KuberhealthyState, error) {
+	// fetch the khstate as it exists
+	return ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.CheckName, ext.Namespace)
+}
+
 // getCheckLastUpdateTime fetches the last time the khstate custom resource for this check was updated
 // as a time.Time.
 func (ext *Checker) getCheckLastUpdateTime() (time.Time, error) {
 
-	// fetch the khstate as it exists
-	khstate, err := ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.CheckName, ext.Namespace)
+	// fetch the state from the resource
+	state, err := ext.getKHState()
 	if err != nil && strings.Contains(err.Error(), "not found") {
 		return time.Time{}, nil
 	}
 
-	return khstate.Spec.LastRun, err
-
+	return state.Spec.LastRun, err
 }
 
 // waitForPodStatusUpdate waits for a pod status to update from the specified time
@@ -1039,21 +1050,6 @@ func (ext *Checker) Shutdown() error {
 
 	ext.log(ext.Name(), "Pod "+ext.PodName+" successfully shutdown.")
 	return nil
-}
-
-// clearErrors clears all errors from the checker
-func (ext *Checker) clearErrors() {
-	ext.ErrorMessages = []string{}
-}
-
-// setError sets the error message for the checker and overwrites all prior state
-func (ext *Checker) setError(s string) {
-	ext.ErrorMessages = []string{s}
-}
-
-// addError adds an error to the errors list
-func (ext *Checker) addError(s string) {
-	ext.ErrorMessages = append(ext.ErrorMessages, s)
 }
 
 // podDeployed returns a bool indicating that the pod
