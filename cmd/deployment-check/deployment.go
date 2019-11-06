@@ -29,7 +29,7 @@ import (
 
 const (
 	// Default deployment values.
-	defaultLabelKey        = "kh-deployment-timestamp"
+	defaultLabelKey        = "deployment-timestamp"
 	defaultLabelValueBase  = "unix-"
 	defaultMinReadySeconds = 5
 
