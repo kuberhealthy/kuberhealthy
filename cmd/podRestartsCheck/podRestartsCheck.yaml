@@ -16,7 +16,7 @@ spec:
           - name: MAX_FAILURES_ALLOWED
             value: "5"
         image: quay.io/comcast/pod-restarts-check:1.0.0
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: main
         resources:
           requests:

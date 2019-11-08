@@ -10,5 +10,5 @@ import (
 func CreateAWSSession() *session.Session {
 	// Build an AWS session.
 	log.Infoln("Building AWS session.")
-	return session.Must(session.NewSession(aws.NewConfig()))
+	return session.Must(session.NewSession(aws.NewConfig().WithCredentialsChainVerboseErrors(true)))
 }

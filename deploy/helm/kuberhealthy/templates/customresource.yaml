@@ -1,0 +1,228 @@
+{{- if .Values.check.daemonset }}
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: daemonset
+spec:
+  runInterval: 15m
+  timeout: 12m
+  podSpec:
+    containers:
+      - env:
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: CHECK_POD_TIMEOUT
+            value: "10m"
+        image: quay.io/comcast/kh-daemonset-check:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
+    serviceAccountName: daemonset-khcheck
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: daemonset-khcheck
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ds-admin
+subjects:
+  - kind: ServiceAccount
+    name: daemonset-khcheck
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ds-admin
+rules:
+  - apiGroups:
+      - ""
+      - extensions
+      - app
+    resources:
+      - daemonsets
+      - pods
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: daemonset-khcheck
+{{- end }}
+
+{{- if .Values.check.deployment }}
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: deployment
+spec:
+  runInterval: 30m
+  timeout: 10m
+  podSpec:
+    containers:
+    - name: deployment
+      image: quay.io/comcast/deployment-check:1.0.0
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: CHECK_DEPLOYMENT_REPLICAS
+          value: "4"
+        - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
+          value: "true"
+      resources:
+        requests:
+          cpu: 25m
+          memory: 15Mi
+        limits:
+          cpu: 40m
+      restartPolicy: Always
+    serviceAccountName: deployment-sa
+    terminationGracePeriodSeconds: 60
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deployment-check-rb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: deployment-service-role
+subjects:
+  - kind: ServiceAccount
+    name: deployment-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deployment-service-role
+rules:
+  - apiGroups:
+      - "apps"
+    resources:
+      - deployments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - services
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deployment-sa
+{{- end }}
+
+{{- if .Values.check.dnsInternal }}
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: dns-status-internal
+spec:
+  runInterval: 2m
+  timeout: 15m
+  podSpec:
+    containers:
+      - env:
+          - name: CHECK_POD_TIMEOUT
+            value: "110s"
+          - name: HOSTNAME
+            value: "kubernetes.default"
+        image: quay.io/comcast/dns-status-check:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
+{{- end }}
+
+{{- if .Values.check.podRestarts }}
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: pod-restarts
+spec:
+  runInterval: 60m
+  timeout: 62m
+  podSpec:
+    containers:
+      - env:
+          - name: POD_NAMESPACE
+            value: "kube-system"
+          - name: CHECK_RUN_WINDOW
+            value: "55m"
+          - name: MAX_FAILURES_ALLOWED
+            value: "5"
+        image: quay.io/comcast/pod-restarts-check:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
+{{- end }}
+
+{{- if .Values.check.podStatus }}
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: pod-status-check
+spec:
+  runInterval: 5m
+  timeout: 15m
+  podSpec:
+    containers:
+      - env:
+          - name: TARGET_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        image: quay.io/comcast/pod-status-check:1.0.0
+        imagePullPolicy: Always
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
+{{- end }}

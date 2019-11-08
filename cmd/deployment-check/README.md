@@ -32,12 +32,12 @@ __IF ROLLING-UPDATE OPTION IS ENABLED__
 - Namespace: kuberhealthy
 - Timeout: 5 minutes
 - Check Interval: 30 minutes
-- Check name: `kh-deployment-check`
+- Check name: `deployment`
 - Configurable check environment variables:
   - `CHECK_IMAGE`: Initial container image. (default=`nginx:latest`)
   - `CHECK_IMAGE_ROLL_TO`: Container image to roll to. (default=`nginx:alpine`)
-  - `CHECK_DEPLOYMENT_NAME`: Name for the check's deployment. (default=`kh-deployment-check-deployment`)
-  - `CHECK_SERVICE_NAME`: Name for the check's service. (default=`kh-deployment-check-service`)
+  - `CHECK_DEPLOYMENT_NAME`: Name for the check's deployment. (default=`deployment-deployment`)
+  - `CHECK_SERVICE_NAME`: Name for the check's service. (default=`deployment-svc`)
   - `CHECK_NAMESPACE`: Namespace for the check (default=`kuberhealthy`).
   - `CHECK_DEPLOYMENT_REPLICAS`: Number of replicas in the deployment (default=`2`).
   - `CHECK_TIME_LIMIT_SECONDS`: Number of seconds the check will allow itself before timing out.
