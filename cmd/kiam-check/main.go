@@ -57,6 +57,9 @@ func init() {
 
 func main() {
 
+	// Give the k8s API enough time to allocate IPs.
+	time.Sleep(15)
+
 	var err error
 
 	// Create an AWS client.
