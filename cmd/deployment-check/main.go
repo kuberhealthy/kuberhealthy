@@ -96,7 +96,7 @@ var (
 
 const (
 	// Default container name.
-	defaultCheckContainerName = "kh-deployment-check-container"
+	defaultCheckContainerName = "deployment-container"
 
 	// Default images used for check.
 	defaultCheckImageURL  = "nginx:latest"
@@ -109,8 +109,8 @@ const (
 	defaultCheckLoadBalancerPort = int32(80)
 
 	// Default k8s manifest resource names.
-	defaultCheckDeploymentName = "kh-deployment-check-deployment"
-	defaultCheckServiceName    = "kh-deployment-check-service"
+	defaultCheckDeploymentName = "deployment-deployment"
+	defaultCheckServiceName    = "deployment-svc"
 
 	// Default namespace for the check to run in.
 	defaultCheckNamespace = "kuberhealthy"
