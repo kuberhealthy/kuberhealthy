@@ -7,6 +7,14 @@ build:
 push:
 	docker push $(IMAGE):$(TAG)
 
+amiCheck: buildAMICheck pushAMICheck
+
+buildAMICheck:
+	docker build -t quay.io/comcast/ami-check:1.0.0 -f cmd/ami-check/Dockerfile .
+
+pushAMICheck:
+	docker push quay.io/comcast/ami-check:1.0.0
+
 external: buildExternalChecker pushExternalChecker
 
 buildExternalChecker:
@@ -30,6 +38,14 @@ buildDaemonsetCheck:
 
 pushDaemonsetCheck:
 	docker push quay.io/comcast/kh-daemonset-check:1.0.0
+
+kiamCheck: buildKIAMCheck pushKIAMCheck
+
+buildKIAMCheck:
+	docker build -t quay.io/comcast/kiam-check:1.0.0 -f cmd/kiam-check/Dockerfile .
+
+pushKIAMCheck:
+	docker push quay.io/comcast/kiam-check:1.0.0
 
 podRestarts: buildPodRestartsCheck pushPodRestartsCheck
 
