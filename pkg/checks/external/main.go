@@ -529,8 +529,7 @@ func (ext *Checker) RunOnce() error {
 	// after the pod reports in, we no longer want to watch for it to be removed, so we shut that waiter down
 	cancelWatchForPodShutdown()
 
-	// validate that the pod stopped running properly
-	ext.log("Waiting for pod to exit")
+	// validate that the pod stopped running properly (wait for the pod to exit)
 	select {
 	case <-timeoutChan:
 		errorMessage := "timed out waiting for pod to exit"
