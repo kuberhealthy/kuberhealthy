@@ -20,8 +20,10 @@ import (
 
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var namespace string
+var skipDurationEnv string
 
 func init() {
+	skipDurationEnv = os.Getenv("SKIP_DURATION")
 	namespace = os.Getenv("TARGET_NAMESPACE")
 	checkclient.Debug = true
 }
@@ -74,10 +76,26 @@ func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
 	if err != nil {
 		return failures, err
 	}
+
+	// calculate acceptable times for pods to be skipped in
+	skipDuration, err := time.ParseDuration(skipDurationEnv)
+	if err != nil {
+		log.Println("failed to parse skip duration:", err.Error())
+		err = checkclient.ReportFailure([]string{"failed to parse skip duration: " + err.Error()})
+		if err != nil {
+			log.Println("Failed to report failure to upstream kuberhealthy servers", err)
+			os.Exit(2)
+		}
+		os.Exit(1)
+	}
+	checkTime := time.Now()
+	skipBarrier := checkTime.Add(-skipDuration)
+
 	// start iteration over pods
 	for _, pod := range pods.Items {
 		// check if the pod age is over 10 minutes
-		if time.Now().Sub(pod.CreationTimestamp.Time).Minutes() < 10 {
+		if pod.CreationTimestamp.Time.After(skipBarrier) {
+			log.Println("skipping checks on pod because it is too young:", pod.Name)
 			continue
 		}
 
