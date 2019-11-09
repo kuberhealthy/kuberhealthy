@@ -460,13 +460,13 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		log.Infoln("Running check:", c.Name())
 		err := c.Run(kubernetesClient)
 		if err != nil {
+			log.Errorln("Error running check:", c.Name(), "in namespace", c.CheckNamespace()+":", err)
 			if strings.Contains(err.Error(), "pod deleted expectedly") {
 				log.Infoln("Skipping this run due to expected pod removal before completion")
 				<-ticker.C
 			}
 			// set any check run errors in the CRD
 			k.setCheckExecutionError(c.Name(), c.CheckNamespace(), err)
-			log.Errorln("Error running check:", c.Name(), "in namespace", c.CheckNamespace()+":", err)
 			<-ticker.C
 			continue
 		}
