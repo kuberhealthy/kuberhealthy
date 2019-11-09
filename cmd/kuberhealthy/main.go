@@ -96,13 +96,8 @@ func init() {
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
 	flaggy.String(&listenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
-	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
-	flaggy.Bool(&enableExternalChecks, "", "externalChecks", "Set to false to disable external checks.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
-	flaggy.String(&DSPauseContainerImageOverride, "", "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
-	flaggy.StringSlice(&DSTolerationOverride, "", "tolerationOverride", "Specify a specific taint (in a key,value,effect format, ex. node-role.kubernetes.io/master,,NoSchedule or dedicated,someteam,NoSchedule)  to tolerate and force DaemonSetChecker to tolerate only nodes with that taint. Use the flag multiple times to add multiple tolerations. Default behavior is to tolerate all taints in the cluster.")
-	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
 	flaggy.String(&logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
 	// Influx flags
 	flaggy.String(&influxUsername, "", "influxUser", "Username for the InfluxDB instance")

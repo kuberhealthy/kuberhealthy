@@ -32,7 +32,6 @@ import (
 
 	"github.com/Comcast/kuberhealthy/pkg/checks/external"
 	"github.com/Comcast/kuberhealthy/pkg/checks/external/status"
-	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
 	"github.com/Comcast/kuberhealthy/pkg/health"
 	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
@@ -938,26 +937,11 @@ func (k *Kuberhealthy) configureChecks() {
 	// wipe all existing checks before we configure
 	k.Checks = []KuberhealthyCheck{}
 
-	// add pod status checking if enabled
-	if enablePodStatusChecks {
-		log.Infoln("Enabling pod status checker")
-		// Split the podCheckNamespaces into a []string
-		namespaces := strings.Split(podCheckNamespaces, ",")
-		for _, namespace := range namespaces {
-			n := strings.TrimSpace(namespace)
-			if len(n) > 0 {
-				kuberhealthy.AddCheck(podStatus.New(n))
-			}
-		}
-	}
-
 	// check external check configurations
-	if enableExternalChecks {
-		log.Infoln("Enabling external checks...")
-		err := kuberhealthy.addExternalChecks()
-		if err != nil {
-			log.Errorln("Error loading external checks:", err)
-		}
+	log.Infoln("Enabling external checks...")
+	err := kuberhealthy.addExternalChecks()
+	if err != nil {
+		log.Errorln("Error loading external checks:", err)
 	}
 }
 

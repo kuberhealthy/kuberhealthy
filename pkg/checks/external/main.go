@@ -435,7 +435,7 @@ func (ext *Checker) RunOnce() error {
 	ext.log("Waiting for all existing pods to clean up")
 	select {
 	case <-timeoutChan:
-		ext.log("timed out")
+		ext.log("timed out waiting for all existing pods to clean up")
 		ext.cleanup()
 		errorMessage := "failed to see pod cleanup within timeout"
 		ext.log(errorMessage)
@@ -471,7 +471,7 @@ func (ext *Checker) RunOnce() error {
 	// watch for pod to start with a timeout (include time for a new node to be created)
 	select {
 	case <-timeoutChan:
-		ext.log("timed out")
+		ext.log("timed out waiting for pod to startup")
 		ext.cleanup()
 		return ext.newError("failed to see pod running within timeout")
 	case <-shutdownEventNotifyC:
@@ -497,7 +497,7 @@ func (ext *Checker) RunOnce() error {
 	ext.log("Waiting for pod status to be reported from pod", ext.PodName, "in namespace", ext.Namespace)
 	select {
 	case <-timeoutChan:
-		ext.log("timed out")
+		ext.log("timed out waiting for pod status to be reported")
 		ext.cleanup()
 		errorMessage := "timed out waiting for checker pod to report in"
 		ext.log(errorMessage)
@@ -533,10 +533,9 @@ func (ext *Checker) RunOnce() error {
 	ext.log("Waiting for pod to exit")
 	select {
 	case <-timeoutChan:
-		ext.log("timed out")
-		ext.cleanup()
 		errorMessage := "timed out waiting for pod to exit"
 		ext.log(errorMessage)
+		ext.cleanup()
 		return ext.newError(errorMessage)
 	case err = <-ext.waitForPodExit():
 		ext.log("External check pod is done running:", ext.PodName)
@@ -1009,9 +1008,11 @@ func (ext *Checker) waitForShutdown(ctx context.Context) error {
 		time.Sleep(time.Second * 5)
 		exists, err := ext.podExists()
 		if err != nil {
+			ext.log("shutdown completed with error: ", err)
 			return err
 		}
 		if !exists {
+			ext.log("shutdown completed")
 			return nil
 		}
 
@@ -1055,15 +1056,11 @@ func (ext *Checker) Shutdown() error {
 // podDeployed returns a bool indicating that the pod
 // for this check exists and is deployed
 func (ext *Checker) podDeployed() bool {
-	ext.PodDeployedMu.Lock()
-	defer ext.PodDeployedMu.Unlock()
 	return ext.PodDeployed
 }
 
 // setPodDeployed sets the pod deployed state
 func (ext *Checker) setPodDeployed(status bool) {
-	ext.PodDeployedMu.Lock()
-	defer ext.PodDeployedMu.Unlock()
 	ext.PodDeployed = status
 }
 
