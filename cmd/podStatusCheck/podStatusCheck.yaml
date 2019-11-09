@@ -9,6 +9,8 @@ spec:
   podSpec:
     containers:
       - env:
+          - name: SKIP_DURATION
+            value: "10m"
           - name: TARGET_NAMESPACE
             valueFrom:
               fieldRef:
