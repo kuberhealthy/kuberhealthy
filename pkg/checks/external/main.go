@@ -447,7 +447,7 @@ func (ext *Checker) RunOnce() error {
 			return ext.newError(errorMessage)
 		}
 	case <-ext.shutdownCTX.Done():
-		ext.log("shutting down check")
+		ext.log("shutting down check. aborting wait for all pods to clean up")
 		return nil
 	}
 	ext.log("No checker pods exist.")
@@ -522,7 +522,7 @@ func (ext *Checker) RunOnce() error {
 		}
 		ext.log("External check pod has reported status for this check iteration:", ext.PodName)
 	case <-ext.shutdownCTX.Done():
-		ext.log("shutting down check")
+		ext.log("shutting down check. aborting wait for pod status to update")
 		return nil
 	}
 
@@ -544,7 +544,7 @@ func (ext *Checker) RunOnce() error {
 			return ext.newError(errorMessage)
 		}
 	case <-ext.shutdownCTX.Done():
-		ext.log("shutting down check")
+		ext.log("shutting down check. aborting wait for pod to be done running")
 		return nil
 	}
 
