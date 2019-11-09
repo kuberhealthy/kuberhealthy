@@ -18,6 +18,8 @@ spec:
   podSpec:
     containers:
       - env:
+          - name: SKIP_DURATION # the duration of time that pods are ignored for after being created
+            value: "10m"
           - name: TARGET_NAMESPACE
             valueFrom:
               fieldRef:
