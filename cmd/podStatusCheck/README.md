@@ -24,8 +24,8 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-        image: quay.io/comcast/pod-status-check:1.0.0
-        imagePullPolicy: Always
+        image: quay.io/comcast/pod-status-check:1.1.0
+        imagePullPolicy: IfNotPresent
         name: main
         resources:
           requests:
