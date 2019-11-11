@@ -1,7 +1,7 @@
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: pod-status-check
+  name: pod-status
   namespace: kuberhealthy
 spec:
   runInterval: 5m
