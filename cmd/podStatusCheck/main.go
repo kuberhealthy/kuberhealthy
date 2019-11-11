@@ -63,11 +63,7 @@ func main() {
 	}
 }
 
-// testing with a switch
-// in the case where we have a pod status of "Running" but has a container error in "Crashloopbackoff"
-// needs to be further researched, as this specific scenario may always be caught by the podRestarts check
-// are there any other conditions that we need to look for where a pod is Running or Succeeded but the
-// containers within them are unhealthy???
+// finds pods that are older than 10 minutes and are in an unhealthy lifecycle phase
 func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
 
 	var failures []string
@@ -99,8 +95,8 @@ func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
 			continue
 		}
 
-		// find pods that are in phase Running/Succeeded
-		// find pods that are in phase Pending/Failed/Unknown then add to list failed pods
+		// pods that are in phase Running/Succeeded are healthy
+		// pods that are in phase Pending/Failed/Unknown are unhealthy and added to our list of failed pods
 		// log if there is no match to the 5 possible pod status phases
 		switch {
 		case pod.Status.Phase == v1.PodRunning:
