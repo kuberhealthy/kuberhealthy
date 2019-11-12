@@ -87,6 +87,7 @@ type Checker struct {
 	Debug                    bool               // indicates we should run in debug mode - run once and stop
 	shutdownCTXFunc          context.CancelFunc // used to cancel things in-flight when shutting down gracefully
 	shutdownCTX              context.Context    // a context used for shutting down the check gracefully
+	wg                       sync.WaitGroup     // used to track background workers and processes
 }
 
 // New creates a new external checker
@@ -242,6 +243,9 @@ func (ext *Checker) setUUID(uuid string) error {
 // the context can be used to shutdown this checker gracefully.
 func (ext *Checker) watchForCheckerPodShutdown(shutdownEventNotifyC chan struct{}, ctx context.Context) {
 
+	ext.wg.Add(1)
+	defer ext.wg.Done()
+
 	// make a channel to abort the waiter with and start it in the background
 	listOptions := metav1.ListOptions{
 		LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
@@ -324,6 +328,9 @@ func (ext *Checker) startPodWatcher(listOptions metav1.ListOptions, ctx context.
 // waitForDeletedEvent watches a channel of results from a pod watch and notifies the returned channel when a
 // removal is observed.  The supplied abort channel is for shutting down gracefully.
 func (ext *Checker) waitForDeletedEvent(eventsIn <-chan watch.Event, sawRemovalChan chan struct{}, stoppedChan chan struct{}) {
+
+	ext.wg.Add(1)
+	defer ext.wg.Done()
 
 	// restart the watcher repeatedly forever until we are told to shutdown
 	ext.log("starting pod shutdown watcher")
@@ -633,6 +640,9 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time) chan error 
 
 	go func() {
 
+		ext.wg.Add(1)
+		defer ext.wg.Done()
+
 		// watch events and return when the pod is in state running
 		for {
 
@@ -699,6 +709,10 @@ func (ext *Checker) waitForAllPodsToClear() chan error {
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
 	go func() {
+
+		ext.wg.Add(1)
+		defer ext.wg.Done()
+
 		// watch events and return when the pod is in state running
 		for {
 			log.Debugln("Waiting for checker pod", ext.PodName, "to clear...")
@@ -748,6 +762,9 @@ func (ext *Checker) waitForPodExit() chan error {
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
 	go func() {
+
+		ext.wg.Add(1)
+		defer ext.wg.Done()
 
 		for {
 
@@ -814,6 +831,9 @@ func (ext *Checker) waitForPodStart() chan error {
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
 	go func() {
+
+		ext.wg.Add(1)
+		defer ext.wg.Done()
 
 		// watch over and over again until we see our event or run out of time
 		for {
@@ -1046,21 +1066,27 @@ func (ext *Checker) Shutdown() error {
 	// make a context to track pod removal and cleanup
 	ctx, _ := context.WithTimeout(context.Background(), ext.Timeout())
 
-	// if the pod is deployed, delete it
+	// if the external checker pod is deployed, delete it and wait for it to clera
 	if ext.podDeployed() {
 		err := ext.deletePod()
 		if err != nil {
 			ext.log("Error deleting pod during shutdown:", err)
 			return err
 		}
-		err = ext.waitForShutdown(ctx)
-		if err != nil {
-			ext.log("Error waiting for pod removal during shutdown:", err)
-			return err
-		}
 	}
 
-	ext.log(ext.Name(), "Pod "+ext.PodName+" successfully shutdown.")
+	// make sure the pod is gone before we shutdown
+	err := ext.waitForShutdown(ctx)
+	if err != nil {
+		ext.log("Error waiting for pod removal during shutdown:", err)
+		return err
+	}
+
+	// wait for all background checkers and workers to finish before the check is fully "shutdown"
+	ext.log("Waiting for background workers to cleanup...")
+	ext.wg.Wait()
+
+	ext.log("Pod " + ext.PodName + " successfully shutdown.")
 	return nil
 }
 
