@@ -58,7 +58,7 @@ func makeRequestToDeploymentCheckService(hostname string) chan error {
 			}
 
 			if result.Response == nil {
-				err := fmt.Errorf("could not get a response from the hostname")
+				err := fmt.Errorf("could not get a response from the given address: %s", hostname)
 				requestChan <- err
 				return
 			}
@@ -106,8 +106,8 @@ func getRequestBackoff(hostname string) chan RequestResult {
 		attempts := 1
 		maxRetries := 10
 		log.Infoln("Beginning backoff loop for HTTP", http.MethodGet, "request.")
-		err := errors.New("")
-		for err != nil { // Loop on http.Get() errors.
+		err := errors.New("") // Set err to something that is not nil to start the following loop.
+		for err != nil {      // Loop on http.Get() errors.
 			if attempts > maxRetries {
 				log.Infoln("Could not successfully make an HTTP request after", attempts, "attempts.")
 				requestResult.Err = err
@@ -141,7 +141,7 @@ func getRequestBackoff(hostname string) chan RequestResult {
 		}
 		if err != nil {
 			log.Errorln("Could not make a", http.MethodGet, "request to", hostname, "due to:", err.Error())
-			requestResult.Err = fmt.Errorf("failed to hit hostname endpoint after backoff loop: %w", err)
+			requestResult.Err = fmt.Errorf("failed to hit endpoint after backoff loop: %w", err)
 		}
 
 		requestResultChan <- requestResult
