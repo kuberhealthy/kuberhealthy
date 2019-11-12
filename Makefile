@@ -50,10 +50,10 @@ pushKIAMCheck:
 podRestarts: buildPodRestartsCheck pushPodRestartsCheck
 
 buildPodRestartsCheck:
-	docker build -t quay.io/comcast/pod-restarts-check:1.0.0 -f cmd/podRestartsCheck/Dockerfile .
+	docker build -t quay.io/comcast/pod-restarts-check:1.0.1 -f cmd/podRestartsCheck/Dockerfile .
 
 pushPodRestartsCheck:
-	docker push quay.io/comcast/pod-restarts-check:1.0.0
+	docker push quay.io/comcast/pod-restarts-check:1.0.1
 
 dnsStatus: buildDNSStatusCheck pushDNSStatusCheck
 
