@@ -209,7 +209,7 @@ func (ext *Checker) cleanup() {
 
 // setUUID sets the current whitelisted UUID for the checker and updates it on the server
 func (ext *Checker) setUUID(uuid string) error {
-	log.Debugln("Set expected UUID to:", uuid)
+	log.Debugln("Setting expected UUID to:", uuid)
 	checkConfig, err := ext.getCheck()
 	if err != nil && !strings.Contains(err.Error(), "not found") {
 		return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
@@ -751,9 +751,11 @@ func (ext *Checker) waitForPodExit() chan error {
 		for {
 
 			ext.log("starting pod exit watcher")
+			// Eric Greer: This was moved away from a watch because the watch was not getting updates of pods shutting
+			// down sometimes, causing false alerts that checker pods failed to stop.
 
 			// start a new watch request
-			watcher, err := podClient.Watch(metav1.ListOptions{
+			pods, err := podClient.List(metav1.ListOptions{
 				LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
 			})
 
@@ -764,40 +766,36 @@ func (ext *Checker) waitForPodExit() chan error {
 			}
 
 			// watch events and return when the pod is in state running
-			for e := range watcher.ResultChan() {
-				ext.log("got a result when watching for pod to exit")
+			var podExists bool
+			for _, p := range pods.Items {
 
-				// try to cast the incoming object to a pod and skip the event if we cant
-				p, ok := e.Object.(*apiv1.Pod)
-				if !ok {
-					ext.log("got a watch event for a non-pod object and ignored it")
-					continue
+				// if the pod is running or pending, we consider it to "exist"
+				if p.Status.Phase == apiv1.PodRunning || p.Status.Phase == apiv1.PodPending {
+					podExists = true
+					break
 				}
 
-				// log.Debugln("Got event while watching for pod to stop:", e)
-
-				// make sure the pod coming through the event channel has the right check uuid label
-				ext.log("pod state is now:", string(p.Status.Phase))
-				// read the status of this pod (its ours) and return if its succeeded or failed
-				if p.Status.Phase == apiv1.PodSucceeded || p.Status.Phase == apiv1.PodFailed {
-					ext.log("pod has changed to either succeeded or failed")
-					watcher.Stop()
-					outChan <- nil
-					return
-				}
-
-				// if the context is done, we break the loop and return
-				select {
-				case <-ext.shutdownCTX.Done():
-					ext.log("external checker pod exit watch aborted due to check context being aborted")
-					watcher.Stop()
-					outChan <- nil
-					return
-				default:
-					// context is not canceled yet, continue
-				}
 			}
+
+			// if the pod does not exist, our watch has ended.
+			if !podExists {
+				outChan <- nil
+				return
+			}
+
+			// if the context is done, we break the checking loop and return cleanly
+			select {
+			case <-ext.shutdownCTX.Done():
+				ext.log("external checker pod aborted due to check context being aborted")
+				outChan <- nil
+				return
+			default:
+				// context is not canceled yet, continue
+			}
+
+			time.Sleep(time.Second * 5) // sleep between polls
 		}
+
 	}()
 
 	return outChan
