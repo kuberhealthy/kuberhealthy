@@ -131,11 +131,19 @@ func shutdownAfterDuration(duration time.Duration) {
 
 	log.Infoln("Check run has completed successfully. Reporting check success to Kuberhealthy.")
 
-	err := checkclient.ReportSuccess()
-	if err != nil {
-		log.Println("Error reporting success to Kuberhealthy servers:", err)
+	length := 0
+	BadPodRestarts.Range(func(_, _ interface{}) bool {
+		length++
+		return true
+	})
+
+	if length == 0 {
+		err := checkclient.ReportSuccess()
+		if err != nil {
+			log.Println("Error reporting success to Kuberhealthy servers:", err)
+		}
+		log.Println("Successfully reported success to Kuberhealthy servers")
 	}
-	log.Println("Successfully reported success to Kuberhealthy servers")
 
 	os.Exit(0)
 }
