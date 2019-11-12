@@ -296,6 +296,6 @@ func (prc *Checker) statusReporter() {
 			continue
 		}
 
-		log.Println("No bad pod with restarts found, starting next tick:", ticker.C)
+		log.Println("No bad pod with restarts found, starting next tick")
 	}
 }
