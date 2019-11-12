@@ -513,7 +513,6 @@ func (ext *Checker) RunOnce() error {
 			ext.log("pod removed expectedly while waiting for it to report in")
 			return ErrPodRemovedExpectedly
 		}
-		ext.log("External check pod has reported status for this check iteration:", ext.PodName)
 	case err = <-ext.waitForPodStatusUpdate(lastReportTime):
 		if err != nil {
 			errorMessage := "found an error when waiting for pod status to update: " + err.Error()
@@ -552,14 +551,14 @@ func (ext *Checker) RunOnce() error {
 	return nil
 }
 
-// Log writes a normal InfoLn message output prefixed with this checker's name on it
+// log writes a normal InfoLn message output prefixed with this checker's name on it
 func (ext *Checker) log(s ...interface{}) {
 	log.Infoln(ext.Namespace+"/"+ext.CheckName+":", s)
 }
 
 // deletePod deletes any pods running because of this external checker
 func (ext *Checker) deletePod() error {
-	ext.log("Deleting checker pods with name", ext.CheckName)
+	ext.log("Deleting checker pod with name", ext.CheckName)
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 	gracePeriodSeconds := int64(1)
 	deletionPolicy := metav1.DeletePropagationForeground
