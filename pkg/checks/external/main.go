@@ -565,7 +565,7 @@ func (ext *Checker) RunOnce() error {
 
 // log writes a normal InfoLn message output prefixed with this checker's name on it
 func (ext *Checker) log(s ...interface{}) {
-	log.Infoln(ext.Namespace+"/"+ext.CheckName+":", s)
+	log.Infoln(ext.currentCheckUUID+" "+ext.Namespace+"/"+ext.CheckName+":", s)
 }
 
 // deletePod deletes any pods running because of this external checker
