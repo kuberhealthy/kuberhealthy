@@ -6,6 +6,7 @@ metadata:
 spec:
   finalizers:
   - kubernetes
+
 ---
 # Source: kuberhealthy/templates/serviceaccount.yaml
 apiVersion: v1
@@ -203,8 +204,8 @@ spec:
                   - kuberhealthy
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - image: quay.io/comcast/kuberhealthy:2.0.0rc3
-        imagePullPolicy: Never
+      - image: quay.io/comcast/kuberhealthy:2.0.0
+        imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
           initialDelaySeconds: 2
