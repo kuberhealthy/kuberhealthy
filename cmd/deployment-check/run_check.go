@@ -125,7 +125,7 @@ func runDeploymentCheck() {
 			errorReport = append(errorReport, cleanUpError.Error())
 		}
 		// hostnameError := fmt.Errorf("service load balancer ingress hostname is nil: %s", hostname)
-		addressError := fmt.Errorf("service load balancer ingress hostname is nil: %s", ipAddress)
+		addressError := fmt.Errorf("service cluster IP address is nil: %s", ipAddress)
 		// Report errors to Kuberhealthy and exit.
 		errorReport = append(errorReport, addressError.Error())
 		reportErrorsToKuberhealthy(errorReport)

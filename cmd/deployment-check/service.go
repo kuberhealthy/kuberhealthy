@@ -84,6 +84,12 @@ func createService(serviceConfig *corev1.Service) chan ServiceResult {
 			createChan <- result
 			return
 		}
+		if service == nil {
+			err = errors.New("got a nil service result: ")
+			log.Errorln("Failed to create a service in the cluster: %w", err)
+			result.Err = err
+			createChan <- result
+		}
 
 		for {
 			log.Infoln("Watching for service to exist.")
@@ -98,6 +104,10 @@ func createService(serviceConfig *corev1.Service) chan ServiceResult {
 				result.Err = err
 				createChan <- result
 				return
+			}
+			// If the watch is nil, skip to the next loop and make a new watch object.
+			if watch == nil {
+				continue
 			}
 
 			// There can be 2 events here: Service ingress has at least 1 hostname endpoint or Context timeout.
@@ -161,7 +171,6 @@ func deleteService() error {
 
 			// Watch for a DELETED event.
 			for event := range watch.ResultChan() {
-
 				log.Debugln("Received an event watching for service changes:", event.Type)
 
 				s, ok := event.Object.(*corev1.Service)
@@ -219,6 +228,10 @@ func cleanUpOrphanedService() error {
 				log.Infoln("Error creating watch client.")
 				cleanUpChan <- err
 				return
+			}
+			// If the watch is nil, skip to the next loop and make a new watch object.
+			if watch == nil {
+				continue
 			}
 
 			// Watch for a DELETED event.
@@ -280,6 +293,11 @@ func findPreviousService() (bool, error) {
 		log.Infoln("Error listing services:", err)
 		return false, err
 	}
+	if serviceList == nil {
+		log.Infoln("Received an empty list of services:", serviceList)
+		return false, errors.New("received empty list of services")
+	}
+
 	log.Debugln("Found", len(serviceList.Items), "service(s).")
 
 	if debug { // Print out all the found deployments if debug logging is enabled.
@@ -292,6 +310,9 @@ func findPreviousService() (bool, error) {
 	for _, svc := range serviceList.Items {
 
 		// Check using names.
+		if &svc.Name == nil {
+			continue
+		}
 		if svc.Name == checkServiceName {
 			log.Infoln("Found an old service belonging to this check:", svc.Name)
 			return true, nil
@@ -333,7 +354,11 @@ func getServiceClusterIP() string {
 
 	svc, err := client.CoreV1().Services(checkNamespace).Get(checkServiceName, metav1.GetOptions{})
 	if err != nil {
-		log.Infoln("Error occurred attempting to list service while retrieving service cluster IP:", err)
+		log.Errorln("Error occurred attempting to list service while retrieving service cluster IP:", err)
+		return ""
+	}
+	if svc == nil {
+		log.Errorln("Failed to get service, received a nil object:", svc)
 		return ""
 	}
 
@@ -372,6 +397,9 @@ func waitForServiceToDelete() chan bool {
 // serviceAvailable checks the amount of ingress endpoints associated to the service.
 // This will return a true if there is at least 1 hostname endpoint.
 func serviceAvailable(service *corev1.Service) bool {
+	if service == nil {
+		return false
+	}
 	if len(service.Spec.ClusterIP) != 0 {
 		log.Infoln("Cluster IP found:", service.Spec.ClusterIP)
 		return true

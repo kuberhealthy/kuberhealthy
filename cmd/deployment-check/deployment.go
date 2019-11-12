@@ -170,6 +170,13 @@ func createDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 			createChan <- result
 			return
 		}
+		if deployment == nil {
+			err = errors.New("got a nil deployment result: ")
+			log.Errorln("Failed to create a deployment in the cluster: %w", err)
+			result.Err = err
+			createChan <- result
+			return
+		}
 
 		for {
 			log.Infoln("Watching for deployment to exist.")
@@ -184,6 +191,10 @@ func createDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 				result.Err = err
 				createChan <- result
 				return
+			}
+			// If the watch is nil, skip to the next loop and make a new watch object.
+			if watch == nil {
+				continue
 			}
 
 			// There can be 2 events here: Available = True status update from deployment or Context timeout.
@@ -337,14 +348,13 @@ func deleteDeployment() error {
 
 			// Watch for a DELETED event.
 			for event := range watch.ResultChan() {
+				log.Debugln("Received an event watching for service changes:", event.Type)
 
 				d, ok := event.Object.(*v1.Deployment)
 				if !ok {
 					log.Infoln("Got a watch event for a non-deployment object -- ignoring.")
 					continue
 				}
-
-				log.Debugln("Received an event watching for deployment changes:", d.Name, "got event", event.Type)
 
 				// We want an event type of DELETED here.
 				if event.Type == watchpkg.Deleted {
@@ -385,22 +395,22 @@ func cleanUpOrphanedDeployment() error {
 	go func() {
 		defer close(cleanUpChan)
 
-		// Watch that it is gone.
-		watch, err := client.AppsV1().Deployments(checkNamespace).Watch(metav1.ListOptions{
-			Watch:         true,
-			FieldSelector: "metadata.name=" + checkDeploymentName,
-			// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
-		})
-		if err != nil {
-			log.Infoln("Error creating watch client.")
-			cleanUpChan <- err
-			return
-		}
-
-		// Stop the watch on each loop because we will create a new one.
-		defer watch.Stop()
-
 		for {
+			// Watch that it is gone.
+			watch, err := client.AppsV1().Deployments(checkNamespace).Watch(metav1.ListOptions{
+				Watch:         true,
+				FieldSelector: "metadata.name=" + checkDeploymentName,
+				// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
+			})
+			if err != nil {
+				log.Infoln("Error creating watch client.")
+				cleanUpChan <- err
+				return
+			}
+			// If the watch is nil, skip to the next loop and make a new watch object.
+			if watch == nil {
+				continue
+			}
 
 			// Watch for a DELETED event.
 			select {
@@ -429,6 +439,9 @@ func cleanUpOrphanedDeployment() error {
 				cleanUpChan <- nil
 				return
 			}
+
+			// Stop the watch on each loop because we will create a new one.
+			watch.Stop()
 		}
 	}()
 
@@ -462,6 +475,10 @@ func findPreviousDeployment() (bool, error) {
 		log.Infoln("error listing deployments:", err)
 		return false, err
 	}
+	if deploymentList == nil {
+		log.Infoln("Received an empty list of deployments:", deploymentList)
+		return false, errors.New("received empty list of deployments")
+	}
 	log.Debugln("Found", len(deploymentList.Items), "deployment(s)")
 
 	if debug { // Print out all the found deployments if debug logging is enabled.
@@ -474,6 +491,9 @@ func findPreviousDeployment() (bool, error) {
 	for _, deployment := range deploymentList.Items {
 
 		// Check using names.
+		if &deployment.Name == nil {
+			continue
+		}
 		if deployment.Name == checkDeploymentName {
 			log.Infoln("Found an old deployment belonging to this check:", deployment.Name)
 			return true, nil
@@ -536,7 +556,6 @@ func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 		log.Debugln("Watching for deployment rolling-update to complete.")
 		newPodStatuses := make(map[string]bool)
 		for {
-
 			// There can be 2 events here, Progressing has status "has successfully progressed." or Context timeout.
 			select {
 			case event := <-watch.ResultChan():
@@ -672,6 +691,10 @@ func getPodNames() []string {
 	})
 	if err != nil {
 		log.Errorln("failed to list pods:", err)
+		return names
+	}
+	if podList == nil {
+		log.Errorln("could not create a list of pod names due to an empty list of pods:", podList)
 		return names
 	}
 
