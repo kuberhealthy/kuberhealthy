@@ -221,6 +221,18 @@ func (ext *Checker) setUUID(uuid string) error {
 
 	// update the resource with the new values we want
 	_, err = ext.KHCheckClient.Update(checkConfig, checkCRDResource, ext.Namespace, ext.Name())
+
+	// We commonly see a race here with the following type of error:
+	// "Check execution error: Operation cannot be fulfilled on khchecks.comcast.github.io \"pod-restarts\": the object
+	// has been modified; please apply your changes to the latest version and try again"
+	//
+	// If we see this error, we try again.
+	for err != nil && strings.Contains(err.Error(), "the object has been modified") {
+		ext.log("Failed to write new UUID for check because object was modified by another process.  Retrying in 5s")
+		time.Sleep(time.Second * 5)
+		_, err = ext.KHCheckClient.Update(checkConfig, checkCRDResource, ext.Namespace, ext.Name())
+	}
+
 	return err
 }
 
