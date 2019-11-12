@@ -1,4 +1,12 @@
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: Kuberhealthy
+spec:
+  finalizers:
+  - kubernetes
+---
 # Source: kuberhealthy/templates/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
