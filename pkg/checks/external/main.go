@@ -464,7 +464,7 @@ func (ext *Checker) RunOnce() error {
 	}
 	ext.log("No checker pods exist.")
 
-	// Spawn a water to see if the pod is deleted.  If this happens, we consider this check aborted cleanly
+	// Spawn a waiter to see if the pod is deleted.  If this happens, we consider this check aborted cleanly
 	// and continue on to the next interval.
 	shutdownEventNotifyC := make(chan struct{})
 	watchForPodShutdownCtx, cancelWatchForPodShutdown := context.WithCancel(context.Background())
@@ -1038,8 +1038,10 @@ func (ext *Checker) waitForShutdown(ctx context.Context) error {
 func (ext *Checker) Shutdown() error {
 
 	// cancel the context for this checker run
-	ext.log("aborting context for this check due to shutdown call")
-	ext.shutdownCTXFunc()
+	if ext.shutdownCTXFunc != nil {
+		ext.log("aborting context for this check due to shutdown call")
+		ext.shutdownCTXFunc()
+	}
 
 	// make a context to track pod removal and cleanup
 	ctx, _ := context.WithTimeout(context.Background(), ext.Timeout())

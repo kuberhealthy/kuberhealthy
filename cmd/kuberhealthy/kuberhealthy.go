@@ -45,6 +45,7 @@ type Kuberhealthy struct {
 	MetricForwarder    metrics.Client
 	overrideKubeClient *kubernetes.Clientset
 	cancelChecksFunc   context.CancelFunc // invalidates the context of all running checks
+	wg                 sync.WaitGroup     // used to track running checks
 }
 
 // NewKuberhealthy creates a new kuberhealthy checker instance
@@ -84,50 +85,50 @@ func (k *Kuberhealthy) AddCheck(c KuberhealthyCheck) {
 // Shutdown causes the kuberhealthy check group to shutdown gracefully
 func (k *Kuberhealthy) Shutdown() {
 	k.StopChecks()
-	log.Debugln("All checks shutdown!")
+	log.Debugln("All checks ready for main program shutdown.")
 	doneChan <- true
 }
 
 // StopChecks causes the kuberhealthy check group to shutdown gracefully.
 // All checks are sent a shutdown command at the same time.
 func (k *Kuberhealthy) StopChecks() {
-	log.Infoln("Checks stopping...")
+	log.Infoln("control:", len(k.Checks), "checks stopping...")
 	if k.cancelChecksFunc != nil {
 		k.cancelChecksFunc()
 	}
 
 	// call a shutdown on all checks concurrently
-	var stopWG sync.WaitGroup
 	for _, c := range k.Checks {
-		stopWG.Add(1)
 		go func() {
-			log.Debugln("Check", c.Name(), "stopping...")
+			log.Debugln("control: check", c.Name(), "stopping...")
 			err := c.Shutdown()
 			if err != nil {
-				log.Errorln("Error stopping check", c.Name(), err)
+				log.Errorln("control: ERROR stopping check", c.Name(), err)
 			}
-			stopWG.Done()
+			k.wg.Done()
+			log.Debugln("control: check", c.Name(), "stopped")
 		}()
 	}
 
 	// wait for all checks to stop cleanly
-	stopWG.Wait()
-	log.Debugln("All checks stopped.")
+	k.wg.Wait()
+	log.Debugln("control: all checks stopped.")
 }
 
 // Start inits Kuberhealthy checks and master monitoring
 func (k *Kuberhealthy) Start() {
 
+	// we must load all configured checks so that the status page shows check statuses
 	log.Infoln("Loading initial check configuration...")
 	kuberhealthy.configureChecks()
-
-	// Start the web server and restart it if it crashes
-	go kuberhealthy.StartWebServer()
 
 	// if influxdb is enabled, configure it
 	if enableInflux {
 		k.configureInfluxForwarding()
 	}
+
+	// Start the web server and restart it if it crashes
+	go kuberhealthy.StartWebServer()
 
 	// find all the external checks from the khcheckcrd resources on the cluster and keep them in sync
 	externalChecksUpdateChan := make(chan struct{})
@@ -143,22 +144,22 @@ func (k *Kuberhealthy) Start() {
 		select {
 		case <-becameMasterChan: // we have become the current master instance and should run checks
 			// reset checks and re-add from configuration settings
-			log.Infoln("Became master. Reconfiguring and starting checks.")
+			log.Infoln("control: Became master. Reconfiguring and starting checks.")
 			kuberhealthy.configureChecks()
 			k.StartChecks()
 		case <-lostMasterChan: // we are no longer master
-			log.Infoln("Lost master. Stopping checks.")
+			log.Infoln("control: Lost master. Stopping checks.")
 			k.StopChecks()
 		case <-externalChecksUpdateChan: // external check change detected
-			log.Infoln("Witnessed a khcheck resource change...")
+			log.Infoln("control: Witnessed a khcheck resource change...")
 
 			// if we are master, stop checks
 			if isMaster {
-				log.Infoln("Reloading external check configurations due to resource update.")
+				log.Infoln("control: Reloading external check configurations due to resource update.")
 				k.StopChecks()
 			}
 
-			log.Infoln("Reloading check configuration...")
+			log.Infoln("control: Reloading check configuration...")
 			kuberhealthy.configureChecks()
 
 			// start checks again if we are master
@@ -365,14 +366,21 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 // StartChecks starts all checks concurrently and ensures they stay running
 func (k *Kuberhealthy) StartChecks() {
+	// wait for theor check wg to be done, just in case
+	k.wg.Wait()
 
-	log.Infoln("Checks starting...")
+	// sleep to make a more graceful switch-up during lots of master and check changes coming in
+	log.Infoln("control: Checks starting in 10 seconds...")
+	time.Sleep(time.Second * 10)
+	log.Infoln("control:", len(k.Checks), "checks starting!")
+
 	// create a context for checks to abort with
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	k.cancelChecksFunc = cancelFunc
 
 	// start each check with this check group's context
 	for _, c := range k.Checks {
+		k.wg.Add(1)
 		// start the check in its own routine
 		go k.runCheck(ctx, c)
 	}
@@ -932,16 +940,16 @@ func (k *Kuberhealthy) getCheck(name string, namespace string) (KuberhealthyChec
 // configureChecks removes all checks set in Kuberhealthy and reloads them
 // based on the configuration options
 func (k *Kuberhealthy) configureChecks() {
-	log.Infoln("Loading check configuration...")
+	log.Infoln("control: Loading check configuration...")
 
 	// wipe all existing checks before we configure
 	k.Checks = []KuberhealthyCheck{}
 
 	// check external check configurations
-	log.Infoln("Enabling external checks...")
+	log.Infoln("control: Enabling external checks...")
 	err := kuberhealthy.addExternalChecks()
 	if err != nil {
-		log.Errorln("Error loading external checks:", err)
+		log.Errorln("control: ERROR loading external checks:", err)
 	}
 }
 
