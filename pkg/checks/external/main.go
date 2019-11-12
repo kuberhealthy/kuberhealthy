@@ -408,7 +408,7 @@ func (ext *Checker) RunOnce() error {
 	if err != nil {
 		return err
 	}
-	log.Debugln("UUID for external check", ext.Name(), "run:", ext.currentCheckUUID)
+	ext.log("UUID for external check", ext.Name(), "run:", ext.currentCheckUUID)
 
 	// validate the pod spec
 	ext.log("Validating pod spec of external check")
@@ -715,7 +715,7 @@ func (ext *Checker) waitForAllPodsToClear() chan error {
 			}
 
 			// fetch the pod by name
-			_, err := podClient.Get(ext.PodName, metav1.GetOptions{})
+			p, err := podClient.Get(ext.PodName, metav1.GetOptions{})
 
 			// if we got a "not found" message, then we are done.  This is the happy path.
 			if err != nil {
@@ -729,6 +729,7 @@ func (ext *Checker) waitForAllPodsToClear() chan error {
 				outChan <- err
 				return
 			}
+			ext.log("pod", ext.PodName, "still exists with status", p.Status.Phase, p.Status.Message, "- waiting for removal...")
 		}
 	}()
 
