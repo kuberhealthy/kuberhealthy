@@ -570,7 +570,7 @@ func (k *Kuberhealthy) StartWebServer() {
 		log.Infoln("Starting web services on port", k.ListenAddr)
 		err := http.ListenAndServe(k.ListenAddr, nil)
 		if err != nil {
-			log.Errorln("Web server error:", err)
+			log.Errorln("Web server ERROR:", err)
 		}
 		time.Sleep(time.Second / 2)
 	}
