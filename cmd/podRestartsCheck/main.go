@@ -129,6 +129,22 @@ func New() *Checker {
 func shutdownAfterDuration(duration time.Duration) {
 	time.Sleep(duration)
 
+	log.Infoln("Check run has completed successfully. Reporting check success to Kuberhealthy.")
+
+	length := 0
+	BadPodRestarts.Range(func(_, _ interface{}) bool {
+		length++
+		return true
+	})
+
+	if length == 0 {
+		err := checkclient.ReportSuccess()
+		if err != nil {
+			log.Println("Error reporting success to Kuberhealthy servers:", err)
+		}
+		log.Println("Successfully reported success to Kuberhealthy servers")
+	}
+
 	os.Exit(0)
 }
 
@@ -245,7 +261,7 @@ func (prc *Checker) removeBadPodRestarts(podName string) {
 func (prc *Checker) statusReporter() {
 	var err error
 
-	log.Infoln("Starting status reporter to send status reports to Kuberhealthy every minute")
+	log.Infoln("Starting status reporter to send status reports to Kuberhealthy if bad pod restarts are found")
 
 	// Start ticker for sending reports to Kuberhealthy
 	ticker := time.NewTicker(1 * time.Minute)
@@ -280,14 +296,6 @@ func (prc *Checker) statusReporter() {
 			continue
 		}
 
-		log.Println("No bad pod restarts found, reporting check success to Kuberhealthy servers")
-
-		err = checkclient.ReportSuccess()
-		if err != nil {
-			log.Println("Error reporting success to Kuberhealthy servers:", err)
-
-			continue
-		}
-		log.Println("Successfully reported success to Kuberhealthy servers")
+		log.Println("No bad pod with restarts found, starting next tick:", ticker.C)
 	}
 }
