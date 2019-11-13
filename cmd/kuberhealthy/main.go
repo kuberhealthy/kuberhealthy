@@ -65,6 +65,9 @@ const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"
 // default run interval set by kuberhealthy
 const DefaultRunInterval = time.Minute * 10
 
+// the key used in the annotation that holds the check's short name
+const KH_CHECK_NAME_ANNOTATION_KEY = "comcast.github.io/check-name"
+
 var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
 
 // InfluxDB connection configuration

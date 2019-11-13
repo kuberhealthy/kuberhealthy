@@ -653,9 +653,13 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	}
 
 	// set the pod namespace and name from the returned metadata
-	podCheckName = pod.GetName()
+	podCheckName = pod.Annotations[KH_CHECK_NAME_ANNOTATION_KEY]
+	if len(podCheckName) == 0 {
+		return reportInfo, errors.New("error finding check name annotation on calling pod with ip: " + ip)
+	}
+
 	podCheckNamespace = pod.GetNamespace()
-	log.Debugln("Found pod name", podCheckName, "in namespace", podCheckNamespace)
+	log.Debugln("Found check named", podCheckName, "in namespace", podCheckNamespace)
 
 	// pile up all the env vars for searching
 	var envVars []v1.EnvVar
