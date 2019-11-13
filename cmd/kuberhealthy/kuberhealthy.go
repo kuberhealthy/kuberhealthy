@@ -854,6 +854,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	details.Errors = state.Errors
 	details.OK = state.OK
 	details.Namespace = ipReport.Namespace
+	details.CurrentUUID = ipReport.UUID
 
 	// since the check is validated, we can proceed to update the status now
 	k.externalCheckReportHandlerLog(requestID, "Setting check with name", ipReport.Name, "in namespace", ipReport.Namespace, "to 'OK' state:", details.OK)
