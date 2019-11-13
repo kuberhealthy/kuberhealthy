@@ -296,6 +296,24 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 				foundChange = true
 			}
 
+			// check if run timeout has changed
+			if knownSettings[mapName].Timeout != i.Spec.Timeout {
+				log.Debugln("The khcheck timeout for", mapName, "has changed.")
+				foundChange = true
+			}
+
+			// check if extraLabels has changed
+			if !foundChange && !reflect.DeepEqual(knownSettings[mapName].ExtraLabels, i.Spec.ExtraLabels) {
+				log.Debugln("The khcheck extra labels for", mapName, "has changed.")
+				foundChange = true
+			}
+
+			// check if extraAnnotations has changed
+			if !foundChange && !reflect.DeepEqual(knownSettings[mapName].ExtraAnnotations, i.Spec.ExtraAnnotations) {
+				log.Debugln("The khcheck extra annotations for", mapName, "has changed.")
+				foundChange = true
+			}
+
 			// check if CheckConfig has changed (PodSpec)
 			if !foundChange && !reflect.DeepEqual(knownSettings[mapName].PodSpec, i.Spec.PodSpec) {
 				log.Debugln("The khcheck for", mapName, "has changed.")
