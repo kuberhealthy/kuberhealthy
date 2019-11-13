@@ -134,18 +134,15 @@ func (k *Kuberhealthy) Start() {
 	// find all the external checks from the khcheckcrd resources on the cluster and keep them in sync.
 	// use rate limiting to avoid reconfiguration spam
 	maxUpdateInterval := time.Second * 10
-	externalChecksUpdateChan := make(chan struct{})
-	externalChecksUpdateChanLimited := make(chan struct{})
+	externalChecksUpdateChan := make(chan struct{}, 50)
+	externalChecksUpdateChanLimited := make(chan struct{}, 50)
 	go notifyChanLimiter(maxUpdateInterval, externalChecksUpdateChan, externalChecksUpdateChanLimited)
 	go k.monitorExternalChecks(externalChecksUpdateChan)
 
-	// watch master pod event changes and recalculate the current master state of this pdo with each
-	go k.masterStatusWatcher()
-
 	// we use two channels to indicate when we gain or lose master status. use rate limiting to avoid
 	// reconfiguration spam
-	becameMasterChan := make(chan struct{})
-	lostMasterChan := make(chan struct{})
+	becameMasterChan := make(chan struct{}, 10)
+	lostMasterChan := make(chan struct{}, 10)
 	go k.masterMonitor(becameMasterChan, lostMasterChan)
 
 	// loop and select channels to do appropriate thing when master changes
@@ -416,6 +413,9 @@ func (k *Kuberhealthy) masterStatusWatcher() {
 		// on each update from the watch, we re-check our master status.
 		for range watcher.ResultChan() {
 
+			// update the time we last saw a master event
+			lastMasterChangeTime = time.Now()
+
 			// determine if we are becoming master or not
 			var err error
 			upcomingMasterState, err = masterCalculation.IAmMaster(kubernetesClient)
@@ -425,7 +425,6 @@ func (k *Kuberhealthy) masterStatusWatcher() {
 
 			// update the time we last saw a master event
 			lastMasterChangeTime = time.Now()
-
 		}
 	}
 }
@@ -433,6 +432,9 @@ func (k *Kuberhealthy) masterStatusWatcher() {
 // masterMonitor periodically evaluates the current and upcoming master state
 // and makes it so when appropriate
 func (k *Kuberhealthy) masterMonitor(becameMasterChan chan struct{}, lostMasterChan chan struct{}) {
+
+	// watch master pod event changes and recalculate the current master state of this pdo with each
+	go k.masterStatusWatcher()
 
 	interval := time.Second * 10
 
