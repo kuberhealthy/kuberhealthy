@@ -46,6 +46,7 @@ type Kuberhealthy struct {
 	overrideKubeClient *kubernetes.Clientset
 	cancelChecksFunc   context.CancelFunc // invalidates the context of all running checks
 	wg                 sync.WaitGroup     // used to track running checks
+	shutdownCtxFunc    context.CancelFunc // used to shutdown the main control select
 }
 
 // NewKuberhealthy creates a new kuberhealthy checker instance
@@ -83,10 +84,16 @@ func (k *Kuberhealthy) AddCheck(c KuberhealthyCheck) {
 }
 
 // Shutdown causes the kuberhealthy check group to shutdown gracefully
-func (k *Kuberhealthy) Shutdown() {
-	k.StopChecks()
-	log.Debugln("All checks ready for main program shutdown.")
-	doneChan <- true
+func (k *Kuberhealthy) Shutdown(doneChan chan struct{}) {
+	if k.shutdownCtxFunc != nil {
+		log.Infoln("shutdown: aborting control context")
+		k.shutdownCtxFunc() // stop the control system
+	}
+	time.Sleep(5) // help prevent more checks from starting in a race before control system stop happens
+	log.Infoln("shutdown: stopping checks")
+	k.StopChecks() // stop all checks
+	log.Infoln("shutdown: ready for main program shutdown")
+	doneChan <- struct{}{}
 }
 
 // StopChecks causes the kuberhealthy check group to shutdown gracefully.
