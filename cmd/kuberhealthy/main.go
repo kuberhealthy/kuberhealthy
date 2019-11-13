@@ -176,6 +176,10 @@ func main() {
 	// tell Kuberhealthy to start all checks and master change monitoring
 	kuberhealthy.Start(khRunCtx)
 
+	time.Sleep(time.Second * 90) // give the interrupt handler a period of time to call exit before we shutdown
+	<-time.After(terminationGracePeriod + (time.Second * 10))
+	log.Errorln("shutdown: main loop was ready for shutdown for too long. exiting.")
+	os.Exit(1)
 }
 
 // listenForInterrupts watches for termination signals and acts on them
@@ -185,6 +189,7 @@ func listenForInterrupts() {
 
 	// register for shutdown events on sigChan
 	signal.Notify(sigChan, os.Interrupt, os.Kill)
+	log.Infoln("shutdown: waiting for sigChan notification...")
 	<-sigChan
 	log.Infoln("shutdown: Shutting down due to sigChan signal...")
 
