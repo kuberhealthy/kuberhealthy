@@ -702,6 +702,9 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	// next, we check the uuid against the check name to see if this uuid is the expected one.  if it isn't,
 	// we return an error
 	whitelisted, err := k.isUUIDWhitelistedForCheck(podCheckName, podCheckNamespace, podUUID)
+	if err != nil {
+		return reportInfo, fmt.Errorf("failed to fetch whitelisted UUID for check with error: %w", err)
+	}
 	if !whitelisted {
 		return reportInfo, errors.New("pod was not properly whitelisted for reporting status of check " + podCheckName + " with uuid " + podUUID + " and namespace " + podCheckNamespace)
 	}
