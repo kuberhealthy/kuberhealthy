@@ -19,6 +19,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/integrii/flaggy"
@@ -185,10 +186,10 @@ func main() {
 // listenForInterrupts watches for termination signals and acts on them
 func listenForInterrupts() {
 	// shutdown signal handling
-	sigChan := make(chan os.Signal)
+	sigChan := make(chan os.Signal, 1)
 
 	// register for shutdown events on sigChan
-	signal.Notify(sigChan, os.Interrupt, os.Kill)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	log.Infoln("shutdown: waiting for sigChan notification...")
 	<-sigChan
 	log.Infoln("shutdown: Shutting down due to sigChan signal...")
