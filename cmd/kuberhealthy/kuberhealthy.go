@@ -1020,13 +1020,13 @@ func (k *Kuberhealthy) configureChecks() {
 func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, checkNamespace string, uuid string) (bool, error) {
 
 	// get the item in question
-	checkConfig, err := khCheckClient.Get(metav1.GetOptions{}, checkCRDResource, checkNamespace, checkName)
+	checkState, err := khStateClient.Get(metav1.GetOptions{}, checkCRDResource, checkNamespace, checkName)
 	if err != nil {
 		return false, err
 	}
 
-	log.Debugln("Validating current UUID", checkConfig.Spec.CurrentUUID, "vs incoming UUID:", uuid)
-	if checkConfig.Spec.CurrentUUID == uuid {
+	log.Debugln("Validating current UUID", checkState.Spec.CurrentUUID, "vs incoming UUID:", uuid)
+	if checkState.Spec.CurrentUUID == uuid {
 		return true, nil
 	}
 	return false, nil

@@ -186,9 +186,15 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 	// store the client in the checker
 	ext.KubeClient = client
 
+	// generate a new UUID for each run
+	err := ext.setNewCheckUUID()
+	if err != nil {
+		return err
+	}
+
 	// run a check iteration
 	ext.log("Running external check iteration")
-	err := ext.RunOnce()
+	err = ext.RunOnce()
 
 	// if the pod was removed, we skip this run gracefully
 	if err != nil && err.Error() == ErrPodRemovedExpectedly.Error() {
@@ -229,18 +235,17 @@ func (ext *Checker) cleanup() {
 
 // setUUID sets the current whitelisted UUID for the checker and updates it on the server
 func (ext *Checker) setUUID(uuid string) error {
-	log.Debugln("Setting expected UUID to:", uuid)
-	checkConfig, err := ext.getCheck()
+	ext.log("Setting expected UUID to:", uuid)
+	checkState, err := ext.getKHState()
 	if err != nil && !strings.Contains(err.Error(), "not found") {
 		return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
 	}
 
 	// update the check config and write it back to the struct
-	checkConfig.Spec.CurrentUUID = uuid
-	checkConfig.ObjectMeta.Namespace = ext.Namespace
+	checkState.Spec.CurrentUUID = uuid
 
 	// update the resource with the new values we want
-	_, err = ext.KHCheckClient.Update(checkConfig, checkCRDResource, ext.Namespace, ext.Name())
+	_, err = ext.KHStateClient.Update(checkState, checkCRDResource, ext.Namespace, ext.Name())
 
 	// We commonly see a race here with the following type of error:
 	// "Check execution error: Operation cannot be fulfilled on khchecks.comcast.github.io \"pod-restarts\": the object
@@ -250,7 +255,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	for err != nil && strings.Contains(err.Error(), "the object has been modified") {
 		ext.log("Failed to write new UUID for check because object was modified by another process.  Retrying in 5s")
 		time.Sleep(time.Second * 5)
-		_, err = ext.KHCheckClient.Update(checkConfig, checkCRDResource, ext.Namespace, ext.Name())
+		_, err = ext.KHStateClient.Update(checkState, checkCRDResource, ext.Namespace, ext.Name())
 	}
 
 	return err
@@ -428,13 +433,6 @@ func (ext *Checker) RunOnce() error {
 	if err != nil {
 		return err
 	}
-
-	// generate a new UUID for this run
-	err = ext.setNewCheckUUID()
-	if err != nil {
-		return err
-	}
-	ext.log("UUID for external check", ext.Name(), "run:", ext.currentCheckUUID)
 
 	// validate the pod spec
 	ext.log("Validating pod spec of external check")
