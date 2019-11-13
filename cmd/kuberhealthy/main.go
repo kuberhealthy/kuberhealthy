@@ -13,6 +13,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -176,18 +177,20 @@ func main() {
 	kuberhealthy.ListenAddr = listenAddress
 
 	// start listening for shutdown interrupts
-	go listenForInterrupts()
+	khRunCtx, khRunCtxCancelFunc := context.WithCancel(context.Background())
+	go listenForInterrupts(khRunCtxCancelFunc)
 
 	// tell Kuberhealthy to start all checks and master change monitoring
-	kuberhealthy.Start()
+	kuberhealthy.Start(khRunCtx)
 
 }
 
 // listenForInterrupts watches for termination signals and acts on them
-func listenForInterrupts() {
+func listenForInterrupts(cancelFunc context.CancelFunc) {
 	signal.Notify(sigChan, os.Interrupt, os.Kill)
 	<-sigChan
 	log.Infoln("Shutting down...")
+	cancelFunc() // stops the control system
 	go kuberhealthy.Shutdown()
 	// wait for checks to be done shutting down before exiting
 	select {

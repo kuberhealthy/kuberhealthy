@@ -117,7 +117,7 @@ func (k *Kuberhealthy) StopChecks() {
 }
 
 // Start inits Kuberhealthy checks and master monitoring
-func (k *Kuberhealthy) Start() {
+func (k *Kuberhealthy) Start(ctx context.Context) {
 
 	// we must load all configured checks so that the status page shows check statuses
 	log.Infoln("Loading initial check configuration...")
@@ -148,6 +148,9 @@ func (k *Kuberhealthy) Start() {
 	// loop and select channels to do appropriate thing when master changes
 	for {
 		select {
+		case <-ctx.Done(): // we are shutting down
+			log.Infoln("control: shutting down from context abort...")
+			return
 		case <-becameMasterChan: // we have become the current master instance and should run checks
 			// reset checks and re-add from configuration settings
 			log.Infoln("control: Became master. Reconfiguring and starting checks.")
