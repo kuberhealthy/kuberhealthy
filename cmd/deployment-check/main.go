@@ -164,8 +164,8 @@ func main() {
 		r = recover()
 		if r != nil {
 			log.Infoln("Recovered panic:", r)
+			reportToKuberhealthy(false, []string{r.(string)})
 		}
-		reportToKuberhealthy(false, []string{r.(string)})
 	}()
 
 	// Start deployment check.
