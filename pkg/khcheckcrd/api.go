@@ -15,7 +15,6 @@ package khcheckcrd
 
 import (
 	"os"
-	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -31,10 +30,7 @@ const group = "comcast.github.io"
 const version = "v1"
 const defaultNamespace = "kuberhealthy"
 
-var clientMu sync.Mutex
-
-
-func init(){
+func init() {
 	if namespace == "" {
 		namespace = defaultNamespace
 	}
@@ -42,8 +38,6 @@ func init(){
 
 // Client creates a rest client to use for interacting with CRDs
 func Client(GroupName string, GroupVersion string, kubeConfig string, namespace string) (*KuberhealthyCheckClient, error) {
-	clientMu.Lock()
-	defer clientMu.Unlock()
 
 	var c *rest.Config
 	var err error

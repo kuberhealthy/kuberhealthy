@@ -237,6 +237,8 @@ func (ext *Checker) cleanup() {
 func (ext *Checker) setUUID(uuid string) error {
 	ext.log("Setting expected UUID to:", uuid)
 	checkState, err := ext.getKHState()
+
+	// if the khstate does not exist, continue on and run an update anyway
 	if err != nil && !strings.Contains(err.Error(), "not found") {
 		return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
 	}
@@ -245,7 +247,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	checkState.Spec.CurrentUUID = uuid
 
 	// update the resource with the new values we want
-	_, err = ext.KHStateClient.Update(checkState, checkCRDResource, ext.Namespace, ext.Name())
+	_, err = ext.KHStateClient.Update(checkState, checkCRDResource, ext.Name(), ext.CheckNamespace())
 
 	// We commonly see a race here with the following type of error:
 	// "Check execution error: Operation cannot be fulfilled on khchecks.comcast.github.io \"pod-restarts\": the object
@@ -255,7 +257,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	for err != nil && strings.Contains(err.Error(), "the object has been modified") {
 		ext.log("Failed to write new UUID for check because object was modified by another process.  Retrying in 5s")
 		time.Sleep(time.Second * 5)
-		_, err = ext.KHStateClient.Update(checkState, checkCRDResource, ext.Namespace, ext.Name())
+		_, err = ext.KHStateClient.Update(checkState, checkCRDResource, ext.Name(), ext.CheckNamespace())
 	}
 
 	return err
