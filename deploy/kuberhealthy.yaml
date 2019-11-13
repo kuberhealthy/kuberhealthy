@@ -241,7 +241,7 @@ spec:
             cpu: 400m
             memory: 300Mi
       restartPolicy: Always
-      terminationGracePeriodSeconds: 310
+      terminationGracePeriodSeconds: 30
 ---
 # Source: kuberhealthy/templates/poddisruptionbudget.yaml
 apiVersion: policy/v1beta1
