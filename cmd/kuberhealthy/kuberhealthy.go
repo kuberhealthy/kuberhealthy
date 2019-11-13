@@ -100,20 +100,20 @@ func (k *Kuberhealthy) StopChecks() {
 	// call a shutdown on all checks concurrently
 	for _, c := range k.Checks {
 		go func() {
-			log.Debugln("control: check", c.Name(), "stopping...")
+			log.Infoln("control: check", c.Name(), "stopping...")
 			err := c.Shutdown()
 			if err != nil {
 				log.Errorln("control: ERROR stopping check", c.Name(), err)
 			}
 			k.wg.Done()
-			log.Debugln("control: check", c.Name(), "stopped")
+			log.Infoln("control: check", c.Name(), "stopped")
 		}()
 	}
 
 	// wait for all checks to stop cleanly
-	log.Debugln("control: waiting for all checks to stop")
+	log.Infoln("control: waiting for all checks to stop")
 	k.wg.Wait()
-	log.Debugln("control: all checks stopped.")
+	log.Infoln("control: all checks stopped.")
 }
 
 // Start inits Kuberhealthy checks and master monitoring
@@ -168,11 +168,12 @@ func (k *Kuberhealthy) Start() {
 				k.StopChecks()
 			}
 
-			log.Infoln("control: Reloading check configuration...")
+			log.Infoln("control: Reloading check configuration due to configuration change...")
 			kuberhealthy.configureChecks()
 
 			// start checks again if we are master
 			if isMaster {
+				log.Infoln("control: starting checks due to external check configuration updates...")
 				k.StartChecks()
 			}
 		}
@@ -433,30 +434,35 @@ func (k *Kuberhealthy) masterStatusWatcher() {
 // and makes it so when appropriate
 func (k *Kuberhealthy) masterMonitor(becameMasterChan chan struct{}, lostMasterChan chan struct{}) {
 
-	ticker := time.NewTicker(time.Second * 10)
+	interval := time.Second * 10
+
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	// on each tick, we ensure that enough time has passed since the last master change
 	// event, then we calculate if we should become or lose master.
 	for range ticker.C {
 
-		if time.Now().Sub(lastMasterChangeTime) < time.Second*10 {
-			log.Println("waiting for master changes to settle...")
+		if time.Now().Sub(lastMasterChangeTime) < interval {
+			log.Println("control: waiting for master changes to settle...")
 			continue
 		}
 
+		// dupe the global to prevent races
+		goingToBeMaster := upcomingMasterState
+
 		// stop checks if we are no longer the master
-		if upcomingMasterState && !isMaster {
+		if goingToBeMaster && !isMaster {
 			becameMasterChan <- struct{}{}
 		}
 
 		// start checks if we are now master
-		if !upcomingMasterState && isMaster {
+		if !goingToBeMaster && isMaster {
 			lostMasterChan <- struct{}{}
 		}
 
 		// refresh global isMaster state
-		isMaster = upcomingMasterState
+		isMaster = goingToBeMaster
 	}
 }
 
@@ -964,7 +970,6 @@ func (k *Kuberhealthy) configureChecks() {
 	k.Checks = []KuberhealthyCheck{}
 
 	// check external check configurations
-	log.Infoln("control: Enabling external checks...")
 	err := kuberhealthy.addExternalChecks()
 	if err != nil {
 		log.Errorln("control: ERROR loading external checks:", err)
