@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	awsutil "github.com/Comcast/kuberhealthy/pkg/aws"
@@ -73,6 +74,16 @@ func main() {
 	// Start listening for interrupts.
 	go listenForInterrupts()
 
+	// Catch panics.
+	var r interface{}
+	defer func() {
+		r = recover()
+		if r != nil {
+			log.Infoln("Recovered panic:", r)
+		}
+		reportToKuberhealthy(false, []string{r.(string)})
+	}()
+
 	// Run the Lambda list check.
 	select {
 	case err = <-runLambdaCheck():
@@ -93,8 +104,11 @@ func main() {
 // listenForInterrupts watches the signal and done channels for termination.
 func listenForInterrupts() {
 
-	<-signalChan // This is a blocking operation -- the routine will stop here until there is something sent down the channel.
+	// Relay incoming OS interrupt signals to the signalChan.
+	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT)
+	sig := <-signalChan // This is a blocking operation -- the routine will stop here until there is something sent down the channel.
 	log.Infoln("Received an interrupt signal from the signal channel.")
+	log.Debugln("Signal received was:", sig.String())
 
 	// Clean up pods here.
 	log.Infoln("Shutting down.")

@@ -52,6 +52,11 @@ func makeRequestToDeploymentCheckService(hostname string) chan error {
 		// Try to make requests to the hostname endpoint and wait for a result.
 		select {
 		case result := <-getRequestBackoff(hostname):
+			if &result == nil {
+				requestChan <- errors.New("got a nil request result from the backoff process")
+				return
+			}
+
 			if result.Err != nil {
 				requestChan <- result.Err
 				return

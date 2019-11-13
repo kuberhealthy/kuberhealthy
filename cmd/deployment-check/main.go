@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	kh "github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient"
@@ -118,7 +119,7 @@ const (
 	// Default number of replicas the deployment should bring up.
 	defaultCheckDeploymentReplicas = 2
 
-	defaultCheckTimeLimit             = time.Duration(time.Minute * 10)
+	defaultCheckTimeLimit             = time.Duration(time.Minute * 15)
 	defaultShutdownGracePeriodSeconds = 30 // grace period for the check to shutdown after receiving a shutdown signal
 )
 
@@ -157,6 +158,16 @@ func main() {
 	// Start listening to interrupts.
 	go listenForInterrupts()
 
+	// Catch panics.
+	var r interface{}
+	defer func() {
+		r = recover()
+		if r != nil {
+			log.Infoln("Recovered panic:", r)
+		}
+		reportToKuberhealthy(false, []string{r.(string)})
+	}()
+
 	// Start deployment check.
 	runDeploymentCheck()
 }
@@ -165,9 +176,10 @@ func main() {
 func listenForInterrupts() {
 
 	// Relay incoming OS interrupt signals to the signalChan.
-	signal.Notify(signalChan, os.Interrupt, os.Kill)
-	<-signalChan // This is a blocking operation -- the routine will stop here until there is something sent down the channel.
+	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT)
+	sig := <-signalChan // This is a blocking operation -- the routine will stop here until there is something sent down the channel.
 	log.Infoln("Received an interrupt signal from the signal channel.")
+	log.Debugln("Signal received was:", sig.String())
 
 	log.Debugln("Cancelling context.")
 	ctxCancel() // Causes all functions within the check to return without error and abort. NOT an error
@@ -177,9 +189,10 @@ func listenForInterrupts() {
 	log.Infoln("Shutting down.")
 
 	select {
-	case <-signalChan:
+	case sig = <-signalChan:
 		// If there is an interrupt signal, interrupt the run.
 		log.Warnln("Received a secsond interrupt signal from the signal channel.")
+		log.Debugln("Signal received was:", sig.String())
 	case err := <-cleanUpAndWait():
 		// If the clean up is complete, exit.
 		log.Infoln("Received a complete signal, clean up completed.")
@@ -240,6 +253,7 @@ func reportToKuberhealthy(ok bool, errs []string) {
 		if ok {
 			err = kh.ReportSuccess()
 			if err != nil {
+				log.Errorln(err.Error(), "on attempt", attempts)
 				retry()
 				continue
 			}
@@ -247,6 +261,7 @@ func reportToKuberhealthy(ok bool, errs []string) {
 		}
 		err = kh.ReportFailure(errs)
 		if err != nil {
+			log.Errorln(err.Error(), "on attempt", attempts)
 			retry()
 			continue
 		}

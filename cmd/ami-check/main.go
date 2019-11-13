@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"regexp"
 	"strconv"
+	"syscall"
 	"time"
 
 	awsutil "github.com/Comcast/kuberhealthy/pkg/aws"
@@ -120,17 +122,28 @@ func main() {
 	// Start listening for interrupts in the background.
 	go listenForInterrupts()
 
+	// Catch panics.
+	var r interface{}
+	defer func() {
+		r = recover()
+		if r != nil {
+			log.Infoln("Recovered panic:", r)
+		}
+		reportToKuberhealthy(false, []string{r.(string)})
+	}()
+
 	// Run the check.
 	runCheck()
-
-	os.Exit(0)
 }
 
 // listenForInterrupts watches the signal and done channels for termination.
 func listenForInterrupts() {
 
-	<-signalChan // This is a blocking operation -- the routine will stop here until there is something sent down the channel.
+	// Relay incoming OS interrupt signals to the signalChan.
+	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT)
+	sig := <-signalChan // This is a blocking operation -- the routine will stop here until there is something sent down the channel.
 	log.Infoln("Received an interrupt signal from the signal channel.")
+	log.Debugln("Signal received was:", sig.String())
 
 	// Clean up pods here.
 	log.Infoln("Shutting down.")
@@ -177,6 +190,7 @@ func reportToKuberhealthy(ok bool, errs []string) {
 		if ok {
 			err = kh.ReportSuccess()
 			if err != nil {
+				log.Errorln(err.Error(), "on attempt", attempts)
 				retry()
 				continue
 			}
@@ -184,6 +198,7 @@ func reportToKuberhealthy(ok bool, errs []string) {
 		}
 		err = kh.ReportFailure(errs)
 		if err != nil {
+			log.Errorln(err.Error(), "on attempt", attempts)
 			retry()
 			continue
 		}
