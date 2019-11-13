@@ -189,7 +189,7 @@ func listenForInterrupts() {
 	sigChan := make(chan os.Signal, 1)
 
 	// register for shutdown events on sigChan
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
 	log.Infoln("shutdown: waiting for sigChan notification...")
 	<-sigChan
 	log.Infoln("shutdown: Shutting down due to sigChan signal...")
