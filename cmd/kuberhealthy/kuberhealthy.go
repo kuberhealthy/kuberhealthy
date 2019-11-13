@@ -111,6 +111,7 @@ func (k *Kuberhealthy) StopChecks() {
 	}
 
 	// wait for all checks to stop cleanly
+	log.Debugln("control: waiting for all checks to stop")
 	k.wg.Wait()
 	log.Debugln("control: all checks stopped.")
 }
@@ -461,6 +462,8 @@ func (k *Kuberhealthy) masterMonitor(becameMasterChan chan struct{}, lostMasterC
 
 // runCheck runs a check on an interval and sets its status each run
 func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
+
+	log.Println("Starting check:", c.CheckNamespace(), "/", c.Name())
 
 	// run on an interval specified by the package
 	ticker := time.NewTicker(c.Interval())

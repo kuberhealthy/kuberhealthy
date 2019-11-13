@@ -1098,7 +1098,7 @@ func (ext *Checker) Shutdown() error {
 	ext.log("Waiting for background workers to cleanup...")
 	ext.wg.Wait()
 
-	ext.log("Pod " + ext.podName() + " successfully shutdown.")
+	ext.log("Check using pod" + ext.podName() + " successfully shutdown.")
 	return nil
 }
 
