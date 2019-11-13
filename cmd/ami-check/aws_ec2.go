@@ -9,6 +9,7 @@ const (
 	// We have to explicitly list account owners of the images that we want to look for.
 	// Otherwise, AWS will give us a massive list that doesn't contain any of the commonly
 	// used AMIs.
+
 	// WellKnownAccountKopeio = kops account.
 	WellKnownAccountKopeio = "383156758163"
 	// WellKnownAccountRedhat = Red Hat account.
