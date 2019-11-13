@@ -247,7 +247,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	checkState.Spec.CurrentUUID = uuid
 
 	// update the resource with the new values we want
-	log.Debugln("Updating khstate client to setUUID: ")
+	log.Debugln("Updating khstate", checkState.Name, checkState.Namespace, "to setUUID: ", checkState.Spec.CurrentUUID)
 	_, err = ext.KHStateClient.Update(checkState, stateCRDResource, ext.Name(), ext.CheckNamespace())
 
 	// We commonly see a race here with the following type of error:
