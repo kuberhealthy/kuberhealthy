@@ -1020,7 +1020,7 @@ func (k *Kuberhealthy) configureChecks() {
 func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, checkNamespace string, uuid string) (bool, error) {
 
 	// get the item in question
-	checkState, err := khStateClient.Get(metav1.GetOptions{}, checkCRDResource, checkName, checkNamespace)
+	checkState, err := khStateClient.Get(metav1.GetOptions{}, stateCRDResource, checkName, checkNamespace)
 	if err != nil {
 		return false, err
 	}
