@@ -62,8 +62,8 @@ var DefaultName = "external-check"
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
 // constants for using the kuberhealthy check CRD
-const checkCRDGroup = "comcast.github.io"
-const checkCRDVersion = "v1"
+const CRDGroup = "comcast.github.io"
+const CRDVersion = "v1"
 const checkCRDResource = "khchecks"
 const stateCRDResource = "khstates"
 
