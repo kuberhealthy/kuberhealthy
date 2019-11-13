@@ -1035,17 +1035,24 @@ func (ext *Checker) podExists() (bool, error) {
 
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
+
+	// if the pod is "not found", then it does not exist
 	p, err := podClient.Get(ext.podName(), metav1.GetOptions{})
 	if err != nil && strings.Contains(err.Error(), "not found") {
 		return false, nil
 	}
 
-	// if the pod has a start time that isn't zero, it exists
-	if !p.Status.StartTime.IsZero() && p.Status.Phase != apiv1.PodFailed {
-		return true, nil
+	// if the pod has succeeded, it no longer exists
+	if p.Status.Phase == apiv1.PodSucceeded {
+		return false, nil
 	}
 
-	return false, nil
+	// if the pod has failed, it no longer exists
+	if p.Status.Phase == apiv1.PodFailed {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // waitForShutdown waits for the external pod to shut down
