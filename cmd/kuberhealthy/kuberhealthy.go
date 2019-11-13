@@ -68,7 +68,19 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace s
 	}
 	details.OK = false
 	details.Errors = []string{"Check execution error: " + exErr.Error()}
-	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors)
+
+	// we need to maintain the current UUID, which means fetching it first
+	khc, err := k.getCheck(checkName, checkNamespace)
+	if err != nil {
+		log.Errorln("Error when setting execution error on check", checkName, checkNamespace, err)
+	}
+	checkState, err := getCheckState(khc)
+	if err != nil {
+		log.Errorln("Error when setting execution error on check (getting check state for current UUID)", checkName, checkNamespace, err)
+	}
+	details.CurrentUUID = checkState.CurrentUUID
+
+	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors, details.CurrentUUID)
 
 	// store the check state with the CRD
 	err = k.storeCheckState(checkName, checkNamespace, details)
@@ -535,9 +547,14 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		log.Debugln("Done running check:", c.Name(), "in namespace", c.CheckNamespace())
 
 		// make a new state for this check and fill it from the check's current status
+		checkDetails, err := getCheckState(c)
+		if err != nil {
+			log.Errorln("Error setting check state after run:", c.Name(), "in namespace", c.CheckNamespace()+":", err)
+		}
 		details := health.NewCheckDetails()
 		details.Namespace = c.CheckNamespace()
 		details.OK, details.Errors = c.CurrentStatus()
+		details.CurrentUUID = checkDetails.CurrentUUID
 
 		// send data to the metric forwarder if configured
 		if k.MetricForwarder != nil {
@@ -561,7 +578,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 			}
 		}
 
-		log.Infoln("Setting state of check", c.Name(), "in namespace", c.CheckNamespace(), "to", details.OK, details.Errors)
+		log.Infoln("Setting state of check", c.Name(), "in namespace", c.CheckNamespace(), "to", details.OK, details.Errors, details.CurrentUUID)
 
 		// store the check state with the CRD
 		err = k.storeCheckState(c.Name(), c.CheckNamespace(), details)
@@ -857,7 +874,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	details.CurrentUUID = ipReport.UUID
 
 	// since the check is validated, we can proceed to update the status now
-	k.externalCheckReportHandlerLog(requestID, "Setting check with name", ipReport.Name, "in namespace", ipReport.Namespace, "to 'OK' state:", details.OK)
+	k.externalCheckReportHandlerLog(requestID, "Setting check with name", ipReport.Name, "in namespace", ipReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID)
 	err = k.storeCheckState(ipReport.Name, ipReport.Namespace, details)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
