@@ -15,6 +15,7 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -36,4 +37,52 @@ func getAllLogLevel() string {
 		levelStrings = append(levelStrings, level.String())
 	}
 	return strings.Join(levelStrings, ",")
+}
+
+// notifyChanLimiter takes in a chan used for notifications and smooths it out to at most
+// one single notification every 10 seconds.  This will continuously empty whatever the "in"
+// channel fed to it is.  Useful for controlling noisy upstream channel spam.  Stops when
+// the upstream inChan channel closes.  Closes outChan when completed
+func notifyChanLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan chan struct{}) {
+
+	ticker := time.NewTicker(maxSpeed)
+	defer ticker.Stop()
+	var upstreamClosed bool // indicates its time to stop reading
+
+	// on every tick, we read all incoming messages and notify if we found any
+	for range ticker.C {
+
+		var gotMessage bool
+		var doneReading bool
+
+		// read all incoming stuff from inChan until the channel is empty
+		for {
+			if doneReading {
+				break
+			}
+			select {
+			case _, closed := <-inChan:
+				log.Println("channel notify limiter witnessed an upstream message on inChan")
+				gotMessage = true
+				if closed {
+					upstreamClosed = true
+				}
+			default:
+				doneReading = true
+			}
+		}
+
+		// if inChan had a message, we send a message to outChan
+		if gotMessage {
+			log.Println("channel notify limiter sending a message on outChan")
+			outChan <- struct{}{}
+		}
+
+		// if the upstream inChan closes, close the downsteram and exit
+		if upstreamClosed {
+			close(outChan)
+			return
+		}
+	}
+
 }

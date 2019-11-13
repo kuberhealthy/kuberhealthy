@@ -130,14 +130,22 @@ func (k *Kuberhealthy) Start() {
 	// Start the web server and restart it if it crashes
 	go kuberhealthy.StartWebServer()
 
-	// find all the external checks from the khcheckcrd resources on the cluster and keep them in sync
+	// find all the external checks from the khcheckcrd resources on the cluster and keep them in sync.
+	// use rate limiting to avoid reconfiguration spam
+	maxUpdateInterval := time.Second * 10
 	externalChecksUpdateChan := make(chan struct{})
+	externalChecksUpdateChanLimited := make(chan struct{})
+	go notifyChanLimiter(maxUpdateInterval, externalChecksUpdateChan, externalChecksUpdateChanLimited)
 	go k.monitorExternalChecks(externalChecksUpdateChan)
 
-	// we use two channels to indicate when we gain or lose master status
-	becameMasterChan := make(chan bool)
-	lostMasterChan := make(chan bool)
-	go k.masterStatusMonitor(becameMasterChan, lostMasterChan)
+	// watch master pod event changes and recalculate the current master state of this pdo with each
+	go k.masterStatusWatcher()
+
+	// we use two channels to indicate when we gain or lose master status. use rate limiting to avoid
+	// reconfiguration spam
+	becameMasterChan := make(chan struct{})
+	lostMasterChan := make(chan struct{})
+	go k.masterMonitor(becameMasterChan, lostMasterChan)
 
 	// loop and select channels to do appropriate thing when master changes
 	for {
@@ -150,7 +158,7 @@ func (k *Kuberhealthy) Start() {
 		case <-lostMasterChan: // we are no longer master
 			log.Infoln("control: Lost master. Stopping checks.")
 			k.StopChecks()
-		case <-externalChecksUpdateChan: // external check change detected
+		case <-externalChecksUpdateChanLimited: // external check change detected
 			log.Infoln("control: Witnessed a khcheck resource change...")
 
 			// if we are master, stop checks
@@ -370,8 +378,6 @@ func (k *Kuberhealthy) StartChecks() {
 	k.wg.Wait()
 
 	// sleep to make a more graceful switch-up during lots of master and check changes coming in
-	log.Infoln("control: Checks starting in 10 seconds...")
-	time.Sleep(time.Second * 10)
 	log.Infoln("control:", len(k.Checks), "checks starting!")
 
 	// create a context for checks to abort with
@@ -386,16 +392,15 @@ func (k *Kuberhealthy) StartChecks() {
 	}
 }
 
-// masterStatusMonitor calculates the master pod on a ticker.  When a
-// change in master is determined that is relevant to this pod, a signal
-// is sent down the appropriate became or lost channels
-func (k *Kuberhealthy) masterStatusMonitor(becameMasterChan chan bool, lostMasterChan chan bool) {
+// masterStatusWatcher watches for master change events and updates the global upcomingMasterState along
+// with the global lastMasterChangeTime
+func (k *Kuberhealthy) masterStatusWatcher() {
 
 	// continue reconnecting to the api to resume the pod watch if it ends
 	for {
 
-		// don't retry too fast
-		time.Sleep(time.Second)
+		// don't retry our watch too fast
+		time.Sleep(time.Second * 5)
 
 		// setup a pod watching client for kuberhealthy pods
 		watcher, err := kubernetesClient.CoreV1().Pods(podNamespace).Watch(metav1.ListOptions{
@@ -408,40 +413,50 @@ func (k *Kuberhealthy) masterStatusMonitor(becameMasterChan chan bool, lostMaste
 
 		// on each update from the watch, we re-check our master status.
 		for range watcher.ResultChan() {
-			k.checkMasterStatus(becameMasterChan, lostMasterChan)
+
+			// determine if we are becoming master or not
+			var err error
+			upcomingMasterState, err = masterCalculation.IAmMaster(kubernetesClient)
+			if err != nil {
+				log.Errorln(err)
+			}
+
+			// update the time we last saw a master event
+			lastMasterChangeTime = time.Now()
+
 		}
 	}
 }
 
-// checkMasterStatus checks the current status of this node as a master and if necessary, notifies
-// the channels supplied.  Returns the new isMaster state bool.
-func (k *Kuberhealthy) checkMasterStatus(becameMasterChan chan bool, lostMasterChan chan bool) {
+// masterMonitor periodically evaluates the current and upcoming master state
+// and makes it so when appropriate
+func (k *Kuberhealthy) masterMonitor(becameMasterChan chan struct{}, lostMasterChan chan struct{}) {
 
-	// determine if we are currently master or not
-	masterNow, err := masterCalculation.IAmMaster(kubernetesClient)
-	if err != nil {
-		log.Errorln(err)
-		return
-	}
+	ticker := time.NewTicker(time.Second * 10)
+	defer ticker.Stop()
 
-	// stop checks if we are no longer the master
-	if masterNow && !isMaster {
-		select {
-		case becameMasterChan <- true:
-		default:
+	// on each tick, we ensure that enough time has passed since the last master change
+	// event, then we calculate if we should become or lose master.
+	for range ticker.C {
+
+		if time.Now().Sub(lastMasterChangeTime) < time.Second*10 {
+			log.Println("waiting for master changes to settle...")
+			continue
 		}
-	}
 
-	// start checks if we are now master
-	if !masterNow && isMaster {
-		select {
-		case lostMasterChan <- true:
-		default:
+		// stop checks if we are no longer the master
+		if upcomingMasterState && !isMaster {
+			becameMasterChan <- struct{}{}
 		}
-	}
 
-	// refresh global isMaster state
-	isMaster = masterNow
+		// start checks if we are now master
+		if !upcomingMasterState && isMaster {
+			lostMasterChan <- struct{}{}
+		}
+
+		// refresh global isMaster state
+		isMaster = upcomingMasterState
+	}
 }
 
 // runCheck runs a check on an interval and sets its status each run

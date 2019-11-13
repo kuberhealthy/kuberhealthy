@@ -78,7 +78,6 @@ type Checker struct {
 	OriginalPodSpec          apiv1.PodSpec // the user-provided spec of the pod
 	PodDeployed              bool          // indicates the pod exists in the API
 	PodDeployedMu            sync.Mutex
-	PodName                  string // the name of the deployed pod
 	RunID                    string // the uuid of the current run
 	KuberhealthyReportingURL string // the URL that the check should want to report results back to
 	ExtraAnnotations         map[string]string
@@ -88,6 +87,7 @@ type Checker struct {
 	shutdownCTXFunc          context.CancelFunc // used to cancel things in-flight when shutting down gracefully
 	shutdownCTX              context.Context    // a context used for shutting down the check gracefully
 	wg                       sync.WaitGroup     // used to track background workers and processes
+	hostname                 string             // hostname cache
 }
 
 // New creates a new external checker
@@ -108,11 +108,27 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 		RunTimeout:               defaultTimeout,
 		ExtraAnnotations:         make(map[string]string),
 		ExtraLabels:              make(map[string]string),
-		PodName:                  checkConfig.Name,
 		OriginalPodSpec:          checkConfig.Spec.PodSpec,
 		PodSpec:                  checkConfig.Spec.PodSpec,
 		KubeClient:               client,
 	}
+}
+
+// podName returns the name of the checker pod formulated from our hostname.  caches the hostname to reduce
+// os hostname lookup calls. crashes the whole program if it cant find a hostname
+func (ext *Checker) podName() string {
+	var err error
+
+	// if no hostname in cache, fetch it from the OS
+	if len(ext.hostname) == 0 {
+		ext.hostname, err = os.Hostname()
+		if err != nil {
+			log.Fatalln("Could not determine my hostname with error:", err)
+		}
+	}
+
+	// always lowercase the output
+	return strings.ToLower(ext.hostname + "-" + ext.CheckName)
 }
 
 // CurrentStatus returns the status of the check as of right now.  For the external checker, this means checking
@@ -201,7 +217,7 @@ func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck, error) {
 
 // cleanup cleans up any running pods
 func (ext *Checker) cleanup() {
-	ext.log("Cleaning up any deployed pods with name", ext.PodName)
+	ext.log("Cleaning up any deployed pods with name", ext.podName())
 	err := ext.deletePod()
 	if err != nil && !strings.Contains(err.Error(), "not found") {
 		ext.log("Error when cleaning up deployed pods: ", err.Error())
@@ -506,14 +522,14 @@ func (ext *Checker) RunOnce() error {
 		// flag the pod as running until this run ends
 		ext.setPodDeployed(true)
 		defer ext.setPodDeployed(false)
-		ext.log("External check pod is running:", ext.PodName)
+		ext.log("External check pod is running:", ext.podName())
 	case <-ext.shutdownCTX.Done():
 		ext.log("shutting down check. aborting watch for pod to start")
 		return nil
 	}
 
 	// validate that the pod was able to update its khstate
-	ext.log("Waiting for pod status to be reported from pod", ext.PodName, "in namespace", ext.Namespace)
+	ext.log("Waiting for pod status to be reported from pod", ext.podName(), "in namespace", ext.Namespace)
 	select {
 	case <-timeoutChan:
 		ext.log("timed out waiting for pod status to be reported")
@@ -538,7 +554,7 @@ func (ext *Checker) RunOnce() error {
 			ext.log(errorMessage)
 			return ext.newError(errorMessage)
 		}
-		ext.log("External check pod has reported status for this check iteration:", ext.PodName)
+		ext.log("External check pod has reported status for this check iteration:", ext.podName())
 	case <-ext.shutdownCTX.Done():
 		ext.log("shutting down check. aborting wait for pod status to update")
 		return nil
@@ -555,7 +571,7 @@ func (ext *Checker) RunOnce() error {
 		ext.cleanup()
 		return ext.newError(errorMessage)
 	case err = <-ext.waitForPodExit():
-		ext.log("External check pod is done running:", ext.PodName)
+		ext.log("External check pod is done running:", ext.podName())
 		if err != nil {
 			errorMessage := "found an error when waiting for pod to exit: " + err.Error()
 			ext.log(errorMessage, err)
@@ -581,7 +597,7 @@ func (ext *Checker) deletePod() error {
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 	gracePeriodSeconds := int64(1)
 	deletionPolicy := metav1.DeletePropagationForeground
-	err := podClient.Delete(ext.PodName, &metav1.DeleteOptions{
+	err := podClient.Delete(ext.podName(), &metav1.DeleteOptions{
 		GracePeriodSeconds: &gracePeriodSeconds,
 		PropagationPolicy:  &deletionPolicy,
 	})
@@ -595,10 +611,6 @@ func (ext *Checker) deletePod() error {
 func (ext *Checker) sanityCheck() error {
 	if ext.Namespace == "" {
 		return errors.New("check namespace can not be empty")
-	}
-
-	if ext.PodName == "" {
-		return errors.New("pod name can not be empty")
 	}
 
 	if ext.KubeClient == nil {
@@ -715,7 +727,7 @@ func (ext *Checker) waitForAllPodsToClear() chan error {
 
 		// watch events and return when the pod is in state running
 		for {
-			log.Debugln("Waiting for checker pod", ext.PodName, "to clear...")
+			log.Debugln("Waiting for checker pod", ext.podName(), "to clear...")
 
 			// wait between requests
 			time.Sleep(time.Second * 5)
@@ -729,7 +741,7 @@ func (ext *Checker) waitForAllPodsToClear() chan error {
 			}
 
 			// fetch the pod by name
-			p, err := podClient.Get(ext.PodName, metav1.GetOptions{})
+			p, err := podClient.Get(ext.podName(), metav1.GetOptions{})
 
 			// if we got a "not found" message, then we are done.  This is the happy path.
 			if err != nil {
@@ -743,7 +755,7 @@ func (ext *Checker) waitForAllPodsToClear() chan error {
 				outChan <- err
 				return
 			}
-			ext.log("pod", ext.PodName, "still exists with status", p.Status.Phase, p.Status.Message, "- waiting for removal...")
+			ext.log("pod", ext.podName(), "still exists with status", p.Status.Phase, p.Status.Message, "- waiting for removal...")
 		}
 	}()
 
@@ -927,7 +939,7 @@ func (ext *Checker) validatePodSpec() error {
 func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	p := &apiv1.Pod{}
 	p.Namespace = ext.Namespace
-	p.Name = ext.PodName
+	p.Name = ext.podName()
 	p.Annotations = ext.ExtraAnnotations
 	p.Labels = ext.ExtraLabels
 	ext.log("Creating external checker pod named", p.Name)
@@ -1016,7 +1028,7 @@ func (ext *Checker) podExists() (bool, error) {
 
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
-	p, err := podClient.Get(ext.PodName, metav1.GetOptions{})
+	p, err := podClient.Get(ext.podName(), metav1.GetOptions{})
 	if err != nil && strings.Contains(err.Error(), "not found") {
 		return false, nil
 	}
@@ -1086,7 +1098,7 @@ func (ext *Checker) Shutdown() error {
 	ext.log("Waiting for background workers to cleanup...")
 	ext.wg.Wait()
 
-	ext.log("Pod " + ext.PodName + " successfully shutdown.")
+	ext.log("Pod " + ext.podName() + " successfully shutdown.")
 	return nil
 }
 
