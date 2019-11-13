@@ -32,6 +32,9 @@ const KHReportingURL = "KH_REPORTING_URL"
 // can be de-duplicated on the server side.
 const KHRunUUID = "KH_RUN_UUID"
 
+// KH_CHECK_NAME_ANNOTATION_KEY is the annotation which holds the check's name for later validation when the pod calls in
+const KH_CHECK_NAME_ANNOTATION_KEY = "comcast.github.io/check-name"
+
 // KHPodNamespace is the namespace variable used to tell external checks their namespace to perform
 // checks in.
 const KHPodNamespace = "KH_POD_NAMESPACE"
@@ -945,6 +948,10 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	ext.log("Creating external checker pod named", p.Name)
 	p.Spec = ext.PodSpec
 	ext.addKuberhealthyLabels(p)
+
+	// enforce the check's name annotation
+	p.Annotations[KH_CHECK_NAME_ANNOTATION_KEY] = ext.CheckName
+
 	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
 }
 
