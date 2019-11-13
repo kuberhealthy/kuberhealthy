@@ -41,10 +41,9 @@ func getAllLogLevel() string {
 
 // notifyChanLimiter takes in a chan used for notifications and smooths it out to at most
 // one single notification every 10 seconds.  This will continuously empty whatever the inChan
-// channel fed to it is.  Useful for controlling noisy upstream channel spam.  Stops when
-// the upstream inChan channel closes.  Closes outChan when completed.  Also smooths notifications
+// channel fed to it is.  Useful for controlling noisy upstream channel spam. Also smooths notifications
 // out so that an outChan signal is only sent after inChan has been quiet for a full duration of
-// the specified maxSpeed
+// the specified maxSpeed.  Never stops running and does not expect upstream channels from closing
 func notifyChanLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan chan struct{}) {
 
 	ticker := time.NewTicker(maxSpeed)
@@ -62,18 +61,10 @@ func notifyChanLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan cha
 				break
 			}
 			select {
-			case _, closed := <-inChan:
+			case <-inChan:
 				log.Println("channel notify limiter witnessed an upstream message on inChan")
 				changePending = true
 				mostRecentChangeTime = time.Now()
-
-				// if the inChan is closed, we send a final message to outChan and quit immediately
-				if closed {
-					log.Println("channel notify limiter sending a final message on outChan due to upstream channel closing")
-					outChan <- struct{}{}
-					close(outChan)
-					return
-				}
 			default:
 				doneReading = true
 			}

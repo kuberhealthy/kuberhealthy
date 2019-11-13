@@ -180,7 +180,7 @@ spec:
       app: kuberhealthy
   strategy:
     rollingUpdate:
-      maxSurge: 0
+      maxSurge: 1
       maxUnavailable: 1
     type: RollingUpdate
   template:
