@@ -950,7 +950,10 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	p.Spec = ext.PodSpec
 	ext.addKuberhealthyLabels(p)
 
-	// enforce the check's name annotation
+	// enforce the check's name annotation and ensure the map isn't nil
+	if p.Annotations == nil {
+		p.Annotations = make(map[string]string)
+	}
 	p.Annotations[KH_CHECK_NAME_ANNOTATION_KEY] = ext.CheckName
 
 	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
