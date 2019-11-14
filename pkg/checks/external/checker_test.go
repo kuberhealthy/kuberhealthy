@@ -37,7 +37,7 @@ func init() {
 	}
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, "")
+	checkClient, err := khcheckcrd.Client(CRDGroup, CRDVersion, kubeConfigFile, "")
 	if err != nil {
 		log.Fatalln("err")
 	}
@@ -103,7 +103,7 @@ func TestExternalCheckerSanitation(t *testing.T) {
 	checker.KubeClient = client
 
 	// sabotage the pod name
-	checker.PodName = ""
+	checker.CheckName = ""
 
 	// run the checker with the kube client
 	err = checker.RunOnce()
@@ -113,7 +113,7 @@ func TestExternalCheckerSanitation(t *testing.T) {
 	t.Log("got expected error:", err)
 
 	// break the pod namespace instead now
-	checker.PodName = DefaultName
+	checker.CheckName = DefaultName
 	checker.Namespace = ""
 
 	// run the checker with the kube client
@@ -139,7 +139,7 @@ func TestExternalCheckerSanitation(t *testing.T) {
 func createKHCheckSpec(checkSpec *khcheckcrd.KuberhealthyCheck, checkNamespace string) error {
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, checkNamespace)
+	checkClient, err := khcheckcrd.Client(CRDGroup, CRDVersion, kubeConfigFile, checkNamespace)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func createKHCheckSpec(checkSpec *khcheckcrd.KuberhealthyCheck, checkNamespace s
 func deleteKHCheckSpec(checkName string, checkNamespace string) error {
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, checkNamespace)
+	checkClient, err := khcheckcrd.Client(CRDGroup, CRDVersion, kubeConfigFile, checkNamespace)
 	if err != nil {
 		return err
 	}
@@ -213,10 +213,6 @@ func TestWriteWhitelistedUUID(t *testing.T) {
 
 	if len(c.Spec.PodSpec.Containers) == 0 {
 		t.Fatal("Tried to create a test check but the containers list was empty")
-	}
-
-	if c.Spec.CurrentUUID != testUUID {
-		t.Fatal("Fetched khcheck custom resource had a bad UUID set:", c.Spec.CurrentUUID)
 	}
 
 	// re-fetch the UUID from the custom resource
@@ -301,14 +297,14 @@ func TestSanityCheck(t *testing.T) {
 
 	// fix the namespace, then try blanking the PodName
 	c.Namespace = defaultNamespace
-	c.PodName = ""
+	c.CheckName = ""
 	err = c.sanityCheck()
 	if err == nil {
 		t.Fatal(err)
 	}
 
 	// fix the pod name and try KubeClient
-	c.PodName = "kuberhealthy"
+	c.CheckName = "kuberhealthy"
 	c.KubeClient = nil
 	err = c.sanityCheck()
 	if err == nil {

@@ -45,6 +45,8 @@ type Kuberhealthy struct {
 	MetricForwarder    metrics.Client
 	overrideKubeClient *kubernetes.Clientset
 	cancelChecksFunc   context.CancelFunc // invalidates the context of all running checks
+	wg                 sync.WaitGroup     // used to track running checks
+	shutdownCtxFunc    context.CancelFunc // used to shutdown the main control select
 }
 
 // NewKuberhealthy creates a new kuberhealthy checker instance
@@ -66,7 +68,19 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace s
 	}
 	details.OK = false
 	details.Errors = []string{"Check execution error: " + exErr.Error()}
-	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors)
+
+	// we need to maintain the current UUID, which means fetching it first
+	khc, err := k.getCheck(checkName, checkNamespace)
+	if err != nil {
+		log.Errorln("Error when setting execution error on check", checkName, checkNamespace, err)
+	}
+	checkState, err := getCheckState(khc)
+	if err != nil {
+		log.Errorln("Error when setting execution error on check (getting check state for current UUID)", checkName, checkNamespace, err)
+	}
+	details.CurrentUUID = checkState.CurrentUUID
+
+	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors, details.CurrentUUID)
 
 	// store the check state with the CRD
 	err = k.storeCheckState(checkName, checkNamespace, details)
@@ -82,87 +96,103 @@ func (k *Kuberhealthy) AddCheck(c KuberhealthyCheck) {
 }
 
 // Shutdown causes the kuberhealthy check group to shutdown gracefully
-func (k *Kuberhealthy) Shutdown() {
-	k.StopChecks()
-	log.Debugln("All checks shutdown!")
-	doneChan <- true
+func (k *Kuberhealthy) Shutdown(doneChan chan struct{}) {
+	if k.shutdownCtxFunc != nil {
+		log.Infoln("shutdown: aborting control context")
+		k.shutdownCtxFunc() // stop the control system
+	}
+	time.Sleep(5) // help prevent more checks from starting in a race before control system stop happens
+	log.Infoln("shutdown: stopping checks")
+	k.StopChecks() // stop all checks
+	log.Infoln("shutdown: ready for main program shutdown")
+	doneChan <- struct{}{}
 }
 
 // StopChecks causes the kuberhealthy check group to shutdown gracefully.
 // All checks are sent a shutdown command at the same time.
 func (k *Kuberhealthy) StopChecks() {
-	log.Infoln("Checks stopping...")
+	log.Infoln("control:", len(k.Checks), "checks stopping...")
 	if k.cancelChecksFunc != nil {
 		k.cancelChecksFunc()
 	}
 
 	// call a shutdown on all checks concurrently
-	var stopWG sync.WaitGroup
 	for _, c := range k.Checks {
-		stopWG.Add(1)
 		go func() {
-			log.Debugln("Check", c.Name(), "stopping...")
+			log.Infoln("control: check", c.Name(), "stopping...")
 			err := c.Shutdown()
 			if err != nil {
-				log.Errorln("Error stopping check", c.Name(), err)
+				log.Errorln("control: ERROR stopping check", c.Name(), err)
 			}
-			stopWG.Done()
+			k.wg.Done()
+			log.Infoln("control: check", c.Name(), "stopped")
 		}()
 	}
 
 	// wait for all checks to stop cleanly
-	stopWG.Wait()
-	log.Debugln("All checks stopped.")
+	log.Infoln("control: waiting for all checks to stop")
+	k.wg.Wait()
+	log.Infoln("control: all checks stopped.")
 }
 
 // Start inits Kuberhealthy checks and master monitoring
-func (k *Kuberhealthy) Start() {
+func (k *Kuberhealthy) Start(ctx context.Context) {
 
+	// we must load all configured checks so that the status page shows check statuses
 	log.Infoln("Loading initial check configuration...")
 	kuberhealthy.configureChecks()
-
-	// Start the web server and restart it if it crashes
-	go kuberhealthy.StartWebServer()
 
 	// if influxdb is enabled, configure it
 	if enableInflux {
 		k.configureInfluxForwarding()
 	}
 
-	// find all the external checks from the khcheckcrd resources on the cluster and keep them in sync
-	externalChecksUpdateChan := make(chan struct{})
+	// Start the web server and restart it if it crashes
+	go kuberhealthy.StartWebServer()
+
+	// find all the external checks from the khcheckcrd resources on the cluster and keep them in sync.
+	// use rate limiting to avoid reconfiguration spam
+	maxUpdateInterval := time.Second * 10
+	externalChecksUpdateChan := make(chan struct{}, 50)
+	externalChecksUpdateChanLimited := make(chan struct{}, 50)
+	go notifyChanLimiter(maxUpdateInterval, externalChecksUpdateChan, externalChecksUpdateChanLimited)
 	go k.monitorExternalChecks(externalChecksUpdateChan)
 
-	// we use two channels to indicate when we gain or lose master status
-	becameMasterChan := make(chan bool)
-	lostMasterChan := make(chan bool)
-	go k.masterStatusMonitor(becameMasterChan, lostMasterChan)
+	// we use two channels to indicate when we gain or lose master status. use rate limiting to avoid
+	// reconfiguration spam
+	becameMasterChan := make(chan struct{}, 10)
+	lostMasterChan := make(chan struct{}, 10)
+	go k.masterMonitor(becameMasterChan, lostMasterChan)
 
 	// loop and select channels to do appropriate thing when master changes
 	for {
 		select {
+		case <-ctx.Done(): // we are shutting down
+			log.Infoln("control: shutting down from context abort...")
+			return
 		case <-becameMasterChan: // we have become the current master instance and should run checks
 			// reset checks and re-add from configuration settings
-			log.Infoln("Became master. Reconfiguring and starting checks.")
+			log.Infoln("control: Became master. Reconfiguring and starting checks.")
 			kuberhealthy.configureChecks()
 			k.StartChecks()
 		case <-lostMasterChan: // we are no longer master
-			log.Infoln("Lost master. Stopping checks.")
+			log.Infoln("control: Lost master. Stopping checks.")
 			k.StopChecks()
-		case <-externalChecksUpdateChan: // external check change detected
-			log.Infoln("Witnessed a khcheck resource change...")
+		case <-externalChecksUpdateChanLimited: // external check change detected
+			log.Infoln("control: Witnessed a khcheck resource change...")
 
 			// if we are master, stop checks
 			if isMaster {
-				log.Infoln("Reloading external check configurations due to resource update.")
+				log.Infoln("control: Reloading external check configurations due to resource update.")
 				k.StopChecks()
 			}
 
-			log.Infoln("Reloading check configuration...")
+			log.Infoln("control: Reloading check configuration due to configuration change...")
 			kuberhealthy.configureChecks()
 
 			// start checks again if we are master
 			if isMaster {
+				log.Infoln("control: starting checks due to external check configuration updates...")
 				k.StartChecks()
 			}
 		}
@@ -288,6 +318,24 @@ func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
 				foundChange = true
 			}
 
+			// check if run timeout has changed
+			if knownSettings[mapName].Timeout != i.Spec.Timeout {
+				log.Debugln("The khcheck timeout for", mapName, "has changed.")
+				foundChange = true
+			}
+
+			// check if extraLabels has changed
+			if !foundChange && !reflect.DeepEqual(knownSettings[mapName].ExtraLabels, i.Spec.ExtraLabels) {
+				log.Debugln("The khcheck extra labels for", mapName, "has changed.")
+				foundChange = true
+			}
+
+			// check if extraAnnotations has changed
+			if !foundChange && !reflect.DeepEqual(knownSettings[mapName].ExtraAnnotations, i.Spec.ExtraAnnotations) {
+				log.Debugln("The khcheck extra annotations for", mapName, "has changed.")
+				foundChange = true
+			}
+
 			// check if CheckConfig has changed (PodSpec)
 			if !foundChange && !reflect.DeepEqual(knownSettings[mapName].PodSpec, i.Spec.PodSpec) {
 				log.Debugln("The khcheck for", mapName, "has changed.")
@@ -365,29 +413,33 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 // StartChecks starts all checks concurrently and ensures they stay running
 func (k *Kuberhealthy) StartChecks() {
+	// wait for theor check wg to be done, just in case
+	k.wg.Wait()
 
-	log.Infoln("Checks starting...")
+	// sleep to make a more graceful switch-up during lots of master and check changes coming in
+	log.Infoln("control:", len(k.Checks), "checks starting!")
+
 	// create a context for checks to abort with
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	k.cancelChecksFunc = cancelFunc
 
 	// start each check with this check group's context
 	for _, c := range k.Checks {
+		k.wg.Add(1)
 		// start the check in its own routine
 		go k.runCheck(ctx, c)
 	}
 }
 
-// masterStatusMonitor calculates the master pod on a ticker.  When a
-// change in master is determined that is relevant to this pod, a signal
-// is sent down the appropriate became or lost channels
-func (k *Kuberhealthy) masterStatusMonitor(becameMasterChan chan bool, lostMasterChan chan bool) {
+// masterStatusWatcher watches for master change events and updates the global upcomingMasterState along
+// with the global lastMasterChangeTime
+func (k *Kuberhealthy) masterStatusWatcher() {
 
 	// continue reconnecting to the api to resume the pod watch if it ends
 	for {
 
-		// don't retry too fast
-		time.Sleep(time.Second)
+		// don't retry our watch too fast
+		time.Sleep(time.Second * 5)
 
 		// setup a pod watching client for kuberhealthy pods
 		watcher, err := kubernetesClient.CoreV1().Pods(podNamespace).Watch(metav1.ListOptions{
@@ -400,44 +452,66 @@ func (k *Kuberhealthy) masterStatusMonitor(becameMasterChan chan bool, lostMaste
 
 		// on each update from the watch, we re-check our master status.
 		for range watcher.ResultChan() {
-			k.checkMasterStatus(becameMasterChan, lostMasterChan)
+
+			// update the time we last saw a master event
+			lastMasterChangeTime = time.Now()
+
+			// determine if we are becoming master or not
+			var err error
+			upcomingMasterState, err = masterCalculation.IAmMaster(kubernetesClient)
+			if err != nil {
+				log.Errorln(err)
+			}
+
+			// update the time we last saw a master event
+			lastMasterChangeTime = time.Now()
 		}
 	}
 }
 
-// checkMasterStatus checks the current status of this node as a master and if necessary, notifies
-// the channels supplied.  Returns the new isMaster state bool.
-func (k *Kuberhealthy) checkMasterStatus(becameMasterChan chan bool, lostMasterChan chan bool) {
+// masterMonitor periodically evaluates the current and upcoming master state
+// and makes it so when appropriate
+func (k *Kuberhealthy) masterMonitor(becameMasterChan chan struct{}, lostMasterChan chan struct{}) {
 
-	// determine if we are currently master or not
-	masterNow, err := masterCalculation.IAmMaster(kubernetesClient)
-	if err != nil {
-		log.Errorln(err)
-		return
-	}
+	// watch master pod event changes and recalculate the current master state of this pdo with each
+	go k.masterStatusWatcher()
 
-	// stop checks if we are no longer the master
-	if masterNow && !isMaster {
-		select {
-		case becameMasterChan <- true:
-		default:
+	interval := time.Second * 10
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	// on each tick, we ensure that enough time has passed since the last master change
+	// event, then we calculate if we should become or lose master.
+	for range ticker.C {
+
+		if time.Now().Sub(lastMasterChangeTime) < interval {
+			log.Println("control: waiting for master changes to settle...")
+			continue
 		}
-	}
 
-	// start checks if we are now master
-	if !masterNow && isMaster {
-		select {
-		case lostMasterChan <- true:
-		default:
+		// dupe the global to prevent races
+		goingToBeMaster := upcomingMasterState
+
+		// stop checks if we are no longer the master
+		if goingToBeMaster && !isMaster {
+			becameMasterChan <- struct{}{}
 		}
-	}
 
-	// refresh global isMaster state
-	isMaster = masterNow
+		// start checks if we are now master
+		if !goingToBeMaster && isMaster {
+			lostMasterChan <- struct{}{}
+		}
+
+		// refresh global isMaster state
+		isMaster = goingToBeMaster
+	}
 }
 
 // runCheck runs a check on an interval and sets its status each run
 func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
+
+	log.Println("Starting check:", c.CheckNamespace(), "/", c.Name())
 
 	// run on an interval specified by the package
 	ticker := time.NewTicker(c.Interval())
@@ -473,9 +547,14 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		log.Debugln("Done running check:", c.Name(), "in namespace", c.CheckNamespace())
 
 		// make a new state for this check and fill it from the check's current status
+		checkDetails, err := getCheckState(c)
+		if err != nil {
+			log.Errorln("Error setting check state after run:", c.Name(), "in namespace", c.CheckNamespace()+":", err)
+		}
 		details := health.NewCheckDetails()
 		details.Namespace = c.CheckNamespace()
 		details.OK, details.Errors = c.CurrentStatus()
+		details.CurrentUUID = checkDetails.CurrentUUID
 
 		// send data to the metric forwarder if configured
 		if k.MetricForwarder != nil {
@@ -499,7 +578,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 			}
 		}
 
-		log.Infoln("Setting state of check", c.Name(), "in namespace", c.CheckNamespace(), "to", details.OK, details.Errors)
+		log.Infoln("Setting state of check", c.Name(), "in namespace", c.CheckNamespace(), "to", details.OK, details.Errors, details.CurrentUUID)
 
 		// store the check state with the CRD
 		err = k.storeCheckState(c.Name(), c.CheckNamespace(), details)
@@ -562,7 +641,7 @@ func (k *Kuberhealthy) StartWebServer() {
 		log.Infoln("Starting web services on port", k.ListenAddr)
 		err := http.ListenAndServe(k.ListenAddr, nil)
 		if err != nil {
-			log.Errorln("Web server error:", err)
+			log.Errorln("Web server ERROR:", err)
 		}
 		time.Sleep(time.Second / 2)
 	}
@@ -601,9 +680,13 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	}
 
 	// set the pod namespace and name from the returned metadata
-	podCheckName = pod.GetName()
+	podCheckName = pod.Annotations[KH_CHECK_NAME_ANNOTATION_KEY]
+	if len(podCheckName) == 0 {
+		return reportInfo, errors.New("error finding check name annotation on calling pod with ip: " + ip)
+	}
+
 	podCheckNamespace = pod.GetNamespace()
-	log.Debugln("Found pod name", podCheckName, "in namespace", podCheckNamespace)
+	log.Debugln("Found check named", podCheckName, "in namespace", podCheckNamespace)
 
 	// pile up all the env vars for searching
 	var envVars []v1.EnvVar
@@ -650,6 +733,9 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	// next, we check the uuid against the check name to see if this uuid is the expected one.  if it isn't,
 	// we return an error
 	whitelisted, err := k.isUUIDWhitelistedForCheck(podCheckName, podCheckNamespace, podUUID)
+	if err != nil {
+		return reportInfo, fmt.Errorf("failed to fetch whitelisted UUID for check with error: %w", err)
+	}
 	if !whitelisted {
 		return reportInfo, errors.New("pod was not properly whitelisted for reporting status of check " + podCheckName + " with uuid " + podUUID + " and namespace " + podCheckNamespace)
 	}
@@ -785,9 +871,10 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	details.Errors = state.Errors
 	details.OK = state.OK
 	details.Namespace = ipReport.Namespace
+	details.CurrentUUID = ipReport.UUID
 
 	// since the check is validated, we can proceed to update the status now
-	k.externalCheckReportHandlerLog(requestID, "Setting check with name", ipReport.Name, "in namespace", ipReport.Namespace, "to 'OK' state:", details.OK)
+	k.externalCheckReportHandlerLog(requestID, "Setting check with name", ipReport.Name, "in namespace", ipReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID)
 	err = k.storeCheckState(ipReport.Name, ipReport.Namespace, details)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -932,16 +1019,15 @@ func (k *Kuberhealthy) getCheck(name string, namespace string) (KuberhealthyChec
 // configureChecks removes all checks set in Kuberhealthy and reloads them
 // based on the configuration options
 func (k *Kuberhealthy) configureChecks() {
-	log.Infoln("Loading check configuration...")
+	log.Infoln("control: Loading check configuration...")
 
 	// wipe all existing checks before we configure
 	k.Checks = []KuberhealthyCheck{}
 
 	// check external check configurations
-	log.Infoln("Enabling external checks...")
 	err := kuberhealthy.addExternalChecks()
 	if err != nil {
-		log.Errorln("Error loading external checks:", err)
+		log.Errorln("control: ERROR loading external checks:", err)
 	}
 }
 
@@ -952,13 +1038,13 @@ func (k *Kuberhealthy) configureChecks() {
 func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, checkNamespace string, uuid string) (bool, error) {
 
 	// get the item in question
-	checkConfig, err := khCheckClient.Get(metav1.GetOptions{}, checkCRDResource, checkNamespace, checkName)
+	checkState, err := khStateClient.Get(metav1.GetOptions{}, stateCRDResource, checkName, checkNamespace)
 	if err != nil {
 		return false, err
 	}
 
-	log.Debugln("Validating current UUID", checkConfig.Spec.CurrentUUID, "vs incoming UUID:", uuid)
-	if checkConfig.Spec.CurrentUUID == uuid {
+	log.Debugln("Validating current UUID", checkState.Spec.CurrentUUID, "vs incoming UUID:", uuid)
+	if checkState.Spec.CurrentUUID == uuid {
 		return true, nil
 	}
 	return false, nil

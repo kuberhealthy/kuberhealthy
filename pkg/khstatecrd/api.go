@@ -13,7 +13,6 @@ package khstatecrd // import "github.com/Comcast/kuberhealthy/pkg/khstatecrd"
 
 import (
 	"log"
-	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -22,20 +21,14 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const defaultNamespace  = "kuberhealthy"
+const defaultNamespace = "kuberhealthy"
 
 const resource = "khstates"
 const group = "comcast.github.io"
 const version = "v1"
 
-var clientMu sync.Mutex
-
 // Client creates a rest client to use for interacting with CRDs
 func Client(GroupName string, GroupVersion string, kubeConfig string, namespace string) (*KuberhealthyStateClient, error) {
-
-	// prevents current map access
-	clientMu.Lock()
-	defer clientMu.Unlock()
 
 	var c *rest.Config
 	var err error
