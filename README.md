@@ -1,17 +1,17 @@
 <center><img src="https://github.com/Comcast/kuberhealthy/blob/master/images/kuberhealthy.png?raw=true"></center><br />
 
-An operator for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_monitoring) on [Kubernetes](https://kubernetes.io).  Write your own tests in your own container and Kuberhealthy will manage everything else.  Automatically creates and sends metrics to [Prometheus](https://prometheus.io) and [InfluxDB](https://www.influxdata.com/).  Included JSON status page. Supplements other solutions like [Prometheus](https://prometheus.io/) very nicely!
+An operator for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_monitoring) on [Kubernetes](https://kubernetes.io).  Write your own tests in your own container and Kuberhealthy will manage everything else.  Automatically creates and sends metrics to [Prometheus](https://prometheus.io) and [InfluxDB](https://www.influxdata.com/).  Included simple JSON status page. Supplements other solutions like [Prometheus](https://prometheus.io/) very nicely!
 
 [![Docker Repository on Quay](https://quay.io/repository/comcast/kuberhealthy/status "Kuberhealthy Docker Repository on Quay")](https://quay.io/repository/comcast/kuberhealthy)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Comcast/kuberhealthy)](https://goreportcard.com/report/github.com/Comcast/kuberhealthy)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2822/badge)](https://bestpractices.coreinfrastructure.org/projects/2822)
 
-You can reach out to us on the [Kubernetes Slack](http://slack.k8s.io/) in the [#kuberhealthy channel](https://kubernetes.slack.com/messages/CB9G7HWTE).
+You can reach out to us directly on the [Kubernetes Slack](http://slack.k8s.io/) in the [#kuberhealthy channel](https://kubernetes.slack.com/messages/CB9G7HWTE).
 
 ## What is Kuberhealthy?
 
-Kuberhealthy is an [operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) for running synthetic checks.  You create a custom resource (`khcheck`) to enable various checks (you can write your own) and Kuberhealthy does all the work of scheduling your checks, ensuring they run, maintaining up/down state, and producing metrics.  There are [lots of useful checks available]("docs/EXTERNAL_CHECKS_REGISTRY.md") to ensure core functionality of Kubernetes.  By default, a core set of lightweight but valuable checks are included.  If you like, you can easily [write your own checks (TODO)]() in any language! 
+Kuberhealthy is an [operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) for running synthetic checks.  By creating a custom resource (a `khcheck`) in your cluster, you can easily enable various synthetic test containers.  Kuberhealthy does all the work of scheduling your checks on an interval you specify (like a CronJob), ensuring they run properly within an alotted timeout, maintaining the current up/down state with durability, and producing metrics.  There are [lots of useful checks already available]("docs/EXTERNAL_CHECKS_REGISTRY.md") to ensure core functionality of Kubernetes.  By default, a core set of lightweight but valuable checks are included.  Checks will be run in the namespace where the `khcheck` is created.  If you like, you can easily [write your own checks]("/docs/EXTERNAL_CHECK_CREATION.md") in any language to test anything you can imagine!
 
 Kuberhealthy serves a JSON status page, a [Prometheus](https://prometheus.io/) metrics endpoint, and allows for forwarding to an InfluxDB endpoint for integration into your choice of alerting solution.
 
@@ -19,33 +19,42 @@ Here is an illustration of how Kuberhealthy runs checks in their own pods.  In t
 
 <img src="images/kh-ds-check.gif">
 
-Read more about how external checks are configured in the documentation [here](docs/EXTERNAL_CHECKS.md) and learn how to create your own check in any lanugage [here](docs/EXTERNAL_CHECK_CREATION.md).
+# Create Synthetic Checks for Your App
+
+With Kuberhealthy, you can easily create synthetic tests to check your applications with real world use.  Read more about how external checks are configured in the documentation [here](docs/EXTERNAL_CHECKS.md) and learn how to create your own check container in any lanugage [here](docs/EXTERNAL_CHECK_CREATION.md).
 
 
-## Installation (TODO issue #189)
-To install using [Helm](https://helm.sh) *without* Prometheus:
+## Installation
+
+[Helm 3](https://helm.sh/) required for all chart installation.
+
+To install using Helm 3 *without* Prometheus metrics:
 `helm install stable/kuberhealthy`
 
-To install using [Helm](https://helm.sh) *with* Prometheus:
-`helm install stable/kuberhealthy --set prometheus.enabled=true`
+To install using Helm 3 *with* Prometheus metrics:
+`helm install stable/kuberhealthy --set prometheus.enabled=true --set prometheus.enableScraping=true --set prometheus.enableAlerting=true`
 
-To install using [Helm](https://helm.sh) *with* Prometheus Operator:
-`helm install stable/kuberhealthy --set prometheus.enabled=true --set prometheus.serviceMonitor=true`
+To install using Helm 3 *with* a Prometheus `ServiceMonitor`:
+`helm install stable/kuberhealthy --set prometheus.enabled=true --set prometheus.enableScraping=true --set prometheus.enableAlerting=true --set prometheus.serviceMonitor=true`
 
-To install using flat yaml spec files, see the [deploy directory](https://github.com/Comcast/kuberhealthy/tree/master/deploy).
+You can also use a flat spec file if you don't want to use Helm:
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/deploy/kuberhealthy.yaml`
 
-After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you must edit the service `kuberhealthy` and set `Type: LoadBalancer`.
+To install using other flat yaml spec files, see the [deploy directory](/deploy).
+
+After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer`.  This is done for security.  Options are available in the Helm chart to bypass this and deploy with `Type: LoadBalancer` directly.
 
 RBAC bindings and roles are included in all configurations.
 
-Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.14.x`.
+Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.15.x`.
+
 
 ### Prometheus Alerts
 
 A `ServiceMonitor` configuration is available at [deploy/servicemonitor.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/servicemonitor.yaml).
 
 
-### Grafana Dashboard
+### Prometheus Grafana Dashboard
 
 A `Grafana` dashboard is available at [deploy/grafana/dashboard.json](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/grafana/dashboard.json).  To install this dashboard, follow the instructions [here](http://docs.grafana.org/reference/export_import/#importing-a-dashboard).
 
@@ -58,46 +67,58 @@ Some examples of problems Kuberhealthy has detected in production with just the 
 - Nodes where new pods get stuck in `Terminating` due to CNI communication failures
 - Nodes where new pods get stuck in `ContainerCreating` due to disk provisoning errors
 - Nodes where new pods get stuck in `Pending` due to container runtime errors
-- Nodes where Docker or Kubelet crashes or has restarted
+- Nodes where Docker or Kubelet is in a bad state but passing health checks
 - Nodes that are unable to properly communicate with the api server due to kube-api request limiting
-- Nodes that cannot provision or terminate pods quickly enough due to high I/O wait
-- A pod in the `kube-system` namespace that is restarting too quickly
-- A [Kubernetes component](https://kubernetes.io/docs/concepts/overview/components/) that is in a non-ready state
+- Nodes that cannot provision or terminate pods quickly enough (15m) due to high I/O wait
+- A pod in the `kube-system` namespace that has begun restarting too quickly
+- An unexpected admission controller failure causing pod creation failure
 - Intermittent failures to access or create [custom resources](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
-- Kubernetes system services remaining technically "healthy" while their underlying pods are crashing too much
-  - kube-scheduler
-  - kube-apiserver
-  - kube-dns
+- kube-dns/CoreDNS DNS lookup failures (internal and external)
+- ... more!
 
 ##### Status Page
 
-If you choose to alert from the JSON status page, you can access the status on `http://kuberhealthy.kuberhealthy`.  The status page displays server status in the format shown below.  The boolean `OK` field can be used to indicate global up/down status, while the `Errors` array will contain a list of all check error descriptions.  Granular, per-check information, including the last time a check was run, and the Kuberhealthy pod ran that specific check is available under the `CheckDetails` object.
+You can directly access the current test statuses by accessing the `kuberhealthy.kuberhealthy` HTTP service on port 80.  The status page displays server status in the format shown below.  The boolean `OK` field can be used to indicate global up/down status, while the `Errors` array will contain a list of all check error descriptions.  Granular, per-check information, including the last time a check was run, and the Kuberhealthy pod ran that specific check is available under the `CheckDetails` object.
 
 ```json
-  {
-  "OK": true,
-  "Errors": [],
-  "CheckDetails": {
-    "DaemonSetChecker": {
-      "OK": true,
-      "Errors": [],
-      "LastRun": "2018-06-21T17:31:33.845218901Z",
-      "AuthoritativePod": "kuberhealthy-7cf79bdc86-m78qr"
+{
+    "OK": true,
+    "Errors": [],
+    "CheckDetails": {
+        "kuberhealthy/daemonset": {
+            "OK": true,
+            "Errors": [],
+            "Namespace": "kuberhealthy",
+            "LastRun": "2019-11-14T23:24:16.7718171Z",
+            "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
+            "uuid": "9abd3ec0-b82f-44f0-b8a7-fa6709f759cd"
+        },
+        "kuberhealthy/deployment": {
+            "OK": true,
+            "Errors": [],
+            "Namespace": "kuberhealthy",
+            "LastRun": "2019-11-14T23:26:40.7444659Z",
+            "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
+            "uuid": "5f0d2765-60c9-47e8-b2c9-8bc6e61727b2"
+        },
+        "kuberhealthy/dns-status-internal": {
+            "OK": true,
+            "Errors": [],
+            "Namespace": "kuberhealthy",
+            "LastRun": "2019-11-14T23:34:04.8927434Z",
+            "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
+            "uuid": "c85f95cb-87e2-4ff5-b513-e02b3d25973a"
+        },
+        "kuberhealthy/pod-restarts": {
+            "OK": true,
+            "Errors": [],
+            "Namespace": "kuberhealthy",
+            "LastRun": "2019-11-14T23:34:06.1938491Z",
+            "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
+            "uuid": "a718b969-421c-47a8-a379-106d234ad9d8"
+        }
     },
-    "PodRestartChecker namespace kube-system": {
-      "OK": true,
-      "Errors": [],
-      "LastRun": "2018-06-21T17:31:16.45395092Z",
-      "AuthoritativePod": "kuberhealthy-7cf79bdc86-m78qr"
-    },
-    "PodStatusChecker namespace kube-system": {
-      "OK": true,
-      "Errors": [],
-      "LastRun": "2018-06-21T17:32:16.453911089Z",
-      "AuthoritativePod": "kuberhealthy-7cf79bdc86-m78qr"
-    }
-  },
-  "CurrentMaster": "kuberhealthy-7cf79bdc86-m78qr"
+    "CurrentMaster": "kuberhealthy-7cf79bdc86-m78qr"
 }
 ```
 
