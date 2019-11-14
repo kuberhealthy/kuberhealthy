@@ -19,7 +19,7 @@ Here is an illustration of how Kuberhealthy runs checks in their own pods.  In t
 
 <img src="images/kh-ds-check.gif">
 
-# Create Synthetic Checks for Your App
+## Create Synthetic Checks for Your App
 
 With Kuberhealthy, you can easily create synthetic tests to check your applications with real world use.  Read more about how external checks are configured in the documentation [here](docs/EXTERNAL_CHECKS.md) and learn how to create your own check container in any lanugage [here](docs/EXTERNAL_CHECK_CREATION.md).
 
@@ -76,7 +76,7 @@ Some examples of problems Kuberhealthy has detected in production with just the 
 - kube-dns/CoreDNS DNS lookup failures (internal and external)
 - ... more!
 
-##### Status Page
+### Status Page
 
 You can directly access the current test statuses by accessing the `kuberhealthy.kuberhealthy` HTTP service on port 80.  The status page displays server status in the format shown below.  The boolean `OK` field can be used to indicate global up/down status, while the `Errors` array will contain a list of all check error descriptions.  Granular, per-check information, including the last time a check was run, and the Kuberhealthy pod ran that specific check is available under the `CheckDetails` object.
 
@@ -122,7 +122,7 @@ You can directly access the current test statuses by accessing the `kuberhealthy
 }
 ```
 
-#### High Availability
+### High Availability
 
 Kuberhealthy scales horizontally in order to be fault tolerant.  By default, two instances are used with a [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) and [RollingUpdate](https://kubernetes.io/docs/tasks/run-application/rolling-update-replication-controller/) strategy to ensure high availability.
 
