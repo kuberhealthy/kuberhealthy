@@ -6,6 +6,7 @@ metadata:
 spec:
   finalizers:
   - kubernetes
+
 ---
 # Source: kuberhealthy/templates/serviceaccount.yaml
 apiVersion: v1
@@ -179,7 +180,7 @@ spec:
       app: kuberhealthy
   strategy:
     rollingUpdate:
-      maxSurge: 0
+      maxSurge: 1
       maxUnavailable: 1
     type: RollingUpdate
   template:
@@ -203,7 +204,7 @@ spec:
                   - kuberhealthy
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - image: quay.io/comcast/kuberhealthy:2.0.0alpha5
+      - image: quay.io/comcast/kuberhealthy:2.0.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -240,7 +241,7 @@ spec:
             cpu: 400m
             memory: 300Mi
       restartPolicy: Always
-      terminationGracePeriodSeconds: 310
+      terminationGracePeriodSeconds: 30
 ---
 # Source: kuberhealthy/templates/poddisruptionbudget.yaml
 apiVersion: policy/v1beta1

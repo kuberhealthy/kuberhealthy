@@ -44,6 +44,7 @@ func setCheckStateResource(checkName string, checkNamespace string, state health
 	khState := khstatecrd.NewKuberhealthyState(name, state)
 	khState.SetResourceVersion(resourceVersion)
 	// TODO - if "try again" message found in error, then try again
+
 	log.Debugln(checkNamespace, checkName, "writing khstate with ok:", state.OK, "and errors:", state.Errors, "at last run:", state.LastRun)
 	_, err = khStateClient.Update(&khState, stateCRDResource, name, checkNamespace)
 	return err

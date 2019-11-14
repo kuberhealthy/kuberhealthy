@@ -13,11 +13,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/integrii/flaggy"
@@ -35,11 +37,10 @@ var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var listenAddress = ":8080"
 var podCheckNamespaces = "kube-system"
 var podNamespace = os.Getenv("POD_NAMESPACE")
-var isMaster bool // indicates this instance is the master and should be running checks
+var isMaster bool                  // indicates this instance is the master and should be running checks
+var upcomingMasterState bool       // the upcoming master state on next interval
+var lastMasterChangeTime time.Time // indicates the last time a master change was seen
 
-// shutdown signal handling
-var sigChan chan os.Signal
-var doneChan chan bool
 var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
 // flags indicating that checks of specific types should be used
@@ -62,6 +63,9 @@ const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"
 
 // default run interval set by kuberhealthy
 const DefaultRunInterval = time.Minute * 10
+
+// the key used in the annotation that holds the check's short name
+const KH_CHECK_NAME_ANNOTATION_KEY = "comcast.github.io/check-name"
 
 var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
 
@@ -140,11 +144,6 @@ func init() {
 		masterCalculation.EnableDebug()
 	}
 
-	// shutdown signal handling
-	// we give a queue depth here to prevent blocking in some cases
-	sigChan = make(chan os.Signal, 5)
-	doneChan = make(chan bool, 5)
-
 	// Handle force master mode
 	if enableForceMaster {
 		log.Infoln("Enabling forced master mode")
@@ -170,30 +169,50 @@ func main() {
 	kuberhealthy = NewKuberhealthy()
 	kuberhealthy.ListenAddr = listenAddress
 
-	// start listening for shutdown interrupts
+	// create run context and start listening for shutdown interrupts
+	khRunCtx, khRunCtxCancelFunc := context.WithCancel(context.Background())
+	kuberhealthy.shutdownCtxFunc = khRunCtxCancelFunc // load the KH struct with a func to shutdown its control system
 	go listenForInterrupts()
 
 	// tell Kuberhealthy to start all checks and master change monitoring
-	kuberhealthy.Start()
+	kuberhealthy.Start(khRunCtx)
 
+	time.Sleep(time.Second * 90) // give the interrupt handler a period of time to call exit before we shutdown
+	<-time.After(terminationGracePeriod + (time.Second * 10))
+	log.Errorln("shutdown: main loop was ready for shutdown for too long. exiting.")
+	os.Exit(1)
 }
 
 // listenForInterrupts watches for termination signals and acts on them
 func listenForInterrupts() {
-	signal.Notify(sigChan, os.Interrupt, os.Kill)
+	// shutdown signal handling
+	sigChan := make(chan os.Signal, 1)
+
+	// register for shutdown events on sigChan
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
+	log.Infoln("shutdown: waiting for sigChan notification...")
 	<-sigChan
-	log.Infoln("Shutting down...")
-	go kuberhealthy.Shutdown()
+	log.Infoln("shutdown: Shutting down due to sigChan signal...")
+
+	// wait for check to fully shutdown before exiting
+	doneChan := make(chan struct{})
+	go kuberhealthy.Shutdown(doneChan)
+
 	// wait for checks to be done shutting down before exiting
 	select {
 	case <-doneChan:
-		log.Infoln("Shutdown gracefully completed!")
+		log.Infoln("shutdown: Shutdown gracefully completed!")
+		log.Infoln("shutdown: exiting 0")
+		os.Exit(0)
 	case <-sigChan:
-		log.Warningln("Shutdown forced from multiple interrupts!")
+		log.Warningln("shutdown: Shutdown forced from multiple interrupts!")
+		log.Infoln("shutdown: exiting 1")
+		os.Exit(1)
 	case <-time.After(terminationGracePeriod):
-		log.Errorln("Shutdown took too long.  Shutting down forcefully!")
+		log.Errorln("shutdown: Shutdown took too long.  Shutting down forcefully!")
+		log.Infoln("shutdown: exiting 1")
+		os.Exit(1)
 	}
-	os.Exit(0)
 }
 
 // determineCheckStateFromEnvVar determines a check's enabled state based on
