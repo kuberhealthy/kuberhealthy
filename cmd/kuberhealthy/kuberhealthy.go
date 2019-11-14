@@ -40,14 +40,16 @@ import (
 
 // Kuberhealthy represents the kuberhealthy server and its checks
 type Kuberhealthy struct {
-	Checks             []KuberhealthyCheck
-	ListenAddr         string // the listen address, such as ":80"
-	MetricForwarder    metrics.Client
-	overrideKubeClient *kubernetes.Clientset
-	cancelChecksFunc   context.CancelFunc // invalidates the context of all running checks
-	wg                 sync.WaitGroup     // used to track running checks
-	shutdownCtxFunc    context.CancelFunc // used to shutdown the main control select
-	stateReflector     *StateReflector    // a reflector that can cache the current state of the khState resources
+	Checks               []KuberhealthyCheck
+	ListenAddr           string // the listen address, such as ":80"
+	MetricForwarder      metrics.Client
+	overrideKubeClient   *kubernetes.Clientset
+	cancelChecksFunc     context.CancelFunc // invalidates the context of all running checks
+	wg                   sync.WaitGroup     // used to track running checks
+	shutdownCtxFunc      context.CancelFunc // used to shutdown the main control select
+	stateReflector       *StateReflector    // a reflector that can cache the current state of the khState resources
+	khStateReaperCtx     context.Context    // used to control the khState reaper
+	khStateReaperCtxFunc context.CancelFunc // used to shut down the khState reaper
 }
 
 // NewKuberhealthy creates a new kuberhealthy checker instance
@@ -113,6 +115,13 @@ func (k *Kuberhealthy) Shutdown(doneChan chan struct{}) {
 // StopChecks causes the kuberhealthy check group to shutdown gracefully.
 // All checks are sent a shutdown command at the same time.
 func (k *Kuberhealthy) StopChecks() {
+
+	// if the reaper has a context to kill, do it
+	log.Infoln("control:", "stopping khState reaper...")
+	if k.khStateReaperCtxFunc != nil {
+		k.khStateReaperCtxFunc()
+	}
+
 	log.Infoln("control:", len(k.Checks), "checks stopping...")
 	if k.cancelChecksFunc != nil {
 		k.cancelChecksFunc()
@@ -134,6 +143,7 @@ func (k *Kuberhealthy) StopChecks() {
 	// wait for all checks to stop cleanly
 	log.Infoln("control: waiting for all checks to stop")
 	k.wg.Wait()
+
 	log.Infoln("control: all checks stopped.")
 }
 
@@ -186,22 +196,87 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 		case <-externalChecksUpdateChanLimited: // external check change detected
 			log.Infoln("control: Witnessed a khcheck resource change...")
 
-			// if we are master, stop checks
+			// if we are master, stop, reconfigure our khchecks, and start again with the new configuration
 			if isMaster {
 				log.Infoln("control: Reloading external check configurations due to resource update.")
 				k.StopChecks()
-			}
 
-			log.Infoln("control: Reloading check configuration due to configuration change...")
-			kuberhealthy.configureChecks()
+				log.Infoln("control: Reloading check configuration due to configuration change...")
+				kuberhealthy.configureChecks()
 
-			// start checks again if we are master
-			if isMaster {
 				log.Infoln("control: starting checks due to external check configuration updates...")
 				k.StartChecks()
 			}
 		}
 	}
+}
+
+// khStateResourceReaper runs reapKHStateResources on an interval until the context for it is canceled
+func (k *Kuberhealthy) khStateResourceReaper() {
+
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	log.Infoln("khState reaper: starting up")
+
+	for {
+		select {
+		case <-ticker.C:
+			log.Infoln("khState reaper: starting to run an audit")
+			err := k.reapKHStateResources()
+			if err != nil {
+				log.Errorln("khState reaper: Error when reaping khState resources:", err)
+			}
+		case <-k.khStateReaperCtx.Done():
+			log.Infoln("khState reaper: stopping")
+			return
+		}
+	}
+
+}
+
+// reapKHStateResources runs a single audit on khState resources.  Any that don't have a matching khCheck are
+// deleted.
+func (k *Kuberhealthy) reapKHStateResources() error {
+
+	// list all khStates in the cluster
+	khStates, err := khStateClient.List(metav1.ListOptions{}, stateCRDResource, "")
+	if err != nil {
+		return fmt.Errorf("khState reaper: error listing khStates for reaping: %w", err)
+	}
+
+	// list all khChecks
+	khChecks, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
+	if err != nil {
+		return fmt.Errorf("khState reaper: error listing khChecks for khState reaping: %w", err)
+	}
+
+	log.Infoln("khState reaper: analyzing", len(khStates.Items), "khState resources")
+
+	// any khState that does not have a matching khCheck should be deleted (ignore errors)
+	for _, khState := range khStates.Items {
+		log.Debugln("khState reaper: analyzing khState", khState.GetName(), "in", khState.GetName())
+		var foundKHCheck bool
+		for _, khCheck := range khChecks.Items {
+			log.Debugln("khState reaper:", khCheck.GetName(), "==", khState.GetName(), "&&", khCheck.GetNamespace(), "==", khState.GetNamespace())
+			if khCheck.GetName() == khState.GetName() && khCheck.GetNamespace() == khState.GetNamespace() {
+				log.Infoln("khState reaper:", khState.GetName(), "in", khState.GetNamespace(), "is still valid")
+				foundKHCheck = true
+				break
+			}
+		}
+
+		// if we didn't find a matching khCheck, delete the rogue khState
+		if !foundKHCheck {
+			log.Infoln("khState reaper: removing khState", khState.GetName(), "in", khState.GetNamespace())
+			_, err := khStateClient.Delete(&khState, stateCRDResource, khState.GetName(), khState.GetNamespace())
+			if err != nil {
+				log.Errorln(fmt.Errorf("khState reaper: error when removing invalid khstate: %w", err))
+			}
+		}
+	}
+
+	return nil
+
 }
 
 // watchForKHCheckChanges watches for changes to khcheck objects and returns them through the specified channel
@@ -434,6 +509,11 @@ func (k *Kuberhealthy) StartChecks() {
 		// start the check in its own routine
 		go k.runCheck(ctx, c)
 	}
+
+	// spin up the khState reaper with a context after checks have been configured and started
+	log.Infoln("control:", len(k.Checks), "reaper starting!")
+	k.khStateReaperCtx, k.khStateReaperCtxFunc = context.WithCancel(context.Background())
+	go k.khStateResourceReaper()
 }
 
 // masterStatusWatcher watches for master change events and updates the global upcomingMasterState along
