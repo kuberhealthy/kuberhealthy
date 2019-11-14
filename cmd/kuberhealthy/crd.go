@@ -70,13 +70,12 @@ func ensureStateResourceExists(checkName string, checkNamespace string) error {
 	state, err := khStateClient.Get(metav1.GetOptions{}, stateCRDResource, name, checkNamespace)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-
-			log.Infoln("CRD not found, creating CRD:", name, err)
+			log.Infoln("Custom resource not found, creating resource:", name, " - ", err)
 			initialDetails := health.NewCheckDetails()
 			initialState := khstatecrd.NewKuberhealthyState(name, initialDetails)
 			_, err := khStateClient.Create(&initialState, stateCRDResource, checkNamespace)
 			if err != nil {
-				return errors.New("Error creating CRD: " + name + ": " + err.Error())
+				return errors.New("Error creating custom resource: " + name + ": " + err.Error())
 			}
 		} else {
 			return err
