@@ -40,18 +40,22 @@ import (
 
 // Kuberhealthy represents the kuberhealthy server and its checks
 type Kuberhealthy struct {
-	Checks             []KuberhealthyCheck
-	ListenAddr         string // the listen address, such as ":80"
-	MetricForwarder    metrics.Client
-	overrideKubeClient *kubernetes.Clientset
-	cancelChecksFunc   context.CancelFunc // invalidates the context of all running checks
-	wg                 sync.WaitGroup     // used to track running checks
-	shutdownCtxFunc    context.CancelFunc // used to shutdown the main control select
+	Checks               []KuberhealthyCheck
+	ListenAddr           string // the listen address, such as ":80"
+	MetricForwarder      metrics.Client
+	overrideKubeClient   *kubernetes.Clientset
+	cancelChecksFunc     context.CancelFunc // invalidates the context of all running checks
+	wg                   sync.WaitGroup     // used to track running checks
+	shutdownCtxFunc      context.CancelFunc // used to shutdown the main control select
+	stateReflector       *StateReflector    // a reflector that can cache the current state of the khState resources
+	khStateReaperCtx     context.Context    // used to control the khState reaper
+	khStateReaperCtxFunc context.CancelFunc // used to shut down the khState reaper
 }
 
 // NewKuberhealthy creates a new kuberhealthy checker instance
 func NewKuberhealthy() *Kuberhealthy {
 	kh := &Kuberhealthy{}
+	kh.stateReflector = NewStateReflector()
 	return kh
 }
 
@@ -111,6 +115,13 @@ func (k *Kuberhealthy) Shutdown(doneChan chan struct{}) {
 // StopChecks causes the kuberhealthy check group to shutdown gracefully.
 // All checks are sent a shutdown command at the same time.
 func (k *Kuberhealthy) StopChecks() {
+
+	// if the reaper has a context to kill, do it
+	log.Infoln("control: stopping khState reaper...")
+	if k.khStateReaperCtxFunc != nil {
+		k.khStateReaperCtxFunc()
+	}
+
 	log.Infoln("control:", len(k.Checks), "checks stopping...")
 	if k.cancelChecksFunc != nil {
 		k.cancelChecksFunc()
@@ -132,15 +143,15 @@ func (k *Kuberhealthy) StopChecks() {
 	// wait for all checks to stop cleanly
 	log.Infoln("control: waiting for all checks to stop")
 	k.wg.Wait()
+
 	log.Infoln("control: all checks stopped.")
 }
 
 // Start inits Kuberhealthy checks and master monitoring
 func (k *Kuberhealthy) Start(ctx context.Context) {
 
-	// we must load all configured checks so that the status page shows check statuses
-	log.Infoln("Loading initial check configuration...")
-	kuberhealthy.configureChecks()
+	// start the khState reflector
+	go k.stateReflector.Start()
 
 	// if influxdb is enabled, configure it
 	if enableInflux {
@@ -173,7 +184,6 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 		case <-becameMasterChan: // we have become the current master instance and should run checks
 			// reset checks and re-add from configuration settings
 			log.Infoln("control: Became master. Reconfiguring and starting checks.")
-			kuberhealthy.configureChecks()
 			k.StartChecks()
 		case <-lostMasterChan: // we are no longer master
 			log.Infoln("control: Lost master. Stopping checks.")
@@ -181,22 +191,87 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 		case <-externalChecksUpdateChanLimited: // external check change detected
 			log.Infoln("control: Witnessed a khcheck resource change...")
 
-			// if we are master, stop checks
+			// if we are master, stop, reconfigure our khchecks, and start again with the new configuration
 			if isMaster {
-				log.Infoln("control: Reloading external check configurations due to resource update.")
-				k.StopChecks()
-			}
-
-			log.Infoln("control: Reloading check configuration due to configuration change...")
-			kuberhealthy.configureChecks()
-
-			// start checks again if we are master
-			if isMaster {
-				log.Infoln("control: starting checks due to external check configuration updates...")
-				k.StartChecks()
+				log.Infoln("control: Reloading external check configurations due to khcheck update")
+				k.RestartChecks()
 			}
 		}
 	}
+}
+
+// RestartChecks does a stop and start on all kuberhealthy checks
+func (k *Kuberhealthy) RestartChecks() {
+	k.StopChecks()
+	k.StartChecks()
+}
+
+// khStateResourceReaper runs reapKHStateResources on an interval until the context for it is canceled
+func (k *Kuberhealthy) khStateResourceReaper() {
+
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	log.Infoln("khState reaper: starting up")
+
+	for {
+		select {
+		case <-ticker.C:
+			log.Infoln("khState reaper: starting to run an audit")
+			err := k.reapKHStateResources()
+			if err != nil {
+				log.Errorln("khState reaper: Error when reaping khState resources:", err)
+			}
+		case <-k.khStateReaperCtx.Done():
+			log.Infoln("khState reaper: stopping")
+			return
+		}
+	}
+
+}
+
+// reapKHStateResources runs a single audit on khState resources.  Any that don't have a matching khCheck are
+// deleted.
+func (k *Kuberhealthy) reapKHStateResources() error {
+
+	// list all khStates in the cluster
+	khStates, err := khStateClient.List(metav1.ListOptions{}, stateCRDResource, "")
+	if err != nil {
+		return fmt.Errorf("khState reaper: error listing khStates for reaping: %w", err)
+	}
+
+	// list all khChecks
+	khChecks, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
+	if err != nil {
+		return fmt.Errorf("khState reaper: error listing khChecks for khState reaping: %w", err)
+	}
+
+	log.Infoln("khState reaper: analyzing", len(khStates.Items), "khState resources")
+
+	// any khState that does not have a matching khCheck should be deleted (ignore errors)
+	for _, khState := range khStates.Items {
+		log.Debugln("khState reaper: analyzing khState", khState.GetName(), "in", khState.GetName())
+		var foundKHCheck bool
+		for _, khCheck := range khChecks.Items {
+			log.Debugln("khState reaper:", khCheck.GetName(), "==", khState.GetName(), "&&", khCheck.GetNamespace(), "==", khState.GetNamespace())
+			if khCheck.GetName() == khState.GetName() && khCheck.GetNamespace() == khState.GetNamespace() {
+				log.Infoln("khState reaper:", khState.GetName(), "in", khState.GetNamespace(), "is still valid")
+				foundKHCheck = true
+				break
+			}
+		}
+
+		// if we didn't find a matching khCheck, delete the rogue khState
+		if !foundKHCheck {
+			log.Infoln("khState reaper: removing khState", khState.GetName(), "in", khState.GetNamespace())
+			_, err := khStateClient.Delete(&khState, stateCRDResource, khState.GetName(), khState.GetNamespace())
+			if err != nil {
+				log.Errorln(fmt.Errorf("khState reaper: error when removing invalid khstate: %w", err))
+			}
+		}
+	}
+
+	return nil
+
 }
 
 // watchForKHCheckChanges watches for changes to khcheck objects and returns them through the specified channel
@@ -416,6 +491,9 @@ func (k *Kuberhealthy) StartChecks() {
 	// wait for theor check wg to be done, just in case
 	k.wg.Wait()
 
+	log.Infoln("control: Reloading check configuration...")
+	k.configureChecks()
+
 	// sleep to make a more graceful switch-up during lots of master and check changes coming in
 	log.Infoln("control:", len(k.Checks), "checks starting!")
 
@@ -429,6 +507,11 @@ func (k *Kuberhealthy) StartChecks() {
 		// start the check in its own routine
 		go k.runCheck(ctx, c)
 	}
+
+	// spin up the khState reaper with a context after checks have been configured and started
+	log.Infoln("control:", len(k.Checks), "reaper starting!")
+	k.khStateReaperCtx, k.khStateReaperCtxFunc = context.WithCancel(context.Background())
+	go k.khStateResourceReaper()
 }
 
 // masterStatusWatcher watches for master change events and updates the global upcomingMasterState along
@@ -904,17 +987,10 @@ func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, r *http.Requ
 
 func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to prometheus metrics endpoint from", r.RemoteAddr, r.UserAgent())
-	state, err := k.getCurrentState()
-	if err != nil {
-		err = metrics.WriteMetricError(w, state)
-		if err != nil {
-			return errors.New(err.Error() + " and " + err.Error())
-		}
-		return err
-	}
+	state := k.getCurrentState()
 	m := metrics.GenerateMetrics(state)
 	// write summarized health check results back to caller
-	_, err = w.Write([]byte(m))
+	_, err := w.Write([]byte(m))
 	if err != nil {
 		log.Warningln("Error writing health check results to caller:", err)
 	}
@@ -934,11 +1010,9 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 		return err
 	}
 
-	state, err := k.getCurrentState()
-	if err != nil {
-		k.writeHealthCheckError(w, r, err, state)
-		return err
-	}
+	// fetch the current status from our khstate resources
+	state := k.getCurrentState()
+
 	// write summarized health check results back to caller
 	err = state.WriteHTTPStatusResponse(w)
 	if err != nil {
@@ -949,61 +1023,8 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 
 // getCurrentState fetches the current state of all checks from their CRD objects and returns the summary as a
 // health.State. Failures to fetch CRD state return an error.
-func (k *Kuberhealthy) getCurrentState() (health.State, error) {
-	// create a new set of state for this page render
-	state := health.NewState()
-
-	// fetch a client for the master calculation
-	log.Debugln("Calculating current master pod")
-
-	// calculate the current master and apply it to the status output
-	currentMaster, err := masterCalculation.CalculateMaster(kubernetesClient)
-	state.CurrentMaster = currentMaster
-	if err != nil {
-		return state, err
-	}
-
-	// loop over every check and apply the current state to the status return
-	log.Debugln("Currently tracking", len(k.Checks), "check(s)")
-	for _, c := range k.Checks {
-		log.Debugln("Getting status of check for web request to status page:", c.Name())
-
-		// get the state from the CRD that exists for this check
-		checkDetails, err := getCheckState(c)
-		if err != nil {
-			errMessage := "System error when fetching status for check " + c.Name() + ":" + err.Error()
-			log.Errorln(errMessage)
-			// if there was an error getting the CRD, then use that for the check status
-			// and set the check state to failed
-			state.AddError(errMessage)
-			log.Debugln("Status page: Setting OK to false due to an error in fetching crd state data")
-			state.OK = false
-			continue
-		}
-
-		// skip the check if it has never been run before.  This prevents checks that have not yet
-		// run from showing in the status page.
-		if len(checkDetails.AuthoritativePod) == 0 {
-			log.Debugln("Output for", c.Name(), "hidden from status page due to blank authoritative pod")
-			continue
-		}
-
-		// parse check status from CRD and add it to the status. Skip blank errors
-		for _, e := range checkDetails.Errors {
-			if len(strings.TrimSpace(e)) == 0 {
-				log.Warningln("Skipped an error that was blank when adding check details to current state.")
-				continue
-			}
-			state.AddError(e)
-			if !checkDetails.OK {
-				log.Debugln("Status page: Setting OK to false due to check details not being OK")
-				state.OK = false
-			}
-		}
-
-		state.CheckDetails[c.CheckNamespace()+"/"+c.Name()] = checkDetails
-	}
-	return state, nil
+func (k *Kuberhealthy) getCurrentState() health.State {
+	return k.stateReflector.CurrentStatus()
 }
 
 // getCheck returns a Kuberhealthy check object from its name, returns an error otherwise

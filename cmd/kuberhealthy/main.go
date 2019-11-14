@@ -25,6 +25,7 @@ import (
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 
 	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
@@ -142,6 +143,9 @@ func init() {
 		log.Infoln("Enabling debug logging")
 		log.SetLevel(log.DebugLevel)
 		masterCalculation.EnableDebug()
+
+		// enable debug on klog for dependencies
+		klog.V(10)
 	}
 
 	// Handle force master mode

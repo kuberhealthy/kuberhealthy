@@ -18,16 +18,16 @@ import (
 
 // KuberhealthyCheckList is a list of Kuberhealthy check configurations
 type KuberhealthyCheckList struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Items             []KuberhealthyCheck `json:"items"`
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []KuberhealthyCheck `json:"items"`
 }
 
 // DeepCopyInto copies all properties of this object into another object of the
 // same type that is provided as a pointer.
 func (h *KuberhealthyCheckList) DeepCopyInto(out *KuberhealthyCheckList) {
 	out.TypeMeta = h.TypeMeta
-	out.ObjectMeta = h.ObjectMeta
+	out.ListMeta = h.ListMeta
 	if h.Items != nil {
 		out.Items = make([]KuberhealthyCheck, len(h.Items))
 		for i := range h.Items {
