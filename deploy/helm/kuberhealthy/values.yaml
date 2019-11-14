@@ -3,15 +3,15 @@
 # Declare variables to be passed into your templates.
 
 prometheus:
-  enabled: true
+  enabled: false
   name: "prometheus"
-  enableScraping: true
+  enableScraping: false
   serviceMonitor: false
-  enableAlerting: true
+  enableAlerting: false
 
 image:
   repository: quay.io/comcast/kuberhealthy
-  tag: 2.0.0rc1
+  tag: 2.0.0
 
 resources:
   requests:
@@ -33,10 +33,7 @@ deployment:
   podAnnotations: {}
   command:
   - /app/kuberhealthy
-  # use this to override location of the test-image, see: https://github.com/Comcast/kuberhealthy/blob/master/docs/FLAGS.md
   # args:
-  # - -dsPauseContainerImageOverride
-  # - your-repo/google_containers/pause:0.8.0
 
 securityContext:
   runAsNonRoot: true

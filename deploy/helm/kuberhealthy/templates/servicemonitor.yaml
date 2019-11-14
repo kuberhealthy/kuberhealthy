@@ -7,8 +7,6 @@ metadata:
   labels:
     app: {{ template "kuberhealthy.name" . }}
     chart: {{ .Chart.Name }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
     prometheus: {{ .Values.prometheus.name }}
   name: {{ template "kuberhealthy.name" . }}
 spec:
@@ -16,7 +14,6 @@ spec:
   selector:
     matchLabels:
       app: {{ .Chart.Name }}
-      release: {{ .Release.Name }}
   namespaceSelector:
     matchNames:
       - {{ .Release.Namespace }}
