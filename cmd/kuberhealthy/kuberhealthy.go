@@ -47,11 +47,13 @@ type Kuberhealthy struct {
 	cancelChecksFunc   context.CancelFunc // invalidates the context of all running checks
 	wg                 sync.WaitGroup     // used to track running checks
 	shutdownCtxFunc    context.CancelFunc // used to shutdown the main control select
+	stateReflector     *StateReflector    // a reflector that can cache the current state of the khState resources
 }
 
 // NewKuberhealthy creates a new kuberhealthy checker instance
 func NewKuberhealthy() *Kuberhealthy {
 	kh := &Kuberhealthy{}
+	kh.stateReflector = NewStateReflector()
 	return kh
 }
 
@@ -137,6 +139,9 @@ func (k *Kuberhealthy) StopChecks() {
 
 // Start inits Kuberhealthy checks and master monitoring
 func (k *Kuberhealthy) Start(ctx context.Context) {
+
+	// start the khState reflector
+	go k.stateReflector.Start()
 
 	// we must load all configured checks so that the status page shows check statuses
 	log.Infoln("Loading initial check configuration...")
@@ -950,60 +955,7 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 // getCurrentState fetches the current state of all checks from their CRD objects and returns the summary as a
 // health.State. Failures to fetch CRD state return an error.
 func (k *Kuberhealthy) getCurrentState() (health.State, error) {
-	// create a new set of state for this page render
-	state := health.NewState()
-
-	// fetch a client for the master calculation
-	log.Debugln("Calculating current master pod")
-
-	// calculate the current master and apply it to the status output
-	currentMaster, err := masterCalculation.CalculateMaster(kubernetesClient)
-	state.CurrentMaster = currentMaster
-	if err != nil {
-		return state, err
-	}
-
-	// loop over every check and apply the current state to the status return
-	log.Debugln("Currently tracking", len(k.Checks), "check(s)")
-	for _, c := range k.Checks {
-		log.Debugln("Getting status of check for web request to status page:", c.Name())
-
-		// get the state from the CRD that exists for this check
-		checkDetails, err := getCheckState(c)
-		if err != nil {
-			errMessage := "System error when fetching status for check " + c.Name() + ":" + err.Error()
-			log.Errorln(errMessage)
-			// if there was an error getting the CRD, then use that for the check status
-			// and set the check state to failed
-			state.AddError(errMessage)
-			log.Debugln("Status page: Setting OK to false due to an error in fetching crd state data")
-			state.OK = false
-			continue
-		}
-
-		// skip the check if it has never been run before.  This prevents checks that have not yet
-		// run from showing in the status page.
-		if len(checkDetails.AuthoritativePod) == 0 {
-			log.Debugln("Output for", c.Name(), "hidden from status page due to blank authoritative pod")
-			continue
-		}
-
-		// parse check status from CRD and add it to the status. Skip blank errors
-		for _, e := range checkDetails.Errors {
-			if len(strings.TrimSpace(e)) == 0 {
-				log.Warningln("Skipped an error that was blank when adding check details to current state.")
-				continue
-			}
-			state.AddError(e)
-			if !checkDetails.OK {
-				log.Debugln("Status page: Setting OK to false due to check details not being OK")
-				state.OK = false
-			}
-		}
-
-		state.CheckDetails[c.CheckNamespace()+"/"+c.Name()] = checkDetails
-	}
-	return state, nil
+	return k.stateReflector.CurrentStatus(), nil
 }
 
 // getCheck returns a Kuberhealthy check object from its name, returns an error otherwise

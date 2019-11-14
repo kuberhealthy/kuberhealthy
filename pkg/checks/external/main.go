@@ -243,7 +243,16 @@ func (ext *Checker) setUUID(uuid string) error {
 		return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
 	}
 
-	// update the check config and write it back to the struct
+	// if the check was not found, then we set the required fields for it to be setup initially
+	if err != nil {
+		ext.log("khstate did not exist, so a default object was created")
+		checkState.Spec.Namespace = ext.CheckNamespace()
+		checkState.Name = ext.CheckName
+		checkState.Spec.AuthoritativePod = ext.hostname
+		checkState.Spec.OK = true
+	}
+
+	// assign the new uuid
 	checkState.Spec.CurrentUUID = uuid
 
 	// update the resource with the new values we want
