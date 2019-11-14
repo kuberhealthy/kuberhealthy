@@ -17,16 +17,16 @@ import (
 )
 
 type KuberhealthyStateList struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Items             []KuberhealthyState `json:"items"`
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []KuberhealthyState `json:"items"`
 }
 
 // DeepCopyInto copies all properties of this object into another object of the
 // same type that is provided as a pointer.
 func (h *KuberhealthyStateList) DeepCopyInto(out *KuberhealthyStateList) {
 	out.TypeMeta = h.TypeMeta
-	out.ObjectMeta = h.ObjectMeta
+	out.ListMeta = h.ListMeta
 	if h.Items != nil {
 		out.Items = make([]KuberhealthyState, len(h.Items))
 		for i := range h.Items {

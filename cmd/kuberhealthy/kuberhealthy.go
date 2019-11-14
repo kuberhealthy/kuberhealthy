@@ -117,7 +117,7 @@ func (k *Kuberhealthy) Shutdown(doneChan chan struct{}) {
 func (k *Kuberhealthy) StopChecks() {
 
 	// if the reaper has a context to kill, do it
-	log.Infoln("control:", "stopping khState reaper...")
+	log.Infoln("control: stopping khState reaper...")
 	if k.khStateReaperCtxFunc != nil {
 		k.khStateReaperCtxFunc()
 	}
@@ -153,10 +153,6 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 	// start the khState reflector
 	go k.stateReflector.Start()
 
-	// we must load all configured checks so that the status page shows check statuses
-	log.Infoln("Loading initial check configuration...")
-	kuberhealthy.configureChecks()
-
 	// if influxdb is enabled, configure it
 	if enableInflux {
 		k.configureInfluxForwarding()
@@ -188,7 +184,6 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 		case <-becameMasterChan: // we have become the current master instance and should run checks
 			// reset checks and re-add from configuration settings
 			log.Infoln("control: Became master. Reconfiguring and starting checks.")
-			kuberhealthy.configureChecks()
 			k.StartChecks()
 		case <-lostMasterChan: // we are no longer master
 			log.Infoln("control: Lost master. Stopping checks.")
@@ -198,17 +193,17 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 
 			// if we are master, stop, reconfigure our khchecks, and start again with the new configuration
 			if isMaster {
-				log.Infoln("control: Reloading external check configurations due to resource update.")
-				k.StopChecks()
-
-				log.Infoln("control: Reloading check configuration due to configuration change...")
-				kuberhealthy.configureChecks()
-
-				log.Infoln("control: starting checks due to external check configuration updates...")
-				k.StartChecks()
+				log.Infoln("control: Reloading external check configurations due to khcheck update")
+				k.RestartChecks()
 			}
 		}
 	}
+}
+
+// RestartChecks does a stop and start on all kuberhealthy checks
+func (k *Kuberhealthy) RestartChecks() {
+	k.StopChecks()
+	k.StartChecks()
 }
 
 // khStateResourceReaper runs reapKHStateResources on an interval until the context for it is canceled
@@ -495,6 +490,9 @@ func (k *Kuberhealthy) addExternalChecks() error {
 func (k *Kuberhealthy) StartChecks() {
 	// wait for theor check wg to be done, just in case
 	k.wg.Wait()
+
+	log.Infoln("control: Reloading check configuration...")
+	k.configureChecks()
 
 	// sleep to make a more graceful switch-up during lots of master and check changes coming in
 	log.Infoln("control:", len(k.Checks), "checks starting!")
@@ -989,17 +987,10 @@ func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, r *http.Requ
 
 func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to prometheus metrics endpoint from", r.RemoteAddr, r.UserAgent())
-	state, err := k.getCurrentState()
-	if err != nil {
-		err = metrics.WriteMetricError(w, state)
-		if err != nil {
-			return errors.New(err.Error() + " and " + err.Error())
-		}
-		return err
-	}
+	state := k.getCurrentState()
 	m := metrics.GenerateMetrics(state)
 	// write summarized health check results back to caller
-	_, err = w.Write([]byte(m))
+	_, err := w.Write([]byte(m))
 	if err != nil {
 		log.Warningln("Error writing health check results to caller:", err)
 	}
@@ -1019,11 +1010,9 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 		return err
 	}
 
-	state, err := k.getCurrentState()
-	if err != nil {
-		k.writeHealthCheckError(w, r, err, state)
-		return err
-	}
+	// fetch the current status from our khstate resources
+	state := k.getCurrentState()
+
 	// write summarized health check results back to caller
 	err = state.WriteHTTPStatusResponse(w)
 	if err != nil {
@@ -1034,8 +1023,8 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 
 // getCurrentState fetches the current state of all checks from their CRD objects and returns the summary as a
 // health.State. Failures to fetch CRD state return an error.
-func (k *Kuberhealthy) getCurrentState() (health.State, error) {
-	return k.stateReflector.CurrentStatus(), nil
+func (k *Kuberhealthy) getCurrentState() health.State {
+	return k.stateReflector.CurrentStatus()
 }
 
 // getCheck returns a Kuberhealthy check object from its name, returns an error otherwise
