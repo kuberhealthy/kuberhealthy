@@ -13,6 +13,9 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
 )
 
+// StateReflector watches the state of khstate objects and stores them in a local cache.  Then, when the current
+// state of checks is requested, the CurrentStatus func can serve it rapidly from cache.  Needs to run in the
+// background and can be stopped/started by simply calling `Stop()` on it.
 type StateReflector struct {
 	reflector        *cache.Reflector
 	reflectorSigChan chan struct{} // the channel that indicates when the cache sync should stop
