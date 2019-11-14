@@ -4,7 +4,6 @@ kind: Service
 metadata:
   labels:
     app: {{ template "kuberhealthy.name" . }}
-    release: {{ .Release.Name }}
   name: {{ template "kuberhealthy.name" . }}
   {{- if or .Values.prometheus.enabled .Values.service.annotations }}
   annotations:
@@ -25,4 +24,3 @@ spec:
     targetPort: http
   selector:
     app: {{ template "kuberhealthy.name" . }}
-    release: {{ .Release.Name }}
