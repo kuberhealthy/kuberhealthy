@@ -27,7 +27,7 @@ func NewStateReflector() *StateReflector {
 	sr.resyncPeriod = time.Minute * 5
 
 	// structure the reflector and its required elements
-	khStateListWatch := cache.NewListWatchFromClient(kubernetesClient.ExtensionsV1beta1().RESTClient(), "khstate", "", fields.Everything())
+	khStateListWatch := cache.NewListWatchFromClient(khStateClient.RestClient(), stateCRDResource, "", fields.Everything())
 	sr.store = cache.NewStore(cache.MetaNamespaceKeyFunc)
 	sr.reflector = cache.NewReflector(khStateListWatch, &khstatecrd.KuberhealthyState{}, sr.store, sr.resyncPeriod)
 
@@ -61,8 +61,9 @@ func (sr *StateReflector) CurrentStatus() health.State {
 
 	// list all objects from the storage cache
 	khStateList := sr.store.List()
-	for _, khStateInterface := range khStateList {
-		khState, ok := khStateInterface.(khstatecrd.KuberhealthyState)
+	for i, khStateUndefined := range khStateList {
+		log.Debugln("state reflector store item from listing:", i, khStateUndefined)
+		khState, ok := khStateUndefined.(*khstatecrd.KuberhealthyState)
 		if !ok {
 			log.Warningln("attempted to convert item from state cache reflector to a khstatecrd.KuberhealthyState, but the type was invalid")
 			continue

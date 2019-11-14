@@ -27,6 +27,11 @@ type KuberhealthyStateClient struct {
 	ns         string
 }
 
+// ResetClient returns the rest client for easy listWatcher use
+func (c *KuberhealthyStateClient) RestClient() rest.Interface {
+	return c.restClient
+}
+
 // Create creates a new resource for this CRD
 func (c *KuberhealthyStateClient) Create(state *KuberhealthyState, resource string, namespace string) (*KuberhealthyState, error) {
 	result := KuberhealthyState{}
