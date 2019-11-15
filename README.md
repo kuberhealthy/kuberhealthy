@@ -26,17 +26,19 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 
 ## Installation
 
-[Helm 3](https://helm.sh/) required for all chart installation.
+Helm installations are currently not available from `helm/charts/kuberhealthy` due to a slow PR process.  For now, use the flat files below.
 
-To install using Helm 3 *without* Prometheus metrics:
-`helm install stable/kuberhealthy`
-
-To install using Helm 3 *with* Prometheus metrics:
-`helm install stable/kuberhealthy --set prometheus.enabled=true --set prometheus.enableScraping=true --set prometheus.enableAlerting=true`
-
-To install using Helm 3 *with* a Prometheus `ServiceMonitor`:
-`helm install stable/kuberhealthy --set prometheus.enabled=true --set prometheus.enableScraping=true --set prometheus.enableAlerting=true --set prometheus.serviceMonitor=true`
-
+> [Helm 3](https://helm.sh/) required for all chart installation.
+> 
+> To install using Helm 3 *without* Prometheus metrics:
+> `helm install stable/kuberhealthy`
+> 
+> To install using Helm 3 *with* Prometheus metrics:
+> `helm install stable/kuberhealthy --set prometheus.enabled=true --set prometheus.enableScraping=true --set prometheus.enableAlerting=true`
+> 
+> To install using Helm 3 *with* a Prometheus `ServiceMonitor`:
+> `helm install stable/kuberhealthy --set prometheus.enabled=true --set prometheus.enableScraping=true --set prometheus.enableAlerting=true --set prometheus.serviceMonitor=true`
+ 
 You can also use a flat spec file if you don't want to use Helm:
 `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/deploy/kuberhealthy.yaml`
 
