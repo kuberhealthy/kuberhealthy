@@ -252,7 +252,8 @@ func (ext *Checker) setUUID(uuid string) error {
 		details.AuthoritativePod = ext.hostname
 		details.OK = true
 		newState := khstatecrd.NewKuberhealthyState(ext.CheckName, details)
-		ext.log("Creating khstate", checkState.Name, checkState.Namespace, "because it did not exist")
+		newState.Namespace = ext.Namespace
+		ext.log("Creating khstate", newState.Name, newState.Namespace, "because it did not exist")
 		_, err = ext.KHStateClient.Create(&newState, stateCRDResource, ext.CheckNamespace())
 		if err != nil {
 			ext.log("failed to create a khstate after finding that it did not exist:", err)
@@ -267,7 +268,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	checkState.Spec.CurrentUUID = uuid
 
 	// update the resource with the new values we want
-	ext.log("Updating khstate", checkState.Name, checkState.Namespace, "to setUUID: ", checkState.Spec.CurrentUUID)
+	ext.log("Updating khstate", checkState.Name, checkState.Namespace, "to setUUID:", checkState.Spec.CurrentUUID)
 	_, err = ext.KHStateClient.Update(checkState, stateCRDResource, ext.Name(), ext.CheckNamespace())
 
 	// We commonly see a race here with the following type of error:
