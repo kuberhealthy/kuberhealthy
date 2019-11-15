@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
+	"github.com/Comcast/kuberhealthy/pkg/health"
 	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
 )
@@ -238,25 +239,35 @@ func (ext *Checker) setUUID(uuid string) error {
 	ext.log("Setting expected UUID to:", uuid)
 	checkState, err := ext.getKHState()
 
-	// if the khstate does not exist, continue on and run an update anyway
+	// if the fetch operation had an error, but it wasn't 'not found', we return here
 	if err != nil && !strings.Contains(err.Error(), "not found") {
 		return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
 	}
 
-	// if the check was not found, then we set the required fields for it to be setup initially
-	if err != nil {
-		ext.log("khstate did not exist, so a default object was created")
-		checkState.Spec.Namespace = ext.CheckNamespace()
-		checkState.Name = ext.CheckName
-		checkState.Spec.AuthoritativePod = ext.hostname
-		checkState.Spec.OK = true
+	// if the check was not found, we create a fresh one and start there
+	if err != nil && strings.Contains(err.Error(), "not found") {
+		ext.log("khstate did not exist, so a default object will be created")
+		details := health.NewCheckDetails()
+		details.Namespace = ext.CheckNamespace()
+		details.AuthoritativePod = ext.hostname
+		details.OK = true
+		newState := khstatecrd.NewKuberhealthyState(ext.CheckName, details)
+		ext.log("Creating khstate", checkState.Name, checkState.Namespace, "because it did not exist")
+		_, err = ext.KHStateClient.Create(&newState, stateCRDResource, ext.CheckNamespace())
+		if err != nil {
+			ext.log("failed to create a khstate after finding that it did not exist:", err)
+			return err
+		}
+
+		// checkState will be the new check we just created
+		checkState = &newState
 	}
 
 	// assign the new uuid
 	checkState.Spec.CurrentUUID = uuid
 
 	// update the resource with the new values we want
-	log.Debugln("Updating khstate", checkState.Name, checkState.Namespace, "to setUUID: ", checkState.Spec.CurrentUUID)
+	ext.log("Updating khstate", checkState.Name, checkState.Namespace, "to setUUID: ", checkState.Spec.CurrentUUID)
 	_, err = ext.KHStateClient.Update(checkState, stateCRDResource, ext.Name(), ext.CheckNamespace())
 
 	// We commonly see a race here with the following type of error:
