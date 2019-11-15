@@ -205,7 +205,7 @@ spec:
               topologyKey: "kubernetes.io/hostname"
       containers:
       - image: quay.io/comcast/kuberhealthy:2.0.0
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Never
         livenessProbe:
           failureThreshold: 3
           initialDelaySeconds: 2
