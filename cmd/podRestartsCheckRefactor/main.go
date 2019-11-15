@@ -18,12 +18,10 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
@@ -33,19 +31,17 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 )
 
-const defaultMaxFailuresAllowed = 5
+const defaultMaxFailuresAllowed = 10
 
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var Namespace string
-var RunWindow time.Duration
-var BadPodRestarts sync.Map
 var MaxFailuresAllowed int
 
 // Checker represents a long running pod restart checker.
 type Checker struct {
-	RestartObservations map[string]map[string]int32
+	//RestartObservations map[string]map[string]int32
 	Namespace           string
-	MaxFailuresAllowed  int
+	//MaxFailuresAllowed  int
 	client              *kubernetes.Clientset
 	errorMessages       []string
 }
@@ -56,19 +52,6 @@ func init() {
 	Namespace = os.Getenv("POD_NAMESPACE")
 	if len(Namespace) == 0 {
 		log.Errorln("ERROR: The POD_NAMESPACE environment variable has not been set.")
-		return
-	}
-
-	runWindow := os.Getenv("CHECK_RUN_WINDOW")
-	if len(runWindow) == 0 {
-		log.Errorln("ERROR: The CHECK_RUN_WINDOW environment variable has not been set.")
-		return
-	}
-
-	var err error
-	RunWindow, err = time.ParseDuration(runWindow)
-	if err != nil {
-		log.Errorln("Error parsing run window for check", runWindow, err)
 		return
 	}
 
@@ -91,11 +74,8 @@ func main() {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
-	// Create new pod restarts checker
-	prc := New()
-
-	// Add created client to the pod restarts checker
-	prc.client = client
+	// Create new pod restarts checker with Kubernetes client
+	prc := New(client)
 
 	log.Infoln("Enabling pod restarts checker")
 
@@ -116,14 +96,62 @@ func main() {
 }
 
 // New creates a new pod restart checker for a specific namespace, ready to use.
-func New() *Checker {
+func New(client *kubernetes.Clientset) *Checker {
 	return &Checker{
-		RestartObservations: make(map[string]map[string]int32),
 		Namespace:           Namespace,
-		MaxFailuresAllowed:  MaxFailuresAllowed,
 		errorMessages:       []string{},
+		client: 			 client,
 	}
 }
+
+
+//
+//label := ""
+//for k := range pod.GetLabels() {
+//label = k
+//break
+//}
+//watch, err := clientset.CoreV1().Pods(namespace).Watch(metav1.ListOptions{
+//LabelSelector: label,
+//})
+//if err != nil {
+//log.Fatal(err.Error())
+//}
+//go func() {
+//	for event := range watch.ResultChan() {
+//		fmt.Printf("Type: %v\n", event.Type)
+//		p, ok := event.Object.(*v1.Pod)
+//		if !ok {
+//			log.Fatal("unexpected type")
+//		}
+//		fmt.Println(p.Status.ContainerStatuses)
+//		fmt.Println(p.Status.Phase)
+//	}
+//}()
+//time.Sleep(5 * time.Second)
+
+
+func (prc *Checker) runCheck() error {
+
+	log.Infoln("Checking for pod BackOff events for all pods in the namespace:", prc.Namespace)
+
+	podWarningEvents, err := prc.client.CoreV1().Events(prc.Namespace).List(metav1.ListOptions{FieldSelector: "type=Warning"})
+	if err != nil {
+		return err
+	}
+
+	for _, event := range podWarningEvents.Items {
+
+		if event.InvolvedObject.Kind == "pod" && event.Reason == "BackOff" && event.Count > {
+
+			log.Infoln("Found BackOff events for pod:", event.InvolvedObject.Name, "in namespace:", prc.Namespace)
+
+		}
+	}
+
+
+}
+
 
 // shutdownAfterDuration shuts down the program after the run time window
 func shutdownAfterDuration(duration time.Duration) {
@@ -165,62 +193,6 @@ func (prc *Checker) configurePodRestartCount() error {
 	return err
 }
 
-// watchForPodChanges spawns a watcher to catch various pod events within a namespace.
-// If pods are added, the pods restart count is added to the checkers RestartObservation map
-// If pods are modified, we check for bad pod restarts
-// If pods are deleted, we remove the pod from the checkers RestartObservation map and the BadPodRestarts map
-func (prc *Checker) watchForPodChanges() {
-
-	for {
-		log.Infoln("Spawned watcher for pod changes in namespace:", prc.Namespace)
-
-		// wait a second so we don't retry too quickly on error
-		time.Sleep(time.Second)
-		podClient := prc.client.CoreV1().Pods(prc.Namespace)
-
-		watcher, err := podClient.Watch(metav1.ListOptions{})
-		if err != nil {
-			log.Errorln("error watching pods", err)
-			watcher.Stop()
-		}
-
-		for podObj := range watcher.ResultChan() {
-			switch podObj.Type {
-			case watch.Added:
-				log.Debugln("pod restart monitor saw an added event, adding pod restart count")
-				pod, ok := podObj.Object.(*v1.Pod)
-				if !ok {
-					continue
-				}
-				prc.addPodRestartCount(*pod)
-			case watch.Modified:
-				log.Debugln("pod restart monitor saw a modified event")
-				pod, ok := podObj.Object.(*v1.Pod)
-				if !ok {
-					continue
-				}
-				prc.checkBadPodRestarts(*pod)
-			case watch.Deleted:
-				log.Infoln("pod restart monitor saw a deleted event")
-				pod, ok := podObj.Object.(*v1.Pod)
-				if ok {
-					delete(prc.RestartObservations, pod.Name)
-					prc.removeBadPodRestarts(pod.Name)
-				}
-			case watch.Bookmark:
-				log.Debugln("pod restart monitor saw a bookmark event and ignored it")
-			case watch.Error:
-				log.Debugln("pod restart monitor saw an error event")
-				e := podObj.Object.(*metav1.Status)
-				log.Errorln("Error when watching for pod restart changes:", e.Reason)
-				break
-			default:
-				log.Warningln("pod restart monitor saw an unknown event type and ignored it:", podObj.Type)
-			}
-		}
-		watcher.Stop()
-	}
-}
 
 // addPodRestartCount adds new pod restart count to the RestartObservations map
 func (prc *Checker) addPodRestartCount(pod v1.Pod) {
