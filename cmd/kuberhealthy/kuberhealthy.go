@@ -757,7 +757,7 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 
 	// fetch the pod from the api using its ip.  We keep retrying for some time to avoid kubernetes control plane
 	// api race conditions wherein fast reporting pods are not found in pod listings
-	pod, err := k.fetchPodByIPForDuration(ip, time.Second*10)
+	pod, err := k.fetchPodByIPForDuration(ip, time.Minute)
 	if err != nil {
 		return reportInfo, err
 	}
@@ -839,7 +839,7 @@ func (k *Kuberhealthy) fetchPodByIPForDuration(remoteIP string, d time.Duration)
 		p, err := k.fetchPodByIP(remoteIP)
 		if err != nil {
 			log.Warningln("was unable to find calling pod with remote IP", remoteIP, "while watching for duration")
-			time.Sleep(time.Millisecond * 330)
+			time.Sleep(time.Second)
 			continue
 		}
 
@@ -897,7 +897,7 @@ func (k *Kuberhealthy) externalCheckReportHandlerLog(s ...interface{}) {
 // to be reporting its status.
 func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// make a request ID for tracking this request
-	requestID := uuid.New().String()
+	requestID := "web: " + uuid.New().String()
 
 	k.externalCheckReportHandlerLog(requestID, "Client connected to check report handler from", r.RemoteAddr, r.UserAgent())
 
