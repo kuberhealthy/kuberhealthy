@@ -30,7 +30,7 @@ func runDeploymentCheck() {
 	runTimeout := time.After(checkTimeLimit)
 
 	// Init a timeout for cleaning up the check.  Assume that the check should not take more than 2m.
-	cleanupTimeout := time.After(time.Minute * 2)
+	cleanupTimeout := time.After(time.Minute * 5)
 
 	// Delete all check resources (deployment & service) from this check that should not exist.
 	select {
