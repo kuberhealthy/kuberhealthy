@@ -61,7 +61,7 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: quay.io/comcast/deployment-check:1.0.0
+      image: quay.io/comcast/deployment-check:1.0.1
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_IMAGE
