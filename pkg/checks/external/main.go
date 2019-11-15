@@ -261,7 +261,11 @@ func (ext *Checker) setUUID(uuid string) error {
 		}
 
 		// checkState will be the new check we just created
-		checkState = &newState
+		checkState, err = ext.getKHState()
+		if err != nil {
+			ext.log("failed to fetch khstate khstate after creating it because it did not exist:", err)
+			return err
+		}
 	}
 
 	// assign the new uuid
