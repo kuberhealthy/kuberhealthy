@@ -30,7 +30,7 @@ __IF ROLLING-UPDATE OPTION IS ENABLED__
 #### Check Details
 
 - Namespace: kuberhealthy
-- Timeout: 5 minutes
+- Timeout: 15 minutes
 - Check Interval: 30 minutes
 - Check name: `deployment`
 - Configurable check environment variables:
@@ -57,7 +57,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 30m
-  timeout: 10m
+  timeout: 15m
   podSpec:
     containers:
     - name: deployment
@@ -70,8 +70,6 @@ spec:
           value: "nginx:1.17.5-perl"
         - name: CHECK_DEPLOYMENT_REPLICAS
           value: "4"
-        - name: CHECK_TIME_LIMIT_SECONDS
-          value: "300"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
         - name: ADDITIONAL_ENV_VARS

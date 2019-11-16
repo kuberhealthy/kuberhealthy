@@ -74,7 +74,3 @@ The configuration file contains:
 The role, rolebinding, service, and secret are all required to create and delete all daemonsets and pods from the check
 in the given namespaces you apply the KHCheck to. The assumed default service account does not give you the permissions 
 to do so. 
-
-You can also create the service account directly by running: `kubectl create serviceaccount daemonset-khcheck`. 
-This will create and apply the necessary secret to your service account. Once you've created the service account, make 
-sure to apply the rest of the configurations for the Role, RoleBinding, and Kuberhealthy check. 
