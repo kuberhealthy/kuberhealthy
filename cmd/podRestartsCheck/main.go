@@ -91,6 +91,7 @@ func main() {
 	// Create new pod restarts checker with Kubernetes client
 	prc := New(client)
 
+	// Run check
 	err = prc.Run()
 	if err != nil {
 		log.Errorln("Error running Pod Restarts check:", err)
@@ -108,6 +109,8 @@ func New(client *kubernetes.Clientset) *Checker {
 	}
 }
 
+// Run starts the go routine to run checks, reports whether or not the check completely successfully, and finally checks
+// for any errors in the Checker struct and re
 func (prc *Checker) Run() error {
 	log.Infoln("Running Pod Restarts checker")
 	doneChan := make(chan error)
@@ -129,13 +132,17 @@ func (prc *Checker) Run() error {
 		}
 		return err
 	case err := <-doneChan:
-		if err != nil {
+		if len(prc.errorMessages) != 0 || err != nil {
 			return reportKHFailure(prc.errorMessages)
+		} else {
+			return reportKHSuccess()
 		}
-		return reportKHSuccess()
 	}
 }
 
+// doChecks grabs all events in a given namespace, then checks for pods with event type "Warning" with reason "BackOff",
+// and an event count greater than the MaxFailuresAllowed. If any of these pods are found, an error message is appended
+// to Checker struct errorMessages.
 func (prc *Checker) doChecks() error {
 
 	log.Infoln("Checking for pod BackOff events for all pods in the namespace:", prc.Namespace)
@@ -145,16 +152,19 @@ func (prc *Checker) doChecks() error {
 		return err
 	}
 
-	for _, event := range podWarningEvents.Items {
+	if len(podWarningEvents.Items) != 0 {
+		log.Infoln("Found `Warning` events in the namespace:", prc.Namespace)
 
-		// Checks for pods with BackOff events greater than the MaxFailuresAllowed
-		if event.InvolvedObject.Kind == "pod" && event.Reason == "BackOff" && event.Count > prc.MaxFailuresAllowed {
-			errorMessage := "Found: " + strconv.FormatInt(int64(event.Count), 10) + " BackOff events for pod: " +  event.InvolvedObject.Name + " in namespace: " + prc.Namespace
+		for _, event := range podWarningEvents.Items {
 
-			log.Infoln(errorMessage)
+			// Checks for pods with BackOff events greater than the MaxFailuresAllowed
+			if event.InvolvedObject.Kind == "Pod" && event.Reason == "BackOff" && event.Count > prc.MaxFailuresAllowed {
+				errorMessage := "Found: " + strconv.FormatInt(int64(event.Count), 10) + " `BackOff` events for pod: " +  event.InvolvedObject.Name + " in namespace: " + prc.Namespace
 
-			prc.errorMessages = append(prc.errorMessages, errorMessage)
+				log.Infoln(errorMessage)
 
+				prc.errorMessages = append(prc.errorMessages, errorMessage)
+			}
 		}
 	}
 
