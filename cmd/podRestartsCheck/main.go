@@ -184,6 +184,7 @@ func (prc *Checker) doChecks() error {
 	return err
 }
 
+// verifyBadPodRestartExists removes the bad pod found from the events list if the pod no longer exists
 func (prc *Checker) verifyBadPodRestartExists(podName string) error {
 
 	_, err := prc.client.CoreV1().Pods(prc.Namespace).Get(podName, metav1.GetOptions{})
