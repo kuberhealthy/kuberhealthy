@@ -18,12 +18,9 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
@@ -33,19 +30,17 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 )
 
-const defaultMaxFailuresAllowed = 5
+const defaultMaxFailuresAllowed = 10
 
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var Namespace string
-var RunWindow time.Duration
-var BadPodRestarts sync.Map
-var MaxFailuresAllowed int
+var CheckTimeout time.Duration
+var MaxFailuresAllowed int32
 
 // Checker represents a long running pod restart checker.
 type Checker struct {
-	RestartObservations map[string]map[string]int32
 	Namespace           string
-	MaxFailuresAllowed  int
+	MaxFailuresAllowed  int32
 	client              *kubernetes.Clientset
 	errorMessages       []string
 }
@@ -59,23 +54,25 @@ func init() {
 		return
 	}
 
-	runWindow := os.Getenv("CHECK_RUN_WINDOW")
-	if len(runWindow) == 0 {
-		log.Errorln("ERROR: The CHECK_RUN_WINDOW environment variable has not been set.")
+	// Grab and verify environment variables and set them as global vars
+	checkTimeout := os.Getenv("CHECK_POD_TIMEOUT")
+	if len(checkTimeout) == 0 {
+		log.Errorln("ERROR: The CHECK_TIMEOUT environment variable has not been set.")
 		return
 	}
 
 	var err error
-	RunWindow, err = time.ParseDuration(runWindow)
+	CheckTimeout, err = time.ParseDuration(checkTimeout)
 	if err != nil {
-		log.Errorln("Error parsing run window for check", runWindow, err)
+		log.Errorln("Error parsing timeout for check", checkTimeout, err)
 		return
 	}
 
 	MaxFailuresAllowed = defaultMaxFailuresAllowed
 	maxFailuresAllowed := os.Getenv("MAX_FAILURES_ALLOWED")
 	if len(maxFailuresAllowed) != 0 {
-		MaxFailuresAllowed, err = strconv.Atoi(maxFailuresAllowed)
+		conversion, err := strconv.ParseInt(maxFailuresAllowed, 10, 32)
+		MaxFailuresAllowed = int32(conversion)
 		if err != nil {
 			log.Errorln("Error converting maxFailuresAllowed:", maxFailuresAllowed, "to int, err:", err)
 			return
@@ -91,228 +88,98 @@ func main() {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
-	// Create new pod restarts checker
-	prc := New()
+	// Create new pod restarts checker with Kubernetes client
+	prc := New(client)
 
-	// Add created client to the pod restarts checker
-	prc.client = client
-
-	log.Infoln("Enabling pod restarts checker")
-
-	// Populate the RestartObservations map for all current pods found with their restart count
-	err = prc.configurePodRestartCount()
+	err = prc.Run()
 	if err != nil {
-		log.Errorln("Failed to configure pods with restart count observations, error:", err)
+		log.Errorln("Error running Pod Restarts check:", err)
 	}
-
-	// Run the pod restarts check status reporter in the background
-	go prc.statusReporter()
-
-	// Run shutdown after the check run time window in the background
-	go shutdownAfterDuration(RunWindow)
-
-	// Run the check to watch for pod changes
-	prc.watchForPodChanges()
+	log.Infoln("Done running Pod Restarts check")
 }
 
 // New creates a new pod restart checker for a specific namespace, ready to use.
-func New() *Checker {
+func New(client *kubernetes.Clientset) *Checker {
 	return &Checker{
-		RestartObservations: make(map[string]map[string]int32),
 		Namespace:           Namespace,
 		MaxFailuresAllowed:  MaxFailuresAllowed,
 		errorMessages:       []string{},
+		client: 			 client,
 	}
 }
 
-// shutdownAfterDuration shuts down the program after the run time window
-func shutdownAfterDuration(duration time.Duration) {
-	time.Sleep(duration)
+func (prc *Checker) Run() error {
+	log.Infoln("Running Pod Restarts checker")
+	doneChan := make(chan error)
 
-	log.Infoln("Check run has completed successfully. Reporting check success to Kuberhealthy.")
+	// run the check in a goroutine and notify the doneChan when completed
+	go func(doneChan chan error) {
+		err := prc.doChecks()
+		doneChan <- err
+	}(doneChan)
 
-	length := 0
-	BadPodRestarts.Range(func(_, _ interface{}) bool {
-		length++
-		return true
-	})
-
-	if length == 0 {
-		err := checkclient.ReportSuccess()
+	// wait for either a timeout or job completion
+	select {
+	case <-time.After(CheckTimeout):
+		// The check has timed out after its specified timeout period
+		errorMessage := "Failed to complete Pod Restart check in time! Timeout was reached."
+		err := reportKHFailure([]string{errorMessage})
 		if err != nil {
-			log.Println("Error reporting success to Kuberhealthy servers:", err)
+			return err
 		}
-		log.Println("Successfully reported success to Kuberhealthy servers")
+		return err
+	case err := <-doneChan:
+		if err != nil {
+			return reportKHFailure(prc.errorMessages)
+		}
+		return reportKHSuccess()
 	}
-
-	os.Exit(0)
 }
 
-// configurePodRestartCount populates the RestartObservations map for all pods with their container restart counts
-func (prc *Checker) configurePodRestartCount() error {
+func (prc *Checker) doChecks() error {
 
-	log.Infoln("Configuring pod restart observations for all pods in namespace:", prc.Namespace)
+	log.Infoln("Checking for pod BackOff events for all pods in the namespace:", prc.Namespace)
 
-	l, err := prc.client.CoreV1().Pods(prc.Namespace).List(metav1.ListOptions{})
+	podWarningEvents, err := prc.client.CoreV1().Events(prc.Namespace).List(metav1.ListOptions{FieldSelector: "type=Warning"})
 	if err != nil {
 		return err
 	}
 
-	for _, p := range l.Items {
-		prc.addPodRestartCount(p)
+	for _, event := range podWarningEvents.Items {
+
+		// Checks for pods with BackOff events greater than the MaxFailuresAllowed
+		if event.InvolvedObject.Kind == "pod" && event.Reason == "BackOff" && event.Count > prc.MaxFailuresAllowed {
+			errorMessage := "Found: " + strconv.FormatInt(int64(event.Count), 10) + " BackOff events for pod: " +  event.InvolvedObject.Name + " in namespace: " + prc.Namespace
+
+			log.Infoln(errorMessage)
+
+			prc.errorMessages = append(prc.errorMessages, errorMessage)
+
+		}
 	}
 
 	return err
 }
 
-// watchForPodChanges spawns a watcher to catch various pod events within a namespace.
-// If pods are added, the pods restart count is added to the checkers RestartObservation map
-// If pods are modified, we check for bad pod restarts
-// If pods are deleted, we remove the pod from the checkers RestartObservation map and the BadPodRestarts map
-func (prc *Checker) watchForPodChanges() {
-
-	for {
-		log.Infoln("Spawned watcher for pod changes in namespace:", prc.Namespace)
-
-		// wait a second so we don't retry too quickly on error
-		time.Sleep(time.Second)
-		podClient := prc.client.CoreV1().Pods(prc.Namespace)
-
-		watcher, err := podClient.Watch(metav1.ListOptions{})
-		if err != nil {
-			log.Errorln("error watching pods", err)
-			watcher.Stop()
-		}
-
-		for podObj := range watcher.ResultChan() {
-			switch podObj.Type {
-			case watch.Added:
-				log.Debugln("pod restart monitor saw an added event, adding pod restart count")
-				pod, ok := podObj.Object.(*v1.Pod)
-				if !ok {
-					continue
-				}
-				prc.addPodRestartCount(*pod)
-			case watch.Modified:
-				log.Debugln("pod restart monitor saw a modified event")
-				pod, ok := podObj.Object.(*v1.Pod)
-				if !ok {
-					continue
-				}
-				prc.checkBadPodRestarts(*pod)
-			case watch.Deleted:
-				log.Infoln("pod restart monitor saw a deleted event")
-				pod, ok := podObj.Object.(*v1.Pod)
-				if ok {
-					delete(prc.RestartObservations, pod.Name)
-					prc.removeBadPodRestarts(pod.Name)
-				}
-			case watch.Bookmark:
-				log.Debugln("pod restart monitor saw a bookmark event and ignored it")
-			case watch.Error:
-				log.Debugln("pod restart monitor saw an error event")
-				e := podObj.Object.(*metav1.Status)
-				log.Errorln("Error when watching for pod restart changes:", e.Reason)
-				break
-			default:
-				log.Warningln("pod restart monitor saw an unknown event type and ignored it:", podObj.Type)
-			}
-		}
-		watcher.Stop()
+// reportKHSuccess reports success to Kuberhealthy servers and verifies the report successfully went through
+func reportKHSuccess() error {
+	err := checkclient.ReportSuccess()
+	if err != nil {
+		log.Println("Error reporting success to Kuberhealthy servers:", err)
+		return err
 	}
+	log.Println("Successfully reported success to Kuberhealthy servers")
+	return err
 }
 
-// addPodRestartCount adds new pod restart count to the RestartObservations map
-func (prc *Checker) addPodRestartCount(pod v1.Pod) {
-	for _, s := range pod.Status.ContainerStatuses {
-		containerMap := make(map[string]int32)
-		containerMap[s.Name] = s.RestartCount
-		prc.RestartObservations[pod.Name] = containerMap
+// reportKHFailure reports failure to Kuberhealthy servers and verifies the report successfully went through
+func reportKHFailure(errorMessages []string) error {
+	err := checkclient.ReportFailure(errorMessages)
+	if err != nil {
+		log.Println("Error reporting failure to Kuberhealthy servers:", err)
+		return err
 	}
+	log.Println("Successfully reported failure to Kuberhealthy servers")
+	return err
 }
 
-// checkBadPodRestarts calculates the delta in pod restarts and checks for too many restarts
-func (prc *Checker) checkBadPodRestarts(pod v1.Pod) {
-
-	for _, s := range pod.Status.ContainerStatuses {
-		oldRestartCount := prc.RestartObservations[pod.Name][s.Name]
-		newRestartCount := s.RestartCount
-
-		if newRestartCount-oldRestartCount > 5 {
-			BadPodRestarts.Store(pod.Name, newRestartCount)
-		}
-	}
-}
-
-// removeBadPodRestarts removes the pod from the BadPodRestart map if the pod has been deleted
-func (prc *Checker) removeBadPodRestarts(podName string) {
-
-	//Ranging through BadPodRestarts map for deleted pod. If found, remove bad pod from map.
-	BadPodRestarts.Range(func(_, _ interface{}) bool {
-		_, exists := BadPodRestarts.Load(podName)
-		if exists {
-			log.Infoln("Pod:", podName, "with too many restarts has been deleted. Removing from status report.")
-			BadPodRestarts.Delete(podName)
-		}
-		return true
-	})
-
-	length := 0
-
-	BadPodRestarts.Range(func(_, _ interface{}) bool {
-		length++
-		return true
-	})
-
-	if length == 0 {
-		log.Infoln("No more bad pod restarts found. Changing report status to OK.")
-		err := checkclient.ReportSuccess()
-		if err != nil {
-			log.Println("Error reporting success to Kuberhealthy servers:", err)
-		}
-		log.Println("Successfully reported success to Kuberhealthy servers")
-	}
-}
-
-// statusReporter sends status reports to Kuberhealthy every minute on bad pod restarts
-func (prc *Checker) statusReporter() {
-	var err error
-
-	log.Infoln("Starting status reporter to send status reports to Kuberhealthy if bad pod restarts are found")
-
-	// Start ticker for sending reports to Kuberhealthy
-	ticker := time.NewTicker(1 * time.Minute)
-
-	for {
-		<-ticker.C
-
-		length := 0
-		BadPodRestarts.Range(func(_, _ interface{}) bool {
-			length++
-			return true
-		})
-
-		if length > 0 {
-			log.Println("Bad pod with restarts found, reporting check failure to Kuberhealthy servers")
-
-			prc.errorMessages = []string{} // clear error messages before every failure report
-
-			BadPodRestarts.Range(func(k, v interface{}) bool {
-
-				errorMessage := "Pod restarts for pod: " + k.(string) + " is greater than " + strconv.Itoa(int(prc.MaxFailuresAllowed)) + " in the last hour. Restart Count is at: " + strconv.Itoa(int(v.(int32)))
-				prc.errorMessages = append(prc.errorMessages, errorMessage)
-
-				return true
-			})
-			err = checkclient.ReportFailure(prc.errorMessages)
-			if err != nil {
-				log.Println("Error reporting failure to Kuberhealthy servers:", err)
-			}
-			log.Println("Reported failure to Kuberhealthy servers")
-
-			continue
-		}
-
-		log.Println("No bad pod with restarts found, starting next tick")
-	}
-}
