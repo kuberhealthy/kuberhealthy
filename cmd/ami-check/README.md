@@ -16,7 +16,7 @@ list of AMIs to ensure that the instance-group image is available for new nodes.
 - Namespace: kuberhealthy
 - Timeout: 15 minutes
 - Check Interval: 10 minutes
-- Check name: `kh-ami-check`
+- Check name: `ami`
 - Configurable check environment variables:
   - `AWS_REGION`: The region that the S3 bucket exists in. (Although S3 buckets are global, their creation location matters.)
   - `AWS_S3_BUCKET_NAME`: The name of the S3 bucket for the kops state store.
@@ -39,7 +39,7 @@ spec:
   podSpec:
     containers:
     - name: ami
-      image: 
+      image: quay.io/comcast/ami-check:1.0.0
       imagePullPolicy: IfNotPresent
       env:
         - name: AWS_REGION
