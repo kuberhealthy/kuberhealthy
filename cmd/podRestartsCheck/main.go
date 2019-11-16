@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -41,8 +42,8 @@ var MaxFailuresAllowed int32
 type Checker struct {
 	Namespace           string
 	MaxFailuresAllowed  int32
+	BadPods				map[string]string
 	client              *kubernetes.Clientset
-	errorMessages       []string
 }
 
 func init() {
@@ -104,7 +105,7 @@ func New(client *kubernetes.Clientset) *Checker {
 	return &Checker{
 		Namespace:           Namespace,
 		MaxFailuresAllowed:  MaxFailuresAllowed,
-		errorMessages:       []string{},
+		BadPods: 			 make(map[string]string),
 		client: 			 client,
 	}
 }
@@ -132,8 +133,13 @@ func (prc *Checker) Run() error {
 		}
 		return err
 	case err := <-doneChan:
-		if len(prc.errorMessages) != 0 || err != nil {
-			return reportKHFailure(prc.errorMessages)
+		if len(prc.BadPods) != 0 || err != nil {
+			var errorMessages []string
+			for _, msg := range prc.BadPods {
+				errorMessages = append(errorMessages, msg)
+			}
+			return reportKHFailure(errorMessages)
+
 		} else {
 			return reportKHSuccess()
 		}
@@ -163,12 +169,34 @@ func (prc *Checker) doChecks() error {
 
 				log.Infoln(errorMessage)
 
-				prc.errorMessages = append(prc.errorMessages, errorMessage)
+				prc.BadPods[event.InvolvedObject.Name] = errorMessage
 			}
 		}
 	}
 
+	for pod := range prc.BadPods {
+		err := prc.verifyBadPodRestartExists(pod)
+		if err != nil {
+			return err
+		}
+	}
+
 	return err
+}
+
+func (prc *Checker) verifyBadPodRestartExists(podName string) error {
+
+	_, err := prc.client.CoreV1().Pods(prc.Namespace).Get(podName, metav1.GetOptions{})
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			log.Infoln("Bad Pod:", podName, "no longer exists. Removing from bad pods map")
+			delete(prc.BadPods, podName)
+		} else {
+			log.Infoln("Error getting bad pod:", podName, err)
+			return err
+		}
+	}
+	return nil
 }
 
 // reportKHSuccess reports success to Kuberhealthy servers and verifies the report successfully went through
