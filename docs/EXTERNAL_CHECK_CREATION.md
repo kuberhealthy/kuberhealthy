@@ -13,7 +13,7 @@ An example check with working Dockerfile is available to use as an example [here
 Your check only needs to do a few things:
 
 - Read the `KH_REPORTING_URL` environment variable.
-- Send a `GET` or `POST` to the `KH_REPORTING_URL` with the following JSON body:
+- Send a `POST` to the `KH_REPORTING_URL` with the following JSON body:
 
 ```json
 {
