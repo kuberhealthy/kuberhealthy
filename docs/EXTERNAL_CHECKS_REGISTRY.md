@@ -8,5 +8,6 @@ Here is a list of external checks you can apply to your kubernetes cluster once 
 | [Deployment Test](../cmd/deployment-check/README.md) | Ensures that a Deployment and Service can be provisioned, created, and serve traffic within the Kubernetes cluster | [deployment-check.yaml](../cmd/deployment-check/deployment-check.yaml) | @jonnydawg |
 | [Pod Restarts Check](../cmd/podRestartsCheck/README.md) | Checks for excessive pod restarts in any namespace | [podRestartsCheck.yaml](../cmd/podRestartsCheck/podRestartsCheck.yaml) | @integrii @joshulyne |
 | [Pod Status Check](../cmd/podStatusCheck/README.md) | Checks for unhealthy pod statuses in a target namespace | [podStatusCheck.yaml](../cmd/podStatusCheck/podStatusCheck.yaml) | @integrii @rukatm |
+| [DNS Status Check](../cmd/dnsStatusCheck/README.md) | Checks for failures with DNS, including resolving within the cluster and outside of the cluster | [externalDNSStatusCheck.yaml](../cmd/dnsStatusCheck/externalDNSStatusCheck.yaml) [internalDNSStatusCheck.yaml](../cmd/dnsStatusCheck/internalDNSStatusCheck.yaml) | @integrii @joshulyne |
 
 If you have a check you would like to share with the community, please open a PR to this file!
