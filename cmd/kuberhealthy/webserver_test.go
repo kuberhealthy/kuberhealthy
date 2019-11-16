@@ -20,10 +20,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/pkg/health"
 	"github.com/Pallinder/go-randomdata"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/Comcast/kuberhealthy/pkg/health"
 )
 
 // makeTestKuberhealthy makes a test kuberhealthy client

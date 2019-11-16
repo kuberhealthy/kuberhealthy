@@ -23,11 +23,10 @@ func Create(kubeConfigFile string) (*kubernetes.Clientset, error) {
 	kubeconfig, err := rest.InClusterConfig()
 	if err != nil {
 		// If not in cluster, use kube config file
-		config, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+		kubeconfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
 		if err != nil {
 			return nil, err
 		}
-		return kubernetes.NewForConfig(config)
 	}
 	return kubernetes.NewForConfig(kubeconfig)
 }

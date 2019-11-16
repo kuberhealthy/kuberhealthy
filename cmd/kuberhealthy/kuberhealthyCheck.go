@@ -20,7 +20,7 @@ import (
 // KuberhealthyCheck represents the required methods for a check to be ran by
 // kuberhealthy.
 type KuberhealthyCheck interface {
-	// Name returns the identfier for this check such as: Checker
+	// Name returns the identifier for this check such as: Checker
 	Name() string
 	// CheckNamespace returns the name of the namespace that the check runs in
 	CheckNamespace() string

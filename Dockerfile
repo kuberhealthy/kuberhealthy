@@ -1,19 +1,19 @@
-FROM golang as builder
+FROM golang:1.13 as builder
 LABEL LOCATION="git@github.com:Comcast/kuberhealthy.git"
 LABEL DESCRIPTION="Kuberhealthy - Check and expose kubernetes cluster health in detail."
 ADD ./ /go/src/github.com/Comcast/kuberhealthy/
 WORKDIR /go/src/github.com/Comcast/kuberhealthy/cmd/kuberhealthy
-ENV GO111MODULE=on
 ENV CGO_ENABLED=0
 RUN go version
-RUN go test -v -short -- --debug --forceMaster
+RUN curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $GOPATH/bin 2.0.0
+RUN gosec ./...
+#RUN go test -v -short -- --debug --forceMaster
 RUN go build -v -o kuberhealthy
 RUN mkdir /kuberhealthy
 RUN mv kuberhealthy /kuberhealthy/kuberhealthy
 
-FROM golang
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
-RUN apt-get remove mercurial -y
+FROM golang:1.13
+RUN apt-get update && apt-get upgrade -y && apt-get remove mercurial -y && rm -rf /var/lib/apt/lists/*
 RUN mkdir /app
 WORKDIR /app
 COPY --from=builder /kuberhealthy/ /app

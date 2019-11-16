@@ -9,7 +9,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package health // import "github.com/Comcast/kuberhealthy/pkg/health"
+package health
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// State returns the results of checks to the client calling Kuberhealthy.  This is displayed
+// State represents the results of all checks being managed along with a top-level OK and Error state. This is displayed
 // on the kuberhealthy status page as JSON
 type State struct {
 	OK            bool
@@ -30,6 +30,10 @@ type State struct {
 // AddError adds new errors to State
 func (h *State) AddError(s ...string) {
 	for _, str := range s {
+		if len(s) == 0 {
+			log.Warningln("AddError was called but the error was blank so it was skipped.")
+			continue
+		}
 		log.Debugln("Appending error:", str)
 		h.Errors = append(h.Errors, str)
 	}
@@ -54,7 +58,7 @@ func (h *State) WriteHTTPStatusResponse(w http.ResponseWriter) error {
 		return err
 	}
 
-	log.Infoln("Wrote response to client:", currentStatus)
+	// log.Infoln("Wrote response to client:", currentStatus)
 
 	return err
 }
