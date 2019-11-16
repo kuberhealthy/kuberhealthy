@@ -12,7 +12,7 @@
 package khstatecrd // import "github.com/Comcast/kuberhealthy/pkg/khstatecrd"
 
 import (
-	"os"
+	"log"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -21,20 +21,22 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var namespace = os.Getenv("POD_NAMESPACE")
+const defaultNamespace = "kuberhealthy"
 
 const resource = "khstates"
 const group = "comcast.github.io"
 const version = "v1"
 
 // Client creates a rest client to use for interacting with CRDs
-func Client(GroupName string, GroupVersion string, kubeConfig string) (*KuberhealthyStateClient, error) {
+func Client(GroupName string, GroupVersion string, kubeConfig string, namespace string) (*KuberhealthyStateClient, error) {
 
 	var c *rest.Config
 	var err error
 
+	// log.Println("Loading in-cluster kubernetes config...")
 	c, err = rest.InClusterConfig()
 	if err != nil {
+		log.Println("Loading config from flags...")
 		c, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
 	}
 
@@ -42,14 +44,19 @@ func Client(GroupName string, GroupVersion string, kubeConfig string) (*Kuberhea
 		return &KuberhealthyStateClient{}, err
 	}
 
-	ConfigureScheme(GroupName, GroupVersion)
+	// log.Println("Configuring scheme")
+	err = ConfigureScheme(GroupName, GroupVersion)
+	if err != nil {
+		return &KuberhealthyStateClient{}, err
+	}
 
 	config := *c
 	config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: GroupName, Version: GroupVersion}
 	config.APIPath = "/apis"
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	config.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
 
+	// log.Println("creating khstate rest client")
 	client, err := rest.RESTClientFor(&config)
 	return &KuberhealthyStateClient{restClient: client, ns: namespace}, err
 }

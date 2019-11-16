@@ -13,77 +13,87 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strconv"
-	"strings"
+	"syscall"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/pkg/checks/componentStatus"
-	"github.com/Comcast/kuberhealthy/pkg/checks/daemonSet"
-	"github.com/Comcast/kuberhealthy/pkg/checks/dnsStatus"
-	"github.com/Comcast/kuberhealthy/pkg/checks/podRestarts"
-	"github.com/Comcast/kuberhealthy/pkg/checks/podStatus"
-	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
-	"github.com/Comcast/kuberhealthy/pkg/metrics"
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
+
+	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
+	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
+	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
+	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
 )
 
 // status represents the current Kuberhealthy OK:Error state
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var listenAddress = ":8080"
 var podCheckNamespaces = "kube-system"
-var dnsEndpoints []string
+var podNamespace = os.Getenv("POD_NAMESPACE")
+var isMaster bool                  // indicates this instance is the master and should be running checks
+var upcomingMasterState bool       // the upcoming master state on next interval
+var lastMasterChangeTime time.Time // indicates the last time a master change was seen
 
-// shutdown signal handling
-var sigChan chan os.Signal
-var doneChan chan bool
-var terminationGracePeriodSeconds = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
+var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
 // flags indicating that checks of specific types should be used
-var enableForceMaster bool               // force master mode - for debugging
-var enableDebug bool                     // enable debug logging
+var enableForceMaster bool // force master mode - for debugging
+var enableDebug bool       // enable debug logging
+// DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
-var DSTolerationOverride []string			 // specify an alternate list of taints to tolerate - see #178
+// DSTolerationOverride specifies an alternate list of taints to tolerate - see #178
+var DSTolerationOverride []string
 var logLevel = "info"
 
-var enableComponentStatusChecks = determineCheckStateFromEnvVar("COMPONENT_STATUS_CHECK")
-var enableDaemonSetChecks = determineCheckStateFromEnvVar("DAEMON_SET_CHECK")
-var enablePodRestartChecks = determineCheckStateFromEnvVar("POD_RESTARTS_CHECK")
-var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
-var enableDnsStatusChecks = determineCheckStateFromEnvVar("DNS_STATUS_CHECK")
+// the hostname of this pod
+var podHostname string
 
-// InfluxDB flags
+var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
+var enableExternalChecks = true
+
+// external check configs
+const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"
+
+// default run interval set by kuberhealthy
+const DefaultRunInterval = time.Minute * 10
+
+// the key used in the annotation that holds the check's short name
+const KH_CHECK_NAME_ANNOTATION_KEY = "comcast.github.io/check-name"
+
+var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
+
+// InfluxDB connection configuration
 var enableInflux = false
-var influxUrl = ""
+var influxURL = ""
 var influxUsername = ""
 var influxPassword = ""
 var influxDB = "http://localhost:8086"
 var kuberhealthy *Kuberhealthy
 
-// CRDGroup is a custom resource group name
-const CRDGroup = "comcast.github.io"
+var khStateClient *khstatecrd.KuberhealthyStateClient
 
-// CRDVersion is a custom resource version
-const CRDVersion = "v1"
+// constants for using the kuberhealthy status CRD
+const stateCRDGroup = "comcast.github.io"
+const stateCRDVersion = "v1"
+const stateCRDResource = "khstates"
 
-// CRDResource is a custom resource name
-const CRDResource = "khstates"
+var khCheckClient *khcheckcrd.KuberhealthyCheckClient
 
-var masterCalculationInterval = time.Second * 10
+// constants for using the kuberhealthy check CRD
+const checkCRDGroup = "comcast.github.io"
+const checkCRDVersion = "v1"
+const checkCRDResource = "khchecks"
 
-func getAllLogLevel() string {
-	levelStrings := []string{}
-	for _, level := range log.AllLevels {
-		levelStrings = append(levelStrings, level.String())
-	}
-
-	return strings.Join(levelStrings, ",")
-}
+// the global kubernetes client
+var kubernetesClient *kubernetes.Clientset
 
 func init() {
 
@@ -91,22 +101,13 @@ func init() {
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
 	flaggy.String(&listenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
-	flaggy.Bool(&enableComponentStatusChecks, "", "componentStatusChecks", "Set to false to disable daemonset deployment checking.")
-	flaggy.Bool(&enableDaemonSetChecks, "", "daemonsetChecks", "Set to false to disable cluster daemonset deployment and termination checking.")
-	flaggy.Bool(&enablePodRestartChecks, "", "podRestartChecks", "Set to false to disable pod restart checking.")
-	flaggy.Bool(&enablePodStatusChecks, "", "podStatusChecks", "Set to false to disable pod lifecycle phase checking.")
-	flaggy.Bool(&enableDnsStatusChecks, "", "dnsStatusChecks", "Set to false to disable DNS checks.")
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
-	flaggy.String(&DSPauseContainerImageOverride, "", "dsPauseContainerImageOverride", "Set an alternate image location for the pause container the daemon set checker uses for its daemon set configuration.")
-	flaggy.StringSlice(&DSTolerationOverride, "", "tolerationOverride", "Specify a specific taint (in a key,value,effect format, ex. node-role.kubernetes.io/master,,NoSchedule or dedicated,someteam,NoSchedule)  to tolerate and force DaemonSetChecker to tolerate only nodes with that taint. Use the flag multiple times to add multiple tolerations. Default behavior is to tolerate all taints in the cluster.")
-	flaggy.String(&podCheckNamespaces, "", "podCheckNamespaces", "The comma separated list of namespaces on which to check for pod status and restarts, if enabled.")
 	flaggy.String(&logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
-	flaggy.StringSlice(&dnsEndpoints, "", "dnsEndpoints", "The comma separated list of dns endpoints to check, if enabled. Defaults to kubernetes.default")
 	// Influx flags
 	flaggy.String(&influxUsername, "", "influxUser", "Username for the InfluxDB instance")
 	flaggy.String(&influxPassword, "", "influxPassword", "Password for the InfluxDB instance")
-	flaggy.String(&influxUrl, "", "influxUrl", "Address for the InfluxDB instance")
+	flaggy.String(&influxURL, "", "influxUrl", "Address for the InfluxDB instance")
 	flaggy.String(&influxDB, "", "influxDB", "Name of the InfluxDB database")
 	flaggy.Bool(&enableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
 	flaggy.Parse()
@@ -121,134 +122,101 @@ func init() {
 	log.SetLevel(parsedLogLevel)
 	log.Infoln("Startup Arguments:", os.Args)
 
+	// parse external check URL configuration
+	if len(externalCheckReportingURL) == 0 {
+		if len(podNamespace) == 0 {
+			log.Fatalln("KH_EXTERNAL_REPORTING_URL environment variable not set and POD_NAMESPACE environment variable was blank.  Could not determine Kuberhealthy callback URL.")
+		}
+		externalCheckReportingURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local/externalCheckStatus"
+	}
+	log.Infoln("External check reporting URL set to:", externalCheckReportingURL)
+
 	// handle debug logging
+	debugEnv := os.Getenv("DEBUG")
+	if len(debugEnv) > 0 {
+		enableDebug, err = strconv.ParseBool(debugEnv)
+		if err != nil {
+			log.Warningln("Failed to parse bool for DEBUG setting:", err)
+		}
+	}
 	if enableDebug {
+		log.Infoln("Enabling debug logging")
 		log.SetLevel(log.DebugLevel)
 		masterCalculation.EnableDebug()
-		log.Infoln("Enabling debug logging")
-	}
 
-	// shutdown signal handling
-	// we give a queue depth here to prevent blocking in some cases
-	sigChan = make(chan os.Signal, 5)
-	doneChan = make(chan bool, 5)
+		// enable debug on klog for dependencies
+		klog.V(10)
+	}
 
 	// Handle force master mode
 	if enableForceMaster {
 		log.Infoln("Enabling forced master mode")
 		masterCalculation.DebugAlwaysMasterOn()
 	}
+
+	// determine the name of this pod from the POD_NAME environment variable
+	podHostname, err = getEnvVar("POD_NAME")
+	if err != nil {
+		log.Fatalln("Failed to determine my hostname!")
+	}
+
+	// setup all clients
+	err = initKubernetesClients()
+	if err != nil {
+		log.Fatalln("Failed to bootstrap kubernetes clients:", err)
+	}
 }
 
 func main() {
 
-	go listenForInterrupts()
-
 	// Create a new Kuberhealthy struct
 	kuberhealthy = NewKuberhealthy()
 	kuberhealthy.ListenAddr = listenAddress
-	var metricClient metrics.Client
-	if enableInflux {
-		influxUrlParsed, err := url.Parse(influxUrl)
-		if err != nil {
-			log.Fatalln("Unable to parse influxUrl", err)
-		}
-		metricClient, err = metrics.NewInfluxClient(metrics.InfluxClientInput{
-			Config: metrics.InfluxConfig{
-				URL:      *influxUrlParsed,
-				Password: influxPassword,
-				Username: influxUsername,
-			},
-			Database: influxDB,
-		})
-		if err != nil {
-			log.Fatalln("Unable to parse initialize connection with InfluxDB", err)
-		}
-	}
-	kuberhealthy.MetricForwarder = metricClient
 
-	// Split the podCheckNamespaces into a []string
-	namespaces := strings.Split(podCheckNamespaces, ",")
+	// create run context and start listening for shutdown interrupts
+	khRunCtx, khRunCtxCancelFunc := context.WithCancel(context.Background())
+	kuberhealthy.shutdownCtxFunc = khRunCtxCancelFunc // load the KH struct with a func to shutdown its control system
+	go listenForInterrupts()
 
-	// Add enabled checks into Kuberhealthy
+	// tell Kuberhealthy to start all checks and master change monitoring
+	kuberhealthy.Start(khRunCtx)
 
-	// componentstatus checking
-	if enableComponentStatusChecks {
-		kuberhealthy.AddCheck(componentStatus.New())
-	}
-
-	// daemonset checking
-	if enableDaemonSetChecks {
-		dsc, err := daemonSet.New()
-		if err != nil {
-			log.Fatalln("unable to create daemonset checker:", err)
-		}
-		// allow the user to override the image used by the DSC - see #114
-		if len(DSPauseContainerImageOverride) > 0 {
-			log.Info("Setting DS pause container override image to:", DSPauseContainerImageOverride)
-			dsc.PauseContainerImage = DSPauseContainerImageOverride
-		}
-		// allow the user to override the tolerations used by the DSC - see #178
-		if len(DSPauseContainerImageOverride) > 0 {
-			log.Info("Setting DS Tolerations to:", DSTolerationOverride)
-			DSTolerationOverrideList, err := dsc.ParseTolerationOverride(DSTolerationOverride)
-			if err != nil {
-				log.Errorln("Error parsing tolerationOverride", err)
-			}
-			dsc.Tolerations = DSTolerationOverrideList
-			}
-		kuberhealthy.AddCheck(dsc)
-	}
-
-	// pod restart checking
-	if enablePodRestartChecks {
-		for _, namespace := range namespaces {
-			n := strings.TrimSpace(namespace)
-			if len(n) > 0 {
-				kuberhealthy.AddCheck(podRestarts.New(n))
-			}
-		}
-	}
-
-	// pod status checking
-	if enablePodStatusChecks {
-		for _, namespace := range namespaces {
-			n := strings.TrimSpace(namespace)
-			if len(n) > 0 {
-				kuberhealthy.AddCheck(podStatus.New(n))
-			}
-		}
-	}
-
-	// dns resolution checking
-	if enableDnsStatusChecks {
-		kuberhealthy.AddCheck(dnsStatus.New(dnsEndpoints))
-	}
-
-	// Tell Kuberhealthy to start all checks and master change monitoring
-	go kuberhealthy.Start()
-
-	// Start the web server and restart it if it crashes
-	kuberhealthy.StartWebServer()
-
+	time.Sleep(time.Second * 90) // give the interrupt handler a period of time to call exit before we shutdown
+	<-time.After(terminationGracePeriod + (time.Second * 10))
+	log.Errorln("shutdown: main loop was ready for shutdown for too long. exiting.")
+	os.Exit(1)
 }
 
-// listenForInterrupts watches for termination singnals and acts on them
+// listenForInterrupts watches for termination signals and acts on them
 func listenForInterrupts() {
-	signal.Notify(sigChan, os.Interrupt, os.Kill)
+	// shutdown signal handling
+	sigChan := make(chan os.Signal, 1)
+
+	// register for shutdown events on sigChan
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
+	log.Infoln("shutdown: waiting for sigChan notification...")
 	<-sigChan
-	log.Infoln("Shutting down...")
-	go kuberhealthy.Shutdown()
+	log.Infoln("shutdown: Shutting down due to sigChan signal...")
+
+	// wait for check to fully shutdown before exiting
+	doneChan := make(chan struct{})
+	go kuberhealthy.Shutdown(doneChan)
+
 	// wait for checks to be done shutting down before exiting
 	select {
 	case <-doneChan:
-		log.Infoln("Shutdown gracefully completed!")
+		log.Infoln("shutdown: Shutdown gracefully completed!")
+		log.Infoln("shutdown: exiting 0")
+		os.Exit(0)
 	case <-sigChan:
-		log.Warningln("Shutdown forced from multiple interrupts!")
-	case <-time.After(terminationGracePeriodSeconds):
-		log.Errorln("Shutdown took too long.  Shutting down forcefully!")
+		log.Warningln("shutdown: Shutdown forced from multiple interrupts!")
+		log.Infoln("shutdown: exiting 1")
+		os.Exit(1)
+	case <-time.After(terminationGracePeriod):
+		log.Errorln("shutdown: Shutdown took too long.  Shutting down forcefully!")
+		log.Infoln("shutdown: exiting 1")
+		os.Exit(1)
 	}
-	os.Exit(0)
 }
 
 // determineCheckStateFromEnvVar determines a check's enabled state based on
@@ -260,4 +228,31 @@ func determineCheckStateFromEnvVar(envVarName string) bool {
 		return true // by default, the check is on
 	}
 	return enabledState
+}
+
+// initKubernetesClients creates the appropriate CRD clients and kubernetes client to be used in all cases. Issue #181
+func initKubernetesClients() error {
+
+	// make a new kuberhealthy client
+	kc, err := kubeClient.Create(kubeConfigFile)
+	if err != nil {
+		return err
+	}
+	kubernetesClient = kc
+
+	// make a new crd check client
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, "")
+	if err != nil {
+		return err
+	}
+	khCheckClient = checkClient
+
+	// make a new crd state client
+	stateClient, err := khstatecrd.Client(stateCRDGroup, stateCRDVersion, kubeConfigFile, "")
+	if err != nil {
+		return err
+	}
+	khStateClient = stateClient
+
+	return nil
 }

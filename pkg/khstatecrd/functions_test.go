@@ -25,14 +25,14 @@ import (
 var kubeConfigFile = os.Getenv("HOME") + "/.kube/config"
 
 func TestClient(t *testing.T) {
-	_, err := Client(group, version, kubeConfigFile)
+	_, err := Client(group, version, kubeConfigFile, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestCreate(t *testing.T) {
-	client, err := Client(group, version, kubeConfigFile)
+	client, err := Client(group, version, kubeConfigFile, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	client, err := Client(group, version, kubeConfigFile)
+	client, err := Client(group, version, kubeConfigFile, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestList(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	client, err := Client(group, version, kubeConfigFile)
+	client, err := Client(group, version, kubeConfigFile, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	client, err := Client(group, version, kubeConfigFile)
+	client, err := Client(group, version, kubeConfigFile, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	client, err := Client(group, version, kubeConfigFile)
+	client, err := Client(group, version, kubeConfigFile, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
 	}

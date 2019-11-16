@@ -20,12 +20,12 @@ type CheckDetails struct {
 	Namespace        string
 	LastRun          time.Time // the time the check last was last run
 	AuthoritativePod string    // the pod that last ran the check
+	CurrentUUID      string    `json:"uuid"` // the UUID that is authorized to report statuses into the kuberhealthy endpoint
 }
 
 // NewCheckDetails creates a new CheckDetails struct
 func NewCheckDetails() CheckDetails {
-	cd := CheckDetails{
+	return CheckDetails{
 		Errors: []string{},
 	}
-	return cd
 }

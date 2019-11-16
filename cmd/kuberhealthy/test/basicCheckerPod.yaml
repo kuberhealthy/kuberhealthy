@@ -1,0 +1,7 @@
+containers:
+  - image: "quay.io/comcast/test-external-check:latest"
+    name:  "kuberhealthy"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 80Mi

@@ -21,16 +21,13 @@ import (
 var SchemeGroupVersion schema.GroupVersion
 
 // ConfigureScheme configures the runtime scheme for use with CRD creation
-func ConfigureScheme(GroupName string, GroupVersion string) {
-	mu.Lock()
-	defer mu.Unlock()
-
+func ConfigureScheme(GroupName string, GroupVersion string) error {
 	SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: GroupVersion}
 	var (
 		SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 		AddToScheme   = SchemeBuilder.AddToScheme
 	)
-	AddToScheme(scheme.Scheme)
+	return AddToScheme(scheme.Scheme)
 }
 
 func addKnownTypes(scheme *runtime.Scheme) error {

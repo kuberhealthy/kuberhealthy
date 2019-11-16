@@ -12,23 +12,32 @@
 package khstatecrd
 
 import (
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 )
 
+// KuberhealthyStateClient holds client data for talking to Kubernetes about
+// the khstate custom resource
 type KuberhealthyStateClient struct {
 	restClient rest.Interface
 	ns         string
 }
 
-func (c *KuberhealthyStateClient) Create(state *KuberhealthyState, resource string) (*KuberhealthyState, error) {
-	mu.Lock()
-	defer mu.Unlock()
+// ResetClient returns the rest client for easy listWatcher use
+func (c *KuberhealthyStateClient) RestClient() rest.Interface {
+	return c.restClient
+}
+
+// Create creates a new resource for this CRD
+func (c *KuberhealthyStateClient) Create(state *KuberhealthyState, resource string, namespace string) (*KuberhealthyState, error) {
 	result := KuberhealthyState{}
 	err := c.restClient.
 		Post().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		Body(state).
 		Do().
@@ -36,13 +45,12 @@ func (c *KuberhealthyStateClient) Create(state *KuberhealthyState, resource stri
 	return &result, err
 }
 
-func (c *KuberhealthyStateClient) Delete(state *KuberhealthyState, resource string, name string) (*KuberhealthyState, error) {
-	mu.Lock()
-	defer mu.Unlock()
+// Delete deletes a resource for this CRD
+func (c *KuberhealthyStateClient) Delete(state *KuberhealthyState, resource string, name string, namespace string) (*KuberhealthyState, error) {
 	result := KuberhealthyState{}
 	err := c.restClient.
 		Delete().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		Name(name).
 		Do().
@@ -50,14 +58,13 @@ func (c *KuberhealthyStateClient) Delete(state *KuberhealthyState, resource stri
 	return &result, err
 }
 
-func (c *KuberhealthyStateClient) Update(state *KuberhealthyState, resource string, name string) (*KuberhealthyState, error) {
-	mu.Lock()
-	defer mu.Unlock()
+// Update updates a resource for this CRD
+func (c *KuberhealthyStateClient) Update(state *KuberhealthyState, resource string, name string, namespace string) (*KuberhealthyState, error) {
 	result := KuberhealthyState{}
-	//err := c.restClient.Verb("update").Namespace(c.ns).Resource(resource).Name(name).Do().Into(&result)
+	// err := c.restClient.Verb("update").Namespace(c.ns).Resource(resource).Name(name).Do().Into(&result)
 	err := c.restClient.
 		Put().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		Body(state).
 		Name(name).
@@ -66,13 +73,12 @@ func (c *KuberhealthyStateClient) Update(state *KuberhealthyState, resource stri
 	return &result, err
 }
 
-func (c *KuberhealthyStateClient) Get(opts metav1.GetOptions, resource string, name string) (*KuberhealthyState, error) {
-	mu.Lock()
-	defer mu.Unlock()
+// Get fetches a resource of this CRD
+func (c *KuberhealthyStateClient) Get(opts metav1.GetOptions, resource string, name string, namespace string) (*KuberhealthyState, error) {
 	result := KuberhealthyState{}
 	err := c.restClient.
 		Get().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		Name(name).
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -81,16 +87,29 @@ func (c *KuberhealthyStateClient) Get(opts metav1.GetOptions, resource string, n
 	return &result, err
 }
 
-func (c *KuberhealthyStateClient) List(opts metav1.ListOptions, resource string) (*KuberhealthyStateList, error) {
-	mu.Lock()
-	defer mu.Unlock()
+// List lists resources for this CRD
+func (c *KuberhealthyStateClient) List(opts metav1.ListOptions, resource string, namespace string) (*KuberhealthyStateList, error) {
 	result := KuberhealthyStateList{}
 	err := c.restClient.
 		Get().
-		Namespace(c.ns).
+		Namespace(namespace).
 		Resource(resource).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(&result)
 	return &result, err
+}
+
+// Watch returns a watch.Interface that watches the requested clusterTestTypes.
+func (c *KuberhealthyStateClient) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
+	opts.Watch = true
+	return c.restClient.Get().
+		Resource("khstates").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
+		Watch()
 }
