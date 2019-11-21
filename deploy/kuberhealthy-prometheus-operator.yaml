@@ -11,6 +11,35 @@ spec:
       app: kuberhealthy
       chart: kuberhealthy
 ---
+# Source: kuberhealthy/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: "prometheus"
+    prometheus: prometheus
+    role: alert-rules
+  name: kuberhealthy
+data:
+  kuberhealthy.rules: |-
+    groups:
+    - name: ./kuberhealthy.rules
+      rules:
+      - alert: KuberhealthyError
+        expr: kuberhealthy_running < 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          description: Kuberhealthy is not healthy
+      - alert: ClusterUnhealthy
+        expr: kuberhealthy_cluster_state < 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          description: Kuberhealthy shows that the cluster is not healthy
+---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -360,3 +389,25 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+---
+# Source: kuberhealthy/templates/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: kuberhealthy
+    chart: kuberhealthy
+    prometheus: prometheus
+  name: kuberhealthy
+spec:
+  jobLabel: component
+  selector:
+    matchLabels:
+      app: kuberhealthy
+  namespaceSelector:
+    matchNames:
+      - kuberhealthy
+  endpoints:
+  - port: http
+    interval: 15s
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
