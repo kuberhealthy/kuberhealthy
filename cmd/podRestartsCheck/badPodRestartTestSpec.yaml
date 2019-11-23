@@ -7,5 +7,6 @@ spec:
   containers:
     - name: bad-pod-restart
       image: ubuntu
+      imagePullPolicy: IfNotPresent
       command: ["/bin/bash", "-ec", "sleep 5", "exit 0"]
   restartPolicy: Always
