@@ -96,8 +96,10 @@ func main() {
 	err = prc.Run()
 	if err != nil {
 		log.Errorln("Error running Pod Restarts check:", err)
+		os.Exit(2)
 	}
 	log.Infoln("Done running Pod Restarts check")
+	os.Exit(0)
 }
 
 // New creates a new pod restart checker for a specific namespace, ready to use.
