@@ -40,7 +40,7 @@ import (
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 )
 
-const daemonSetBaseName = "daemonset-test"
+const daemonSetBaseName = "ds-check"
 const defaultDSCheckTimeout = "10m"
 
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
