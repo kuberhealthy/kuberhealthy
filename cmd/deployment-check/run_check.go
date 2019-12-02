@@ -307,6 +307,8 @@ func cleanUpOrphanedResources() chan error {
 				cleanUpChan <- errors.New("error cleaning up old deployment: " + err.Error())
 			}
 		}
+
+		cleanUpChan <- nil
 	}()
 
 	return cleanUpChan
