@@ -34,10 +34,10 @@ pushDeploymentCheck:
 daemonset: buildDaemonsetCheck pushDaemonsetCheck
 
 buildDaemonsetCheck:
-	docker build -t quay.io/comcast/kh-daemonset-check:1.0.0 -f cmd/daemonSetCheck/Dockerfile .
+	docker build -t quay.io/comcast/kh-daemonset-check:2.0.0 -f cmd/daemonSetCheck/Dockerfile .
 
 pushDaemonsetCheck:
-	docker push quay.io/comcast/kh-daemonset-check:1.0.0
+	docker push quay.io/comcast/kh-daemonset-check:2.0.0
 
 kiamCheck: buildKIAMCheck pushKIAMCheck
 
