@@ -46,7 +46,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	reportErr := fmt.Errorf("unable to retrieve a " + strconv.Itoa(http.StatusOK) + " from " + checkURL + " got a " + r.StatusCode + " instead")
+	reportErr := fmt.Errorf("unable to retrieve a " + strconv.Itoa(http.StatusOK) + " from " + checkURL + " got a " + strconv.Itoa(r.StatusCode) + " instead")
 	log.Errorln(reportErr.Error())
 	kh.ReportFailure([]string{reportErr.Error()})
 
