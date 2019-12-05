@@ -10,7 +10,7 @@ spec:
   podSpec:
     containers:
     - name: http
-      image: quay.io/comcast/http-check:0.0.1
+      image: quay.io/comcast/http-check:1.0.0
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_URL
