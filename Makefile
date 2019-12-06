@@ -70,3 +70,11 @@ buildPodStatusCheck:
 
 pushPodStatusCheck:
 	docker push quay.io/comcast/pod-status-check:1.0.1
+
+httpCheck: buildHTTPCheck pushHTTPCheck
+
+buildHTTPCheck:
+	docker build -t quay.io/comcast/http-check:1.0.0 -f cmd/http-check/Dockerfile .
+
+pushHTTPCheck:
+	docker push quay.io/comcast/http-check:1.0.0
