@@ -2,16 +2,15 @@
 
 ## Checker pod reaper
 
-This container retains checker pods that have run or failed according to the following order of rules:
+This container deletes kuberhealthy checker pods when they are no longer useful.  Checker pods are identified by having a label with the key `kh-check-name`.
 
-- If a checker pod in any namespace has a label with the key "kh-check-name"
+If the key `kh-check-name` is found on a pod, then it will be deleted when any of the following are true:
 
-- If the checker pod is older than 1 hour
+- If the checker pod is older than 3 hours and is `Completed`
 
-- If there are more than 5 checker pods
+- If there are more than 5 checker pods with the same check name in the status `Completed` that were created more recently
 
-- If there are any failed checker pods, keep all 5 checker pods around
+- If the checker pod is `Failed` and there are more than 5 `Failed` checker pods of the same type which were created more recently
 
-- If all 5 checker pods have passed, retain the latest 2 checker pods
-
+- If the checker pod is `Failed` and was created more than 5 days ago
 
