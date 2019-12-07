@@ -43,7 +43,7 @@ func main() {
 	}
 }
 
-// listEvictedPods returns a list of evicted pods
+// listEvictedPods returns a list of evicted pods with the khcheck name label
 func listEvictedPods(client *kubernetes.Clientset) (map[string]*v1.Pod, error) {
 	fmt.Println("Listing checker pods from all namespaces")
 
@@ -64,7 +64,7 @@ func listEvictedPods(client *kubernetes.Clientset) (map[string]*v1.Pod, error) {
 	return ReapEvictedPods, err
 }
 
-// filterEvictedPods maintains a map of checker pods to be deleted. Process of elimination.
+// deleteFilteredEvictedPods goes through map of all evicted checker pods and deletes older checker pods
 func deleteFilteredEvictedPods(client *kubernetes.Clientset, reapEvictedPods map[string]*v1.Pod) error {
 
 	var err error
@@ -156,7 +156,7 @@ func getAllPodsWithCheckName(reapEvictedPods map[string]*v1.Pod, pod *v1.Pod) []
 	return allCheckPods
 }
 
-// deleteEvictedPods deletes pods in all namespaces that have the status: Evicted
+// deleteEvictedPods deletes a given pod
 func deleteEvictedPod(client *kubernetes.Clientset, pod *v1.Pod) error {
 
 	fmt.Println("\tDeleting Pod: ", pod.Name, " in namespace: ", pod.Namespace)
