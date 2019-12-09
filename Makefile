@@ -72,7 +72,7 @@ pushPodStatusCheck:
 	docker push quay.io/comcast/pod-status-check:1.0.1
 
 buildCheckReaper:
-    docker build -t quay.io/comcast/check-reaper:1.0.0 -f cmd/check-reaper/Dockerfile .
+	docker build -t quay.io/comcast/check-reaper:1.0.0 -f cmd/check-reaper/Dockerfile .
 
 pushCheckReaper:
-    docker push quay.io/comcast/check-reaper:1.0.0
+	docker push quay.io/comcast/check-reaper:1.0.0
