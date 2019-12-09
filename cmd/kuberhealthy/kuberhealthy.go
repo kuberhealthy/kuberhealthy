@@ -505,7 +505,7 @@ func (k *Kuberhealthy) StartChecks() {
 	}
 
 	// spin up the khState reaper with a context after checks have been configured and started
-	log.Infoln("control:", len(k.Checks), "reaper starting!")
+	log.Infoln("control: reaper starting!")
 	go k.khStateResourceReaper(ctx)
 }
 
