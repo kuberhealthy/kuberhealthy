@@ -468,8 +468,12 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		log.Debugln("RunTimeout for check:", c.CheckName, "set to", c.RunTimeout)
 
 		// add on extra annotations and labels
-		c.ExtraAnnotations = r.Spec.ExtraAnnotations
-		c.ExtraLabels = r.Spec.ExtraLabels
+		if c.ExtraAnnotations != nil {
+			c.ExtraAnnotations = r.Spec.ExtraAnnotations
+		}
+		if c.ExtraLabels != nil {
+			c.ExtraLabels = r.Spec.ExtraLabels
+		}
 
 		// add the check into the checker
 		k.AddCheck(c)
