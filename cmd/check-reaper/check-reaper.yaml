@@ -4,15 +4,15 @@ metadata:
   name: check-reaper
   namespace: kuberhealthy
 spec:
-  schedule: "* 10 * * *"
+  schedule: "*/5 * * * *"
   jobTemplate: 
     spec:
       template:
         spec:
           containers:
           - name: check-reaper
-            image: docker-proto.repo.theplatform.com/check-reaper:1.0.0
-            imagePullPolicy: IfNotPresent
+            image: quay.io/comcast/check-reaper:1.0.0
+            imagePullPolicy: Always
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
