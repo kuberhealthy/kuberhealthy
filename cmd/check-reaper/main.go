@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -17,8 +16,8 @@ import (
 )
 
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
-var ReapEvictedPods map[string]*v1.Pod
-var MaxPodsThreshold = 5
+var ReapCheckerPods map[string]v1.Pod
+var MaxPodsThreshold = 4
 
 func main() {
 
@@ -27,79 +26,82 @@ func main() {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
-	podList, err := listEvictedPods(client)
+	podList, err := listCheckerPods(client)
 	if err != nil {
-		log.Fatalln("Failed to list evicted pods", err)
+		log.Fatalln("Failed to list and delete old checker pods", err)
 	}
 
 	if len(podList) == 0 {
-		fmt.Println("No evicted pods found.")
+		log.Infoln("No pods found.")
 		return
 	}
 
-	err = deleteFilteredEvictedPods(client, podList)
+	err = deleteFilteredCheckerPods(client, podList)
 	if err != nil {
-		log.Fatalln("Error found while deleting old evicted pods:", err)
+		log.Fatalln("Error found while deleting old pods:", err)
 	}
+
+	log.Infoln("Finished reaping checker pods.")
 }
 
-// listEvictedPods returns a list of evicted pods with the khcheck name label
-func listEvictedPods(client *kubernetes.Clientset) (map[string]*v1.Pod, error) {
-	fmt.Println("Listing checker pods from all namespaces")
+// listCheckerPods returns a list of pods with the khcheck name label
+func listCheckerPods(client *kubernetes.Clientset) (map[string]v1.Pod, error) {
+	log.Infoln("Listing checker pods from all namespaces")
 
-	ReapEvictedPods = make(map[string]*v1.Pod)
+	ReapCheckerPods = make(map[string]v1.Pod)
 
 	pods, err := client.CoreV1().Pods("").List(metav1.ListOptions{LabelSelector: "kuberhealthy-check-name"})
 	if err != nil {
 		log.Errorln("Failed to list checker pods from all namespaces")
-		return ReapEvictedPods, err
+		return ReapCheckerPods, err
 	}
+
+	log.Infoln("Found:", len(pods.Items), "checker pods")
+
 	for _, p := range pods.Items {
-		if p.Status.Reason == "Evicted" {
-			fmt.Println("\tEvicted checker pod: ", p.Name, "found in namespace: ", p.Namespace)
-			ReapEvictedPods[p.Name] = &p
+		if p.Status.Phase == "Succeeded" || p.Status.Phase == "Failed"  {
+			//log.Infoln("Checker pod: ", p.Name, "found in namespace: ", p.Namespace)
+			ReapCheckerPods[p.Name] = p
 		}
 	}
 
-	return ReapEvictedPods, err
+	return ReapCheckerPods, err
 }
 
-// deleteFilteredEvictedPods goes through map of all evicted checker pods and deletes older checker pods
-func deleteFilteredEvictedPods(client *kubernetes.Clientset, reapEvictedPods map[string]*v1.Pod) error {
+// deleteFilteredCheckerPods goes through map of all checker pods and deletes older checker pods
+func deleteFilteredCheckerPods(client *kubernetes.Clientset, reapCheckerPods map[string]v1.Pod) error {
 
 	var err error
 
-	for k, v := range reapEvictedPods {
-
-		log.Infoln("Filtering evicted checker pods")
-
+	for k, v := range reapCheckerPods {
+		
 		// Delete pods older than 5 hours and is in status Succeeded
 		if time.Now().Sub(v.CreationTimestamp.Time).Hours() > 5 && v.Status.Phase == "Succeeded" {
-			log.Infoln("Found pod older than 5 hours in status Succeeded`. Deleting pod:", k)
+			log.Infoln("Found pod older than 5 hours in status `Succeeded`. Deleting pod:", k)
 
-			err = deleteEvictedPod(client, v)
+			err = deletePod(client, v)
 			if err != nil {
-				log.Errorln("Failed to delete evicted pod:", k, err)
+				log.Errorln("Failed to delete pod:", k, err)
 				return err
 			}
-			delete(reapEvictedPods, k)
+			delete(reapCheckerPods, k)
 		}
 
 		// Delete failed pods (status Failed) older than 5 days (120 hours)
 		if time.Now().Sub(v.CreationTimestamp.Time).Hours() > 120 && v.Status.Phase == "Failed" {
 			log.Infoln("Found pod older than 5 days in status `Failed`. Deleting pod:", k)
 
-			err = deleteEvictedPod(client, v)
+			err = deletePod(client, v)
 			if err != nil {
-				log.Errorln("Failed to delete evicted pod:", k, err)
+				log.Errorln("Failed to delete pod:", k, err)
 				return err
 			}
-			delete(reapEvictedPods, k)
+			delete(reapCheckerPods, k)
 		}
 
 		// Delete if there are more than 5 checker pods with the same name in status Succeeded that were created more recently
 		// Delete if the checker pod is Failed and there are more than 5 Failed checker pods of the same type which were created more recently
-		allCheckPods := getAllPodsWithCheckName(reapEvictedPods, v)
+		allCheckPods := getAllPodsWithCheckName(reapCheckerPods, v)
 		if len(allCheckPods) > MaxPodsThreshold {
 
 			oldCount := 0
@@ -115,39 +117,40 @@ func deleteFilteredEvictedPods(client *kubernetes.Clientset, reapEvictedPods map
 
 			// Delete if there are more than 5 checker pods with the same name in status Succeeded that were created more recently
 			if oldCount > MaxPodsThreshold && failedCount == 0 {
-				err = deleteEvictedPod(client, v)
+				log.Infoln("Found more than 5 checker pods with the same name in status `Succeeded` that were created more recently. Deleting pod:", k)
+
+				err = deletePod(client, v)
 				if err != nil {
-					log.Errorln("Failed to delete evicted pod:", k, err)
+					log.Errorln("Failed to delete pod:", k, err)
 					return err
 				}
-				delete(reapEvictedPods, k)
+				delete(reapCheckerPods, k)
 			}
 
 			// Delete if the checker pod is Failed and there are more than 5 Failed checker pods of the same type which were created more recently
 			if v.Status.Phase == "Failed" && oldCount > MaxPodsThreshold && failedCount > MaxPodsThreshold {
-				err = deleteEvictedPod(client, v)
+				log.Infoln("Found more than 5 `Failed` checker pods of the same type which were created more recently. Deleting pod:", k)
+
+				err = deletePod(client, v)
 				if err != nil {
-					log.Errorln("Failed to delete evicted pod:", k, err)
+					log.Errorln("Failed to delete pod:", k, err)
 					return err
 				}
-				delete(reapEvictedPods, k)
+				delete(reapCheckerPods, k)
 			}
 		}
 	}
 	return err
 }
 
-// getAllCheckerPods finds all evicted checker pods for a given khcheck
-func getAllPodsWithCheckName(reapEvictedPods map[string]*v1.Pod, pod *v1.Pod) []*v1.Pod {
+// getAllPodsWithCheckName finds all checker pods for a given khcheck
+func getAllPodsWithCheckName(reapCheckerPods map[string]v1.Pod, pod v1.Pod) []v1.Pod {
 
-	var allCheckPods []*v1.Pod
+	var allCheckPods []v1.Pod
 
 	checkName := pod.Annotations["comcast.github.io/check-name"]
-	//label := "kuberhealthy-check-name=" + checkName
 
-	log.Infoln("Finding all evicted checker pods with checkName:", checkName)
-
-	for _, v := range reapEvictedPods {
+	for _, v := range reapCheckerPods {
 		if v.Labels["kuberhealthy-check-name"] == checkName {
 			allCheckPods = append(allCheckPods, v)
 		}
@@ -156,10 +159,10 @@ func getAllPodsWithCheckName(reapEvictedPods map[string]*v1.Pod, pod *v1.Pod) []
 	return allCheckPods
 }
 
-// deleteEvictedPods deletes a given pod
-func deleteEvictedPod(client *kubernetes.Clientset, pod *v1.Pod) error {
+// deletePod deletes a given pod
+func deletePod(client *kubernetes.Clientset, pod v1.Pod) error {
 
-	fmt.Println("\tDeleting Pod: ", pod.Name, " in namespace: ", pod.Namespace)
+	log.Infoln("Deleting Pod: ", pod.Name, " in namespace: ", pod.Namespace)
 	propagationForeground := metav1.DeletePropagationForeground
 	options := &metav1.DeleteOptions{PropagationPolicy: &propagationForeground}
 	err := client.CoreV1().Pods(pod.Namespace).Delete(pod.Name, options)
