@@ -6,6 +6,8 @@ An operator for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_m
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Comcast/kuberhealthy)](https://goreportcard.com/report/github.com/Comcast/kuberhealthy)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2822/badge)](https://bestpractices.coreinfrastructure.org/projects/2822)
+[![Twitter Follow](https://img.shields.io/twitter/follow/kuberhealthy.svg?style=social)](https://twitter.com/kuberhealthy)  
+
 
 You can reach out to us directly on the [Kubernetes Slack](http://slack.k8s.io/) in the [#kuberhealthy channel](https://kubernetes.slack.com/messages/CB9G7HWTE).
 
@@ -80,7 +82,7 @@ Some examples of problems Kuberhealthy has detected in production with just the 
 
 ### Status Page
 
-You can directly access the current test statuses by accessing the `kuberhealthy.kuberhealthy` HTTP service on port 80.  The status page displays server status in the format shown below.  The boolean `OK` field can be used to indicate global up/down status, while the `Errors` array will contain a list of all check error descriptions.  Granular, per-check information, including the last time a check was run, and the Kuberhealthy pod ran that specific check is available under the `CheckDetails` object.
+You can directly access the current test statuses by accessing the `kuberhealthy.kuberhealthy` HTTP service on port 80.  The status page displays server status in the format shown below.  The boolean `OK` field can be used to indicate global up/down status, while the `Errors` array will contain a list of all check error descriptions.  Granular, per-check information, including how long the check took to run (Run Duration), the last time a check was run, and the Kuberhealthy pod ran that specific check is available under the `CheckDetails` object.
 
 ```json
 {
@@ -90,6 +92,7 @@ You can directly access the current test statuses by accessing the `kuberhealthy
         "kuberhealthy/daemonset": {
             "OK": true,
             "Errors": [],
+            "RunDuration": "22.512278967s",
             "Namespace": "kuberhealthy",
             "LastRun": "2019-11-14T23:24:16.7718171Z",
             "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
@@ -98,6 +101,7 @@ You can directly access the current test statuses by accessing the `kuberhealthy
         "kuberhealthy/deployment": {
             "OK": true,
             "Errors": [],
+            "RunDuration": "29.142295647s",
             "Namespace": "kuberhealthy",
             "LastRun": "2019-11-14T23:26:40.7444659Z",
             "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
@@ -106,6 +110,7 @@ You can directly access the current test statuses by accessing the `kuberhealthy
         "kuberhealthy/dns-status-internal": {
             "OK": true,
             "Errors": [],
+            "RunDuration": "2.43940936s",
             "Namespace": "kuberhealthy",
             "LastRun": "2019-11-14T23:34:04.8927434Z",
             "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
@@ -114,6 +119,7 @@ You can directly access the current test statuses by accessing the `kuberhealthy
         "kuberhealthy/pod-restarts": {
             "OK": true,
             "Errors": [],
+            "RunDuration": "2.979083775s",
             "Namespace": "kuberhealthy",
             "LastRun": "2019-11-14T23:34:06.1938491Z",
             "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
