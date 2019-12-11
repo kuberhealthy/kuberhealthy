@@ -40,16 +40,14 @@ import (
 
 // Kuberhealthy represents the kuberhealthy server and its checks
 type Kuberhealthy struct {
-	Checks               []KuberhealthyCheck
-	ListenAddr           string // the listen address, such as ":80"
-	MetricForwarder      metrics.Client
-	overrideKubeClient   *kubernetes.Clientset
-	cancelChecksFunc     context.CancelFunc // invalidates the context of all running checks
-	wg                   sync.WaitGroup     // used to track running checks
-	shutdownCtxFunc      context.CancelFunc // used to shutdown the main control select
-	stateReflector       *StateReflector    // a reflector that can cache the current state of the khState resources
-	khStateReaperCtx     context.Context    // used to control the khState reaper
-	khStateReaperCtxFunc context.CancelFunc // used to shut down the khState reaper
+	Checks             []KuberhealthyCheck
+	ListenAddr         string // the listen address, such as ":80"
+	MetricForwarder    metrics.Client
+	overrideKubeClient *kubernetes.Clientset
+	cancelChecksFunc   context.CancelFunc // invalidates the context of all running checks
+	wg                 sync.WaitGroup     // used to track running checks
+	shutdownCtxFunc    context.CancelFunc // used to shutdown the main control select
+	stateReflector     *StateReflector    // a reflector that can cache the current state of the khState resources
 }
 
 // NewKuberhealthy creates a new kuberhealthy checker instance
@@ -115,12 +113,6 @@ func (k *Kuberhealthy) Shutdown(doneChan chan struct{}) {
 // StopChecks causes the kuberhealthy check group to shutdown gracefully.
 // All checks are sent a shutdown command at the same time.
 func (k *Kuberhealthy) StopChecks() {
-
-	// if the reaper has a context to kill, do it
-	log.Infoln("control: stopping khState reaper...")
-	if k.khStateReaperCtxFunc != nil {
-		k.khStateReaperCtxFunc()
-	}
 
 	log.Infoln("control:", len(k.Checks), "checks stopping...")
 	if k.cancelChecksFunc != nil {
@@ -207,7 +199,7 @@ func (k *Kuberhealthy) RestartChecks() {
 }
 
 // khStateResourceReaper runs reapKHStateResources on an interval until the context for it is canceled
-func (k *Kuberhealthy) khStateResourceReaper() {
+func (k *Kuberhealthy) khStateResourceReaper(ctx context.Context) {
 
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
@@ -221,7 +213,7 @@ func (k *Kuberhealthy) khStateResourceReaper() {
 			if err != nil {
 				log.Errorln("khState reaper: Error when reaping khState resources:", err)
 			}
-		case <-k.khStateReaperCtx.Done():
+		case <-ctx.Done():
 			log.Infoln("khState reaper: stopping")
 			return
 		}
@@ -476,8 +468,12 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		log.Debugln("RunTimeout for check:", c.CheckName, "set to", c.RunTimeout)
 
 		// add on extra annotations and labels
-		c.ExtraAnnotations = r.Spec.ExtraAnnotations
-		c.ExtraLabels = r.Spec.ExtraLabels
+		if c.ExtraAnnotations != nil {
+			c.ExtraAnnotations = r.Spec.ExtraAnnotations
+		}
+		if c.ExtraLabels != nil {
+			c.ExtraLabels = r.Spec.ExtraLabels
+		}
 
 		// add the check into the checker
 		k.AddCheck(c)
@@ -509,9 +505,8 @@ func (k *Kuberhealthy) StartChecks() {
 	}
 
 	// spin up the khState reaper with a context after checks have been configured and started
-	log.Infoln("control:", len(k.Checks), "reaper starting!")
-	k.khStateReaperCtx, k.khStateReaperCtxFunc = context.WithCancel(context.Background())
-	go k.khStateResourceReaper()
+	log.Infoln("control: reaper starting!")
+	go k.khStateResourceReaper(ctx)
 }
 
 // masterStatusWatcher watches for master change events and updates the global upcomingMasterState along
