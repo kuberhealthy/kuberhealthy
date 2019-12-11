@@ -1085,7 +1085,7 @@ func (ext *Checker) addKuberhealthyLabels(pod *apiv1.Pod) {
 	// stack the kuberhealthy run id on top of the existing labels
 	pod.ObjectMeta.Labels[kuberhealthyRunIDLabel] = ext.currentCheckUUID
 	pod.ObjectMeta.Labels[kuberhealthyCheckNameLabel] = ext.CheckName
-	pod.ObjectMeta.Labels["app"] = "kuberhealthy" // enforce a the label with an app name
+	pod.ObjectMeta.Labels["app"] = "kuberhealthy-check" // enforce a the label with an app name
 
 	// enforce annotations as well
 	if pod.ObjectMeta.Annotations == nil {
