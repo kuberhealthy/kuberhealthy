@@ -31,9 +31,6 @@ import (
 // KHReportingURL is the environment variable used to tell external checks where to send their status updates
 const KHReportingURL = "KH_REPORTING_URL"
 
-// checkNameLabel is the enforced label that contains the name of the check that created this pod
-const checkNameLabel = "kh-check-name"
-
 // KHRunUUID is the environment variable used to tell external checks their check's UUID so that they
 // can be de-duplicated on the server side.
 const KHRunUUID = "KH_RUN_UUID"
@@ -243,7 +240,7 @@ func (ext *Checker) cleanup() {
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
 	// find all pods that are running still so we can evict them (not delete - for records)
-	checkLabelSelector := checkNameLabel + " = " + ext.CheckName
+	checkLabelSelector := kuberhealthyCheckNameLabel + " = " + ext.CheckName
 	ext.log("eviction: looking for pods with the label", checkLabelSelector, "and status.phase=Running")
 	podList, err := podClient.List(metav1.ListOptions{
 		FieldSelector: "status.phase=Running",
@@ -572,6 +569,7 @@ func (ext *Checker) RunOnce() error {
 
 	// Spawn kubernetes pod to run our external check
 	ext.log("creating pod for external check:", ext.CheckName)
+	ext.log("checker pod annotations and lebels:", ext.ExtraAnnotations, ext.ExtraLabels)
 	createdPod, err := ext.createPod()
 	if err != nil {
 		ext.log("error creating pod")
@@ -1014,20 +1012,14 @@ func (ext *Checker) validatePodSpec() error {
 func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	ext.log("Creating external checker pod named", ext.podName())
 	p := &apiv1.Pod{}
+	p.Annotations = make(map[string]string)
+	p.Labels = make(map[string]string)
 	p.Namespace = ext.Namespace
 	p.Name = ext.podName()
-	p.Annotations = ext.ExtraAnnotations
-	ext.ExtraLabels[checkNameLabel] = ext.CheckName // enforce a the label with the checks name
-	p.SetLabels(ext.ExtraLabels)
-	p.Labels = ext.ExtraLabels
 	p.Spec = ext.PodSpec
-	ext.addKuberhealthyLabels(p)
 
-	// enforce the check's name annotation and ensure the map isn't nil
-	if p.Annotations == nil {
-		p.Annotations = make(map[string]string)
-	}
-	p.Annotations[KH_CHECK_NAME_ANNOTATION_KEY] = ext.CheckName
+	// enforce various labels and annotations on all checker pods created
+	ext.addKuberhealthyLabels(p)
 
 	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
 }
@@ -1090,9 +1082,16 @@ func (ext *Checker) addKuberhealthyLabels(pod *apiv1.Pod) {
 	}
 
 	// stack the kuberhealthy run id on top of the existing labels
-	existingLabels := pod.ObjectMeta.Labels
-	existingLabels[kuberhealthyRunIDLabel] = ext.currentCheckUUID
-	existingLabels[kuberhealthyCheckNameLabel] = ext.CheckName
+	pod.ObjectMeta.Labels[kuberhealthyRunIDLabel] = ext.currentCheckUUID
+	pod.ObjectMeta.Labels[kuberhealthyCheckNameLabel] = ext.CheckName
+	pod.ObjectMeta.Labels["app"] = "kuberhealthy" // enforce a the label with an app name
+
+	// enforce annotations as well
+	if pod.ObjectMeta.Annotations == nil {
+		pod.ObjectMeta.Annotations = make(map[string]string)
+	}
+	pod.ObjectMeta.Annotations[KH_CHECK_NAME_ANNOTATION_KEY] = ext.CheckName
+
 }
 
 // createCheckUUID creates a UUID that represents a single run of the external check
@@ -1128,6 +1127,8 @@ func (ext *Checker) podExists() (bool, error) {
 	if p.Status.Phase == apiv1.PodFailed {
 		return false, nil
 	}
+
+	ext.log("pod", p.Name, "in", p.Namespace, "exists")
 
 	return true, nil
 }
