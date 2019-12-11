@@ -613,6 +613,8 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 
 		// Run the check
 		log.Infoln("Running check:", c.Name())
+		// Record check run start time
+		checkStartTime := time.Now()
 		err := c.Run(kubernetesClient)
 		if err != nil {
 			log.Errorln("Error running check:", c.Name(), "in namespace", c.CheckNamespace()+":", err)
@@ -627,6 +629,12 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		}
 		log.Debugln("Done running check:", c.Name(), "in namespace", c.CheckNamespace())
 
+		// Record check run end time
+		// Subtract 10 seconds from run time since there are two 5 second sleeps during the check run where kuberhealthy
+		// waits for all pods to clear before running the check and waits for all pods to exit once the check has finished
+		// running. Both occur before and after the checker pod completes its run.
+		checkRunDuration := time.Now().Sub(checkStartTime) - time.Second * 10
+
 		// make a new state for this check and fill it from the check's current status
 		checkDetails, err := getCheckState(c)
 		if err != nil {
@@ -635,6 +643,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		details := health.NewCheckDetails()
 		details.Namespace = c.CheckNamespace()
 		details.OK, details.Errors = c.CurrentStatus()
+		details.RunDuration = checkRunDuration.String()
 		details.CurrentUUID = checkDetails.CurrentUUID
 
 		// send data to the metric forwarder if configured
@@ -642,6 +651,11 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 			checkStatus := 0
 			if details.OK {
 				checkStatus = 1
+			}
+
+			runDuration, err := time.ParseDuration(details.RunDuration)
+			if err != nil {
+				log.Errorln("Error parsing run duration", err)
 			}
 
 			tags := map[string]string{
@@ -652,14 +666,15 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 			}
 			metric := metrics.Metric{
 				{c.Name() + "." + c.CheckNamespace(): checkStatus},
+				{"RunDuration." + c.Name() + "." + c.CheckNamespace(): runDuration.Seconds()},
 			}
-			err := k.MetricForwarder.Push(metric, tags)
+			err = k.MetricForwarder.Push(metric, tags)
 			if err != nil {
 				log.Errorln("Error forwarding metrics", err)
 			}
 		}
 
-		log.Infoln("Setting state of check", c.Name(), "in namespace", c.CheckNamespace(), "to", details.OK, details.Errors, details.CurrentUUID)
+		log.Infoln("Setting state of check", c.Name(), "in namespace", c.CheckNamespace(), "to", details.OK, details.Errors, details.RunDuration, details.CurrentUUID)
 
 		// store the check state with the CRD
 		err = k.storeCheckState(c.Name(), c.CheckNamespace(), details)
@@ -947,10 +962,18 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		}
 	}
 
+	// Need to fetch current check run duration so we do not overwrite it when updating KHState object
+	checkDetails := k.stateReflector.CurrentStatus().CheckDetails
+	checkRunDuration := time.Duration(0).String()
+	if checkDetails != nil {
+		checkRunDuration = checkDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
+	}
+
 	// create a details object from our incoming status report before storing it as a khstate custom resource
 	details := health.NewCheckDetails()
 	details.Errors = state.Errors
 	details.OK = state.OK
+	details.RunDuration = checkRunDuration
 	details.Namespace = ipReport.Namespace
 	details.CurrentUUID = ipReport.UUID
 
