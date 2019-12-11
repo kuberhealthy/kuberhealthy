@@ -300,6 +300,7 @@ func (ext *Checker) setUUID(uuid string) error {
 		details.Namespace = ext.CheckNamespace()
 		details.AuthoritativePod = ext.hostname
 		details.OK = true
+		details.RunDuration = time.Duration(0).String()
 		newState := khstatecrd.NewKuberhealthyState(ext.CheckName, details)
 		newState.Namespace = ext.Namespace
 		ext.log("Creating khstate", newState.Name, newState.Namespace, "because it did not exist")
