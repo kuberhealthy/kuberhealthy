@@ -469,11 +469,14 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 		// add on extra annotations and labels
 		if c.ExtraAnnotations != nil {
+			log.Debugln("External check setting extra annotations:", c.ExtraAnnotations)
 			c.ExtraAnnotations = r.Spec.ExtraAnnotations
 		}
 		if c.ExtraLabels != nil {
+			log.Debugln("External check setting extra labels:", c.ExtraLabels)
 			c.ExtraLabels = r.Spec.ExtraLabels
 		}
+		log.Debugln("External check labels and annotations:", c.ExtraLabels, c.ExtraAnnotations)
 
 		// add the check into the checker
 		k.AddCheck(c)

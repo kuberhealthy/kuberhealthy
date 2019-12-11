@@ -76,3 +76,11 @@ buildCheckReaper:
 
 pushCheckReaper:
 	docker push quay.io/comcast/check-reaper:1.0.0
+
+httpCheck: buildHTTPCheck pushHTTPCheck
+
+buildHTTPCheck:
+	docker build -t quay.io/comcast/http-check:1.0.0 -f cmd/http-check/Dockerfile .
+
+pushHTTPCheck:
+	docker push quay.io/comcast/http-check:1.0.0
