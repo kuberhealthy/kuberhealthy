@@ -987,7 +987,7 @@ func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, r *http.Requ
 
 func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to prometheus metrics endpoint from", r.RemoteAddr, r.UserAgent())
-	state := k.getCurrentState()
+	state := k.getCurrentState("")
 	m := metrics.GenerateMetrics(state)
 	// write summarized health check results back to caller
 	_, err := w.Write([]byte(m))
@@ -1010,8 +1010,13 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 		return err
 	}
 
+	// get URL query parameters if there are any
+	values := r.URL.Query()
+	namespace := values.Get("namespace")
+
 	// fetch the current status from our khstate resources
-	state := k.getCurrentState()
+	// state := k.getCurrentState()
+	state := k.getCurrentState(namespace)
 
 	// write summarized health check results back to caller
 	err = state.WriteHTTPStatusResponse(w)
@@ -1023,8 +1028,8 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 
 // getCurrentState fetches the current state of all checks from their CRD objects and returns the summary as a
 // health.State. Failures to fetch CRD state return an error.
-func (k *Kuberhealthy) getCurrentState() health.State {
-	return k.stateReflector.CurrentStatus()
+func (k *Kuberhealthy) getCurrentState(namespace string) health.State {
+	return k.stateReflector.CurrentStatus(namespace)
 }
 
 // getCheck returns a Kuberhealthy check object from its name, returns an error otherwise

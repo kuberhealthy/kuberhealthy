@@ -52,7 +52,7 @@ func (sr *StateReflector) Start() {
 }
 
 // CurrentStatuses returns the current summary of all checks as known by the cache
-func (sr *StateReflector) CurrentStatus() health.State {
+func (sr *StateReflector) CurrentStatus(namespace string) health.State {
 	log.Infoln("khState reflector fetching current status")
 	state := health.NewState()
 
@@ -73,6 +73,22 @@ func (sr *StateReflector) CurrentStatus() health.State {
 		}
 
 		log.Debugln("Getting status of check for web request to status page:", khState.GetName(), khState.GetNamespace())
+
+		// if there is a requested namespace, then filter out checks from other namespaces
+		if len(namespace) != 0 {
+			if khState.GetNamespace() != namespace {
+				log.Debugln("Skipping", khState.GetName(), "because it is not from the", namespace, "namespace")
+				continue
+			}
+		}
+
+		// if there is no requested namespace, show checks from "kube-system" and "kuberhealthy"
+		if len(namespace) == 0 {
+			if khState.GetNamespace() != "kube-system" && khState.GetNamespace() != "kuberhealthy" {
+				log.Debugln("Skipping", khState.GetName(), "because it is not from the kube-system or kuberhealthy namespace")
+				continue
+			}
+		}
 
 		// skip the check if it has never been run before.  This prevents checks that have not yet
 		// run from showing in the status page.
