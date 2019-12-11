@@ -1015,7 +1015,6 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 	namespace := values.Get("namespace")
 
 	// fetch the current status from our khstate resources
-	// state := k.getCurrentState()
 	state := k.getCurrentState(namespace)
 
 	// write summarized health check results back to caller
