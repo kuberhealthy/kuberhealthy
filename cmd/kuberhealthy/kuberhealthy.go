@@ -1016,7 +1016,14 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 	// .Get() will return an "" if there is no value associated -- we do not want to pass "" as a requested namespace
 	var namespaces []string
 	if len(namespaceValue) != 0 {
-		namespaces = strings.Split(namespaceValue, ",")
+		namespaceSplits := strings.Split(namespaceValue, ",")
+		// a query like (/?namespace=,) will cause .Split() to return an array of two empty strings ["", ""]
+		// so we need to filter those out
+		for _, namespaceSplit := range namespaceSplits {
+			if len(namespaceSplit) != 0 {
+				namespaces = append(namespaces, namespaceSplit)
+			}
+		}
 	}
 
 	// fetch the current status from our khstate resources
