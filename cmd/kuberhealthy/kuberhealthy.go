@@ -987,7 +987,7 @@ func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, r *http.Requ
 
 func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to prometheus metrics endpoint from", r.RemoteAddr, r.UserAgent())
-	state := k.getCurrentState("")
+	state := k.getCurrentState([]string{})
 	m := metrics.GenerateMetrics(state)
 	// write summarized health check results back to caller
 	_, err := w.Write([]byte(m))
@@ -998,7 +998,7 @@ func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.R
 }
 
 // healthCheckHandler returns the current status of checks loaded into Kuberhealthy
-// as JSON to the client.
+// as JSON to the client. Respects namespace requests via URL query parameters (i.e. /?namespace=default)
 func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
 
@@ -1012,10 +1012,15 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 
 	// get URL query parameters if there are any
 	values := r.URL.Query()
-	namespace := values.Get("namespace")
+	namespaceValue := values.Get("namespace")
+	// .Get() will return an "" if there is no value associated -- we do not want to pass "" as a requested namespace
+	var namespaces []string
+	if len(namespaceValue) != 0 {
+		namespaces = strings.Split(namespaceValue, ",")
+	}
 
 	// fetch the current status from our khstate resources
-	state := k.getCurrentState(namespace)
+	state := k.getCurrentState(namespaces)
 
 	// write summarized health check results back to caller
 	err = state.WriteHTTPStatusResponse(w)
@@ -1027,8 +1032,8 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 
 // getCurrentState fetches the current state of all checks from their CRD objects and returns the summary as a
 // health.State. Failures to fetch CRD state return an error.
-func (k *Kuberhealthy) getCurrentState(namespace string) health.State {
-	return k.stateReflector.CurrentStatus(namespace)
+func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
+	return k.stateReflector.CurrentStatus(namespaces)
 }
 
 // getCheck returns a Kuberhealthy check object from its name, returns an error otherwise
