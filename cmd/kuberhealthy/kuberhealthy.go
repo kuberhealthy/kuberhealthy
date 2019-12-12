@@ -1030,8 +1030,9 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 	return err
 }
 
-// getCurrentState fetches the current state of all checks from their CRD objects and returns the summary as a
-// health.State. Failures to fetch CRD state return an error.
+// getCurrentState fetches the current state of all checks from the requested namespaces
+// their CRD objects and returns the summary as a health.State.
+// Failures to fetch CRD state return an error.
 func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
 	return k.stateReflector.CurrentStatus(namespaces)
 }
