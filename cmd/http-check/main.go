@@ -37,7 +37,7 @@ func main() {
 		reportErr := fmt.Errorf("error occurred performing a " + http.MethodGet + " to " + checkURL + ": " + err.Error())
 		log.Errorln(reportErr.Error())
 		kh.ReportFailure([]string{reportErr.Error()})
-		os.Exit(0)
+		os.Exit(1)
 	}
 
 	// Check if the response status code is a 200.
