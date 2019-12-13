@@ -451,3 +451,44 @@ spec:
   - port: http
     interval: 15s
     bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+---
+# Source: kuberhealthy/templates/check-reaper.yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: check-reaper
+  namespace: kuberhealthy
+spec:
+  schedule: "*/3 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: check-reaper
+              image: quay.io/comcast/check-reaper:1.0.0
+              imagePullPolicy: Always
+          restartPolicy: OnFailure
+          serviceAccountName: check-reaper
+  concurrencyPolicy: Forbid
+---
+# Source: kuberhealthy/templates/check-reaper.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: check-reaper
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: ServiceAccount
+    name: check-reaper
+    namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/check-reaper.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: check-reaper
+  namespace: kuberhealthy
