@@ -1,0 +1,18 @@
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: kh-test-fail
+  namespace: kuberhealthy
+spec:
+  extraAnnotations:
+    comcast.com/testAnnotation: test.annotation
+  extraLabels:
+    testLabel: testLabel
+  podSpec:
+    containers:
+      - name: main
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', 'echo The Pod is running && exit 1']
+  runInterval: 30s
+  timeout: 2m
