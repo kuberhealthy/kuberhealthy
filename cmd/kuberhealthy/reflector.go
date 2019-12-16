@@ -54,7 +54,7 @@ func (sr *StateReflector) Start() {
 // CurrentStatus returns the current summary of checks as known by the cache.
 // Returns ALL checks if the list of namespaces to look at is empty.
 // Returns checks from requested namespaces if given any.
-func (sr *StateReflector) CurrentStatus(namespaces []string) health.State {
+func (sr *StateReflector) CurrentStatus() health.State {
 	log.Infoln("khState reflector fetching current status")
 	state := health.NewState()
 
@@ -75,14 +75,6 @@ func (sr *StateReflector) CurrentStatus(namespaces []string) health.State {
 		}
 
 		log.Debugln("Getting status of check for web request to status page:", khState.GetName(), khState.GetNamespace())
-
-		// if there is are requested namespaces, then filter out checks from namespaces not matching those requested
-		if len(namespaces) != 0 {
-			if !containsString(khState.GetNamespace(), namespaces) {
-				log.Debugln("Skipping", khState.GetName(), "because it is not from the", namespaces, "namespace(s)")
-				continue
-			}
-		}
 
 		// skip the check if it has never been run before.  This prevents checks that have not yet
 		// run from showing in the status page.
