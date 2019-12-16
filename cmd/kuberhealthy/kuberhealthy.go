@@ -1037,11 +1037,57 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 	return err
 }
 
+// getCurrentState fetches the current state of all checks from requested namespaces
+// their CRD objects and returns the summary as a health.State. Without a requested namespace,
+// this will return the state of ALL found checks.
+// Failures to fetch CRD state return an error.
+func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
+	if len(namespaces) != 0 {
+		return k.getCurrentStatusForNamespaces(namespaces)
+	}
+	return k.stateReflector.CurrentStatus()
+}
+
 // getCurrentState fetches the current state of all checks from the requested namespaces
 // their CRD objects and returns the summary as a health.State.
 // Failures to fetch CRD state return an error.
-func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
-	return k.stateReflector.CurrentStatus(namespaces)
+func (k *Kuberhealthy) getCurrentStatusForNamespaces(namespaces []string) health.State {
+	// if there is are requested namespaces, then filter out checks from namespaces not matching those requested
+	states := k.stateReflector.CurrentStatus()
+	statesForNamespaces := health.NewState()
+	if len(namespaces) != 0 {
+		for checkName, checkState := range states.CheckDetails {
+			// check if the namespace matches anything requested
+			if !containsString(checkState.Namespace, namespaces) {
+				log.Debugln("Skipping", checkName, "because it is not from the", namespaces, "namespace(s)")
+				continue
+			}
+
+			// skip the check if it has never been run before.  This prevents checks that have not yet
+			// run from showing in the status page.
+			if len(checkState.AuthoritativePod) == 0 {
+				log.Debugln("Output for", checkName, checkState.Namespace, "hidden from status page due to blank authoritative pod")
+				continue
+			}
+
+			// parse check status from CRD and add it to the global status of errors. Skip blank errors
+			for _, e := range checkState.Errors {
+				if len(strings.TrimSpace(e)) == 0 {
+					log.Warningln("Skipped an error that was blank when adding check details to current state.")
+					continue
+				}
+				statesForNamespaces.AddError(e)
+				log.Debugln("Status page: Setting global OK state to false due to check details not being OK")
+				statesForNamespaces.OK = false
+			}
+
+			// update check details struct
+			statesForNamespaces.CheckDetails[checkName] = checkState
+		}
+	}
+
+	log.Infoln("khState reflector returning current status on", len(statesForNamespaces.CheckDetails), "khStates")
+	return statesForNamespaces
 }
 
 // getCheck returns a Kuberhealthy check object from its name, returns an error otherwise
