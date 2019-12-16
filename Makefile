@@ -1,5 +1,5 @@
 IMAGE="quay.io/comcast/kuberhealthy"
-TAG="2.0.0"
+TAG="2.1.0"
 
 build:
 	docker build -t $(IMAGE):$(TAG) .
@@ -71,6 +71,12 @@ buildPodStatusCheck:
 pushPodStatusCheck:
 	docker push quay.io/comcast/pod-status-check:1.0.1
 
+buildCheckReaper:
+	docker build -t quay.io/comcast/check-reaper:1.0.0 -f cmd/check-reaper/Dockerfile .
+
+pushCheckReaper:
+	docker push quay.io/comcast/check-reaper:1.0.0
+
 httpCheck: buildHTTPCheck pushHTTPCheck
 
 buildHTTPCheck:
@@ -78,3 +84,11 @@ buildHTTPCheck:
 
 pushHTTPCheck:
 	docker push quay.io/comcast/http-check:1.0.0
+
+checkReaper: buildCheckReaper pushCheckReaper
+
+buildCheckReaper:
+	docker build -t quay.io/comcast/check-reaper:1.0.0 -f cmd/check-reaper/Dockerfile .
+
+pushCheckReaper:
+	docker push quay.io/comcast/check-reaper:1.0.0
