@@ -1054,7 +1054,10 @@ func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
 func (k *Kuberhealthy) getCurrentStatusForNamespaces(namespaces []string) health.State {
 	// if there is are requested namespaces, then filter out checks from namespaces not matching those requested
 	states := k.stateReflector.CurrentStatus()
-	statesForNamespaces := health.NewState()
+	statesForNamespaces := states
+	states.Errors = []string{}
+	states.OK = true
+	statesForNamespaces.CheckDetails = make(map[string]health.CheckDetails)
 	if len(namespaces) != 0 {
 		for checkName, checkState := range states.CheckDetails {
 			// check if the namespace matches anything requested
