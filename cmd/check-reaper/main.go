@@ -104,19 +104,27 @@ func deleteFilteredCheckerPods(client *kubernetes.Clientset, reapCheckerPods map
 		allCheckPods := getAllPodsWithCheckName(reapCheckerPods, v)
 		if len(allCheckPods) > MaxPodsThreshold {
 
-			oldCount := 0
-			failedCount := 0
+			failOldCount := 0
+			failCount := 0
+			successOldCount := 0
+			successCount := 0
 			for _, p := range allCheckPods {
-				if v.CreationTimestamp.Time.Before(p.CreationTimestamp.Time) {
-					oldCount++
+				if v.CreationTimestamp.Time.Before(p.CreationTimestamp.Time) && p.Status.Phase != "Succeeded" {
+					failOldCount++
 				}
 				if p.Status.Phase != "Succeeded" {
-					failedCount++
+					failCount++
+				}
+				if v.CreationTimestamp.Time.Before(p.CreationTimestamp.Time) && p.Status.Phase == "Succeeded" {
+					successOldCount++
+				}
+				if p.Status.Phase == "Succeeded" {
+					successCount++
 				}
 			}
 
 			// Delete if there are more than 5 checker pods with the same name in status Succeeded that were created more recently
-			if oldCount > MaxPodsThreshold && failedCount == 0 {
+			if successOldCount > MaxPodsThreshold && successCount > MaxPodsThreshold {
 				log.Infoln("Found more than 5 checker pods with the same name in status `Succeeded` that were created more recently. Deleting pod:", k)
 
 				err = deletePod(client, v)
@@ -128,7 +136,7 @@ func deleteFilteredCheckerPods(client *kubernetes.Clientset, reapCheckerPods map
 			}
 
 			// Delete if the checker pod is Failed and there are more than 5 Failed checker pods of the same type which were created more recently
-			if v.Status.Phase == "Failed" && oldCount > MaxPodsThreshold && failedCount > MaxPodsThreshold {
+			if v.Status.Phase == "Failed" && failOldCount > MaxPodsThreshold && failCount > MaxPodsThreshold {
 				log.Infoln("Found more than 5 `Failed` checker pods of the same type which were created more recently. Deleting pod:", k)
 
 				err = deletePod(client, v)
