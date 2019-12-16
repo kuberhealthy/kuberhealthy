@@ -570,7 +570,7 @@ func (ext *Checker) RunOnce() error {
 
 	// Spawn kubernetes pod to run our external check
 	ext.log("creating pod for external check:", ext.CheckName)
-	ext.log("checker pod annotations and lebels:", ext.ExtraAnnotations, ext.ExtraLabels)
+	ext.log("checker pod annotations and labels:", ext.ExtraAnnotations, ext.ExtraLabels)
 	createdPod, err := ext.createPod()
 	if err != nil {
 		ext.log("error creating pod")
@@ -1082,15 +1082,27 @@ func (ext *Checker) addKuberhealthyLabels(pod *apiv1.Pod) {
 		pod.ObjectMeta.Labels = make(map[string]string)
 	}
 
+	// apply all extra labels to pod as specified by khcheck spec
+	for k, v := range ext.ExtraLabels {
+		pod.ObjectMeta.Labels[k] = v
+	}
+
 	// stack the kuberhealthy run id on top of the existing labels
 	pod.ObjectMeta.Labels[kuberhealthyRunIDLabel] = ext.currentCheckUUID
 	pod.ObjectMeta.Labels[kuberhealthyCheckNameLabel] = ext.CheckName
 	pod.ObjectMeta.Labels["app"] = "kuberhealthy-check" // enforce a the label with an app name
 
-	// enforce annotations as well
+	// ensure annotations map isnt nil
 	if pod.ObjectMeta.Annotations == nil {
 		pod.ObjectMeta.Annotations = make(map[string]string)
 	}
+
+	// ensure all extra annotations are applied as specified in the khcheck
+	for k, v := range ext.ExtraAnnotations {
+		pod.ObjectMeta.Annotations[k] = v
+	}
+
+	// overwrite the check name annotation for use with calling pod validation
 	pod.ObjectMeta.Annotations[KH_CHECK_NAME_ANNOTATION_KEY] = ext.CheckName
 
 }
