@@ -10,10 +10,10 @@ push:
 amiCheck: buildAMICheck pushAMICheck
 
 buildAMICheck:
-	docker build -t quay.io/comcast/ami-check:1.0.0 -f cmd/ami-check/Dockerfile .
+	docker build -t quay.io/comcast/ami-check:1.0.1 -f cmd/ami-check/Dockerfile .
 
 pushAMICheck:
-	docker push quay.io/comcast/ami-check:1.0.0
+	docker push quay.io/comcast/ami-check:1.0.1
 
 external: buildExternalChecker pushExternalChecker
 
@@ -26,10 +26,10 @@ pushExternalChecker:
 deploymentCheck: buildDeploymentCheck pushDeploymentCheck
 
 buildDeploymentCheck:
-	docker build -t quay.io/comcast/deployment-check:1.0.3 -f cmd/deployment-check/Dockerfile .
+	docker build -t quay.io/comcast/deployment-check:1.0.4 -f cmd/deployment-check/Dockerfile .
 
 pushDeploymentCheck:
-	docker push quay.io/comcast/deployment-check:1.0.3
+	docker push quay.io/comcast/deployment-check:1.0.4
 
 daemonset: buildDaemonsetCheck pushDaemonsetCheck
 
@@ -42,10 +42,10 @@ pushDaemonsetCheck:
 kiamCheck: buildKIAMCheck pushKIAMCheck
 
 buildKIAMCheck:
-	docker build -t quay.io/comcast/kiam-check:1.0.0 -f cmd/kiam-check/Dockerfile .
+	docker build -t quay.io/comcast/kiam-check:1.0.1 -f cmd/kiam-check/Dockerfile .
 
 pushKIAMCheck:
-	docker push quay.io/comcast/kiam-check:1.0.0
+	docker push quay.io/comcast/kiam-check:1.0.1
 
 podRestarts: buildPodRestartsCheck pushPodRestartsCheck
 
