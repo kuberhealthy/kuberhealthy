@@ -36,8 +36,11 @@ func main() {
 	if err != nil {
 		reportErr := fmt.Errorf("error occurred performing a " + http.MethodGet + " to " + checkURL + ": " + err.Error())
 		log.Errorln(reportErr.Error())
-		kh.ReportFailure([]string{reportErr.Error()})
-		os.Exit(1)
+		err = kh.ReportFailure([]string{reportErr.Error()})
+		if err != nil {
+			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+		}
+		os.Exit(0)
 	}
 
 	// Check if the response status code is a 200.
