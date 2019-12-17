@@ -277,7 +277,7 @@ spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
       containers:
-      - image: quay.io/comcast/kuberhealthy:2.0.0
+      - image: quay.io/comcast/kuberhealthy:2.1.0
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080

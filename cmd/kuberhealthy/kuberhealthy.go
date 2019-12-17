@@ -1008,7 +1008,7 @@ func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, r *http.Requ
 
 func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to prometheus metrics endpoint from", r.RemoteAddr, r.UserAgent())
-	state := k.getCurrentState()
+	state := k.getCurrentState([]string{})
 	m := metrics.GenerateMetrics(state)
 	// write summarized health check results back to caller
 	_, err := w.Write([]byte(m))
@@ -1019,7 +1019,7 @@ func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.R
 }
 
 // healthCheckHandler returns the current status of checks loaded into Kuberhealthy
-// as JSON to the client.
+// as JSON to the client. Respects namespace requests via URL query parameters (i.e. /?namespace=default)
 func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
 
@@ -1031,8 +1031,24 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 		return err
 	}
 
+	// get URL query parameters if there are any
+	values := r.URL.Query()
+	namespaceValue := values.Get("namespace")
+	// .Get() will return an "" if there is no value associated -- we do not want to pass "" as a requested namespace
+	var namespaces []string
+	if len(namespaceValue) != 0 {
+		namespaceSplits := strings.Split(namespaceValue, ",")
+		// a query like (/?namespace=,) will cause .Split() to return an array of two empty strings ["", ""]
+		// so we need to filter those out
+		for _, namespaceSplit := range namespaceSplits {
+			if len(namespaceSplit) != 0 {
+				namespaces = append(namespaces, namespaceSplit)
+			}
+		}
+	}
+
 	// fetch the current status from our khstate resources
-	state := k.getCurrentState()
+	state := k.getCurrentState(namespaces)
 
 	// write summarized health check results back to caller
 	err = state.WriteHTTPStatusResponse(w)
@@ -1042,10 +1058,60 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 	return err
 }
 
-// getCurrentState fetches the current state of all checks from their CRD objects and returns the summary as a
-// health.State. Failures to fetch CRD state return an error.
-func (k *Kuberhealthy) getCurrentState() health.State {
+// getCurrentState fetches the current state of all checks from requested namespaces
+// their CRD objects and returns the summary as a health.State. Without a requested namespace,
+// this will return the state of ALL found checks.
+// Failures to fetch CRD state return an error.
+func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
+	if len(namespaces) != 0 {
+		return k.getCurrentStatusForNamespaces(namespaces)
+	}
 	return k.stateReflector.CurrentStatus()
+}
+
+// getCurrentState fetches the current state of all checks from the requested namespaces
+// their CRD objects and returns the summary as a health.State.
+// Failures to fetch CRD state return an error.
+func (k *Kuberhealthy) getCurrentStatusForNamespaces(namespaces []string) health.State {
+	// if there is are requested namespaces, then filter out checks from namespaces not matching those requested
+	states := k.stateReflector.CurrentStatus()
+	statesForNamespaces := states
+	states.Errors = []string{}
+	states.OK = true
+	statesForNamespaces.CheckDetails = make(map[string]health.CheckDetails)
+	if len(namespaces) != 0 {
+		for checkName, checkState := range states.CheckDetails {
+			// check if the namespace matches anything requested
+			if !containsString(checkState.Namespace, namespaces) {
+				log.Debugln("Skipping", checkName, "because it is not from the", namespaces, "namespace(s)")
+				continue
+			}
+
+			// skip the check if it has never been run before.  This prevents checks that have not yet
+			// run from showing in the status page.
+			if len(checkState.AuthoritativePod) == 0 {
+				log.Debugln("Output for", checkName, checkState.Namespace, "hidden from status page due to blank authoritative pod")
+				continue
+			}
+
+			// parse check status from CRD and add it to the global status of errors. Skip blank errors
+			for _, e := range checkState.Errors {
+				if len(strings.TrimSpace(e)) == 0 {
+					log.Warningln("Skipped an error that was blank when adding check details to current state.")
+					continue
+				}
+				statesForNamespaces.AddError(e)
+				log.Debugln("Status page: Setting global OK state to false due to check details not being OK")
+				statesForNamespaces.OK = false
+			}
+
+			// update check details struct
+			statesForNamespaces.CheckDetails[checkName] = checkState
+		}
+	}
+
+	log.Infoln("khState reflector returning current status on", len(statesForNamespaces.CheckDetails), "khStates")
+	return statesForNamespaces
 }
 
 // getCheck returns a Kuberhealthy check object from its name, returns an error otherwise
