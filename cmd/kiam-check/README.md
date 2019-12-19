@@ -24,11 +24,11 @@ spec:
   extraAnnotations:
     iam.amazonaws.com/role: <role-arn> # Replace this value with your ARN
   runInterval: 5m
-  timeout: 5m
+  timeout: 15m
   podSpec:
     containers:
     - name: kiam
-      image: quay.io/comcast/kiam-check:1.0.0
+      image: quay.io/comcast/kiam-check:1.0.1
       imagePullPolicy: IfNotPresent
       env:
       - name: AWS_REGION

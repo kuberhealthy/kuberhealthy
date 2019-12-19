@@ -5,12 +5,12 @@ metadata:
   name: deployment
   namespace: kuberhealthy
 spec:
-  runInterval: 30m
-  timeout: 10m
+  runInterval: 5m
+  timeout: 15m
   podSpec:
     containers:
     - name: deployment
-      image: quay.io/comcast/deployment-check:1.0.3
+      image: quay.io/comcast/deployment-check:1.0.4
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
