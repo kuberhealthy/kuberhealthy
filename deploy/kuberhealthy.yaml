@@ -277,7 +277,7 @@ spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
       containers:
-      - image: quay.io/comcast/kuberhealthy:2.1.0
+      - image: quay.io/comcast/kuberhealthy:2.1.0rc1
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
@@ -352,8 +352,8 @@ kind: KuberhealthyCheck
 metadata:
   name: deployment
 spec:
-  runInterval: 30m
-  timeout: 10m
+  runInterval: 5m
+  timeout: 15m
   podSpec:
     containers:
     - name: deployment
