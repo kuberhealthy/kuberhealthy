@@ -109,16 +109,16 @@ func deleteFilteredCheckerPods(client *kubernetes.Clientset, reapCheckerPods map
 			successOldCount := 0
 			successCount := 0
 			for _, p := range allCheckPods {
-				if v.CreationTimestamp.Time.Before(p.CreationTimestamp.Time) && p.Status.Phase != "Succeeded" {
+				if v.CreationTimestamp.Time.Before(p.CreationTimestamp.Time) && p.Status.Phase != "Succeeded" && v.Namespace == p.Namespace {
 					failOldCount++
 				}
-				if p.Status.Phase != "Succeeded" {
+				if p.Status.Phase != "Succeeded" && v.Namespace == p.Namespace {
 					failCount++
 				}
-				if v.CreationTimestamp.Time.Before(p.CreationTimestamp.Time) && p.Status.Phase == "Succeeded" {
+				if v.CreationTimestamp.Time.Before(p.CreationTimestamp.Time) && p.Status.Phase == "Succeeded" && v.Namespace == p.Namespace {
 					successOldCount++
 				}
-				if p.Status.Phase == "Succeeded" {
+				if p.Status.Phase == "Succeeded" && v.Namespace == p.Namespace {
 					successCount++
 				}
 			}
