@@ -13,5 +13,3 @@ If the key `kh-check-name` is found on a pod, then it will be deleted when any o
 - If the checker pod is `Failed` and there are more than 5 `Failed` checker pods of the same type which were created more recently
 
 - If the checker pod is `Failed` and was created more than 5 days ago
-
-Checker pod reaper must be implemented on all namespaces running kuberhealthy checks.
