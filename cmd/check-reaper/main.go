@@ -82,7 +82,7 @@ func deleteFilteredCheckerPods(client *kubernetes.Clientset, reapCheckerPods map
 			err = deletePod(client, v)
 			if err != nil {
 				log.Errorln("Failed to delete pod:", k, err)
-				return err
+				continue
 			}
 			delete(reapCheckerPods, k)
 		}
@@ -94,7 +94,7 @@ func deleteFilteredCheckerPods(client *kubernetes.Clientset, reapCheckerPods map
 			err = deletePod(client, v)
 			if err != nil {
 				log.Errorln("Failed to delete pod:", k, err)
-				return err
+				continue
 			}
 			delete(reapCheckerPods, k)
 		}
@@ -130,7 +130,7 @@ func deleteFilteredCheckerPods(client *kubernetes.Clientset, reapCheckerPods map
 				err = deletePod(client, v)
 				if err != nil {
 					log.Errorln("Failed to delete pod:", k, err)
-					return err
+					continue
 				}
 				delete(reapCheckerPods, k)
 			}
@@ -142,7 +142,7 @@ func deleteFilteredCheckerPods(client *kubernetes.Clientset, reapCheckerPods map
 				err = deletePod(client, v)
 				if err != nil {
 					log.Errorln("Failed to delete pod:", k, err)
-					return err
+					continue
 				}
 				delete(reapCheckerPods, k)
 			}
@@ -173,10 +173,5 @@ func deletePod(client *kubernetes.Clientset, pod v1.Pod) error {
 	log.Infoln("Deleting Pod: ", pod.Name, " in namespace: ", pod.Namespace)
 	propagationForeground := metav1.DeletePropagationForeground
 	options := &metav1.DeleteOptions{PropagationPolicy: &propagationForeground}
-	err := client.CoreV1().Pods(pod.Namespace).Delete(pod.Name, options)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return client.CoreV1().Pods(pod.Namespace).Delete(pod.Name, options)
 }
