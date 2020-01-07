@@ -334,6 +334,9 @@ func deleteDeployment() error {
 	go func() {
 		defer close(deleteChan)
 		for {
+
+			log.Debugln("Creating watch object to look for delete events on deployments.")
+
 			// Watch that it is gone.
 			watch, err := client.AppsV1().Deployments(checkNamespace).Watch(metav1.ListOptions{
 				Watch:         true,
@@ -618,6 +621,7 @@ func waitForDeploymentToDelete() chan bool {
 		for {
 			_, err := client.AppsV1().Deployments(checkNamespace).Get(checkDeploymentName, metav1.GetOptions{})
 			if err != nil {
+				log.Debugln("error from Deployments().Get():", err.Error())
 				if strings.Contains(err.Error(), "not found") {
 					log.Debugln("Deployment deleted.")
 					deleteChan <- true
