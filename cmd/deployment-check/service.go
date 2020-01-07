@@ -157,6 +157,9 @@ func deleteService() error {
 	go func() {
 		defer close(deleteChan)
 		for {
+
+			log.Debugln("Creating watch object to look for delete events on services.")
+
 			// Watch that it is gone.
 			watch, err := client.CoreV1().Services(checkNamespace).Watch(metav1.ListOptions{
 				Watch:         true,
@@ -401,6 +404,7 @@ func waitForServiceToDelete() chan bool {
 		for {
 			_, err := client.CoreV1().Services(checkNamespace).Get(checkServiceName, metav1.GetOptions{})
 			if err != nil {
+				log.Debugln("error from Services().Get():", err.Error())
 				if strings.Contains(err.Error(), "not found") {
 					log.Debugln("Service deleted.")
 					deleteChan <- true
