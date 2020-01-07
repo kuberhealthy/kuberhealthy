@@ -168,9 +168,14 @@ func deleteService() error {
 				deleteChan <- err
 				return
 			}
+			// If the watch is nil, skip to the next loop and make a new watch object.
+			if watch == nil {
+				continue
+			}
 
 			// Watch for a DELETED event.
-			for event := range watch.ResultChan() {
+			select {
+			case event := <-watch.ResultChan():
 				log.Debugln("Received an event watching for service changes:", event.Type)
 
 				s, ok := event.Object.(*corev1.Service)
@@ -179,12 +184,22 @@ func deleteService() error {
 					continue
 				}
 
+				log.Debugln("Received an event watching for service changes:", s.Name, "got event", event.Type)
+
 				// We want an event type of DELETED here.
 				if event.Type == watchpkg.Deleted {
 					log.Infoln("Received a", event.Type, "while watching for service with name ["+s.Name+"] to be deleted.")
 					deleteChan <- nil
 					return
 				}
+			case done := <-waitForServiceToDelete():
+				log.Infoln("Received a complete while waiting for service to delete:", done)
+				deleteChan <- nil
+				return
+			case <-ctx.Done():
+				log.Errorln("Context expired while waiting for service to be cleaned up.")
+				deleteChan <- nil
+				return
 			}
 
 			watch.Stop()
@@ -217,6 +232,7 @@ func cleanUpOrphanedService() error {
 
 	go func() {
 		defer close(cleanUpChan)
+
 		for {
 			// Watch that it is gone.
 			watch, err := client.CoreV1().Services(checkNamespace).Watch(metav1.ListOptions{
@@ -244,6 +260,8 @@ func cleanUpOrphanedService() error {
 					log.Debugln("Got a watch event for a non-service object -- ignoring.")
 					continue
 				}
+
+				log.Debugln("Received an event watching for service changes:", s.Name, "got event", event.Type)
 
 				// We want an event type of DELETED here.
 				if event.Type == watchpkg.Deleted {
@@ -275,6 +293,7 @@ func cleanUpOrphanedService() error {
 		PropagationPolicy:  &deletePolicy,
 	}
 
+	// Send the delete request.
 	err := client.CoreV1().Services(checkNamespace).Delete(checkServiceName, &deleteOpts)
 	if err != nil {
 		return errors.New("failed to delete previous service: " + err.Error())
@@ -288,6 +307,7 @@ func cleanUpOrphanedService() error {
 func findPreviousService() (bool, error) {
 
 	log.Infoln("Attempting to find previously created service(s) belonging to this check.")
+
 	serviceList, err := client.CoreV1().Services(checkNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		log.Infoln("Error listing services:", err)

@@ -345,9 +345,14 @@ func deleteDeployment() error {
 				deleteChan <- err
 				return
 			}
+			// If the watch is nil, skip to the next loop and make a new watch object.
+			if watch == nil {
+				continue
+			}
 
 			// Watch for a DELETED event.
-			for event := range watch.ResultChan() {
+			select {
+			case event := <-watch.ResultChan():
 				log.Debugln("Received an event watching for service changes:", event.Type)
 
 				d, ok := event.Object.(*v1.Deployment)
@@ -356,12 +361,22 @@ func deleteDeployment() error {
 					continue
 				}
 
+				log.Debugln("Received an event watching for deployment changes:", d.Name, "got event", event.Type)
+
 				// We want an event type of DELETED here.
 				if event.Type == watchpkg.Deleted {
-					log.Infoln("Received a", event.Type, "while watching for deployment with name ["+d.Name+"] to be deleted.")
+					log.Infoln("Received a", event.Type, "while watching for deployment with name ["+d.Name+"] to be deleted")
 					deleteChan <- nil
 					return
 				}
+			case done := <-waitForDeploymentToDelete():
+				log.Infoln("Received a complete while waiting for service to delete:", done)
+				deleteChan <- nil
+				return
+			case <-ctx.Done():
+				log.Errorln("context expired while waiting for service to be cleaned up.")
+				deleteChan <- nil
+				return
 			}
 
 			watch.Stop()
@@ -415,6 +430,7 @@ func cleanUpOrphanedDeployment() error {
 			// Watch for a DELETED event.
 			select {
 			case event := <-watch.ResultChan():
+				log.Debugln("Received an event watching for service changes:", event.Type)
 
 				d, ok := event.Object.(*v1.Deployment)
 				if !ok {
