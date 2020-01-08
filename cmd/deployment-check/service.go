@@ -156,56 +156,40 @@ func deleteService() error {
 
 	go func() {
 		defer close(deleteChan)
-		for {
 
-			log.Debugln("Creating watch object to look for delete events on services.")
+		log.Debugln("Creating watch object to look for delete events on services.")
 
-			// Watch that it is gone.
-			watch, err := client.CoreV1().Services(checkNamespace).Watch(metav1.ListOptions{
-				Watch:         true,
-				FieldSelector: "metadata.name=" + checkServiceName,
-				// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
-			})
-			if err != nil {
-				log.Infoln("Error creating watch client:", err)
-				deleteChan <- err
-				return
-			}
-			// If the watch is nil, skip to the next loop and make a new watch object.
-			if watch == nil {
+		// Watch that it is gone.
+		watch, err := client.CoreV1().Services(checkNamespace).Watch(metav1.ListOptions{
+			Watch:         true,
+			FieldSelector: "metadata.name=" + checkServiceName,
+			// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
+		})
+		if err != nil {
+			log.Infoln("Error creating watch client:", err)
+			deleteChan <- err
+			return
+		}
+		defer watch.Stop()
+
+		// Watch for a DELETED event.
+		for event := range watch.ResultChan() {
+			log.Debugln("Received an event watching for service changes:", event.Type)
+
+			s, ok := event.Object.(*corev1.Service)
+			if !ok {
+				log.Debugln("Got a watch event for a non-service object -- ignoring.")
 				continue
 			}
 
-			// Watch for a DELETED event.
-			select {
-			case event := <-watch.ResultChan():
-				log.Debugln("Received an event watching for service changes:", event.Type)
+			log.Debugln("Received an event watching for service changes:", s.Name, "got event", event.Type)
 
-				s, ok := event.Object.(*corev1.Service)
-				if !ok {
-					log.Debugln("Got a watch event for a non-service object -- ignoring.")
-					continue
-				}
-
-				log.Debugln("Received an event watching for service changes:", s.Name, "got event", event.Type)
-
-				// We want an event type of DELETED here.
-				if event.Type == watchpkg.Deleted {
-					log.Infoln("Received a", event.Type, "while watching for service with name ["+s.Name+"] to be deleted.")
-					deleteChan <- nil
-					return
-				}
-			case done := <-waitForServiceToDelete():
-				log.Infoln("Received a complete while waiting for service to delete:", done)
-				deleteChan <- nil
-				return
-			case <-ctx.Done():
-				log.Errorln("Context expired while waiting for service to be cleaned up.")
+			// We want an event type of DELETED here.
+			if event.Type == watchpkg.Deleted {
+				log.Infoln("Received a", event.Type, "while watching for service with name ["+s.Name+"] to be deleted.")
 				deleteChan <- nil
 				return
 			}
-
-			watch.Stop()
 		}
 	}()
 
@@ -236,53 +220,37 @@ func cleanUpOrphanedService() error {
 	go func() {
 		defer close(cleanUpChan)
 
-		for {
-			// Watch that it is gone.
-			watch, err := client.CoreV1().Services(checkNamespace).Watch(metav1.ListOptions{
-				Watch:         true,
-				FieldSelector: "metadata.name=" + checkServiceName,
-				// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
-			})
-			if err != nil {
-				log.Infoln("Error creating watch client.")
-				cleanUpChan <- err
-				return
-			}
-			// If the watch is nil, skip to the next loop and make a new watch object.
-			if watch == nil {
+		// Watch that it is gone.
+		watch, err := client.CoreV1().Services(checkNamespace).Watch(metav1.ListOptions{
+			Watch:         true,
+			FieldSelector: "metadata.name=" + checkServiceName,
+			// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
+		})
+		if err != nil {
+			log.Infoln("Error creating watch client.")
+			cleanUpChan <- err
+			return
+		}
+		defer watch.Stop()
+
+		// Watch for a DELETED event.
+		for event := range watch.ResultChan() {
+			log.Debugln("Received an event watching for service changes:", event.Type)
+
+			s, ok := event.Object.(*corev1.Service)
+			if !ok {
+				log.Debugln("Got a watch event for a non-service object -- ignoring.")
 				continue
 			}
 
-			// Watch for a DELETED event.
-			select {
-			case event := <-watch.ResultChan():
-				log.Debugln("Received an event watching for service changes:", event.Type)
+			log.Debugln("Received an event watching for service changes:", s.Name, "got event", event.Type)
 
-				s, ok := event.Object.(*corev1.Service)
-				if !ok {
-					log.Debugln("Got a watch event for a non-service object -- ignoring.")
-					continue
-				}
-
-				log.Debugln("Received an event watching for service changes:", s.Name, "got event", event.Type)
-
-				// We want an event type of DELETED here.
-				if event.Type == watchpkg.Deleted {
-					log.Infoln("Received a", event.Type, "while watching for service with name ["+s.Name+"] to be deleted.")
-					cleanUpChan <- nil
-					return
-				}
-			case done := <-waitForServiceToDelete():
-				log.Infoln("Received a complete while waiting for service to delete:", done)
-				cleanUpChan <- nil
-				return
-			case <-ctx.Done():
-				log.Errorln("Context expired while waiting for service to be cleaned up.")
+			// We want an event type of DELETED here.
+			if event.Type == watchpkg.Deleted {
+				log.Infoln("Received a", event.Type, "while watching for service with name ["+s.Name+"] to be deleted.")
 				cleanUpChan <- nil
 				return
 			}
-
-			watch.Stop()
 		}
 	}()
 
