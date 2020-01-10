@@ -633,7 +633,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		// Subtract 10 seconds from run time since there are two 5 second sleeps during the check run where kuberhealthy
 		// waits for all pods to clear before running the check and waits for all pods to exit once the check has finished
 		// running. Both occur before and after the checker pod completes its run.
-		checkRunDuration := time.Now().Sub(checkStartTime) - time.Second * 10
+		checkRunDuration := time.Now().Sub(checkStartTime) - time.Second*10
 
 		// make a new state for this check and fill it from the check's current status
 		checkDetails, err := getCheckState(c)
@@ -1076,8 +1076,8 @@ func (k *Kuberhealthy) getCurrentStatusForNamespaces(namespaces []string) health
 	// if there is are requested namespaces, then filter out checks from namespaces not matching those requested
 	states := k.stateReflector.CurrentStatus()
 	statesForNamespaces := states
-	states.Errors = []string{}
-	states.OK = true
+	statesForNamespaces.Errors = []string{}
+	statesForNamespaces.OK = true
 	statesForNamespaces.CheckDetails = make(map[string]health.CheckDetails)
 	if len(namespaces) != 0 {
 		for checkName, checkState := range states.CheckDetails {
