@@ -31,6 +31,7 @@ import (
 
 	apiv1 "k8s.io/api/core/v1"
 	betaapiv1 "k8s.io/api/extensions/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -55,7 +56,7 @@ var CheckRunTime int64 // use this to compare and find rogue daemonsets or pods
 // deployment and teardown checking.
 type Checker struct {
 	Namespace           string
-	DaemonSet           *betaapiv1.DaemonSet
+	DaemonSet           *appsv1.DaemonSet
 	shuttingDown        bool
 	DaemonSetDeployed   bool
 	DaemonSetName       string
@@ -201,7 +202,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 
 	// create the DS object
 	log.Infoln("Generating daemon set kubernetes spec.")
-	dsc.DaemonSet = &betaapiv1.DaemonSet{
+	dsc.DaemonSet = &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: dsc.DaemonSetName,
 			Labels: map[string]string{
@@ -214,7 +215,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 				"cluster-autoscaler.kubernetes.io/safe-to-evict": "true",
 			},
 		},
-		Spec: betaapiv1.DaemonSetSpec{
+		Spec: appsv1.DaemonSetSpec{
 			MinReadySeconds: 2,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -608,15 +609,15 @@ func (dsc *Checker) getAllPods() ([]apiv1.Pod, error) {
 
 // getAllDaemonsets fetches all daemonsets in the namespace, for all
 // instances of kuberhealthy
-func (dsc *Checker) getAllDaemonsets() ([]betaapiv1.DaemonSet, error) {
+func (dsc *Checker) getAllDaemonsets() ([]appsv1.DaemonSet, error) {
 
-	var allDS []betaapiv1.DaemonSet
+	var allDS []appsv1.DaemonSet
 	var cont string
 	var err error
 
 	// fetch the ds objects created by kuberhealthy
 	for {
-		var dsList *betaapiv1.DaemonSetList
+		var dsList *appsv1.DaemonSetList
 		dsClient := dsc.getDaemonSetClient()
 		dsList, err = dsClient.List(metav1.ListOptions{
 			LabelSelector: "source=kuberhealthy",
@@ -1096,7 +1097,7 @@ func (dsc *Checker) waitForPodRemoval() error {
 }
 
 // getDaemonSetClient returns a daemon set client, useful for interacting with daemonsets
-func (dsc *Checker) getDaemonSetClient() v1beta1.DaemonSetInterface {
+func (dsc *Checker) getDaemonSetClient() appsv1.DaemonSetInterface {
 	log.Debug("Creating Daemonset client.")
-	return dsc.client.ExtensionsV1beta1().DaemonSets(dsc.Namespace)
+	return dsc.client.appsv1().DaemonSets(dsc.Namespace)
 }
