@@ -28,6 +28,8 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 
 ## Installation
 
+**Requires Kubernetes 1.11 or above**
+
 Helm installations are currently not available from `helm/charts/kuberhealthy` due to a slow PR process.  For now, use the flat files below.
 
 > [Helm 3](https://helm.sh/) required for all chart installation.
