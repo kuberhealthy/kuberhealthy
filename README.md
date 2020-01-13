@@ -42,7 +42,7 @@ Helm installations are currently not available from `helm/charts/kuberhealthy` d
 > `helm install stable/kuberhealthy --set prometheus.enabled=true --set prometheus.enableScraping=true --set prometheus.enableAlerting=true --set prometheus.serviceMonitor=true`
  
 You can also use a flat spec file if you don't want to use Helm:
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/deploy/kuberhealthy.yaml`
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/kuberhealthy.yaml`
 
 To install using other flat yaml spec files, see the [deploy directory](/deploy).
 
