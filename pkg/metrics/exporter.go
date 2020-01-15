@@ -40,11 +40,11 @@ func GenerateMetrics(state health.State) string {
 	metricsOutput += "# TYPE kuberhealthy_check_duration_seconds gauge"
 	checkMetricState := map[string]string{}
 	for c, d := range state.CheckDetails {
-		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		checkStatus := "0"
 		if d.OK {
 			checkStatus = "1"
 		}
+		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\",namespace=\"%s\",status=\"%s\"}", c, d.Namespace, checkStatus)
 		metricDurationName := fmt.Sprintf("kuberhealthy_check_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		checkMetricState[metricName] = checkStatus
 		runDuration, err := time.ParseDuration(d.RunDuration)
