@@ -12,6 +12,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -235,7 +236,8 @@ func runDeploymentCheck() {
 
 // cleanUp cleans up the deployment check and all resource manifests created that relate to
 // the check.
-func cleanUp() error {
+// TODO - add in context that expires when check times out
+func cleanUp(ctx context.Context) error {
 
 	log.Infoln("Cleaning up deployment and service.")
 	var err error
@@ -243,14 +245,16 @@ func cleanUp() error {
 	errorMessage := ""
 
 	// Delete the service.
-	err = deleteService()
+	// TODO - add select to catch context timeout expiration
+	err = deleteServiceAndWait(ctx)
 	if err != nil {
 		log.Errorln("error cleaning up service:", err)
 		errorMessage = errorMessage + "error cleaning up service:" + err.Error()
 	}
 
 	// Delete the deployment.
-	err = deleteDeployment()
+	// TODO - add select to catch context timeout expiration
+	err = deleteDeployment(ctx)
 	if err != nil {
 		log.Errorln("error cleaning up deployment:", err)
 		if len(errorMessage) != 0 {
