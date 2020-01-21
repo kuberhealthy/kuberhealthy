@@ -91,6 +91,7 @@ func createDeploymentConfig(image string) *v1.Deployment {
 	// Make labels for pod and deployment.
 	labels := make(map[string]string, 0)
 	labels[defaultLabelKey] = defaultLabelValueBase + strconv.Itoa(int(now.Unix()))
+	labels["source"] = "kuberhealthy"
 
 	// Make and define a pod template spec with a pod spec.
 	podTemplateSpec := corev1.PodTemplateSpec{
