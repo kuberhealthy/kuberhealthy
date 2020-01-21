@@ -130,36 +130,17 @@ func reportOKToKuberhealthy() {
 
 // reportToKuberhealthy reports the check status to Kuberhealthy.
 func reportToKuberhealthy(ok bool, errs []string) {
-	var attempts int
 	var err error
-
-	retry := func() {
-		log.Infoln("Retrying a report to Kuberhealthy in 5 seconds.")
-		time.Sleep(time.Second * 5)
-	}
-
-	// Keep retrying until it works.
-	for {
-		attempts++
-		log.Infoln("Reporting status to Kuberhealthy:", ok)
-
-		if attempts > 1 {
-			log.Infoln("Attempt", attempts, "reporting status to Kuberhealthy.")
-		}
-
-		if ok {
-			err = kh.ReportSuccess()
-			if err != nil {
-				retry()
-				continue
-			}
-			return
-		}
-		err = kh.ReportFailure(errs)
+	if ok {
+		err = kh.ReportSuccess()
 		if err != nil {
-			retry()
-			continue
+			log.Fatalln("error reporting to kuberhealthy:", err.Error())
 		}
 		return
 	}
+	err = kh.ReportFailure(errs)
+	if err != nil {
+		log.Fatalln("error reporting to kuberhealthy:", err.Error())
+	}
+	return
 }
