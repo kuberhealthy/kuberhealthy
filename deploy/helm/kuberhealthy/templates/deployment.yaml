@@ -5,7 +5,6 @@ metadata:
   name: {{ template "kuberhealthy.name" . }}
   labels:
     app: {{ template "kuberhealthy.name" . }}
-    chart: {{ .Chart.Name }}
 spec:
   replicas: {{ .Values.deployment.replicas }}
   selector:
@@ -26,7 +25,6 @@ spec:
       {{- end }}
       labels:
         app: {{ template "kuberhealthy.name" . }}
-        chart: {{ .Chart.Name }}
     spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
