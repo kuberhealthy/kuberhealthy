@@ -44,12 +44,12 @@ apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
   name:  kuberhealthy-pdb
+  namespace: kuberhealthy
 spec:
   minAvailable: 1
   selector:
     matchLabels:
       app: kuberhealthy
-      chart: kuberhealthy
 ---
 # Source: kuberhealthy/templates/configmap.yaml
 apiVersion: v1
@@ -92,18 +92,21 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: daemonset-khcheck
+  namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/khcheck-deployment.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: deployment-sa
+  namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: kuberhealthy
+  namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -173,6 +176,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: check-reaper
+  namespace: kuberhealthy
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -201,6 +205,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: ds-admin
+  namespace: kuberhealthy
 rules:
   - apiGroups:
       - ""
@@ -224,6 +229,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: deployment-service-role
+  namespace: kuberhealthy
 rules:
   - apiGroups:
       - "apps"
@@ -263,6 +269,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: daemonset-khcheck
+  namespace: kuberhealthy
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -276,6 +283,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: deployment-check-rb
+  namespace: kuberhealthy
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -291,6 +299,7 @@ metadata:
   labels:
     app: kuberhealthy
   name: kuberhealthy
+  namespace: kuberhealthy
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "80"
@@ -311,7 +320,6 @@ metadata:
   name: kuberhealthy
   labels:
     app: kuberhealthy
-    chart: kuberhealthy
 spec:
   replicas: 2
   selector:
@@ -326,7 +334,6 @@ spec:
     metadata:
       labels:
         app: kuberhealthy
-        chart: kuberhealthy
     spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
@@ -399,6 +406,7 @@ apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
   name: daemonset
+  namespace: kuberhealthy
 spec:
   runInterval: 15m
   timeout: 12m
@@ -425,6 +433,7 @@ apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
   name: deployment
+  namespace: kuberhealthy
 spec:
   runInterval: 5m
   timeout: 15m
@@ -453,6 +462,7 @@ apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
   name: dns-status-internal
+  namespace: kuberhealthy
 spec:
   runInterval: 2m
   timeout: 15m
@@ -477,7 +487,6 @@ kind: ServiceMonitor
 metadata:
   labels:
     app: kuberhealthy
-    chart: kuberhealthy
     prometheus: prometheus
   name: kuberhealthy
 spec:
