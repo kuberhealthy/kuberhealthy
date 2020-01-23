@@ -28,7 +28,7 @@ func parseDebugSettings() {
 		var err error
 		debug, err = strconv.ParseBool(debugEnv)
 		if err != nil {
-			log.Fatalln("failed to parse DEBUG environment variable:", err)
+			log.Fatalln("failed to parse DEBUG environment variable:", err.Error())
 		}
 	}
 
