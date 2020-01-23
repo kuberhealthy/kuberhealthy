@@ -136,7 +136,7 @@ func createService(serviceConfig *corev1.Service) chan ServiceResult {
 				return
 			case <-ctx.Done():
 				log.Errorln("context expired while waiting for service to create.")
-				err = cleanUp()
+				err = cleanUp(ctx)
 				if err != nil {
 					result.Err = err
 				}
@@ -160,46 +160,47 @@ func deleteServiceAndWait(ctx context.Context) error {
 	go func() {
 		defer close(deleteChan)
 
-		log.Debugln("Creating watch object to look for delete events on services.")
+		log.Debugln("Checking if service has been deleted.")
 		for {
 
-			// check if we have timed out
+			// Check if we have timed out.
 			select {
 			case <-ctx.Done():
 				deleteChan <- fmt.Errorf("timed out while waiting for service to delete")
 				return
 			default:
-				log.Debugln("delete service and wait has not yet timed out")
+				log.Debugln("Delete service and wait has not yet timed out.")
 			}
 
-			// wait between checks
+			// Wait between checks.
+			log.Debugln("Waiting 5 seconds before trying again.")
 			time.Sleep(time.Second * 5)
 
-			// Watch that it is gone by listing repeatedly
-			serviceListing, err := client.CoreV1().Services(checkNamespace).List(metav1.ListOptions{
-				// Watch:         true,
+			// Watch that it is gone by listing repeatedly.
+			serviceList, err := client.CoreV1().Services(checkNamespace).List(metav1.ListOptions{
 				FieldSelector: "metadata.name=" + checkServiceName,
 				// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
 			})
 			if err != nil {
-				log.Warningln("Error creating service listing client:", err)
+				log.Errorln("Error creating service listing client:", err.Error())
 				continue
 			}
 
-			// check for the service in the list output
+			// Check for the service in the list.
 			var serviceExists bool
-			for _, i := range serviceListing.Items {
-				if i.GetName() == checkServiceName {
+			for _, svc := range serviceList.Items {
+				// If the service exists, try to delete it.
+				if svc.GetName() == checkServiceName {
+					serviceExists = true
 					err = deleteService()
 					if err != nil {
-						log.Warningln("Error when running a delete on service:", checkServiceName)
+						log.Errorln("Error when running a delete on service", checkServiceName+":", err.Error())
 					}
-					serviceExists = true
 					break
 				}
 			}
 
-			// if the service was not in the listing, then we return
+			// If the service was not in the list, then we assume it has been deleted.
 			if !serviceExists {
 				deleteChan <- nil
 				break
@@ -208,6 +209,7 @@ func deleteServiceAndWait(ctx context.Context) error {
 
 	}()
 
+	// Send a delete on the service.
 	err := deleteService()
 	if err != nil {
 		log.Warningln("Error when running a delete on service:", checkServiceName)
@@ -216,7 +218,7 @@ func deleteServiceAndWait(ctx context.Context) error {
 	return <-deleteChan
 }
 
-// deleteService issues a background delete for the check's test service name
+// deleteService issues a foreground delete for the check test service name.
 func deleteService() error {
 	log.Infoln("Attempting to delete service", checkServiceName, "in", checkNamespace, "namespace.")
 	// Make a delete options object to delete the service.
@@ -227,7 +229,7 @@ func deleteService() error {
 		PropagationPolicy:  &deletePolicy,
 	}
 
-	// Delete the service and return the result
+	// Delete the service and return the result.
 	return client.CoreV1().Services(checkNamespace).Delete(checkServiceName, &deleteOpts)
 }
 
