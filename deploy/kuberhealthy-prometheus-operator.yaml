@@ -318,6 +318,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kuberhealthy
+  namespace: kuberhealthy
   labels:
     app: kuberhealthy
 spec:
