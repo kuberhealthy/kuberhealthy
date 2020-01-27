@@ -51,6 +51,13 @@ spec:
       app: kuberhealthy
       chart: kuberhealthy
 ---
+# Source: kuberhealthy/templates/check-reaper.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: check-reaper
+  namespace: kuberhealthy
+---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -131,6 +138,20 @@ rules:
     - get
     - list
     - watch
+---
+# Source: kuberhealthy/templates/check-reaper.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: check-reaper
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: ServiceAccount
+    name: check-reaper
+    namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/clusterrolebinding.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -277,7 +298,7 @@ spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
       containers:
-      - image: quay.io/comcast/kuberhealthy:2.1.0rc1
+      - image: quay.io/comcast/kuberhealthy:2.0.0
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
@@ -319,6 +340,26 @@ spec:
             memory: 300Mi
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
+---
+# Source: kuberhealthy/templates/check-reaper.yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: check-reaper
+  namespace: kuberhealthy
+spec:
+  schedule: "*/3 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: check-reaper
+              image: quay.io/comcast/check-reaper:1.0.0
+              imagePullPolicy: Always
+          restartPolicy: OnFailure
+          serviceAccountName: check-reaper
+  concurrencyPolicy: Forbid
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
 apiVersion: comcast.github.io/v1
@@ -396,44 +437,3 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
----
-# Source: kuberhealthy/templates/check-reaper.yaml
-apiVersion: batch/v1beta1
-kind: CronJob
-metadata:
-  name: check-reaper
-  namespace: kuberhealthy
-spec:
-  schedule: "*/3 * * * *"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-            - name: check-reaper
-              image: quay.io/comcast/check-reaper:1.0.0
-              imagePullPolicy: Always
-          restartPolicy: OnFailure
-          serviceAccountName: check-reaper
-  concurrencyPolicy: Forbid
----
-# Source: kuberhealthy/templates/check-reaper.yaml
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  name: check-reaper
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: admin
-subjects:
-  - kind: ServiceAccount
-    name: check-reaper
-    namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/check-reaper.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: check-reaper
-  namespace: kuberhealthy
