@@ -156,7 +156,7 @@ func main() {
 	log.Infoln("Kubernetes client created.")
 
 	// Start listening to interrupts.
-	go listenForInterrupts()
+	go listenForInterrupts(ctx)
 
 	// Catch panics.
 	var r interface{}
@@ -173,7 +173,7 @@ func main() {
 }
 
 // listenForInterrupts watches the signal and done channels for termination.
-func listenForInterrupts() {
+func listenForInterrupts(ctx context.Context) {
 
 	// Relay incoming OS interrupt signals to the signalChan.
 	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT)
@@ -193,7 +193,7 @@ func listenForInterrupts() {
 		// If there is an interrupt signal, interrupt the run.
 		log.Warnln("Received a secsond interrupt signal from the signal channel.")
 		log.Debugln("Signal received was:", sig.String())
-	case err := <-cleanUpAndWait():
+	case err := <-cleanUpAndWait(ctx):
 		// If the clean up is complete, exit.
 		log.Infoln("Received a complete signal, clean up completed.")
 		if err != nil {
@@ -208,12 +208,12 @@ func listenForInterrupts() {
 }
 
 // cleanUpAndWait cleans up things and returns a signal down the returned channel when completed.
-func cleanUpAndWait() chan error {
+func cleanUpAndWait(ctx context.Context) chan error {
 
 	// Watch for the clean up process to complete.
 	doneChan := make(chan error)
 	go func() {
-		doneChan <- cleanUp()
+		doneChan <- cleanUp(ctx)
 	}()
 
 	return doneChan

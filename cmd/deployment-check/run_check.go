@@ -92,7 +92,7 @@ func runDeploymentCheck() {
 			log.Errorln("error occurred creating service in cluster:", serviceResult.Err)
 			errorReport := []string{serviceResult.Err.Error()} // Make a slice for errors here, because tehre can be more than 1 error.
 			// Clean up the check. A deployment and service was brought up, but could not get a 200 OK from requests.
-			cleanUpError := cleanUp()
+			cleanUpError := cleanUp(ctx)
 			if cleanUpError != nil {
 				errorReport = append(errorReport, cleanUpError.Error())
 			}
@@ -121,7 +121,7 @@ func runDeploymentCheck() {
 		log.Infoln("Cleaning up check and exiting because the cluster IP is nil: ", ipAddress)
 		errorReport := []string{} // Make a slice for errors here, because there can be more than 1 error.
 		// Clean up the check. A deployment was brought up, but no ingress was created.
-		cleanUpError := cleanUp()
+		cleanUpError := cleanUp(ctx)
 		if cleanUpError != nil {
 			errorReport = append(errorReport, cleanUpError.Error())
 		}
@@ -143,7 +143,7 @@ func runDeploymentCheck() {
 			log.Errorln("error occurred making request to service in cluster:", err)
 			errorReport := []string{err.Error()} // Make a slice for errors here, because tehre can be more than 1 error.
 			// Clean up the check. A deployment and service was brought up, but could not get a 200 OK from requests.
-			cleanUpError := cleanUp()
+			cleanUpError := cleanUp(ctx)
 			if cleanUpError != nil {
 				errorReport = append(errorReport, cleanUpError.Error())
 			}
@@ -180,7 +180,7 @@ func runDeploymentCheck() {
 				log.Errorln("error occurred applying rolling-update to deployment in cluster:", updateDeploymentResult.Err)
 				errorReport := []string{updateDeploymentResult.Err.Error()} // Make a slice for errors here, because tehre can be more than 1 error.
 				// Clean up the check. A deployment and service was brought up, but could not get a 200 OK from requests.
-				cleanUpError := cleanUp()
+				cleanUpError := cleanUp(ctx)
 				if cleanUpError != nil {
 					errorReport = append(errorReport, cleanUpError.Error())
 				}
@@ -207,7 +207,7 @@ func runDeploymentCheck() {
 				log.Errorln("error occurred creating service in cluster:", err)
 				errorReport := []string{err.Error()} // Make a slice for errors here, because tehre can be more than 1 error.
 				// Clean up the check. A deployment and service was brought up, but could not get a 200 OK from requests.
-				cleanUpError := cleanUp()
+				cleanUpError := cleanUp(ctx)
 				if cleanUpError != nil {
 					errorReport = append(errorReport, cleanUpError.Error())
 				}
@@ -228,7 +228,7 @@ func runDeploymentCheck() {
 	}
 
 	// Clean up!
-	cleanUp()
+	cleanUp(ctx)
 
 	// Report to Kuberhealthy.
 	reportOKToKuberhealthy()
@@ -254,7 +254,7 @@ func cleanUp(ctx context.Context) error {
 
 	// Delete the deployment.
 	// TODO - add select to catch context timeout expiration
-	err = deleteDeployment(ctx)
+	err = deleteDeploymentAndWait(ctx)
 	if err != nil {
 		log.Errorln("error cleaning up deployment:", err)
 		if len(errorMessage) != 0 {
