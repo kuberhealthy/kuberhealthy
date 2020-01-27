@@ -43,7 +43,7 @@ spec:
             # Default is set to 10m (10 minutes).
             value: "10m"
         image: quay.io/comcast/kh-daemonset-check:2.0.0
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: main
         resources:
           requests:

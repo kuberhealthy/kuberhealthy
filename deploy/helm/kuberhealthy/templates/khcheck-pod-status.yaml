@@ -17,7 +17,7 @@ spec:
               fieldRef:
                 fieldPath: metadata.namespace
         image: quay.io/comcast/pod-status-check:1.0.1
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: main
         resources:
           requests:
