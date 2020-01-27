@@ -6,7 +6,6 @@ kind: ServiceMonitor
 metadata:
   labels:
     app: {{ template "kuberhealthy.name" . }}
-    chart: {{ .Chart.Name }}
     prometheus: {{ .Values.prometheus.name }}
   name: {{ template "kuberhealthy.name" . }}
 spec:
