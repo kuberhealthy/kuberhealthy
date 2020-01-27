@@ -36,8 +36,8 @@ func GenerateMetrics(state health.State) string {
 	metricsOutput += fmt.Sprintf("kuberhealthy_cluster_state %s\n", healthStatus)
 	metricsOutput += "# HELP kuberhealthy_check Shows the status of a Kuberhealthy check\n"
 	metricsOutput += "# TYPE kuberhealthy_check gauge\n"
-	metricsOutput += "# HELP kuberhealthy_check_duration_seconds Shows the check run duration of a Kuberhealthy check"
-	metricsOutput += "# TYPE kuberhealthy_check_duration_seconds gauge"
+	metricsOutput += "# HELP kuberhealthy_check_duration_seconds Shows the check run duration of a Kuberhealthy check\n"
+	metricsOutput += "# TYPE kuberhealthy_check_duration_seconds gauge\n"
 	checkMetricState := map[string]string{}
 	for c, d := range state.CheckDetails {
 		checkStatus := "0"
