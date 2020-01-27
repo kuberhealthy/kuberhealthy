@@ -12,7 +12,9 @@
 package main
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -134,7 +136,7 @@ func createService(serviceConfig *corev1.Service) chan ServiceResult {
 				return
 			case <-ctx.Done():
 				log.Errorln("context expired while waiting for service to create.")
-				err = cleanUp()
+				err = cleanUp(ctx)
 				if err != nil {
 					result.Err = err
 				}
@@ -149,50 +151,76 @@ func createService(serviceConfig *corev1.Service) chan ServiceResult {
 	return createChan
 }
 
-// deleteService deletes the created test service.
-func deleteService() error {
+// deleteServiceAndWait deletes the created test service.
+func deleteServiceAndWait(ctx context.Context) error {
 
 	deleteChan := make(chan error)
 
+	// TODO - pass in a contet to abort watches?
 	go func() {
 		defer close(deleteChan)
+
+		log.Debugln("Checking if service has been deleted.")
 		for {
-			// Watch that it is gone.
-			watch, err := client.CoreV1().Services(checkNamespace).Watch(metav1.ListOptions{
-				Watch:         true,
+
+			// Check if we have timed out.
+			select {
+			case <-ctx.Done():
+				deleteChan <- fmt.Errorf("timed out while waiting for service to delete")
+				return
+			default:
+				log.Debugln("Delete service and wait has not yet timed out.")
+			}
+
+			// Wait between checks.
+			log.Debugln("Waiting 5 seconds before trying again.")
+			time.Sleep(time.Second * 5)
+
+			// Watch that it is gone by listing repeatedly.
+			serviceList, err := client.CoreV1().Services(checkNamespace).List(metav1.ListOptions{
 				FieldSelector: "metadata.name=" + checkServiceName,
 				// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
 			})
 			if err != nil {
-				log.Infoln("Error creating watch client:", err)
-				deleteChan <- err
-				return
+				log.Errorln("Error creating service listing client:", err.Error())
+				continue
 			}
 
-			// Watch for a DELETED event.
-			for event := range watch.ResultChan() {
-				log.Debugln("Received an event watching for service changes:", event.Type)
-
-				s, ok := event.Object.(*corev1.Service)
-				if !ok {
-					log.Debugln("Got a watch event for a non-service object -- ignoring.")
-					continue
-				}
-
-				// We want an event type of DELETED here.
-				if event.Type == watchpkg.Deleted {
-					log.Infoln("Received a", event.Type, "while watching for service with name ["+s.Name+"] to be deleted.")
-					deleteChan <- nil
-					return
+			// Check for the service in the list.
+			var serviceExists bool
+			for _, svc := range serviceList.Items {
+				// If the service exists, try to delete it.
+				if svc.GetName() == checkServiceName {
+					serviceExists = true
+					err = deleteService()
+					if err != nil {
+						log.Errorln("Error when running a delete on service", checkServiceName+":", err.Error())
+					}
+					break
 				}
 			}
 
-			watch.Stop()
+			// If the service was not in the list, then we assume it has been deleted.
+			if !serviceExists {
+				deleteChan <- nil
+				break
+			}
 		}
+
 	}()
 
-	log.Infoln("Attempting to delete service in", checkNamespace, "namespace.")
+	// Send a delete on the service.
+	err := deleteService()
+	if err != nil {
+		log.Warningln("Error when running a delete on service:", checkServiceName)
+	}
 
+	return <-deleteChan
+}
+
+// deleteService issues a foreground delete for the check test service name.
+func deleteService() error {
+	log.Infoln("Attempting to delete service", checkServiceName, "in", checkNamespace, "namespace.")
 	// Make a delete options object to delete the service.
 	deletePolicy := metav1.DeletePropagationForeground
 	graceSeconds := int64(1)
@@ -201,13 +229,8 @@ func deleteService() error {
 		PropagationPolicy:  &deletePolicy,
 	}
 
-	// Delete the service.
-	err := client.CoreV1().Services(checkNamespace).Delete(checkServiceName, &deleteOpts)
-	if err != nil {
-		log.Infoln("Could not delete service:", checkServiceName)
-	}
-
-	return <-deleteChan
+	// Delete the service and return the result.
+	return client.CoreV1().Services(checkNamespace).Delete(checkServiceName, &deleteOpts)
 }
 
 // cleanUpOrphanedService cleans up services created from previous checks.
@@ -217,51 +240,38 @@ func cleanUpOrphanedService() error {
 
 	go func() {
 		defer close(cleanUpChan)
-		for {
-			// Watch that it is gone.
-			watch, err := client.CoreV1().Services(checkNamespace).Watch(metav1.ListOptions{
-				Watch:         true,
-				FieldSelector: "metadata.name=" + checkServiceName,
-				// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
-			})
-			if err != nil {
-				log.Infoln("Error creating watch client.")
-				cleanUpChan <- err
-				return
-			}
-			// If the watch is nil, skip to the next loop and make a new watch object.
-			if watch == nil {
+
+		// Watch that it is gone.
+		watch, err := client.CoreV1().Services(checkNamespace).Watch(metav1.ListOptions{
+			Watch:         true,
+			FieldSelector: "metadata.name=" + checkServiceName,
+			// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
+		})
+		if err != nil {
+			log.Infoln("Error creating watch client.")
+			cleanUpChan <- err
+			return
+		}
+		defer watch.Stop()
+
+		// Watch for a DELETED event.
+		for event := range watch.ResultChan() {
+			log.Debugln("Received an event watching for service changes:", event.Type)
+
+			s, ok := event.Object.(*corev1.Service)
+			if !ok {
+				log.Debugln("Got a watch event for a non-service object -- ignoring.")
 				continue
 			}
 
-			// Watch for a DELETED event.
-			select {
-			case event := <-watch.ResultChan():
-				log.Debugln("Received an event watching for service changes:", event.Type)
+			log.Debugln("Received an event watching for service changes:", s.Name, "got event", event.Type)
 
-				s, ok := event.Object.(*corev1.Service)
-				if !ok {
-					log.Debugln("Got a watch event for a non-service object -- ignoring.")
-					continue
-				}
-
-				// We want an event type of DELETED here.
-				if event.Type == watchpkg.Deleted {
-					log.Infoln("Received a", event.Type, "while watching for service with name ["+s.Name+"] to be deleted.")
-					cleanUpChan <- nil
-					return
-				}
-			case done := <-waitForServiceToDelete():
-				log.Infoln("Received a complete while waiting for service to delete:", done)
-				cleanUpChan <- nil
-				return
-			case <-ctx.Done():
-				log.Errorln("Context expired while waiting for service to be cleaned up.")
+			// We want an event type of DELETED here.
+			if event.Type == watchpkg.Deleted {
+				log.Infoln("Received a", event.Type, "while watching for service with name ["+s.Name+"] to be deleted.")
 				cleanUpChan <- nil
 				return
 			}
-
-			watch.Stop()
 		}
 	}()
 
@@ -275,6 +285,7 @@ func cleanUpOrphanedService() error {
 		PropagationPolicy:  &deletePolicy,
 	}
 
+	// Send the delete request.
 	err := client.CoreV1().Services(checkNamespace).Delete(checkServiceName, &deleteOpts)
 	if err != nil {
 		return errors.New("failed to delete previous service: " + err.Error())
@@ -288,6 +299,7 @@ func cleanUpOrphanedService() error {
 func findPreviousService() (bool, error) {
 
 	log.Infoln("Attempting to find previously created service(s) belonging to this check.")
+
 	serviceList, err := client.CoreV1().Services(checkNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		log.Infoln("Error listing services:", err)
@@ -381,6 +393,7 @@ func waitForServiceToDelete() chan bool {
 		for {
 			_, err := client.CoreV1().Services(checkNamespace).Get(checkServiceName, metav1.GetOptions{})
 			if err != nil {
+				log.Debugln("error from Services().Get():", err.Error())
 				if strings.Contains(err.Error(), "not found") {
 					log.Debugln("Service deleted.")
 					deleteChan <- true
