@@ -30,15 +30,6 @@ spec:
     shortNames:
       - khs
 ---
-# Source: kuberhealthy/templates/namespace.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: kuberhealthy
-spec:
-  finalizers:
-  - kubernetes
----
 # Source: kuberhealthy/templates/poddisruptionbudget.yaml
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
@@ -339,7 +330,7 @@ spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
       containers:
-      - image: quay.io/comcast/kuberhealthy:2.1.0rc1
+      - image: quay.io/comcast/kuberhealthy:2.1.0
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
@@ -481,3 +472,12 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+---
+# Source: kuberhealthy/templates/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kuberhealthy
+spec:
+  finalizers:
+  - kubernetes
