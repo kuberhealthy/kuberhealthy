@@ -77,7 +77,7 @@ func makeRequestToDeploymentCheckService(hostname string) chan error {
 			requestChan <- nil
 		case <-ctx.Done():
 			log.Errorln("Context expired while waiting for a", http.StatusOK, "from "+hostname+".")
-			err := cleanUp()
+			err := cleanUp(ctx)
 			if err != nil {
 				err = fmt.Errorf("failed to clean up properly: %w", err)
 			}
