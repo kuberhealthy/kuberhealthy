@@ -6,7 +6,7 @@ metadata:
   name: deployment
   namespace: {{ .Release.Namespace }}
 spec:
-  runInterval: 5m
+  runInterval: 10m
   timeout: 15m
   podSpec:
     containers:

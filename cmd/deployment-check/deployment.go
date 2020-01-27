@@ -349,7 +349,7 @@ func deleteDeploymentAndWait(ctx context.Context) error {
 			}
 
 			// Wait between checks.
-			log.Debugln("Waiting 5 secodns before trying again.")
+			log.Debugln("Waiting 5 seconds before trying again.")
 			time.Sleep(time.Second * 5)
 
 			// Watch that it is gone by listing repeatedly.

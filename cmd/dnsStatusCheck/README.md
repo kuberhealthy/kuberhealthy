@@ -15,7 +15,7 @@ does not complete within the given timeout it will report a timeout error on the
 
 To verify other hostnames, apply another KHCheck configuration file with a different `HOSTNAME` environment variable. 
 
-#### Daemonset Check Kube Spec:
+#### DNS Status Check Kube Spec:
 ```
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
@@ -33,7 +33,7 @@ spec:
           - name: HOSTNAME
             value: "kubernetes.default"
         image: quay.io/comcast/dns-status-check:1.0.0
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: main
         resources:
           requests:
