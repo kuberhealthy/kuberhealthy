@@ -1,5 +1,5 @@
 IMAGE="quay.io/comcast/kuberhealthy"
-TAG="2.1.0rc1"
+TAG="2.1.0"
 
 build:
 	docker build -t $(IMAGE):$(TAG) .
