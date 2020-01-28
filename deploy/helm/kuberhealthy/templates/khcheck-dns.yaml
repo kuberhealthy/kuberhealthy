@@ -4,6 +4,7 @@ apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
   name: dns-status-internal
+  namespace: {{ .Release.Namespace }}
 spec:
   runInterval: 2m
   timeout: 15m
@@ -22,4 +23,3 @@ spec:
             cpu: 10m
             memory: 50Mi
 {{- end }}
-

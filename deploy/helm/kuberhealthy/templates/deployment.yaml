@@ -3,9 +3,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "kuberhealthy.name" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "kuberhealthy.name" . }}
-    chart: {{ .Chart.Name }}
 spec:
   replicas: {{ .Values.deployment.replicas }}
   selector:
@@ -26,7 +26,6 @@ spec:
       {{- end }}
       labels:
         app: {{ template "kuberhealthy.name" . }}
-        chart: {{ .Chart.Name }}
     spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
@@ -83,3 +82,4 @@ spec:
         key: node-role.kubernetes.io/master
         operator: Exists
 {{- end -}}
+

@@ -1,5 +1,5 @@
 IMAGE="quay.io/comcast/kuberhealthy"
-TAG="2.0.0"
+TAG="2.1.0"
 
 build:
 	docker build -t $(IMAGE):$(TAG) .
@@ -10,10 +10,10 @@ push:
 amiCheck: buildAMICheck pushAMICheck
 
 buildAMICheck:
-	docker build -t quay.io/comcast/ami-check:1.0.0 -f cmd/ami-check/Dockerfile .
+	docker build -t quay.io/comcast/ami-check:1.0.1 -f cmd/ami-check/Dockerfile .
 
 pushAMICheck:
-	docker push quay.io/comcast/ami-check:1.0.0
+	docker push quay.io/comcast/ami-check:1.0.1
 
 external: buildExternalChecker pushExternalChecker
 
@@ -26,10 +26,10 @@ pushExternalChecker:
 deploymentCheck: buildDeploymentCheck pushDeploymentCheck
 
 buildDeploymentCheck:
-	docker build -t quay.io/comcast/deployment-check:1.0.3 -f cmd/deployment-check/Dockerfile .
+	docker build -t quay.io/comcast/deployment-check:1.1.0 -f cmd/deployment-check/Dockerfile .
 
 pushDeploymentCheck:
-	docker push quay.io/comcast/deployment-check:1.0.3
+	docker push quay.io/comcast/deployment-check:1.1.0
 
 daemonset: buildDaemonsetCheck pushDaemonsetCheck
 
@@ -42,10 +42,10 @@ pushDaemonsetCheck:
 kiamCheck: buildKIAMCheck pushKIAMCheck
 
 buildKIAMCheck:
-	docker build -t quay.io/comcast/kiam-check:1.0.0 -f cmd/kiam-check/Dockerfile .
+	docker build -t quay.io/comcast/kiam-check:1.0.1 -f cmd/kiam-check/Dockerfile .
 
 pushKIAMCheck:
-	docker push quay.io/comcast/kiam-check:1.0.0
+	docker push quay.io/comcast/kiam-check:1.0.1
 
 podRestarts: buildPodRestartsCheck pushPodRestartsCheck
 
@@ -66,10 +66,10 @@ pushDNSStatusCheck:
 podStatus: buildPodStatusCheck pushPodStatusCheck
 
 buildPodStatusCheck:
-	docker build -t quay.io/comcast/pod-status-check:1.0.1 -f cmd/podStatusCheck/Dockerfile .
+	docker build -t quay.io/comcast/pod-status-check:1.0.2 -f cmd/podStatusCheck/Dockerfile .
 
 pushPodStatusCheck:
-	docker push quay.io/comcast/pod-status-check:1.0.1
+	docker push quay.io/comcast/pod-status-check:1.0.2
 
 httpCheck: buildHTTPCheck pushHTTPCheck
 
@@ -78,3 +78,11 @@ buildHTTPCheck:
 
 pushHTTPCheck:
 	docker push quay.io/comcast/http-check:1.0.0
+
+checkReaper: buildCheckReaper pushCheckReaper
+
+buildCheckReaper:
+	docker build -t quay.io/comcast/check-reaper:1.0.0 -f cmd/check-reaper/Dockerfile .
+
+pushCheckReaper:
+	docker push quay.io/comcast/check-reaper:1.0.0

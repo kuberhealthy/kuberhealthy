@@ -4,13 +4,14 @@ apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
   name: deployment
+  namespace: {{ .Release.Namespace }}
 spec:
-  runInterval: 30m
-  timeout: 10m
+  runInterval: 10m
+  timeout: 15m
   podSpec:
     containers:
     - name: deployment
-      image: quay.io/comcast/deployment-check:1.0.3
+      image: quay.io/comcast/deployment-check:1.1.0
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
@@ -31,6 +32,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: deployment-check-rb
+  namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -43,6 +45,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: deployment-service-role
+  namespace: {{ .Release.Namespace }}
 rules:
   - apiGroups:
       - "apps"
@@ -81,4 +84,6 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: deployment-sa
+  namespace: {{ .Release.Namespace }}
 {{- end }}
+

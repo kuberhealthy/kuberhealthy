@@ -5,6 +5,7 @@ metadata:
   labels:
     app: {{ template "kuberhealthy.name" . }}
   name: {{ template "kuberhealthy.name" . }}
+  namespace: {{ .Release.Namespace }}
   {{- if or .Values.prometheus.enabled .Values.service.annotations }}
   annotations:
   {{- if .Values.prometheus.enabled }}
@@ -24,3 +25,4 @@ spec:
     targetPort: http
   selector:
     app: {{ template "kuberhealthy.name" . }}
+

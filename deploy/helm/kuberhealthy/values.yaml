@@ -11,7 +11,7 @@ prometheus:
 
 image:
   repository: quay.io/comcast/kuberhealthy
-  tag: 2.0.0
+  tag: 2.1.0
 
 resources:
   requests:
