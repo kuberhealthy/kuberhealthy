@@ -51,7 +51,9 @@ func (sr *StateReflector) Start() {
 	sr.reflector.Run(sr.reflectorSigChan)
 }
 
-// CurrentStatuses returns the current summary of all checks as known by the cache
+// CurrentStatus returns the current summary of checks as known by the cache.
+// Returns ALL checks if the list of namespaces to look at is empty.
+// Returns checks from requested namespaces if given any.
 func (sr *StateReflector) CurrentStatus() health.State {
 	log.Infoln("khState reflector fetching current status")
 	state := health.NewState()

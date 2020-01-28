@@ -12,7 +12,9 @@
 package main
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -91,6 +93,7 @@ func createDeploymentConfig(image string) *v1.Deployment {
 	// Make labels for pod and deployment.
 	labels := make(map[string]string, 0)
 	labels[defaultLabelKey] = defaultLabelValueBase + strconv.Itoa(int(now.Unix()))
+	labels["source"] = "kuberhealthy"
 
 	// Make and define a pod template spec with a pod spec.
 	podTemplateSpec := corev1.PodTemplateSpec{
@@ -220,7 +223,7 @@ func createDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 				select {
 				case <-ctx.Done(): // Watch for a context cancellation.
 					log.Errorln("Context expired while waiting for deployment to create.")
-					err = cleanUp() // Clean up the deployment.
+					err = cleanUp(ctx) // Clean up the deployment.
 					if err != nil {
 						result.Err = errors.New("failed to clean up properly: " + err.Error())
 					}
@@ -326,50 +329,74 @@ func createContainerConfig(imageURL string) corev1.Container {
 	return c
 }
 
-// deleteDeployment deletes the created test deployment
-func deleteDeployment() error {
+// deleteDeploymentAndWait deletes the created test deployment
+func deleteDeploymentAndWait(ctx context.Context) error {
 
 	deleteChan := make(chan error)
 
 	go func() {
 		defer close(deleteChan)
+
+		log.Debugln("Checking if deployment has been deleted.")
 		for {
-			// Watch that it is gone.
-			watch, err := client.AppsV1().Deployments(checkNamespace).Watch(metav1.ListOptions{
-				Watch:         true,
+
+			// Check if we have timed out.
+			select {
+			case <-ctx.Done():
+				deleteChan <- fmt.Errorf("timed out while waiting for deployment to delete")
+			default:
+				log.Debugln("Delete deployment and wait has not yet timed out.")
+			}
+
+			// Wait between checks.
+			log.Debugln("Waiting 5 seconds before trying again.")
+			time.Sleep(time.Second * 5)
+
+			// Watch that it is gone by listing repeatedly.
+			deploymentList, err := client.AppsV1().Deployments(checkNamespace).List(metav1.ListOptions{
 				FieldSelector: "metadata.name=" + checkDeploymentName,
 				// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
 			})
 			if err != nil {
-				log.Infoln("Error creating watch client.")
-				deleteChan <- err
-				return
+				log.Errorln("Error listing deployments:", err.Error())
+				continue
 			}
 
-			// Watch for a DELETED event.
-			for event := range watch.ResultChan() {
-				log.Debugln("Received an event watching for service changes:", event.Type)
-
-				d, ok := event.Object.(*v1.Deployment)
-				if !ok {
-					log.Infoln("Got a watch event for a non-deployment object -- ignoring.")
-					continue
-				}
-
-				// We want an event type of DELETED here.
-				if event.Type == watchpkg.Deleted {
-					log.Infoln("Received a", event.Type, "while watching for deployment with name ["+d.Name+"] to be deleted.")
-					deleteChan <- nil
-					return
+			// Check for the deployment in the list.
+			var deploymentExists bool
+			for _, deploy := range deploymentList.Items {
+				// If the deployment exists, try to delete it.
+				if deploy.GetName() == checkDeploymentName {
+					deploymentExists = true
+					err = deleteDeployment()
+					if err != nil {
+						log.Errorln("Error when running a delete on deployment", checkDeploymentName+":", err.Error())
+					}
+					break
 				}
 			}
 
-			watch.Stop()
+			// If the deployment was not in the list, then we assume it has been deleted.
+			if !deploymentExists {
+				deleteChan <- nil
+				break
+			}
 		}
+
 	}()
 
-	log.Infoln("Attempting to delete deployment in", checkNamespace, "namespace.")
+	// Send a delete on the deployment.
+	err := deleteDeployment()
+	if err != nil {
+		log.Infoln("Could not delete deployment:", checkDeploymentName)
+	}
 
+	return <-deleteChan
+}
+
+// deleteDeployment issues a foreground delete for the check test deployment name.
+func deleteDeployment() error {
+	log.Infoln("Attempting to delete deployment in", checkNamespace, "namespace.")
 	// Make a delete options object to delete the deployment.
 	deletePolicy := metav1.DeletePropagationForeground
 	graceSeconds := int64(1)
@@ -378,13 +405,8 @@ func deleteDeployment() error {
 		PropagationPolicy:  &deletePolicy,
 	}
 
-	// Delete the deployment.
-	err := client.AppsV1().Deployments(checkNamespace).Delete(checkDeploymentName, &deleteOpts)
-	if err != nil {
-		log.Infoln("Could not delete deployment:", checkDeploymentName)
-	}
-
-	return <-deleteChan
+	// Delete the deployment and return the result.
+	return client.AppsV1().Deployments(checkNamespace).Delete(checkDeploymentName, &deleteOpts)
 }
 
 // cleanUpOrphanedDeployment cleans up deployments created from previous checks.
@@ -395,53 +417,37 @@ func cleanUpOrphanedDeployment() error {
 	go func() {
 		defer close(cleanUpChan)
 
-		for {
-			// Watch that it is gone.
-			watch, err := client.AppsV1().Deployments(checkNamespace).Watch(metav1.ListOptions{
-				Watch:         true,
-				FieldSelector: "metadata.name=" + checkDeploymentName,
-				// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
-			})
-			if err != nil {
-				log.Infoln("Error creating watch client.")
-				cleanUpChan <- err
-				return
-			}
-			// If the watch is nil, skip to the next loop and make a new watch object.
-			if watch == nil {
+		// Watch that it is gone.
+		watch, err := client.AppsV1().Deployments(checkNamespace).Watch(metav1.ListOptions{
+			Watch:         true,
+			FieldSelector: "metadata.name=" + checkDeploymentName,
+			// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
+		})
+		if err != nil {
+			log.Infoln("Error creating watch client.")
+			cleanUpChan <- err
+			return
+		}
+		defer watch.Stop()
+
+		// Watch for a DELETED event.
+		for event := range watch.ResultChan() {
+			log.Debugln("Received an event watching for service changes:", event.Type)
+
+			d, ok := event.Object.(*v1.Deployment)
+			if !ok {
+				log.Infoln("Got a watch event for a non-deployment object -- ignoring.")
 				continue
 			}
 
-			// Watch for a DELETED event.
-			select {
-			case event := <-watch.ResultChan():
+			log.Debugln("Received an event watching for deployment changes:", d.Name, "got event", event.Type)
 
-				d, ok := event.Object.(*v1.Deployment)
-				if !ok {
-					log.Infoln("Got a watch event for a non-deployment object -- ignoring.")
-					continue
-				}
-
-				log.Debugln("Received an event watching for deployment changes:", d.Name, "got event", event.Type)
-
-				// We want an event type of DELETED here.
-				if event.Type == watchpkg.Deleted {
-					log.Infoln("Received a", event.Type, "while watching for deployment with name ["+d.Name+"] to be deleted")
-					cleanUpChan <- nil
-					return
-				}
-			case done := <-waitForDeploymentToDelete():
-				log.Infoln("Received a complete while waiting for service to delete:", done)
-				cleanUpChan <- nil
-				return
-			case <-ctx.Done():
-				log.Errorln("context expired while waiting for service to be cleaned up.")
+			// We want an event type of DELETED here.
+			if event.Type == watchpkg.Deleted {
+				log.Infoln("Received a", event.Type, "while watching for deployment with name ["+d.Name+"] to be deleted")
 				cleanUpChan <- nil
 				return
 			}
-
-			// Stop the watch on each loop because we will create a new one.
-			watch.Stop()
 		}
 	}()
 
@@ -578,7 +584,7 @@ func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 			case <-ctx.Done():
 				// If the context has expired, exit.
 				log.Errorln("Context expired while waiting for deployment to create.")
-				err = cleanUp()
+				err = cleanUp(ctx)
 				if err != nil {
 					result.Err = errors.New("failed to clean up properly: " + err.Error())
 				}
@@ -602,6 +608,7 @@ func waitForDeploymentToDelete() chan bool {
 		for {
 			_, err := client.AppsV1().Deployments(checkNamespace).Get(checkDeploymentName, metav1.GetOptions{})
 			if err != nil {
+				log.Debugln("error from Deployments().Get():", err.Error())
 				if strings.Contains(err.Error(), "not found") {
 					log.Debugln("Deployment deleted.")
 					deleteChan <- true

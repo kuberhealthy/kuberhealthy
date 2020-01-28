@@ -14,6 +14,7 @@ package metrics // import "github.com/Comcast/kuberhealthy/pkg/metrics"
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -29,21 +30,29 @@ func GenerateMetrics(state health.State) string {
 	}
 	metricsOutput += "# HELP kuberhealthy_running Shows if kuberhealthy is running error free\n"
 	metricsOutput += "# TYPE kuberhealthy_running gauge\n"
-	metricsOutput += fmt.Sprintf("kuberhealthy_running{currentMaster=\"%s\"} 1\n", state.CurrentMaster)
+	metricsOutput += fmt.Sprintf("kuberhealthy_running{current_master=\"%s\"} 1\n", state.CurrentMaster)
 	metricsOutput += "# HELP kuberhealthy_cluster_state Shows the status of the cluster\n"
 	metricsOutput += "# TYPE kuberhealthy_cluster_state gauge\n"
 	metricsOutput += fmt.Sprintf("kuberhealthy_cluster_state %s\n", healthStatus)
+	metricsOutput += "# HELP kuberhealthy_check Shows the status of a Kuberhealthy check\n"
+	metricsOutput += "# TYPE kuberhealthy_check gauge\n"
+	metricsOutput += "# HELP kuberhealthy_check_duration_seconds Shows the check run duration of a Kuberhealthy check\n"
+	metricsOutput += "# TYPE kuberhealthy_check_duration_seconds gauge\n"
 	checkMetricState := map[string]string{}
 	for c, d := range state.CheckDetails {
-		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		checkStatus := "0"
 		if d.OK {
 			checkStatus = "1"
 		}
+		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\",namespace=\"%s\",status=\"%s\"}", c, d.Namespace, checkStatus)
+		metricDurationName := fmt.Sprintf("kuberhealthy_check_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		checkMetricState[metricName] = checkStatus
+		runDuration, err := time.ParseDuration(d.RunDuration)
+		if err != nil {
+			log.Errorln("Error parsing run duration", err)
+		}
+		checkMetricState[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
 	}
-	metricsOutput += "# HELP kuberhealthy_check Shows the status of a Kuberhealthy check\n"
-	metricsOutput += "# TYPE kuberhealthy_check gauge\n"
 	for m, v := range checkMetricState {
 		metricsOutput += fmt.Sprintf("%s %s\n", m, v)
 	}

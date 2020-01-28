@@ -40,16 +40,14 @@ import (
 
 // Kuberhealthy represents the kuberhealthy server and its checks
 type Kuberhealthy struct {
-	Checks               []KuberhealthyCheck
-	ListenAddr           string // the listen address, such as ":80"
-	MetricForwarder      metrics.Client
-	overrideKubeClient   *kubernetes.Clientset
-	cancelChecksFunc     context.CancelFunc // invalidates the context of all running checks
-	wg                   sync.WaitGroup     // used to track running checks
-	shutdownCtxFunc      context.CancelFunc // used to shutdown the main control select
-	stateReflector       *StateReflector    // a reflector that can cache the current state of the khState resources
-	khStateReaperCtx     context.Context    // used to control the khState reaper
-	khStateReaperCtxFunc context.CancelFunc // used to shut down the khState reaper
+	Checks             []KuberhealthyCheck
+	ListenAddr         string // the listen address, such as ":80"
+	MetricForwarder    metrics.Client
+	overrideKubeClient *kubernetes.Clientset
+	cancelChecksFunc   context.CancelFunc // invalidates the context of all running checks
+	wg                 sync.WaitGroup     // used to track running checks
+	shutdownCtxFunc    context.CancelFunc // used to shutdown the main control select
+	stateReflector     *StateReflector    // a reflector that can cache the current state of the khState resources
 }
 
 // NewKuberhealthy creates a new kuberhealthy checker instance
@@ -115,12 +113,6 @@ func (k *Kuberhealthy) Shutdown(doneChan chan struct{}) {
 // StopChecks causes the kuberhealthy check group to shutdown gracefully.
 // All checks are sent a shutdown command at the same time.
 func (k *Kuberhealthy) StopChecks() {
-
-	// if the reaper has a context to kill, do it
-	log.Infoln("control: stopping khState reaper...")
-	if k.khStateReaperCtxFunc != nil {
-		k.khStateReaperCtxFunc()
-	}
 
 	log.Infoln("control:", len(k.Checks), "checks stopping...")
 	if k.cancelChecksFunc != nil {
@@ -207,7 +199,7 @@ func (k *Kuberhealthy) RestartChecks() {
 }
 
 // khStateResourceReaper runs reapKHStateResources on an interval until the context for it is canceled
-func (k *Kuberhealthy) khStateResourceReaper() {
+func (k *Kuberhealthy) khStateResourceReaper(ctx context.Context) {
 
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
@@ -221,7 +213,7 @@ func (k *Kuberhealthy) khStateResourceReaper() {
 			if err != nil {
 				log.Errorln("khState reaper: Error when reaping khState resources:", err)
 			}
-		case <-k.khStateReaperCtx.Done():
+		case <-ctx.Done():
 			log.Infoln("khState reaper: stopping")
 			return
 		}
@@ -476,8 +468,15 @@ func (k *Kuberhealthy) addExternalChecks() error {
 		log.Debugln("RunTimeout for check:", c.CheckName, "set to", c.RunTimeout)
 
 		// add on extra annotations and labels
-		c.ExtraAnnotations = r.Spec.ExtraAnnotations
-		c.ExtraLabels = r.Spec.ExtraLabels
+		if c.ExtraAnnotations != nil {
+			log.Debugln("External check setting extra annotations:", c.ExtraAnnotations)
+			c.ExtraAnnotations = r.Spec.ExtraAnnotations
+		}
+		if c.ExtraLabels != nil {
+			log.Debugln("External check setting extra labels:", c.ExtraLabels)
+			c.ExtraLabels = r.Spec.ExtraLabels
+		}
+		log.Debugln("External check labels and annotations:", c.ExtraLabels, c.ExtraAnnotations)
 
 		// add the check into the checker
 		k.AddCheck(c)
@@ -509,9 +508,8 @@ func (k *Kuberhealthy) StartChecks() {
 	}
 
 	// spin up the khState reaper with a context after checks have been configured and started
-	log.Infoln("control:", len(k.Checks), "reaper starting!")
-	k.khStateReaperCtx, k.khStateReaperCtxFunc = context.WithCancel(context.Background())
-	go k.khStateResourceReaper()
+	log.Infoln("control: reaper starting!")
+	go k.khStateResourceReaper(ctx)
 }
 
 // masterStatusWatcher watches for master change events and updates the global upcomingMasterState along
@@ -615,6 +613,8 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 
 		// Run the check
 		log.Infoln("Running check:", c.Name())
+		// Record check run start time
+		checkStartTime := time.Now()
 		err := c.Run(kubernetesClient)
 		if err != nil {
 			log.Errorln("Error running check:", c.Name(), "in namespace", c.CheckNamespace()+":", err)
@@ -629,6 +629,12 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		}
 		log.Debugln("Done running check:", c.Name(), "in namespace", c.CheckNamespace())
 
+		// Record check run end time
+		// Subtract 10 seconds from run time since there are two 5 second sleeps during the check run where kuberhealthy
+		// waits for all pods to clear before running the check and waits for all pods to exit once the check has finished
+		// running. Both occur before and after the checker pod completes its run.
+		checkRunDuration := time.Now().Sub(checkStartTime) - time.Second*10
+
 		// make a new state for this check and fill it from the check's current status
 		checkDetails, err := getCheckState(c)
 		if err != nil {
@@ -637,6 +643,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		details := health.NewCheckDetails()
 		details.Namespace = c.CheckNamespace()
 		details.OK, details.Errors = c.CurrentStatus()
+		details.RunDuration = checkRunDuration.String()
 		details.CurrentUUID = checkDetails.CurrentUUID
 
 		// send data to the metric forwarder if configured
@@ -644,6 +651,11 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 			checkStatus := 0
 			if details.OK {
 				checkStatus = 1
+			}
+
+			runDuration, err := time.ParseDuration(details.RunDuration)
+			if err != nil {
+				log.Errorln("Error parsing run duration", err)
 			}
 
 			tags := map[string]string{
@@ -654,14 +666,15 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 			}
 			metric := metrics.Metric{
 				{c.Name() + "." + c.CheckNamespace(): checkStatus},
+				{"RunDuration." + c.Name() + "." + c.CheckNamespace(): runDuration.Seconds()},
 			}
-			err := k.MetricForwarder.Push(metric, tags)
+			err = k.MetricForwarder.Push(metric, tags)
 			if err != nil {
 				log.Errorln("Error forwarding metrics", err)
 			}
 		}
 
-		log.Infoln("Setting state of check", c.Name(), "in namespace", c.CheckNamespace(), "to", details.OK, details.Errors, details.CurrentUUID)
+		log.Infoln("Setting state of check", c.Name(), "in namespace", c.CheckNamespace(), "to", details.OK, details.Errors, details.RunDuration, details.CurrentUUID)
 
 		// store the check state with the CRD
 		err = k.storeCheckState(c.Name(), c.CheckNamespace(), details)
@@ -949,10 +962,18 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		}
 	}
 
+	// Need to fetch current check run duration so we do not overwrite it when updating KHState object
+	checkDetails := k.stateReflector.CurrentStatus().CheckDetails
+	checkRunDuration := time.Duration(0).String()
+	if checkDetails != nil {
+		checkRunDuration = checkDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
+	}
+
 	// create a details object from our incoming status report before storing it as a khstate custom resource
 	details := health.NewCheckDetails()
 	details.Errors = state.Errors
 	details.OK = state.OK
+	details.RunDuration = checkRunDuration
 	details.Namespace = ipReport.Namespace
 	details.CurrentUUID = ipReport.UUID
 
@@ -987,7 +1008,7 @@ func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, r *http.Requ
 
 func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to prometheus metrics endpoint from", r.RemoteAddr, r.UserAgent())
-	state := k.getCurrentState()
+	state := k.getCurrentState([]string{})
 	m := metrics.GenerateMetrics(state)
 	// write summarized health check results back to caller
 	_, err := w.Write([]byte(m))
@@ -998,7 +1019,7 @@ func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.R
 }
 
 // healthCheckHandler returns the current status of checks loaded into Kuberhealthy
-// as JSON to the client.
+// as JSON to the client. Respects namespace requests via URL query parameters (i.e. /?namespace=default)
 func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
 
@@ -1010,8 +1031,24 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 		return err
 	}
 
+	// get URL query parameters if there are any
+	values := r.URL.Query()
+	namespaceValue := values.Get("namespace")
+	// .Get() will return an "" if there is no value associated -- we do not want to pass "" as a requested namespace
+	var namespaces []string
+	if len(namespaceValue) != 0 {
+		namespaceSplits := strings.Split(namespaceValue, ",")
+		// a query like (/?namespace=,) will cause .Split() to return an array of two empty strings ["", ""]
+		// so we need to filter those out
+		for _, namespaceSplit := range namespaceSplits {
+			if len(namespaceSplit) != 0 {
+				namespaces = append(namespaces, namespaceSplit)
+			}
+		}
+	}
+
 	// fetch the current status from our khstate resources
-	state := k.getCurrentState()
+	state := k.getCurrentState(namespaces)
 
 	// write summarized health check results back to caller
 	err = state.WriteHTTPStatusResponse(w)
@@ -1021,10 +1058,60 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 	return err
 }
 
-// getCurrentState fetches the current state of all checks from their CRD objects and returns the summary as a
-// health.State. Failures to fetch CRD state return an error.
-func (k *Kuberhealthy) getCurrentState() health.State {
+// getCurrentState fetches the current state of all checks from requested namespaces
+// their CRD objects and returns the summary as a health.State. Without a requested namespace,
+// this will return the state of ALL found checks.
+// Failures to fetch CRD state return an error.
+func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
+	if len(namespaces) != 0 {
+		return k.getCurrentStatusForNamespaces(namespaces)
+	}
 	return k.stateReflector.CurrentStatus()
+}
+
+// getCurrentState fetches the current state of all checks from the requested namespaces
+// their CRD objects and returns the summary as a health.State.
+// Failures to fetch CRD state return an error.
+func (k *Kuberhealthy) getCurrentStatusForNamespaces(namespaces []string) health.State {
+	// if there is are requested namespaces, then filter out checks from namespaces not matching those requested
+	states := k.stateReflector.CurrentStatus()
+	statesForNamespaces := states
+	statesForNamespaces.Errors = []string{}
+	statesForNamespaces.OK = true
+	statesForNamespaces.CheckDetails = make(map[string]health.CheckDetails)
+	if len(namespaces) != 0 {
+		for checkName, checkState := range states.CheckDetails {
+			// check if the namespace matches anything requested
+			if !containsString(checkState.Namespace, namespaces) {
+				log.Debugln("Skipping", checkName, "because it is not from the", namespaces, "namespace(s)")
+				continue
+			}
+
+			// skip the check if it has never been run before.  This prevents checks that have not yet
+			// run from showing in the status page.
+			if len(checkState.AuthoritativePod) == 0 {
+				log.Debugln("Output for", checkName, checkState.Namespace, "hidden from status page due to blank authoritative pod")
+				continue
+			}
+
+			// parse check status from CRD and add it to the global status of errors. Skip blank errors
+			for _, e := range checkState.Errors {
+				if len(strings.TrimSpace(e)) == 0 {
+					log.Warningln("Skipped an error that was blank when adding check details to current state.")
+					continue
+				}
+				statesForNamespaces.AddError(e)
+				log.Debugln("Status page: Setting global OK state to false due to check details not being OK")
+				statesForNamespaces.OK = false
+			}
+
+			// update check details struct
+			statesForNamespaces.CheckDetails[checkName] = checkState
+		}
+	}
+
+	log.Infoln("khState reflector returning current status on", len(statesForNamespaces.CheckDetails), "khStates")
+	return statesForNamespaces
 }
 
 // getCheck returns a Kuberhealthy check object from its name, returns an error otherwise

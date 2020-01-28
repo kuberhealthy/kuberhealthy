@@ -86,3 +86,14 @@ func notifyChanLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan cha
 		}
 	}
 }
+
+// containsString returns a boolean value based on whether or not a slice of strings contains
+// a string.
+func containsString(s string, list []string) bool {
+	for _, str := range list {
+		if s == str {
+			return true
+		}
+	}
+	return false
+}
