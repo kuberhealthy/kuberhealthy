@@ -30,20 +30,10 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 
 **Requires Kubernetes 1.11 or above**
 
-Helm installations are currently not available from `helm/charts/kuberhealthy` due to a slow PR process.  For now, use the flat files below.
+Helm installations are currently out of date if used from `helm/charts/kuberhealthy` due to a slow PR process.  For now, use the flat files below.  Tracked in issue [#288](https://github.com/Comcast/kuberhealthy/issues/288).
 
-> [Helm 3](https://helm.sh/) required for all chart installation.
-> 
-> To install using Helm 3 *without* Prometheus metrics:
-> `helm install stable/kuberhealthy`
-> 
-> To install using Helm 3 *with* Prometheus metrics:
-> `helm install stable/kuberhealthy --set prometheus.enabled=true --set prometheus.enableScraping=true --set prometheus.enableAlerting=true`
-> 
-> To install using Helm 3 *with* a Prometheus `ServiceMonitor`:
-> `helm install stable/kuberhealthy --set prometheus.enabled=true --set prometheus.enableScraping=true --set prometheus.enableAlerting=true --set prometheus.serviceMonitor=true`
- 
-You can also use a flat spec file if you don't want to use Helm:
+For now, install Kuberhealthy via our rendered flat files in this repository using:
+
 `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/kuberhealthy.yaml`
 
 To install using other flat yaml spec files, see the [deploy directory](/deploy).
@@ -58,7 +48,6 @@ Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.15.x`.
 ### Prometheus Alerts
 
 A `ServiceMonitor` configuration is available at [deploy/servicemonitor.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/servicemonitor.yaml).
-
 
 ### Prometheus Grafana Dashboard
 
