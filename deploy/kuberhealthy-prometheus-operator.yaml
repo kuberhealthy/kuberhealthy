@@ -59,6 +59,7 @@ metadata:
     prometheus: prometheus
     role: alert-rules
   name: kuberhealthy
+  namespace: kuberhealthy
 data:
   kuberhealthy.rules: |-
     groups:
@@ -486,6 +487,7 @@ metadata:
     app: kuberhealthy
     prometheus: prometheus
   name: kuberhealthy
+  namespace: kuberhealthy
 spec:
   jobLabel: component
   selector:
