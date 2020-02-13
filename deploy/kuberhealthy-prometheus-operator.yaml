@@ -300,9 +300,6 @@ metadata:
   name: kuberhealthy
   namespace: kuberhealthy
   annotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "80"
-    prometheus.io/path: "/metrics"
 spec:
   type: ClusterIP
   ports:
