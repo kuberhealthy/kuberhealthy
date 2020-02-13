@@ -81,6 +81,8 @@ func init() {
 		log.Infoln("CHECK_POD_TIMEOUT environment variable has not been set. Using default Daemonset Checker timeout", defaultDSCheckTimeout)
 		dsCheckTimeout = defaultDSCheckTimeout
 	}
+	
+	DSPauseContainerImageOverride := os.Getenv("PAUSE_CONTAINER_IMAGE")
 
 	var err error
 	Timeout, err = time.ParseDuration(dsCheckTimeout)
