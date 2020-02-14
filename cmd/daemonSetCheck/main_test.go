@@ -6,12 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
-	betaapiv1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
 )
 
 func testSetup(clientNeeded bool) (*Checker, error) {
@@ -261,7 +262,7 @@ func makeDaemonsets(dsc *Checker, orphan bool) error {
 		hostname:      hostname,
 	}
 
-	testDS.DaemonSet = &betaapiv1.DaemonSet{
+	testDS.DaemonSet = &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: testDS.DaemonSetName,
 			Labels: map[string]string{
@@ -271,7 +272,7 @@ func makeDaemonsets(dsc *Checker, orphan bool) error {
 				"checkRunTime": checkRunTime,
 			},
 		},
-		Spec: betaapiv1.DaemonSetSpec{
+		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app":              testDS.DaemonSetName,
