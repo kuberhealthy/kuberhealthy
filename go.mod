@@ -1,4 +1,4 @@
-module github.com/Comcast/kuberhealthy
+module github.com/Comcast/kuberhealthy/v2
 
 replace github.com/go-resty/resty => gopkg.in/resty.v1 v1.10.0
 
