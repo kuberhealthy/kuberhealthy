@@ -8,9 +8,9 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
-	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
+	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 
 	apiv1 "k8s.io/api/core/v1"
 )
