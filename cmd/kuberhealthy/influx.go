@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/url"
 
-	"github.com/Comcast/kuberhealthy/pkg/metrics"
+	"github.com/Comcast/kuberhealthy/v2/pkg/metrics"
 )
 
 // configureInflux configures influxdb connection information
