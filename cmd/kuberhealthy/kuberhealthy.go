@@ -30,12 +30,12 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/Comcast/kuberhealthy/pkg/checks/external"
-	"github.com/Comcast/kuberhealthy/pkg/checks/external/status"
-	"github.com/Comcast/kuberhealthy/pkg/health"
-	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
-	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
-	"github.com/Comcast/kuberhealthy/pkg/metrics"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/status"
+	"github.com/Comcast/kuberhealthy/v2/pkg/health"
+	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
+	"github.com/Comcast/kuberhealthy/v2/pkg/masterCalculation"
+	"github.com/Comcast/kuberhealthy/v2/pkg/metrics"
 )
 
 // Kuberhealthy represents the kuberhealthy server and its checks
