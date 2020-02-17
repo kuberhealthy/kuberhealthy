@@ -27,8 +27,8 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	checkclient "github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient"
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
+	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkClient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
 const maxTimeInFailure = 60 * time.Second
