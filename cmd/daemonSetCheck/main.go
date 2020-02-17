@@ -25,17 +25,16 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	v1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 
 	log "github.com/sirupsen/logrus"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
-	apiv1 "k8s.io/api/core/v1"
-	betaapiv1 "k8s.io/api/extensions/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
+	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 
 	checkclient "github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient"
 	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
@@ -81,8 +80,8 @@ func init() {
 		log.Infoln("CHECK_POD_TIMEOUT environment variable has not been set. Using default Daemonset Checker timeout", defaultDSCheckTimeout)
 		dsCheckTimeout = defaultDSCheckTimeout
 	}
-	
-	DSPauseContainerImageOverride := os.Getenv("PAUSE_CONTAINER_IMAGE")
+
+	DSPauseContainerImageOverride = os.Getenv("PAUSE_CONTAINER_IMAGE")
 
 	var err error
 	Timeout, err = time.ParseDuration(dsCheckTimeout)
@@ -1099,7 +1098,7 @@ func (dsc *Checker) waitForPodRemoval() error {
 }
 
 // getDaemonSetClient returns a daemon set client, useful for interacting with daemonsets
-func (dsc *Checker) getDaemonSetClient() appsv1.DaemonSetInterface {
+func (dsc *Checker) getDaemonSetClient() v1.DaemonSetInterface {
 	log.Debug("Creating Daemonset client.")
-	return dsc.client.appsv1().DaemonSets(dsc.Namespace)
+	return dsc.client.AppsV1().DaemonSets(dsc.Namespace)
 }
