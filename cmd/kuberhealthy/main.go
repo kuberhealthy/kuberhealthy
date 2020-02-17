@@ -27,10 +27,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 
-	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
-	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
-	"github.com/Comcast/kuberhealthy/pkg/masterCalculation"
+	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
+	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/masterCalculation"
 )
 
 // status represents the current Kuberhealthy OK:Error state
