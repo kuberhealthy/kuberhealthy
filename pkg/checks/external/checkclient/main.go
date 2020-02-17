@@ -12,8 +12,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Comcast/kuberhealthy/pkg/checks/external"
-	"github.com/Comcast/kuberhealthy/pkg/checks/external/status"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/status"
 )
 
 // Debug can be used to enable output logging from the checkClient
