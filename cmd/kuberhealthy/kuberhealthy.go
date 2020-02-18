@@ -296,8 +296,6 @@ func (k *Kuberhealthy) watchForKHCheckChanges(c chan struct{}) {
 			case watch.Deleted:
 				log.Debugln("khcheck monitor saw a deleted event")
 				c <- struct{}{}
-			case watch.Bookmark:
-				log.Debugln("khcheck monitor saw a bookmark event and ignored it")
 			case watch.Error:
 				log.Debugln("khcheck monitor saw an error event")
 				e := khc.Object.(*metav1.Status)

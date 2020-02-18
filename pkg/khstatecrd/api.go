@@ -15,7 +15,6 @@ import (
 	"log"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -53,7 +52,8 @@ func Client(GroupName string, GroupVersion string, kubeConfig string, namespace 
 	config := *c
 	config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: GroupName, Version: GroupVersion}
 	config.APIPath = "/apis"
-	config.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
+	// config.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(){CodecFactory: scheme.Codecs}
+	config.NegotiatedSerializer = scheme.Codecs
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
 
 	// log.Println("creating khstate rest client")
