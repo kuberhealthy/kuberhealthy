@@ -905,7 +905,7 @@ func (k *Kuberhealthy) externalCheckReportHandlerLog(s ...interface{}) {
 // externalCheckReportHandler handles requests coming from external checkers reporting their status.
 // This endpoint checks that the external check report is coming from the correct UUID before recording
 // the reported status of the corresponding external check.  This endpoint expects a JSON payload of
-// the `State` struct found in the github.com/Comcast/kuberhealthy/pkg/health package.  The request
+// the `State` struct found in the github.com/Comcast/kuberhealthy/v2/pkg/health package.  The request
 // causes a check of the calling pod's spec via the API to ensure that the calling pod is expected
 // to be reporting its status.
 func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {

@@ -9,7 +9,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package metrics // import "github.com/Comcast/kuberhealthy/pkg/metrics"
+package metrics // import "github.com/Comcast/kuberhealthy/v2/pkg/metrics"
 
 import (
 	"fmt"

@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
@@ -59,7 +59,7 @@ func listCheckerPods(client *kubernetes.Clientset) (map[string]v1.Pod, error) {
 	log.Infoln("Found:", len(pods.Items), "checker pods")
 
 	for _, p := range pods.Items {
-		if p.Status.Phase == "Succeeded" || p.Status.Phase == "Failed"  {
+		if p.Status.Phase == "Succeeded" || p.Status.Phase == "Failed" {
 			//log.Infoln("Checker pod: ", p.Name, "found in namespace: ", p.Namespace)
 			ReapCheckerPods[p.Name] = p
 		}
@@ -74,7 +74,7 @@ func deleteFilteredCheckerPods(client *kubernetes.Clientset, reapCheckerPods map
 	var err error
 
 	for k, v := range reapCheckerPods {
-		
+
 		// Delete pods older than 5 hours and is in status Succeeded
 		if time.Now().Sub(v.CreationTimestamp.Time).Hours() > 5 && v.Status.Phase == "Succeeded" {
 			log.Infoln("Found pod older than 5 hours in status `Succeeded`. Deleting pod:", k)
