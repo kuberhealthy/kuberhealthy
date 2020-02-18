@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
 func testSetup(clientNeeded bool) (*Checker, error) {
@@ -156,10 +156,9 @@ func TestGetAllAndDeleteDaemonsetsAndPods(t *testing.T) {
 		for _, p := range postPodList {
 			t.Logf("Found post pod: %s", p.Name)
 		}
-			t.Fatal("Daemonset pods have not been deleted / cleaned up.")
+		t.Fatal("Daemonset pods have not been deleted / cleaned up.")
 	}
 	t.Logf("Daemonset pods have been deleted / cleaned up.")
-
 
 	postDSList, err := checker.getAllDaemonsets()
 	if err != nil {
@@ -177,53 +176,51 @@ func TestGetAllAndDeleteDaemonsetsAndPods(t *testing.T) {
 
 func TestParseTolerationOverride(t *testing.T) {
 	var taintTests = []struct {
-		input 		[]string // input
-		expected 	[]apiv1.Toleration //output
-		err			string
+		input    []string           // input
+		expected []apiv1.Toleration //output
+		err      string
 	}{
 		{[]string{"node-role.kubernetes.io/master,,NoSchedule"},
 			[]apiv1.Toleration{
-			{
-				Key:    "node-role.kubernetes.io/master",
-				Value:  "",
-				Effect: apiv1.TaintEffect("NoSchedule"),
+				{
+					Key:    "node-role.kubernetes.io/master",
+					Value:  "",
+					Effect: apiv1.TaintEffect("NoSchedule"),
+				},
 			},
-		},
-		"",
+			"",
 		},
 		{
 			[]string{"dedicated,someteam,NoSchedule"},
 			[]apiv1.Toleration{
-			{
-				Key:    "dedicated",
-				Value:  "someteam",
-				Effect: apiv1.TaintEffect("NoSchedule"),
+				{
+					Key:    "dedicated",
+					Value:  "someteam",
+					Effect: apiv1.TaintEffect("NoSchedule"),
+				},
 			},
-		},
-		"",
+			"",
 		},
 		{[]string{"node-role.kubernetes.io/master,,NoSchedule", "dedicated,someteam,NoSchedule"},
 			[]apiv1.Toleration{
-			{
-				Key:    "node-role.kubernetes.io/master",
-				Value:  "",
-				Effect: apiv1.TaintEffect("NoSchedule"),
+				{
+					Key:    "node-role.kubernetes.io/master",
+					Value:  "",
+					Effect: apiv1.TaintEffect("NoSchedule"),
+				},
+				{
+					Key:    "dedicated",
+					Value:  "someteam",
+					Effect: apiv1.TaintEffect("NoSchedule"),
+				},
 			},
-			{
-				Key:    "dedicated",
-				Value:  "someteam",
-				Effect: apiv1.TaintEffect("NoSchedule"),
-			},
+			"",
 		},
-		"",
-		},
-		{ []string{"too,much,input,for,this,function"}, []apiv1.Toleration{},
+		{[]string{"too,much,input,for,this,function"}, []apiv1.Toleration{},
 			"Unable to parse the passed in taint overrides - are they in the correct format?",
-
 		},
-		{ []string{"notenoughinput"}, []apiv1.Toleration{},
+		{[]string{"notenoughinput"}, []apiv1.Toleration{},
 			"Unable to parse the passed in taint overrides - are they in the correct format?",
-
 		},
 	}
 
@@ -232,7 +229,7 @@ func TestParseTolerationOverride(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, tt := range taintTests{
+	for _, tt := range taintTests {
 		actual, err := checker.ParseTolerationOverride(tt.input)
 		if err != nil && err.Error() != tt.err {
 			t.Fatal(err)
@@ -269,7 +266,7 @@ func makeDaemonsets(dsc *Checker, orphan bool) error {
 				"app":              testDS.DaemonSetName,
 				"source":           "kuberhealthy",
 				"creatingInstance": dsc.hostname,
-				"checkRunTime": checkRunTime,
+				"checkRunTime":     checkRunTime,
 			},
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -278,7 +275,7 @@ func makeDaemonsets(dsc *Checker, orphan bool) error {
 					"app":              testDS.DaemonSetName,
 					"source":           "kuberhealthy",
 					"creatingInstance": dsc.hostname,
-					"checkRunTime": checkRunTime,
+					"checkRunTime":     checkRunTime,
 				},
 			},
 			Template: apiv1.PodTemplateSpec{
@@ -287,7 +284,7 @@ func makeDaemonsets(dsc *Checker, orphan bool) error {
 						"app":              testDS.DaemonSetName,
 						"source":           "kuberhealthy",
 						"creatingInstance": dsc.hostname,
-						"checkRunTime": checkRunTime,
+						"checkRunTime":     checkRunTime,
 					},
 					Name: testDS.DaemonSetName,
 				},

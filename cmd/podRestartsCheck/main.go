@@ -27,8 +27,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	checkclient "github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient"
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
+	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkClient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
 const defaultMaxFailuresAllowed = 10
@@ -40,10 +40,10 @@ var MaxFailuresAllowed int32
 
 // Checker represents a long running pod restart checker.
 type Checker struct {
-	Namespace           string
-	MaxFailuresAllowed  int32
-	BadPods				map[string]string
-	client              *kubernetes.Clientset
+	Namespace          string
+	MaxFailuresAllowed int32
+	BadPods            map[string]string
+	client             *kubernetes.Clientset
 }
 
 func init() {
@@ -105,10 +105,10 @@ func main() {
 // New creates a new pod restart checker for a specific namespace, ready to use.
 func New(client *kubernetes.Clientset) *Checker {
 	return &Checker{
-		Namespace:           Namespace,
-		MaxFailuresAllowed:  MaxFailuresAllowed,
-		BadPods: 			 make(map[string]string),
-		client: 			 client,
+		Namespace:          Namespace,
+		MaxFailuresAllowed: MaxFailuresAllowed,
+		BadPods:            make(map[string]string),
+		client:             client,
 	}
 }
 
@@ -167,7 +167,7 @@ func (prc *Checker) doChecks() error {
 
 			// Checks for pods with BackOff events greater than the MaxFailuresAllowed
 			if event.InvolvedObject.Kind == "Pod" && event.Reason == "BackOff" && event.Count > prc.MaxFailuresAllowed {
-				errorMessage := "Found: " + strconv.FormatInt(int64(event.Count), 10) + " `BackOff` events for pod: " +  event.InvolvedObject.Name + " in namespace: " + prc.Namespace
+				errorMessage := "Found: " + strconv.FormatInt(int64(event.Count), 10) + " `BackOff` events for pod: " + event.InvolvedObject.Name + " in namespace: " + prc.Namespace
 
 				log.Infoln(errorMessage)
 
@@ -223,4 +223,3 @@ func reportKHFailure(errorMessages []string) error {
 	log.Println("Successfully reported failure to Kuberhealthy servers")
 	return err
 }
-
