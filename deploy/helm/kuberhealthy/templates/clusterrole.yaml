@@ -60,4 +60,15 @@ rules:
     - get
     - list
     - watch
-
+---
+apiVersion: {{ template "rbac.apiVersion" . }}
+kind: ClusterRole
+metadata:
+  name: {{ template "kuberhealthy.name" . }}-daemonset-khcheck
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
