@@ -3,8 +3,8 @@
 package main
 
 import (
-	checkclient "github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient"
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
+	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkClient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	"os"
 	"path/filepath"
 	"time"

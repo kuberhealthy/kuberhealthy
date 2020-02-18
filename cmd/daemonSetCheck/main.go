@@ -36,8 +36,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	checkclient "github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient"
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
+	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkClient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
 const daemonSetBaseName = "ds-check"
@@ -49,7 +49,7 @@ var Timeout time.Duration
 
 // DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
-var CheckRunTime int64 // use this to compare and find rogue daemonsets or pods
+var CheckRunTime int64                   // use this to compare and find rogue daemonsets or pods
 
 // Checker implements a KuberhealthyCheck for daemonset
 // deployment and teardown checking.
@@ -210,7 +210,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 				"app":              dsc.DaemonSetName,
 				"source":           "kuberhealthy",
 				"creatingInstance": dsc.hostname,
-				"checkRunTime": checkRunTime,
+				"checkRunTime":     checkRunTime,
 			},
 			Annotations: map[string]string{
 				"cluster-autoscaler.kubernetes.io/safe-to-evict": "true",
@@ -223,7 +223,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 					"app":              dsc.DaemonSetName,
 					"source":           "kuberhealthy",
 					"creatingInstance": dsc.hostname,
-					"checkRunTime": checkRunTime,
+					"checkRunTime":     checkRunTime,
 				},
 			},
 			Template: apiv1.PodTemplateSpec{
@@ -232,7 +232,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 						"app":              dsc.DaemonSetName,
 						"source":           "kuberhealthy",
 						"creatingInstance": dsc.hostname,
-						"checkRunTime": checkRunTime,
+						"checkRunTime":     checkRunTime,
 					},
 					Name: dsc.DaemonSetName,
 				},
@@ -496,7 +496,7 @@ func (dsc *Checker) cleanupOrphanedDaemonsets() error {
 		// Check that the daemonset isn't from an older run
 		dsCheckRunTime, err := strconv.ParseInt(ds.Labels["checkRunTime"], 10, 64)
 		if err != nil {
-			log.Errorln("Error converting ds checkRunTime:", dsCheckRunTime,  "label to int:", err)
+			log.Errorln("Error converting ds checkRunTime:", dsCheckRunTime, "label to int:", err)
 		}
 
 		if dsCheckRunTime < CheckRunTime {
