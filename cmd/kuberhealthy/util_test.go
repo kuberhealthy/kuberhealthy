@@ -10,8 +10,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/Comcast/kuberhealthy/pkg/checks/external"
-	"github.com/Comcast/kuberhealthy/pkg/khcheckcrd"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
+	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
 )
 
 const defaultNamespace = "kuberhealthy"
