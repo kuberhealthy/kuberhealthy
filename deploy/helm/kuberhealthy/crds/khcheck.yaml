@@ -12,5 +12,4 @@ spec:
     singular: khcheck
     kind: KuberhealthyCheck
     shortNames:
-      - khc  
-      
+      - khc
