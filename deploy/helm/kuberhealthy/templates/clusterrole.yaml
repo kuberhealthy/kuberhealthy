@@ -60,6 +60,12 @@ rules:
     - get
     - list
     - watch
+  - apiGroups:
+    - ""
+    resources:
+    - pods/eviction
+    verbs:
+    - create
 ---
 apiVersion: {{ template "rbac.apiVersion" . }}
 kind: ClusterRole
