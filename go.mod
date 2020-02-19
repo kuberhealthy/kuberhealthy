@@ -9,7 +9,7 @@ replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.3.0
 require (
 	cloud.google.com/go v0.38.0 // indirect
 	github.com/Azure/go-autorest/autorest v0.9.0 // indirect
-	github.com/Comcast/kuberhealthy v1.0.2
+	github.com/Comcast/kuberhealthy v1.0.2 // indirect
 	github.com/Pallinder/go-randomdata v1.1.0
 	github.com/aws/aws-sdk-go v1.25.24
 	github.com/blang/semver v3.5.1+incompatible // indirect
@@ -31,9 +31,9 @@ require (
 	google.golang.org/appengine v1.5.0 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
-	k8s.io/api v0.17.3
-	k8s.io/apimachinery v0.17.3
-	k8s.io/client-go v10.0.0+incompatible
+	k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
+	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
+	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/klog v1.0.0
 	k8s.io/kops v1.11.0
 	k8s.io/utils v0.0.0-20190801114015-581e00157fb1 // indirect
