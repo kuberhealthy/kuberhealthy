@@ -570,6 +570,8 @@ func (k *Kuberhealthy) masterStatusWatcher(ctx context.Context) {
 			lastMasterChangeTime = time.Now()
 		}
 
+		watcher.Stop() // TODO - does calling stop twice crash this?  I am assuming not.
+
 		// if the context has expired, then shut down the master status watcher entirely
 		select {
 		case <-ctx.Done():
