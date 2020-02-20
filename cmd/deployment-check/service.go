@@ -55,7 +55,7 @@ func createServiceConfig(labels map[string]string) *corev1.Service {
 
 	// Define the service.
 	service.Spec = serviceSpec
-	service.Name = checkServiceName
+	service.Name = checkServiceName //+ "-" + strconv.Itoa(int(now.Unix()))
 	service.Namespace = checkNamespace
 
 	return service
@@ -314,7 +314,7 @@ func findPreviousService() (bool, error) {
 
 	if debug { // Print out all the found deployments if debug logging is enabled.
 		for _, svc := range serviceList.Items {
-			log.Debugln(svc.Name)
+			log.Debugln("Service:", svc.Name)
 		}
 	}
 
@@ -322,22 +322,21 @@ func findPreviousService() (bool, error) {
 	for _, svc := range serviceList.Items {
 
 		// Check using names.
-		if &svc.Name == nil {
-			continue
-		}
-		if svc.Name == checkServiceName {
-			log.Infoln("Found an old service belonging to this check:", svc.Name)
-			return true, nil
-		}
-
-		// Check using labels
-		// labels := svc.Labels
-		// for k, v := range labels {
-		// 	if k == defaultLabelKey && v != defaultLabelValueBase+strconv.Itoa(int(now.Unix())) {
-		// 		log.Infoln("Found an old service belonging to this check.")
-		// 		return true, nil
-		// 	}
+		// if &svc.Name == nil {
+		// 	continue
 		// }
+		// if svc.Name == checkServiceName {
+		// 	log.Infoln("Found an old service belonging to this check:", svc.Name)
+		// 	return true, nil
+		// }
+
+		// Check using labels.
+		for k, v := range svc.Labels {
+			if k == defaultLabelKey && v != defaultLabelValueBase+strconv.Itoa(int(now.Unix())) {
+				log.Infoln("Found an old service belonging to this check.")
+				return true, nil
+			}
+		}
 	}
 
 	log.Infoln("Did not find any old service(s) belonging to this check.")
@@ -417,10 +416,6 @@ func serviceAvailable(service *corev1.Service) bool {
 		log.Infoln("Cluster IP found:", service.Spec.ClusterIP)
 		return true
 	}
-	// if len(service.Status.LoadBalancer.Ingress) != 0 {
-	// 	log.Infoln("Service ingress hostname found:", service.Status.LoadBalancer.Ingress[0].Hostname)
-	// 	return true
-	// }
 	return false
 }
 

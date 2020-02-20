@@ -10,7 +10,7 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: quay.io/comcast/deployment-check:1.1.0
+      image: quay.io/comcast/deployment-check:1.1.1alpha
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
@@ -19,15 +19,13 @@ spec:
           value: "true"
         - name: CHECK_TIME_LIMIT
           value: *deployment_check_timeout
-        - name: DEBUG
-          value: "true"
       resources:
         requests:
           cpu: 25m
           memory: 15Mi
         limits:
           cpu: 40m
-      restartPolicy: Always
+      restartPolicy: Never
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
 ---
