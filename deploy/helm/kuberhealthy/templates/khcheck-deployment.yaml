@@ -1,4 +1,4 @@
-{{- if .Values.check.deployment }}
+{{- if .Values.check.deployment.enabled }}
 ---
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
@@ -11,7 +11,7 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: quay.io/comcast/deployment-check:1.1.0
+      image: {{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
