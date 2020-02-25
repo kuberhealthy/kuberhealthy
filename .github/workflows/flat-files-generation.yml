@@ -8,7 +8,7 @@ on:
     branches:
       - master
 jobs:
-  build:
+  render:
     runs-on: ubuntu-latest
     steps:
     - name: Build Helm Chart
@@ -23,3 +23,16 @@ jobs:
         #helm: # optional
         # helm version e.g. 3.0.2
         #helmv3: # optional
+  commit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Commit files
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Automatic Template Render Job"
+        git commit -m "re-render flat spec files" -a
+    - name: "push changes back to repository"
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
