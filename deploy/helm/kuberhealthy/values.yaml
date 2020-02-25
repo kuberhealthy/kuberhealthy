@@ -31,6 +31,7 @@ deployment:
   maxUnavailable: 1
   imagePullPolicy: IfNotPresent
   podAnnotations: {}
+  env: {}
   command:
   - /app/kuberhealthy
   # args:
