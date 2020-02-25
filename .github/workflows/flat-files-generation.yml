@@ -1,0 +1,25 @@
+name: Build Flat Spec Files from Helm Chart
+on:
+  push:
+    paths:
+      - 'deploy/helm/*'
+    paths-ignore:
+      - 'deploy/*.yaml'
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Build Helm Chart
+      uses: stefanprodan/kube-tools@v1.3.0
+      with:
+        working-directory: deploy/
+        command: ./create-flat-files.sh
+        #kubectl: # optional
+        # kustomize version e.g. 3.5.4
+        #kustomize: # optional
+        # helm version e.g. 2.16.1
+        #helm: # optional
+        # helm version e.g. 3.0.2
+        #helmv3: # optional
