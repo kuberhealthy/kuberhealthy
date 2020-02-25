@@ -78,6 +78,10 @@ spec:
           requests:
             cpu: {{ .Values.resources.requests.cpu }}
             memory: {{ .Values.resources.requests.memory }}
+      {{- if .Values.deployment.nodeSelector }}
+      nodeSelector:
+{{- toYaml .Values.deployment.nodeSelector | nindent 8 }}
+      {{- end }}
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
 {{- if .Values.tolerations.master }}
