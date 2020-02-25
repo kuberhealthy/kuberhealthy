@@ -22,4 +22,8 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+    {{- if .Values.check.dnsInternal.nodeSelector }}
+    nodeSelector:
+{{- toYaml .Values.check.dnsInternal.nodeSelector | nindent 6 }}
+    {{- end }}
 {{- end }}

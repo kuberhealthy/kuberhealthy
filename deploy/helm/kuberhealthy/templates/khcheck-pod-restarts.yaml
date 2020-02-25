@@ -25,5 +25,9 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+    {{- if .Values.check.podRestarts.nodeSelector }}
+    nodeSelector:
+{{- toYaml .Values.check.podRestarts.nodeSelector | nindent 6 }}
+    {{- end }}
     restartPolicy: Never
 {{- end }}

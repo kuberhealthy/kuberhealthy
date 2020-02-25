@@ -25,6 +25,10 @@ spec:
         limits:
           cpu: 40m
       restartPolicy: Always
+    {{- if .Values.check.deployment.nodeSelector }}
+    nodeSelector:
+{{- toYaml .Values.check.deployment.nodeSelector | nindent 6 }}
+    {{- end }}
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
 ---

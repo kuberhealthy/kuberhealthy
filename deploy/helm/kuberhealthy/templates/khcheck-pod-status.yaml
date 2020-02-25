@@ -23,4 +23,8 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+    {{- if .Values.check.podStatus.nodeSelector }}
+    nodeSelector:
+{{- toYaml .Values.check.podStatus.nodeSelector | nindent 6 }}
+    {{- end }}
 {{- end }}
