@@ -497,21 +497,21 @@ func findPreviousDeployment() (bool, error) {
 	for _, deployment := range deploymentList.Items {
 
 		// Check using names.
-		// if &deployment.Name == nil {
-		// 	continue
-		// }
-		// if deployment.Name == checkDeploymentName {
-		// 	log.Infoln("Found an old deployment belonging to this check:", deployment.Name)
-		// 	return true, nil
-		// }
+		if &deployment.Name == nil {
+			continue
+		}
+		if deployment.Name == checkDeploymentName {
+			log.Infoln("Found an old deployment belonging to this check:", deployment.Name)
+			return true, nil
+		}
 
 		// Check using labels.
-		for k, v := range deployment.Labels {
-			if k == defaultLabelKey && v != defaultLabelValueBase+strconv.Itoa(int(now.Unix())) {
-				log.Infoln("Found an old deployment belonging to this check.")
-				return true, nil
-			}
-		}
+		// for k, v := range deployment.Labels {
+		// 	if k == defaultLabelKey && v != defaultLabelValueBase+strconv.Itoa(int(now.Unix())) {
+		// 		log.Infoln("Found an old deployment belonging to this check.")
+		// 		return true, nil
+		// 	}
+		// }
 	}
 
 	log.Infoln("Did not find any old deployment(s) belonging to this check.")
