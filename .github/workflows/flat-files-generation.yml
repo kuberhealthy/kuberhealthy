@@ -3,8 +3,8 @@ on:
   push:
     paths:
       - 'deploy/helm/*'
-    branches:
-      - master
+#    branches:
+#      - master
 jobs:
   render:
     runs-on: ubuntu-latest
@@ -21,16 +21,43 @@ jobs:
         #helm: # optional
         # helm version e.g. 3.0.2
         #helmv3: # optional
-  commit:
+  makePR:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
-    - name: Commit files
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Automatic Template Render Job"
-        git commit -m "re-render flat spec files" -a
-    - name: "push changes back to repository"
-      uses: ad-m/github-push-action@master
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v2.4.4
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        # GITHUB_TOKEN or a repo scoped PAT
+        token: ${{ secrets.GITHUB_TOKEN }}
+        # Relative path under $GITHUB_WORKSPACE to the repository.
+        #path: # optional
+        # The message to use when committing changes.
+        commit-message: "flat file spec regeneration"
+        # The committer name and email address.
+        author: "action@github.com"
+        # The author name and email address.
+        committer: "GitHub Automatic Template Render Job"
+        # The title of the pull request.
+        title: "Flat Spec File Regeneration"
+        # The body of the pull request.
+        body: "An automatic PR for the regeneration of flat deployment files."
+        # A comma separated list of labels.
+        #labels: # optional
+        # A comma separated list of assignees (GitHub usernames).
+        #assignees: # optional
+        # A comma separated list of reviewers (GitHub usernames) to request a review from.
+        #reviewers: # optional
+        # A comma separated list of GitHub teams to request a review from.
+        #team-reviewers: # optional
+        # The number of the milestone to associate this pull request with.
+        #milestone: # optional
+        # The name of the project for which a card should be created.
+        #project: # optional
+        # The name of the project column under which a card should be created.
+        #project-column: # optional
+        # The pull request branch name.
+        branch: flat-file-auto-regen
+        # The pull request base branch.
+        base: master
+        # The branch suffix type.
+        #branch-suffix: # optional
