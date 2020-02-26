@@ -322,21 +322,21 @@ func findPreviousService() (bool, error) {
 	for _, svc := range serviceList.Items {
 
 		// Check using names.
-		// if &svc.Name == nil {
-		// 	continue
-		// }
-		// if svc.Name == checkServiceName {
-		// 	log.Infoln("Found an old service belonging to this check:", svc.Name)
-		// 	return true, nil
-		// }
+		if &svc.Name == nil {
+			continue
+		}
+		if svc.Name == checkServiceName {
+			log.Infoln("Found an old service belonging to this check:", svc.Name)
+			return true, nil
+		}
 
 		// Check using labels.
-		for k, v := range svc.Labels {
-			if k == defaultLabelKey && v != defaultLabelValueBase+strconv.Itoa(int(now.Unix())) {
-				log.Infoln("Found an old service belonging to this check.")
-				return true, nil
-			}
-		}
+		// for k, v := range svc.Labels {
+		// 	if k == defaultLabelKey && v != defaultLabelValueBase+strconv.Itoa(int(now.Unix())) {
+		// 		log.Infoln("Found an old service belonging to this check.")
+		// 		return true, nil
+		// 	}
+		// }
 	}
 
 	log.Infoln("Did not find any old service(s) belonging to this check.")
