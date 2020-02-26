@@ -5,6 +5,7 @@
 prometheus:
   enabled: false
   name: "prometheus"
+  release: prometheus-operator
   enableScraping: false
   serviceMonitor: false
   enableAlerting: false
