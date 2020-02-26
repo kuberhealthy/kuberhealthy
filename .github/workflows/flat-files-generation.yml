@@ -12,7 +12,7 @@ jobs:
     - name: Build Helm Chart
       uses: stefanprodan/kube-tools@v1.3.0
       with:
-        working-directory: deploy/
+        working-directory: deploy/helm/
         command: ./create-flat-files.sh
         #kubectl: # optional
         # kustomize version e.g. 3.5.4
@@ -21,9 +21,6 @@ jobs:
         #helm: # optional
         # helm version e.g. 3.0.2
         #helmv3: # optional
-  makePR:
-    runs-on: ubuntu-latest
-    steps:
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v2.4.4
       with:
