@@ -30,10 +30,21 @@ jobs:
         #fetch-depth: # optional, default is 1
         # Whether to download Git-LFS files
         #lfs: # optional
-    - name: Lint Helm
-      uses: WyriHaximus/github-action-helm3@v1
+    - name: Run Kubernetes tools
+      uses: stefanprodan/kube-tools@v1
       with:
-        exec: "cd deploy/helm && ./create-flat-files.sh"
+        #kubectl: 1.16.2
+        #kustomize: 3.4.0
+        #helm: 2.16.1
+        helmv3: 3.0.0
+        command: |
+          echo "Running helm flat file generation"
+          ls -al
+          pwd
+          helm version
+          helmv3 version
+          cd deploy/helm
+          ./create-flat-files.sh
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v2.4.4
       with:
