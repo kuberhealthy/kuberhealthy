@@ -34,19 +34,7 @@ jobs:
       uses: stefanprodan/kube-tools@v1.3.0
       with:
         working-directory: deploy/helm/
-        command: ls -al
-        #kubectl: # optional
-        # kustomize version e.g. 3.5.4
-        #kustomize: # optional
-        # helm version e.g. 2.16.1
-        #helm: # optional
-        # helm version e.g. 3.0.2
-        #helmv3: # optional
-    - name: Build Helm Chart
-      uses: stefanprodan/kube-tools@v1.3.0
-      with:
-        working-directory: deploy/helm/
-        command: pwd
+        command: "cd deploy/helm && ./create-flat-files.sh"
         #kubectl: # optional
         # kustomize version e.g. 3.5.4
         #kustomize: # optional
@@ -64,9 +52,9 @@ jobs:
         # The message to use when committing changes.
         commit-message: "flat file spec regeneration"
         # The committer name and email address.
-        author: "action@github.com"
+        author: "GitHub Automatic Template Render Job"
         # The author name and email address.
-        committer: "GitHub Automatic Template Render Job"
+        committer: "action@github.com"
         # The title of the pull request.
         title: "Flat Spec File Regeneration"
         # The body of the pull request.
