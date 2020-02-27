@@ -1,8 +1,8 @@
 name: Build Flat Spec Files from Helm Chart
 on:
   push:
-    paths:
-      - 'deploy/helm/kuberhealthy/*'
+#    paths:
+#      - 'deploy/helm/kuberhealthy/*'
 #    branches:
 #      - master
 jobs:
