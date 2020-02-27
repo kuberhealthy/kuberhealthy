@@ -1,4 +1,10 @@
 #!/bin/bash
+# the github action we use has helm 3 (required) as 'helmv3' in its path, so we alias that in and use it if present
+if which helmv3; then
+    echo "Using helm v3 alias"
+    alias helm="helmv3"
+fi
+
 helm version
 echo "Creating flat kuberhealthy.yaml"
 helm template --namespace kuberhealthy kuberhealthy > ../kuberhealthy.yaml
