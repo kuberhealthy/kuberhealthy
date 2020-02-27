@@ -30,18 +30,10 @@ jobs:
         #fetch-depth: # optional, default is 1
         # Whether to download Git-LFS files
         #lfs: # optional
-    - name: Build Helm Chart
-      uses: stefanprodan/kube-tools@v1.3.0
+    - name: Lint Helm
+      uses: WyriHaximus/github-action-helm3@v1
       with:
-        working-directory: deploy/helm/
-        command: "cd deploy/helmv3 && ./create-flat-files.sh"
-        #kubectl: # optional
-        # kustomize version e.g. 3.5.4
-        #kustomize: # optional
-        # helm version e.g. 2.16.1
-        #helm: # optional
-        # helm version e.g. 3.0.2
-        #helmv3: # optional
+        exec: "cd deploy/helm && ./create-flat-files.sh"
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v2.4.4
       with:
