@@ -9,28 +9,27 @@ jobs:
   render:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2.0.0
-        with:
-          # Repository name with owner. For example, actions/checkout
-          repository: # optional, default is ${{ github.repository }}
-          # The branch, tag or SHA to checkout. When checking out the repository that triggered a workflow, this defaults to the reference or SHA for that event.  Otherwise, defaults to `master`.
+    - name: Checkout
+      uses: actions/checkout@v2.0.0
+      #with:
+        # Repository name with owner. For example, actions/checkout
+        #repository: # optional, default is ${{ github.repository }}
+        # The branch, tag or SHA to checkout. When checking out the repository that triggered a workflow, this defaults to the reference or SHA for that event.  Otherwise, defaults to `master`.
 
-          ref: # optional
-          # Auth token used to fetch the repository. The token is stored in the local git config, which enables your scripts to run authenticated git commands. The post-job step removes the token from the git config.
+        #ref: # optional
+        # Auth token used to fetch the repository. The token is stored in the local git config, which enables your scripts to run authenticated git commands. The post-job step removes the token from the git config.
 
-          token: # optional, default is ${{ github.token }}
-          # Whether to persist the token in the git config
-          persist-credentials: # optional, default is true
-          # Relative path under $GITHUB_WORKSPACE to place the repository
-          path: # optional
-          # Whether to execute `git clean -ffdx && git reset --hard HEAD` before fetching
-          clean: # optional, default is true
-          # Number of commits to fetch. 0 indicates all history.
-          fetch-depth: # optional, default is 1
-          # Whether to download Git-LFS files
-          lfs: # optional
-      
+        #token: # optional, default is ${{ github.token }}
+        # Whether to persist the token in the git config
+        #persist-credentials: # optional, default is true
+        # Relative path under $GITHUB_WORKSPACE to place the repository
+        #path: # optional
+        # Whether to execute `git clean -ffdx && git reset --hard HEAD` before fetching
+        #clean: # optional, default is true
+        # Number of commits to fetch. 0 indicates all history.
+        #fetch-depth: # optional, default is 1
+        # Whether to download Git-LFS files
+        #lfs: # optional
     - name: Build Helm Chart
       uses: stefanprodan/kube-tools@v1.3.0
       with:
