@@ -1,5 +1,5 @@
 #!/bin/bash
-
+helm version
 echo "Creating flat kuberhealthy.yaml"
 helm template --namespace kuberhealthy kuberhealthy > ../kuberhealthy.yaml
 
