@@ -55,7 +55,7 @@ jobs:
         # The message to use when committing changes.
         commit-message: "flat file spec regeneration"
         # The committer name and email address.
-        author: "GitHub Automatic Template Render Job"
+        #author: "GitHub Automatic Template Render Job"
         # The author name and email address.
         committer: "Github Actions <action@github.com>"
         # The title of the pull request.
