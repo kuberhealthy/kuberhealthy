@@ -1,34 +1,4 @@
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: khchecks.comcast.github.io
-spec:
-  group: comcast.github.io
-  version: v1
-  scope: Namespaced
-  names:
-    plural: khchecks
-    singular: khcheck
-    kind: KuberhealthyCheck
-    shortNames:
-      - khc
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: khstates.comcast.github.io
-spec:
-  group: comcast.github.io
-  version: v1
-  scope: Namespaced
-  names:
-    plural: khstates
-    singular: khstate
-    kind: KuberhealthyState
-    shortNames:
-      - khs
----
 # Source: kuberhealthy/templates/namespace.yaml
 apiVersion: v1
 kind: Namespace
@@ -49,36 +19,6 @@ spec:
   selector:
     matchLabels:
       app: kuberhealthy
----
-# Source: kuberhealthy/templates/configmap.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  labels:
-    app: "prometheus"
-    prometheus: prometheus
-    role: alert-rules
-  name: kuberhealthy
-  namespace: kuberhealthy
-data:
-  kuberhealthy.rules: |-
-    groups:
-    - name: ./kuberhealthy.rules
-      rules:
-      - alert: KuberhealthyError
-        expr: kuberhealthy_running < 1
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          description: Kuberhealthy is not healthy
-      - alert: ClusterUnhealthy
-        expr: kuberhealthy_cluster_state < 1
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          description: Kuberhealthy shows that the cluster is not healthy
 ---
 # Source: kuberhealthy/templates/check-reaper.yaml
 apiVersion: v1
@@ -333,7 +273,6 @@ metadata:
     app: kuberhealthy
   name: kuberhealthy
   namespace: kuberhealthy
-  annotations:
 spec:
   type: ClusterIP
   ports:
@@ -511,26 +450,3 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
----
-# Source: kuberhealthy/templates/servicemonitor.yaml
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  labels:
-    app: kuberhealthy
-    prometheus: prometheus
-    release: prometheus-operator
-  name: kuberhealthy
-  namespace: kuberhealthy
-spec:
-  jobLabel: component
-  selector:
-    matchLabels:
-      app: kuberhealthy
-  namespaceSelector:
-    matchNames:
-      - kuberhealthy
-  endpoints:
-  - port: http
-    interval: 15s
-    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
