@@ -13,6 +13,18 @@ jobs:
       uses: stefanprodan/kube-tools@v1.3.0
       with:
         working-directory: deploy/helm/
+        command: pwd
+        #kubectl: # optional
+        # kustomize version e.g. 3.5.4
+        #kustomize: # optional
+        # helm version e.g. 2.16.1
+        #helm: # optional
+        # helm version e.g. 3.0.2
+        #helmv3: # optional
+    - name: Build Helm Chart
+      uses: stefanprodan/kube-tools@v1.3.0
+      with:
+        working-directory: deploy/helm/
         command: ./create-flat-files.sh
         #kubectl: # optional
         # kustomize version e.g. 3.5.4
