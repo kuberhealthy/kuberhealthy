@@ -34,7 +34,7 @@ jobs:
       uses: stefanprodan/kube-tools@v1.3.0
       with:
         working-directory: deploy/helm/
-        command: "cd deploy/helm && ./create-flat-files.sh"
+        command: "cd deploy/helmv3 && ./create-flat-files.sh"
         #kubectl: # optional
         # kustomize version e.g. 3.5.4
         #kustomize: # optional
