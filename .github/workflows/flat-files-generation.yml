@@ -41,7 +41,6 @@ jobs:
           echo "Running helm flat file generation"
           ls -al
           pwd
-          helm version
           helmv3 version
           cd deploy/helm
           ./create-flat-files.sh
