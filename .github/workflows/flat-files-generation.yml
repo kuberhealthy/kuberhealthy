@@ -1,10 +1,10 @@
 name: Build Flat Spec Files from Helm Chart
 on:
   push:
-#    paths:
-#      - 'deploy/helm/kuberhealthy/*'
-#    branches:
-#      - master
+    paths:
+      - 'deploy/helm/kuberhealthy'
+    branches:
+      - master
 jobs:
   render:
     runs-on: ubuntu-latest
@@ -45,6 +45,7 @@ jobs:
           cd deploy/helm
           alias helm="helmv3"
           ./create-flat-files.sh
+          rm -f *.old
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v2.4.4
       with:
