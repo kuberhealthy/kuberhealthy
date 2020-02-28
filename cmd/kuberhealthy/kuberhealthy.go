@@ -121,7 +121,7 @@ func (k *Kuberhealthy) StopChecks() {
 
 	// call a shutdown on all checks concurrently
 	for _, c := range k.Checks {
-		go func() {
+		go func(c KuberhealthyCheck) {
 			log.Infoln("control: check", c.Name(), "stopping...")
 			err := c.Shutdown()
 			if err != nil {
@@ -129,7 +129,7 @@ func (k *Kuberhealthy) StopChecks() {
 			}
 			k.wg.Done()
 			log.Infoln("control: check", c.Name(), "stopped")
-		}()
+		}(c)
 	}
 
 	// wait for all checks to stop cleanly
