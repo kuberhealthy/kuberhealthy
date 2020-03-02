@@ -16,11 +16,15 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-        image: {{ .Values.check.podRestarts.image.repository }}:{{ .Values.check.podRestarts.image.tag }}
+        image: {{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
         imagePullPolicy: IfNotPresent
         name: main
         resources:
           requests:
             cpu: 10m
             memory: 50Mi
+    {{- if .Values.check.podStatus.nodeSelector }}
+    nodeSelector:
+{{- toYaml .Values.check.podStatus.nodeSelector | nindent 6 }}
+    {{- end }}
 {{- end }}

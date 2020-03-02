@@ -24,6 +24,10 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+    {{- if .Values.check.daemonset.nodeSelector }}
+    nodeSelector:
+{{- toYaml .Values.check.daemonset.nodeSelector | nindent 6 }}
+    {{- end }}
     serviceAccountName: daemonset-khcheck
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -48,7 +52,7 @@ rules:
   - apiGroups:
       - ""
       - extensions
-      - app
+      - apps
     resources:
       - daemonsets
       - pods

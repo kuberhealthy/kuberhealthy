@@ -13,6 +13,10 @@ spec:
             - name: check-reaper
               image: {{ .Values.checkReaper.image.repository }}:{{ .Values.checkReaper.image.tag }}
               imagePullPolicy: IfNotPresent
+          {{- if .Values.checkReaper.nodeSelector }}
+          nodeSelector:
+{{- toYaml .Values.checkReaper.nodeSelector | nindent 12 }}
+          {{- end }}
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid

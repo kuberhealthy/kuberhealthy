@@ -62,6 +62,10 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          {{- if .Values.deployment.env.KH_EXTERNAL_REPORTING_URL }}
+          - name: KH_EXTERNAL_REPORTING_URL
+            value: {{ .Values.deployment.env.KH_EXTERNAL_REPORTING_URL }}
+          {{- end }}
         readinessProbe:
           failureThreshold: 3
           initialDelaySeconds: 2
@@ -74,6 +78,10 @@ spec:
           requests:
             cpu: {{ .Values.resources.requests.cpu }}
             memory: {{ .Values.resources.requests.memory }}
+      {{- if .Values.deployment.nodeSelector }}
+      nodeSelector:
+{{- toYaml .Values.deployment.nodeSelector | nindent 8 }}
+      {{- end }}
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
 {{- if .Values.tolerations.master }}
