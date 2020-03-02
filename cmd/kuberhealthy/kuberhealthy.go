@@ -159,13 +159,13 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 	externalChecksUpdateChan := make(chan struct{}, 50)
 	externalChecksUpdateChanLimited := make(chan struct{}, 50)
 	go notifyChanLimiter(maxUpdateInterval, externalChecksUpdateChan, externalChecksUpdateChanLimited)
-	go k.monitorExternalChecks(externalChecksUpdateChan)
+	go k.monitorExternalChecks(ctx, externalChecksUpdateChan)
 
 	// we use two channels to indicate when we gain or lose master status. use rate limiting to avoid
 	// reconfiguration spam
 	becameMasterChan := make(chan struct{}, 10)
 	lostMasterChan := make(chan struct{}, 10)
-	go k.masterMonitor(becameMasterChan, lostMasterChan)
+	go k.masterMonitor(ctx, becameMasterChan, lostMasterChan)
 
 	// loop and select channels to do appropriate thing when master changes
 	for {
@@ -267,7 +267,7 @@ func (k *Kuberhealthy) reapKHStateResources() error {
 }
 
 // watchForKHCheckChanges watches for changes to khcheck objects and returns them through the specified channel
-func (k *Kuberhealthy) watchForKHCheckChanges(c chan struct{}) {
+func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct{}) {
 
 	log.Debugln("Spawned watcher for KH check changes")
 
@@ -283,6 +283,13 @@ func (k *Kuberhealthy) watchForKHCheckChanges(c chan struct{}) {
 			log.Errorln("error watching khcheck objects:", err)
 			continue
 		}
+
+		// watch for context expiration and close watcher if it happens
+		go func(ctx context.Context, watcher watch.Interface) {
+			<-ctx.Done()
+			watcher.Stop()
+			log.Debugln("khcheck monitor watch stopping due to context cancellation")
+		}(ctx, watcher)
 
 		// loop over results and return them to the calling channel until we hit an error, then close and restart
 		for khc := range watcher.ResultChan() {
@@ -305,19 +312,27 @@ func (k *Kuberhealthy) watchForKHCheckChanges(c chan struct{}) {
 				log.Warningln("khcheck monitor saw an unknown event type and ignored it:", khc.Type)
 			}
 		}
-		watcher.Stop()
+
+		// if the context has expired, don't start the watch again. just exit
+		watcher.Stop() // TODO - does calling stop twice crash this?  I am assuming not.
+		select {
+		case <-ctx.Done():
+			log.Debugln("khcheck monitor closing due to context cancellation")
+			return
+		default:
+		}
 	}
 }
 
 // monitorExternalChecks watches for changes to the external check CRDs
-func (k *Kuberhealthy) monitorExternalChecks(notify chan struct{}) {
+func (k *Kuberhealthy) monitorExternalChecks(ctx context.Context, notify chan struct{}) {
 
 	// make a map of resource versions so we know when things change
 	knownSettings := make(map[string]khcheckcrd.CheckConfig)
 
 	// start watching for events to changes in the background
 	c := make(chan struct{})
-	go k.watchForKHCheckChanges(c)
+	go k.watchForKHCheckChanges(ctx, c)
 
 	// each time  we see a change in our khcheck structs, we should look at every object to see if something has changed
 	for {
@@ -512,10 +527,11 @@ func (k *Kuberhealthy) StartChecks() {
 
 // masterStatusWatcher watches for master change events and updates the global upcomingMasterState along
 // with the global lastMasterChangeTime
-func (k *Kuberhealthy) masterStatusWatcher() {
+func (k *Kuberhealthy) masterStatusWatcher(ctx context.Context) {
 
 	// continue reconnecting to the api to resume the pod watch if it ends
 	for {
+		log.Debugln("master status watcher starting up...")
 
 		// don't retry our watch too fast
 		time.Sleep(time.Second * 5)
@@ -528,6 +544,13 @@ func (k *Kuberhealthy) masterStatusWatcher() {
 			log.Errorln("error when attempting to watch for kuberhealthy pod changes:", err)
 			continue
 		}
+
+		// watch for context expiration and close watcher if it happens
+		go func(ctx context.Context, watcher watch.Interface) {
+			<-ctx.Done()
+			watcher.Stop()
+			log.Debugln("master status monitor watch stopping due to context cancellation")
+		}(ctx, watcher)
 
 		// on each update from the watch, we re-check our master status.
 		for range watcher.ResultChan() {
@@ -543,17 +566,28 @@ func (k *Kuberhealthy) masterStatusWatcher() {
 			}
 
 			// update the time we last saw a master event
+			log.Debugln("master status monitor saw a master event")
 			lastMasterChangeTime = time.Now()
+		}
+
+		watcher.Stop() // TODO - does calling stop twice crash this?  I am assuming not.
+
+		// if the context has expired, then shut down the master status watcher entirely
+		select {
+		case <-ctx.Done():
+			log.Debugln("master status monitor stopping due to context cancellation")
+			return
+		default:
 		}
 	}
 }
 
 // masterMonitor periodically evaluates the current and upcoming master state
 // and makes it so when appropriate
-func (k *Kuberhealthy) masterMonitor(becameMasterChan chan struct{}, lostMasterChan chan struct{}) {
+func (k *Kuberhealthy) masterMonitor(ctx context.Context, becameMasterChan chan struct{}, lostMasterChan chan struct{}) {
 
 	// watch master pod event changes and recalculate the current master state of this pdo with each
-	go k.masterStatusWatcher()
+	go k.masterStatusWatcher(ctx)
 
 	interval := time.Second * 10
 
