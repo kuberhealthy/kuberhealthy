@@ -243,7 +243,7 @@ rules:
   - apiGroups:
       - ""
       - extensions
-      - app
+      - apps
     resources:
       - daemonsets
       - pods
