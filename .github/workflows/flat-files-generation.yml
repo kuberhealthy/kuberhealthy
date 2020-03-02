@@ -2,9 +2,10 @@ name: Build Flat Spec Files from Helm Chart
 on:
   push:
     paths:
-      - 'deploy/helm/kuberhealthy'
+      - 'deploy/helm/kuberhealthy/**'
     branches:
       - master
+      - flat-file-gen
 jobs:
   render:
     runs-on: ubuntu-latest
