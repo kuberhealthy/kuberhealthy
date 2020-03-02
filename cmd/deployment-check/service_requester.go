@@ -36,6 +36,11 @@ func makeRequestToDeploymentCheckService(hostname string) chan error {
 	go func() {
 		log.Infoln("Looking for a response from the endpoint.")
 
+		// Init a timeout for request backoffs. Assume that this should not take more than 3m.
+		backoffTimeout := time.Minute * 3
+		timeoutChan := time.After(backoffTimeout)
+		log.Debugln("Setting timeout for backoff loop to:", backoffTimeout)
+
 		defer close(requestChan)
 
 		if len(hostname) == 0 {
@@ -75,6 +80,13 @@ func makeRequestToDeploymentCheckService(hostname string) chan error {
 
 			log.Infoln("Got a result from", http.MethodGet, "request backoff:", result.Response.Status)
 			requestChan <- nil
+		case <-timeoutChan:
+			log.Errorln("Backoff loop for a 200 response took too long and timed out.")
+			err := cleanUp(ctx)
+			if err != nil {
+				err = fmt.Errorf("failed to clean up properly: %w", err)
+			}
+			requestChan <- err
 		case <-ctx.Done():
 			log.Errorln("Context expired while waiting for a", http.StatusOK, "from "+hostname+".")
 			err := cleanUp(ctx)
