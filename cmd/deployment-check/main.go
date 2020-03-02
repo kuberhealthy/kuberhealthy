@@ -19,7 +19,7 @@ import (
 	"syscall"
 	"time"
 
-	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkClient"
+	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
@@ -63,8 +63,8 @@ var (
 	checkDeploymentReplicas    int
 
 	// Check time limit.
-	checkTimeLimitSecondsEnv = os.Getenv("CHECK_TIME_LIMIT_SECONDS")
-	checkTimeLimit           time.Duration
+	checkTimeLimitEnv = os.Getenv("CHECK_TIME_LIMIT")
+	checkTimeLimit    time.Duration
 
 	// Boolean value if a rolling-update is requested.
 	rollingUpdateEnv = os.Getenv("CHECK_DEPLOYMENT_ROLLING_UPDATE")
@@ -75,8 +75,8 @@ var (
 	additionalEnvVars    = make(map[string]string, 0)
 
 	// Seconds allowed for the shutdown process to complete.
-	shutdownGracePeriodSecondsEnv = os.Getenv("SHUTDOWN_GRACE_PERIOD_SECONDS")
-	shutdownGracePeriodSeconds    int
+	shutdownGracePeriodEnv = os.Getenv("SHUTDOWN_GRACE_PERIOD")
+	shutdownGracePeriod    time.Duration
 
 	// Time object used for the check.
 	now time.Time
@@ -119,12 +119,11 @@ const (
 	// Default number of replicas the deployment should bring up.
 	defaultCheckDeploymentReplicas = 2
 
-	defaultCheckTimeLimit             = time.Duration(time.Minute * 15)
-	defaultShutdownGracePeriodSeconds = 30 // grace period for the check to shutdown after receiving a shutdown signal
+	defaultCheckTimeLimit      = time.Duration(time.Minute * 15)
+	defaultShutdownGracePeriod = time.Duration(time.Second * 30) // grace period for the check to shutdown after receiving a shutdown signal
 )
 
 func init() {
-
 	// Parse incoming debug settings.
 	parseDebugSettings()
 
@@ -191,7 +190,7 @@ func listenForInterrupts(ctx context.Context) {
 	select {
 	case sig = <-signalChan:
 		// If there is an interrupt signal, interrupt the run.
-		log.Warnln("Received a secsond interrupt signal from the signal channel.")
+		log.Warnln("Received a second interrupt signal from the signal channel.")
 		log.Debugln("Signal received was:", sig.String())
 	case err := <-cleanUpAndWait(ctx):
 		// If the clean up is complete, exit.
@@ -199,7 +198,7 @@ func listenForInterrupts(ctx context.Context) {
 		if err != nil {
 			log.Errorln("failed to clean up check resources properly:", err.Error())
 		}
-	case <-time.After(time.Duration(shutdownGracePeriodSeconds)):
+	case <-time.After(time.Duration(shutdownGracePeriod)):
 		// Exit if the clean up took to long to provide a response.
 		log.Infoln("Clean up took too long to complete and timed out.")
 	}

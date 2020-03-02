@@ -505,9 +505,8 @@ func findPreviousDeployment() (bool, error) {
 			return true, nil
 		}
 
-		// check using labels
-		// labels := deployment.Labels
-		// for k, v := range labels {
+		// Check using labels.
+		// for k, v := range deployment.Labels {
 		// 	if k == defaultLabelKey && v != defaultLabelValueBase+strconv.Itoa(int(now.Unix())) {
 		// 		log.Infoln("Found an old deployment belonging to this check.")
 		// 		return true, nil

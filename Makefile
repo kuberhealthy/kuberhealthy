@@ -26,10 +26,10 @@ pushExternalChecker:
 deploymentCheck: buildDeploymentCheck pushDeploymentCheck
 
 buildDeploymentCheck:
-	docker build -t quay.io/comcast/deployment-check:1.1.0 -f cmd/deployment-check/Dockerfile .
+	docker build -t quay.io/comcast/deployment-check:1.1.1 -f cmd/deployment-check/Dockerfile .
 
 pushDeploymentCheck:
-	docker push quay.io/comcast/deployment-check:1.1.0
+	docker push quay.io/comcast/deployment-check:1.1.1
 
 daemonset: buildDaemonsetCheck pushDaemonsetCheck
 
