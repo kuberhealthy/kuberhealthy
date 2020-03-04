@@ -2,17 +2,9 @@ name: Docker
 
 on:
   push:
-    # Publish `master` as Docker `latest` image.
     branches:
       - master
       - docker-hub
-
-    # Publish `v1.2.3` tags as releases.
-    #tags:
-    #  - v*
-
-  # Run tests for any PRs.
-  #pull_request:
 
 env:
   IMAGE_NAME: kuberhealthy
