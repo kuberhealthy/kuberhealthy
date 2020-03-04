@@ -1,0 +1,33 @@
+name: Build and Push Latest
+
+on:
+  push:
+    branches:
+    - master
+    - release/*
+    - docker-hub # for testing this build spec
+
+env:
+  IMAGE_NAME: kuberhealthy
+
+jobs:
+
+  # Push image to GitHub Package Registry.
+  # See also https://docs.docker.com/docker-hub/builds/
+  push:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Log into docker hub
+        run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
+
+      - name: Build image
+        run: docker build . --file Dockerfile --tag $IMAGE_NAME
+
+      - name: Push image
+        run: |
+          docker tag $IMAGE_NAME comcast/kuberhealthy/$IMAGE_NAME
+          docker push comcast/kuberhealthy/$IMAGE_NAME
