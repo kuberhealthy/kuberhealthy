@@ -16,10 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
-      - name: testing1
-        run: |
-          echo "${{ github.refs }}"
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
       - name: testing2
         #if: startsWith(github.ref, "refs/tags/")
         run: |
