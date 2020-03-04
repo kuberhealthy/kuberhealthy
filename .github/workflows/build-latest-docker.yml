@@ -16,12 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: build container
-        run: docker build . --file Dockerfile --tag $IMAGE_NAME
-  push:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
+
       - name: testing1
         run: |
           echo "${{ github.refs }}"
@@ -29,6 +24,8 @@ jobs:
         #if: startsWith(github.ref, "refs/tags/")
         run: |
           echo "test var: $TEST_VAR"
+      - name: build container
+        run: docker build . --file Dockerfile --tag $IMAGE_NAME
       - name: Log into docker hub
         run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
       - name: Push new latest image
