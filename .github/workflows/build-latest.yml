@@ -16,7 +16,7 @@ jobs:
       with:
         image: kuberhealthy/kuberhealthy
         tag: latest
-        registry: hub.docker.com
+        registry: registry.hub.docker.com
         dockerfile: Dockerfile
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
