@@ -21,29 +21,17 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+# name unknown: docker image push is only supported with a tag of the format :owner/:repo_name/:image_name.
+#		Please add an image name to "comcast/kuberhealthy" tag. e.g. "comcast/kuberhealthy/<image_name>"
+# Eric: this does not seem to work: docker.pkg.github.com/comcast/$IMAGE_NAME:latest
+
       - name: Build image
-        run: docker build . --file Dockerfile --tag docker.pkg.github.com/comcast/$IMAGE_NAME:latest
+        run: docker build . --file Dockerfile --tag $IMAGE_NAME
 
       - name: Log into registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
 
       - name: Push image
         run: |
-          #IMAGE_ID=docker.pkg.github.com/comcast/$IMAGE_NAME:latest
-
-          # Strip git ref prefix from version
-          #VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-
-          # Strip "v" prefix from tag name
-          #[[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
-
-          # Use Docker `latest` tag convention
-          #[ "$VERSION" == "master" ] && VERSION=latest
-
-          #echo IMAGE_ID=$IMAGE_ID
-          #echo VERSION=$VERSION
-
-          #docker tag image $IMAGE_ID:$VERSION
-          #docker push $IMAGE_ID:$VERSION
-
-          docker push docker.pkg.github.com/comcast/$IMAGE_NAME:latest
+          docker tag $IMAGE_NAME comcast/$IMAGE_NAME
+          docker push comcast/$IMAGE_NAME
