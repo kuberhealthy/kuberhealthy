@@ -23,7 +23,7 @@ jobs:
 
 # name unknown: docker image push is only supported with a tag of the format :owner/:repo_name/:image_name.
 #		Please add an image name to "comcast/kuberhealthy" tag. e.g. "comcast/kuberhealthy/<image_name>"
-# Eric: this does not seem to work: docker.pkg.github.com/comcast/$IMAGE_NAME:latest
+
 
       - name: Build image
         run: docker build . --file Dockerfile --tag $IMAGE_NAME
@@ -33,5 +33,5 @@ jobs:
 
       - name: Push image
         run: |
-          docker tag $IMAGE_NAME docker.pkg.github.com/comcast/$IMAGE_NAME
-          docker push docker.pkg.github.com/comcast/$IMAGE_NAME
+          docker tag $IMAGE_NAME docker.pkg.github.com/comcast/kuberhealthy/$IMAGE_NAME
+          docker push docker.pkg.github.com/comcast/kuberhealthy/$IMAGE_NAME
