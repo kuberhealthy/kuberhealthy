@@ -33,5 +33,5 @@ jobs:
 
       - name: Push image
         run: |
-          docker tag $IMAGE_NAME comcast/$IMAGE_NAME
-          docker push comcast/$IMAGE_NAME
+          docker tag $IMAGE_NAME docker.pkg.github.com/comcast/$IMAGE_NAME
+          docker push docker.pkg.github.com/comcast/$IMAGE_NAME
