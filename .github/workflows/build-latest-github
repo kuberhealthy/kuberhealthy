@@ -1,10 +1,11 @@
-name: Docker
+name: Build and Push Latest
 
 on:
   push:
     branches:
-      - master
-      - docker-hub
+    - master
+    - release/*
+    - docker-hub # for testing this build spec
 
 env:
   IMAGE_NAME: kuberhealthy
