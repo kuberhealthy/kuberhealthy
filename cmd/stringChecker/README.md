@@ -1,10 +1,9 @@
 ## stringChecker
 
-The stringChecker parses through the content body from a specified URL searching for a specified string. This check reports a success upon receiving a bool value indicating if the string existed and reported to Kuberhealthy servers.
+The `stringChecker` check searches through the content body of a chosen URL and determines if a specified string is present.  If the request suceeds and the string is present, the check reports a pass.  Otherwise, the check reports failure.  `stringChecker` will follow header redirects and uses the standard [http.Client](https://golang.org/pkg/net/http/) behavior by default.
 
-You can specify the URL to check with the `TARGET_URL` environment variable in the `.yaml` file.
-
-You can specify the string to check with the `TARGET_STRING` environment variable in the `.yaml` file.
+you can specify the URL to check with the `TARGET_URL` environment variable in the `.yaml` file.
+You can specify the string to look for with the `TARGET_STRING` environment variable in the `.yaml` file.
 
 #### Example stringChecker Spec
 ```yaml
@@ -23,9 +22,9 @@ You can specify the string to check with the `TARGET_STRING` environment variabl
         name: main
         env:
           - name: "TARGET_URL"
-            value: "http://a39b2df774eb311eabbe902ee0ba4f44-2011198479.us-west-2.elb.amazonaws.com/?car=Roadster" # The URL that application will use to look for a specified string
+            value: "http://httpbin.org" # The URL that application will use to look for a specified string
           - name: "TARGET_STRING"
-            value: "driving mile 0" # The string that will be used to parse through provided URL
+            value: "httpbin" # The string that will be used to parse through provided URL
 
 ```
 
