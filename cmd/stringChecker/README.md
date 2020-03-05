@@ -1,10 +1,10 @@
 ## stringChecker
 
-The stringChecker parses through the content body from a specified URL searching for a specified string. This check reports a success upon receiving a bool value indicating if the specified string exists in the provided URL.
+The stringChecker parses through the content body from a specified URL searching for a specified string. This check reports a success upon receiving a bool value indicating if the string existed and reported to Kuberhealthy servers.
 
 You can specify the URL to check with the `TARGET_URL` environment variable in the `.yaml` file.
 
-You can specify the string to check with the `TARGET_STRING` environment VARIABLE IN THE `.yaml` file.
+You can specify the string to check with the `TARGET_STRING` environment variable in the `.yaml` file.
 
 #### Example stringChecker Spec
 ```yaml
