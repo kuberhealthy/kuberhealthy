@@ -2,4 +2,4 @@
 .idea
 .DS_Store
 .old
-cmd/stringChecker/stringChecker
+cmd/http-content-check/http-content-check
