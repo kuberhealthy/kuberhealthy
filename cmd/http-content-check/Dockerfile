@@ -2,8 +2,8 @@ FROM golang:alpine
 
 ADD . /build
 
-WORKDIR /build/cmd/stringChecker
+WORKDIR /build/cmd/http-content-check
 
 RUN go build -v
 
-ENTRYPOINT /build/cmd/stringChecker/stringChecker
+ENTRYPOINT /build/cmd/http-content-check/http-content-check
