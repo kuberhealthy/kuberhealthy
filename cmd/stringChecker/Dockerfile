@@ -1,9 +1,9 @@
 FROM golang:alpine
 
-ADD . /app
+ADD . /build
 
-WORKDIR /app/cmd/car-checker
+WORKDIR /build/cmd/stringChecker
 
 RUN go build -v
 
-ENTRYPOINT /app/cmd/car-checker/car-checker
+ENTRYPOINT /build/cmd/stringChecker/stringChecker
