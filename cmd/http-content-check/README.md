@@ -1,6 +1,6 @@
-## stringChecker
+## http-content-check
 
-The `stringChecker` check searches through the content body of a chosen URL and determines if a specified string is present.  If the request suceeds and the string is present, the check reports a pass.  Otherwise, the check reports failure.  `stringChecker` will follow header redirects and uses the standard [http.Client](https://golang.org/pkg/net/http/) behavior by default.
+The `http-content-check` check searches through the content body of a chosen URL and determines if a specified string is present.  If the request succeeds and the string is present, the check reports a pass.  Otherwise, the check reports failure.  `http-content-check` will follow header redirects and uses the standard [http.Client](https://golang.org/pkg/net/http/) behavior by default.
 
 you can specify the URL to check with the `TARGET_URL` environment variable in the `.yaml` file.
 You can specify the string to look for with the `TARGET_STRING` environment variable in the `.yaml` file.
@@ -11,13 +11,13 @@ You can specify the string to look for with the `TARGET_STRING` environment vari
   apiVersion: comcast.github.io/v1
   kind: KuberhealthyCheck
   metadata:
-    name: kh-string-checker
+    name: kh-http-content-check
   spec:
     runInterval: 60s # The interval that Kuberhealthy will run your check on
     timeout: 2m # After this much time, Kuberhealthy will kill your check and consider it "failed"
     podSpec: # The exact pod spec that will run.  All normal pod spec is valid here.
       containers:
-      - image: jdowni000/string-checker:v1.1.1 # The image of the check you just pushed
+      - image: jdowni000/http-content-check:v1.1.1 # The image of the check you just pushed
         imagePullPolicy: IfNotPresent # uses local image if present
         name: main
         env:
