@@ -11,5 +11,6 @@ Here is a list of external checks you can apply to your kubernetes cluster once 
 | [DNS Status Check](../cmd/dnsStatusCheck/README.md) | Checks for failures with DNS, including resolving within the cluster and outside of the cluster | [externalDNSStatusCheck.yaml](../cmd/dnsStatusCheck/externalDNSStatusCheck.yaml) [internalDNSStatusCheck.yaml](../cmd/dnsStatusCheck/internalDNSStatusCheck.yaml) | @integrii @joshulyne |
 | [HTTP Check](../cmd/http-check/README.md)| Checks that a URL endpoint can serve a 200 OK response | [http-check.yaml](../cmd/http-check/http-check.yaml) | @jonnydawg |
 | [KIAM Check](../cmd/kiam-check/README.md) | Checks that KIAM Servers and Agents are able to provide credentials | [kiam-check.yaml](../cmd/kiam-check.yaml) | @jonnydawg |
+| [string Checker](../cmd/stringChecker/README.md) | Checks for specific string in body of URL | [kubespec.yaml](../cmd/stringChecker/kubespec.yaml) | @jdowni000 |
 
 If you have a check you would like to share with the community, please open a PR to this file!
