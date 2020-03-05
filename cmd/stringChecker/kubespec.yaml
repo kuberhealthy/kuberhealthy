@@ -8,10 +8,10 @@ spec:
   podSpec: # The exact pod spec that will run.  All normal pod spec is valid here.
     containers:
     - image: jdowni000/string-checker:v1.1.1 # The image of the check you just pushed
-      imagePullPolicy: Always # During check development, it helps to set this to 'Always' to prevent on-node image caching.
+      imagePullPolicy: IfNotPresent # uses local image if present
       name: main
       env:
         - name: "TARGET_URL"
-          value: "http://a39b2df774eb311eabbe902ee0ba4f44-2011198479.us-west-2.elb.amazonaws.com/?car=Roadster" # The URL that applicaiton will use to look for a specified string
+          value: "http://a39b2df774eb311eabbe902ee0ba4f44-2011198479.us-west-2.elb.amazonaws.com/?car=Roadster" # The URL that application will use to look for a specified string
         - name: "TARGET_STRING"
           value: "driving mile 0" # The string that will be used to parse through provided URL
