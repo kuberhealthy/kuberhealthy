@@ -86,3 +86,9 @@ buildCheckReaper:
 
 pushCheckReaper:
 	docker push quay.io/comcast/check-reaper:1.0.0
+
+buildStringChecker:
+	docker build -t jdowni000/string-checker:v1.1.1 -f cmd/stringChecker/Dockerfile .
+
+pushStringChecker:
+	docker push jdowni000/string-checker:v1.1.1
