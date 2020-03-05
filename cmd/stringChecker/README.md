@@ -1,6 +1,6 @@
 ## stringChecker
 
-The stringChecker parses through content body from specified URL. This check reports a success upon receiving upon receiving a bool value indicating if the specified string exists in the provided URL.
+The stringChecker parses through the content body from a specified URL. This check reports a success upon receiving a bool value indicating if the specified string exists in the provided URL.
 
 You can specify the URL to check with the `TARGET_URL` environment variable in the `.yaml` file.
 
