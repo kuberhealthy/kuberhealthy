@@ -1,11 +1,11 @@
 ## http-content-check
 
-The `http-content-check` check searches through the content body of a chosen URL and determines if a specified string is present.  If the request succeeds and the string is present, the check reports a pass.  Otherwise, the check reports failure.  `http-content-check` will follow header redirects and uses the standard [http.Client](https://golang.org/pkg/net/http/) behavior by default.
+The `http-content-check` searches through the content body of a chosen URL and determines if a specified string is present.  If the request succeeds and the string is present, the check reports a pass.  Otherwise, the check reports failure.  `http-content-check` will follow header redirects and uses the standard [http.Client](https://golang.org/pkg/net/http/) behavior by default.
 
 you can specify the URL to check with the `TARGET_URL` environment variable in the `.yaml` file.
 You can specify the string to look for with the `TARGET_STRING` environment variable in the `.yaml` file.
 
-#### Example stringChecker Spec
+#### Example http-content-check Spec
 ```yaml
 ---
   apiVersion: comcast.github.io/v1
