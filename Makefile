@@ -90,5 +90,5 @@ pushCheckReaper:
 buildHttpContentChecker:
 	docker build -t jdowni000/http-content-check:v1.1.1 -f cmd/http-content-check/Dockerfile .
 
-pushStringChecker:
+pushHttpContentChecker:
 	docker push jdowni000/http-content-check:v1.1.1
