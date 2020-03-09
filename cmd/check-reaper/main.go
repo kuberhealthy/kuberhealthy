@@ -18,6 +18,17 @@ import (
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var ReapCheckerPods map[string]v1.Pod
 var MaxPodsThreshold = 4
+var Namespace string
+
+func init(){
+	Namespace = os.Getenv("SINGLE_NAMESPACE")
+	if len(Namespace) == 0 {
+		log.Infoln("Single namespace not specified, running check reaper across all namespaces")
+		Namespace = ""
+	} else {
+		log.Infoln("Single namespace specified. Running check-reaper in namespace:", Namespace)
+	}
+}
 
 func main() {
 
@@ -26,7 +37,7 @@ func main() {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
-	podList, err := listCheckerPods(client)
+	podList, err := listCheckerPods(client, Namespace)
 	if err != nil {
 		log.Fatalln("Failed to list and delete old checker pods", err)
 	}
@@ -45,14 +56,14 @@ func main() {
 }
 
 // listCheckerPods returns a list of pods with the khcheck name label
-func listCheckerPods(client *kubernetes.Clientset) (map[string]v1.Pod, error) {
-	log.Infoln("Listing checker pods from all namespaces")
+func listCheckerPods(client *kubernetes.Clientset, namespace string) (map[string]v1.Pod, error) {
+	log.Infoln("Listing checker pods")
 
 	ReapCheckerPods = make(map[string]v1.Pod)
 
-	pods, err := client.CoreV1().Pods("").List(metav1.ListOptions{LabelSelector: "kuberhealthy-check-name"})
+	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: "kuberhealthy-check-name"})
 	if err != nil {
-		log.Errorln("Failed to list checker pods from all namespaces")
+		log.Errorln("Failed to list checker pods")
 		return ReapCheckerPods, err
 	}
 
