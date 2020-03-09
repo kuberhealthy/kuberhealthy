@@ -16,4 +16,4 @@ spec:
         - name: "TARGET_STRING"
           value: "driving mile 0" # The string that will be used to parse through provided URL
         - name: "TIMEOUT_DURATION"
-          value: "30s"
+          value: "30s" # Specifies the time limit for requests made by the client to the URL
