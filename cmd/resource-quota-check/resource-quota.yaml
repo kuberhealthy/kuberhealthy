@@ -1,0 +1,28 @@
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: resource-quota
+  namespace: kuberhealthy
+spec:
+  runInterval: 10m
+  timeout: &resource_quota_check_timeout 10m
+  podSpec:
+    containers:
+    - name: resource-quota
+      image: quay.io/comcast/resource-quota-check:1.1.1
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: DEBUG
+          value: "true"
+        - name: CHECK_TIME_LIMIT
+          value: *deployment_check_timeout
+      resources:
+        requests:
+          cpu: 15m
+          memory: 15Mi
+        limits:
+          cpu: 25m
+      restartPolicy: Never
+    # serviceAccountName: deployment-sa
+    terminationGracePeriodSeconds: 30

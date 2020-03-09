@@ -8,15 +8,17 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/prometheus/common/log"
+	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 )
 
 const (
-	defaultBlacklistNamespaces = []string{"default"}
+	// Default memory and CPU usage alert threshold is set to 90% (inclusive).
+	defaultThreshold = 0.9
 
-	defaultWhitelistNamespaces = []string{"kube-system", "kuberhealthy"}
-
+	// Set the default check time limit to 5 minutes.
 	defaultCheckTimeLimit = time.Minute * 5
 )
 
@@ -32,11 +34,22 @@ var (
 	whitelistOnEnv = os.Getenv("WHITELIST_ON")
 	whitelistOn    bool
 
+	// By default, ignore the "default" namespace.
+	defaultBlacklistNamespaces = []string{"default"}
+
+	// By default, look at "kube-system" and "kuberhealthy".
+	defaultWhitelistNamespaces = []string{"kube-system", "kuberhealthy"}
+
 	// Given namespaces to ignore to look at. (Determined by BLACKLIST_ON or WHITELIST_ON environment variables.)
-	// Blacklist is enabled by default (looks at all namespaces).
+	// Blacklist is enabled by default (looks at all namespaces, except those specified in the blacklist).
 	// Expects a comma separated list of values (i.e. "default,kube-system")
 	namespacesEnv = os.Getenv("NAMESPACES")
 	namespaces    []string
+
+	// Threshold for resource quota usage. (inclusive)
+	// If given 0.9 (or 90%), this check will alert when usage for memory or CPU is at least 90%.
+	thresholdEnv = os.Getenv("THRESHOLD")
+	threshold    float64
 
 	// Check time limit.
 	checkTimeLimitEnv = os.Getenv("CHECK_TIME_LIMIT")
@@ -54,6 +67,8 @@ var (
 
 	// K8s client used for the check.
 	client *kubernetes.Clientset
+
+	checkErrors = make([]string, 0)
 )
 
 func init() {
@@ -72,6 +87,28 @@ func init() {
 func main() {
 
 	ctx, ctxCancel = context.WithTimeout(context.Background(), time.Duration(time.Minute*5))
+
+	// Create a kubernetes client.
+	var err error
+	client, err = kubeClient.Create(kubeConfigFile)
+	if err != nil {
+		errorMessage := "failed to create a kubernetes client with error: " + err.Error()
+		kh.ReportFailure([]string{errorMessage})
+		return
+	}
+	log.Infoln("Kubernetes client created.")
+
+	// Catch panics.
+	var r interface{}
+	defer func() {
+		r = recover()
+		if r != nil {
+			log.Infoln("Recovered panic:", r)
+			kh.ReportFailure([]string{r.(string)})
+		}
+	}()
+
+	runResourceQuotaCheck()
 }
 
 func listenForInterrupts(ctx context.Context) {
