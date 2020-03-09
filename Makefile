@@ -87,7 +87,7 @@ buildCheckReaper:
 pushCheckReaper:
 	docker push quay.io/comcast/check-reaper:1.0.0
 
-buildStringChecker:
+buildHttpContentChecker:
 	docker build -t jdowni000/http-content-check:v1.1.1 -f cmd/http-content-check/Dockerfile .
 
 pushStringChecker:
