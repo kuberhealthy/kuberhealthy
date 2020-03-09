@@ -1,0 +1,33 @@
+name: Build and Push Latest
+
+on:
+  push:
+    branches:
+    - master
+    - release/*
+    - docker-hub # for testing this build spec
+
+env:
+  IMAGE_NAME: kuberhealthy
+  TEST_VAR: ${{github.refs}}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - name: testing2
+        #if: startsWith(github.ref, "refs/tags/")
+        run: |
+          echo "test var: $TEST_VAR"
+      - name: build container
+        run: docker build . --file Dockerfile --tag $IMAGE_NAME
+      - name: Log into docker hub
+        run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
+      - name: Push new latest image
+        run: |
+          docker tag $IMAGE_NAME kuberhealthy/$IMAGE_NAME
+          docker push kuberhealthy/$IMAGE_NAME

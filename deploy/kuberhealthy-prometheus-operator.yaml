@@ -426,7 +426,7 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: quay.io/comcast/check-reaper:1.0.0
+              image: quay.io/comcast/check-reaper:1.1.0
               imagePullPolicy: IfNotPresent
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
