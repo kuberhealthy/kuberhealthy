@@ -15,3 +15,5 @@ spec:
           value: "http://a39b2df774eb311eabbe902ee0ba4f44-2011198479.us-west-2.elb.amazonaws.com/?car=Roadster" # The URL that application will use to look for a specified string
         - name: "TARGET_STRING"
           value: "driving mile 0" # The string that will be used to parse through provided URL
+        - name: "TIMEOUT_DURATION"
+          value: "3s"
