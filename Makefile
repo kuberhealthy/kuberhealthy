@@ -79,6 +79,14 @@ buildHTTPCheck:
 pushHTTPCheck:
 	docker push quay.io/comcast/http-check:1.0.0
 
+resourceQuotaCheck: buildResourceQuotasCheck pushResourceQuotasCheck
+
+buildResourceQuotaCheck:
+	docker build -t quay.io/comcast/resource-quota-check:0.0.1 cmd/resource-quota-check/Dockerfile .
+
+pushResourceQuotaCheck:
+	docker push quay.io/comcast/resource-quota-check:0.0.1
+
 checkReaper: buildCheckReaper pushCheckReaper
 
 buildCheckReaper:

@@ -31,6 +31,7 @@ func parseDebugSettings() {
 
 // parseInputValues parses all incoming environment variables for the program into globals and fatals on errors.
 func parseInputValues() {
+	// Parse blacklist and whitelist enablation.
 	if len(blacklistOnEnv) != 0 {
 		blacklistEnabled, err := strconv.ParseBool(blacklistOnEnv)
 		if err != nil {
@@ -49,6 +50,7 @@ func parseInputValues() {
 		blacklistOn = !whitelistEnabled
 	}
 
+	// Parse namespaces.
 	if len(namespacesEnv) != 0 {
 		namespaces = strings.Split(namespacesEnv, ",")
 		log.Infoln("Parsed NAMESPACES:", namespaces)
@@ -60,7 +62,23 @@ func parseInputValues() {
 		}
 	}
 
-	// Set check time limit to default
+	// Parse memory and CPU thresholds.
+	// (0.90 represents 90% and will alert if usage is at least 90% inclusive)
+	if len(thresholdEnv) != 0 {
+		var err error
+		threshold, err = strconv.ParseFloat(thresholdEnv, 64)
+		if err != nil {
+			log.Fatalln("error occurred attempting to parse THRESHOLD:", err)
+		}
+		log.Infoln("Parsed THRESHOLD:", threshold)
+		if threshold > 0.99 {
+			log.Infoln("Given THRESHOLD is greater than 0.99, setting to default of", defaultThreshold)
+			threshold = defaultThreshold
+		}
+		log.Infoln("Usage threshold set to:", threshold)
+	}
+
+	// Set check time limit to default.
 	checkTimeLimit = defaultCheckTimeLimit
 	if len(checkTimeLimitEnv) != 0 {
 		duration, err := time.ParseDuration(checkTimeLimitEnv)
