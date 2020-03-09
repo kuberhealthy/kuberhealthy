@@ -27,7 +27,6 @@ func init(){
 		Namespace = ""
 	} else {
 		log.Infoln("Single namespace specified. Running check-reaper in namespace:", Namespace)
-
 	}
 }
 
