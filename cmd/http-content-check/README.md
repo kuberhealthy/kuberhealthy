@@ -30,6 +30,6 @@ You can specify the string to look for with the `TARGET_STRING` environment vari
 
 #### How-to
 
- Make sure you are using the latest release of Kuberhealthy 2.0.0.
+ Make sure you are using the latest release of Kuberhealthy 2.0.0 or newer.
 
  Apply a `.yaml` file similar to the one shown above with ```kubectl apply -f```
