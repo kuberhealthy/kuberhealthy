@@ -25,6 +25,8 @@ You can specify the string to look for with the `TARGET_STRING` environment vari
             value: "http://httpbin.org" # The URL that application will use to look for a specified string
           - name: "TARGET_STRING"
             value: "httpbin" # The string that will be used to parse through provided URL
+          - name: "TIMEOUT_DURATION"
+            value: "30s" # Specifies the time limit for requests made by the client to the URL
 
 ```
 
