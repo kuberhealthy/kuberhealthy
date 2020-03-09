@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 )
@@ -15,6 +16,9 @@ var TargetURL = os.Getenv("TARGET_URL")
 
 // TargetString is the string that will be searched for in the server response body
 var TargetString = os.Getenv("TARGET_STRING")
+
+// TimeoutDur is user requested timeout duration for specified URL
+var TimeoutDur = os.Getenv("TIMEOUT_DURATION")
 
 // reportErrorAndStop reports to kuberhealthy of error and exits program when called
 func reportErrorAndStop(s string) {
@@ -62,7 +66,12 @@ func main() {
 
 // getURLContent retrieves bytes and error from URL
 func getURLContent(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+	dur, err := time.ParseDuration(TimeoutDur)
+	if err != nil {
+		return []byte{}, err
+	}
+	client := http.Client{Timeout: dur}
+	resp, err := client.Get(url)
 	if err != nil {
 		return []byte{}, err
 	}
