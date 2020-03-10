@@ -6,7 +6,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 10m
-  timeout: &resource_quota_check_timeout 10m
+  timeout: &resource_quota_check_timeout 1m
   podSpec:
     containers:
     - name: resource-quota
@@ -24,40 +24,4 @@ spec:
         limits:
           cpu: 50m
       restartPolicy: Never
-    # serviceAccountName: resource-quota-sa
     terminationGracePeriodSeconds: 30
-# ---
-# apiVersion: rbac.authorization.k8s.io/v1
-# kind: RoleBinding
-# metadata:
-#   name: resource-quota-check-rb
-#   namespace: kuberhealthy
-# roleRef:
-#   apiGroup: rbac.authorization.k8s.io
-#   kind: Role
-#   name: resource-quota-role
-# subjects:
-#   - kind: ServiceAccount
-#     name: resource-quota-sa
-#     namespace: kuberhealthy
-# ---
-# apiVersion: rbac.authorization.k8s.io/v1
-# kind: Role
-# metadata:
-#   name: resource-quota-role
-#   namespace: kuberhealthy
-# rules:
-#   - apiGroups:
-#       - ""
-#     resources:
-#       - resourcequotas
-#       - namespaces
-#     verbs:
-#       - get
-#       - list
-# ---
-# apiVersion: v1
-# kind: ServiceAccount
-# metadata:
-#   name: resource-quota-sa
-#   namespace: kuberhealthy
