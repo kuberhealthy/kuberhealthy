@@ -10,19 +10,54 @@ spec:
   podSpec:
     containers:
     - name: resource-quota
-      image: quay.io/comcast/resource-quota-check:1.1.1
-      imagePullPolicy: IfNotPresent
+      image: quay.io/comcast/resource-quota-check:0.0.2
+      imagePullPolicy: Always
       env:
         - name: DEBUG
           value: "true"
         - name: CHECK_TIME_LIMIT
-          value: *deployment_check_timeout
+          value: *resource_quota_check_timeout
       resources:
         requests:
-          cpu: 15m
+          cpu: 25m
           memory: 15Mi
         limits:
-          cpu: 25m
+          cpu: 50m
       restartPolicy: Never
-    # serviceAccountName: deployment-sa
+    # serviceAccountName: resource-quota-sa
     terminationGracePeriodSeconds: 30
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: RoleBinding
+# metadata:
+#   name: resource-quota-check-rb
+#   namespace: kuberhealthy
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: Role
+#   name: resource-quota-role
+# subjects:
+#   - kind: ServiceAccount
+#     name: resource-quota-sa
+#     namespace: kuberhealthy
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: Role
+# metadata:
+#   name: resource-quota-role
+#   namespace: kuberhealthy
+# rules:
+#   - apiGroups:
+#       - ""
+#     resources:
+#       - resourcequotas
+#       - namespaces
+#     verbs:
+#       - get
+#       - list
+# ---
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   name: resource-quota-sa
+#   namespace: kuberhealthy

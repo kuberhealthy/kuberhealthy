@@ -68,7 +68,7 @@ var (
 	// K8s client used for the check.
 	client *kubernetes.Clientset
 
-	checkErrors = make([]string, 0)
+	// checkErrors = make([]string, 0)
 )
 
 func init() {
