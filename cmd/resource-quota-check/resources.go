@@ -102,13 +102,15 @@ func examineResourceQuotas(namespaceList *v1.NamespaceList) chan []string {
 	return resultChan
 }
 
-// func checkResourceQuotaThresholdForNamespace(namespace *v1.Namespace, quotasChan chan string, wg *sync.WaitGroup) {
+// checkResourceQuotaThresholdForNamespace looks at the resource quotas for a given namespace and creates error messages
+// if usage is over a threshold.
 func checkResourceQuotaThresholdForNamespace(namespace string, quotasChan chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer log.Debugln("worker for", namespace, "namespace is done!")
 	switch {
 	// If whitelist option is enabled, only look at the specified namespaces.
 	case whitelistOn:
+		// Skip non-whitelisted namespaces.
 		if !contains(namespace, namespaces) {
 			log.Infoln("Skipping", namespace, "namespace.")
 			return
@@ -120,27 +122,29 @@ func checkResourceQuotaThresholdForNamespace(namespace string, quotasChan chan s
 			quotasChan <- err.Error()
 			return
 		}
+		// Check if usage is at certain a threshold (percentage) of the limit.
 		for _, rq := range quotas.Items {
 			limits := rq.Status.Hard
 			status := rq.Status.Used
+			percentCPUUsed := float64(status.Cpu().MilliValue()) / float64(limits.Cpu().MilliValue())
+			percentMemoryUsed := float64(status.Memory().MilliValue()) / float64(limits.Memory().MilliValue())
 			log.Debugln("Current used for", namespace, "CPU:", status.Cpu().MilliValue(), "Memory:", status.Memory().MilliValue())
 			log.Debugln("Limits for", namespace, "CPU:", limits.Cpu().MilliValue(), "Memory:", limits.Memory().MilliValue())
-			log.Debugln("%v %v", float64(status.Cpu().MilliValue()*100.0/limits.Cpu().MilliValue()), float64(status.Cpu().MilliValue()/limits.Cpu().MilliValue()))
-			log.Debugf("%3.3f %3.3f", float64(status.Cpu().MilliValue()*100.0/limits.Cpu().MilliValue()), float64(status.Cpu().MilliValue()/limits.Cpu().MilliValue()))
-			if status.Cpu().MilliValue() >= int64(float64(limits.Cpu().MilliValue())*threshold) {
-				err := fmt.Errorf("usage threshold for CPU for %s namespace has been met: USED: %d LIMIT: %d PERCENT_USED: %3.3f",
-					namespace, status.Cpu().Value(), limits.Cpu().Value(), float64(status.Cpu().Value()*100.0/limits.Cpu().Value()))
+			if percentCPUUsed >= threshold {
+				err := fmt.Errorf("cpu for %s namespace has reached threshold of %4.2f: USED: %d LIMIT: %d PERCENT_USED: %6.3f",
+					namespace, threshold, status.Cpu().Value(), limits.Cpu().Value(), percentCPUUsed)
 				quotasChan <- err.Error()
 			}
-			if status.Memory().MilliValue() >= int64(float64(limits.Memory().MilliValue())*threshold) {
-				err := fmt.Errorf("usage threshold for memory for %s namespace has been met: USED: %d LIMIT: %d PERCENT_USED: %3.3f",
-					namespace, status.Memory().MilliValue(), limits.Memory().MilliValue(), float64(status.Memory().MilliValue()*100.0/limits.Memory().MilliValue()))
+			if percentMemoryUsed >= threshold {
+				err := fmt.Errorf("memory for %s namespace has reached threshold of %4.2f: USED: %d LIMIT: %d PERCENT_USED: %6.3f",
+					namespace, threshold, status.Memory().MilliValue(), limits.Memory().MilliValue(), percentMemoryUsed)
 				quotasChan <- err.Error()
 			}
 		}
 		return
 	// By default, use a blacklist.
 	default:
+		// Skip blacklisted namespaces.
 		if contains(namespace, namespaces) {
 			log.Infoln("Skipping", namespace, "namespace")
 			return
@@ -152,21 +156,22 @@ func checkResourceQuotaThresholdForNamespace(namespace string, quotasChan chan s
 			quotasChan <- err.Error()
 			return
 		}
+		// Check if usage is at certain a threshold (percentage) of the limit.
 		for _, rq := range quotas.Items {
 			limits := rq.Status.Hard
 			status := rq.Status.Used
+			percentCPUUsed := float64(status.Cpu().MilliValue()) / float64(limits.Cpu().MilliValue())
+			percentMemoryUsed := float64(status.Memory().MilliValue()) / float64(limits.Memory().MilliValue())
 			log.Debugln("Current used for", namespace, "CPU:", status.Cpu().MilliValue(), "Memory:", status.Memory().MilliValue())
 			log.Debugln("Limits for", namespace, "CPU:", limits.Cpu().MilliValue(), "Memory:", limits.Memory().MilliValue())
-			log.Debugln("%v %v", float64(status.Cpu().MilliValue()*100.0/limits.Cpu().MilliValue()), float64(status.Cpu().MilliValue()/limits.Cpu().MilliValue()))
-			log.Debugf("%3.3f %3.3f", float64(status.Cpu().MilliValue()*100.0/limits.Cpu().MilliValue()), float64(status.Cpu().MilliValue()*100.0/limits.Cpu().MilliValue()))
-			if status.Cpu().MilliValue() >= int64(float64(limits.Cpu().MilliValue())*threshold) {
-				err := fmt.Errorf("usage threshold for CPU for %s namespace has been met: USED: %d LIMIT: %d PERCENT_USED: %3.3f",
-					namespace, status.Cpu().MilliValue(), limits.Cpu().MilliValue(), float64(status.Cpu().MilliValue()*100.0/limits.Cpu().MilliValue()))
+			if percentCPUUsed >= threshold {
+				err := fmt.Errorf("cpu for %s namespace has reached threshold of %4.2f: USED: %d LIMIT: %d PERCENT_USED: %6.3f",
+					namespace, threshold, status.Cpu().MilliValue(), limits.Cpu().MilliValue(), percentCPUUsed)
 				quotasChan <- err.Error()
 			}
-			if status.Memory().MilliValue() >= int64(float64(limits.Memory().MilliValue())*threshold) {
-				err := fmt.Errorf("usage threshold for memory for %s namespace has been met: USED: %d LIMIT: %d PERCENT_USED: %3.3f",
-					namespace, status.Memory().MilliValue(), limits.Memory().MilliValue(), float64(status.Memory().MilliValue()*100.0/limits.Memory().MilliValue()))
+			if percentMemoryUsed >= threshold {
+				err := fmt.Errorf("memory for %s namespace has reached threshold of %4.2f: USED: %d LIMIT: %d PERCENT_USED: %6.3f",
+					namespace, threshold, status.Memory().MilliValue(), limits.Memory().MilliValue(), percentMemoryUsed)
 				quotasChan <- err.Error()
 			}
 		}
@@ -180,7 +185,7 @@ func fillJobChan(namespaces *v1.NamespaceList, c chan<- *Job) {
 
 	log.Infoln(len(namespaces.Items), "namespacese to look at.")
 	for _, ns := range namespaces.Items {
-		log.Infoln("Creating job for", ns.GetName(), "namespace.")
+		log.Debugln("Creating job for", ns.GetName(), "namespace.")
 		c <- &Job{
 			namespace: ns.GetName(),
 		}

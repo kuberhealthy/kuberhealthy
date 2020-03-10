@@ -82,7 +82,7 @@ func parseInputValues() {
 		threshold = defaultThreshold
 	}
 	if threshold <= 0 {
-		log.Infoln("Threshold is less than or equal to 0, setting to default of ", defaultThreshold)
+		log.Infoln("Threshold is less than or equal to 0, setting to default of", defaultThreshold)
 		threshold = defaultThreshold
 	}
 	log.Infoln("Usage threshold set to:", threshold)

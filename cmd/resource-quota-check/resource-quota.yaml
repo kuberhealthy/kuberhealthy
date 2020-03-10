@@ -5,21 +5,19 @@ metadata:
   name: resource-quota
   namespace: kuberhealthy
 spec:
-  runInterval: 10m
+  runInterval: 30m
   timeout: &resource_quota_check_timeout 1m
   podSpec:
     containers:
     - name: resource-quota
-      image: quay.io/comcast/resource-quota-check:0.0.2
-      imagePullPolicy: Always
+      image: quay.io/comcast/resource-quota-check:1.0.0
+      imagePullPolicy: IfNotPresent
       env:
-        - name: DEBUG
-          value: "true"
         - name: CHECK_TIME_LIMIT
           value: *resource_quota_check_timeout
       resources:
         requests:
-          cpu: 25m
+          cpu: 15m
           memory: 15Mi
         limits:
           cpu: 50m
