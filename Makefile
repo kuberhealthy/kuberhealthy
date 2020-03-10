@@ -81,6 +81,13 @@ pushHTTPCheck:
 
 resourceQuotaCheck: buildResourceQuotaCheck pushResourceQuotaCheck
 
+buildHttpContentChecker:
+	docker build -t jdowni000/http-content-check:v1.1.1 -f cmd/http-content-check/Dockerfile .
+
+pushHttpContentChecker:
+	docker push jdowni000/http-content-check:v1.1.1
+
+
 buildResourceQuotaCheck:
 	docker build -t quay.io/comcast/resource-quota-check:0.0.2 -f cmd/resource-quota-check/Dockerfile .
 
