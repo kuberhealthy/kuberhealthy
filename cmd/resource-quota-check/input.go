@@ -31,16 +31,8 @@ func parseDebugSettings() {
 
 // parseInputValues parses all incoming environment variables for the program into globals and fatals on errors.
 func parseInputValues() {
-	// Parse blacklist and whitelist enablation.
-	if len(blacklistOnEnv) != 0 {
-		blacklistEnabled, err := strconv.ParseBool(blacklistOnEnv)
-		if err != nil {
-			log.Fatalln("error occured attempting to parse BLACKLIST_ON:", err)
-		}
-		log.Infoln("Parsed BLACKLIST_ON:", blacklistEnabled)
-		blacklistOn = blacklistEnabled
-		whitelistOn = !blacklistEnabled
-	} else if len(whitelistOnEnv) != 0 {
+	// Parse whitelist and blacklist enablation.
+	if len(whitelistOnEnv) != 0 {
 		whitelistEnabled, err := strconv.ParseBool(whitelistOnEnv)
 		if err != nil {
 			log.Fatalln("error occured attempting to parse WHITELIST_ON:", err)
@@ -48,18 +40,31 @@ func parseInputValues() {
 		log.Infoln("Parsed WHITELIST_ON:", whitelistEnabled)
 		whitelistOn = whitelistEnabled
 		blacklistOn = !whitelistEnabled
+	} else if len(blacklistOnEnv) != 0 {
+		blacklistEnabled, err := strconv.ParseBool(blacklistOnEnv)
+		if err != nil {
+			log.Fatalln("error occured attempting to parse BLACKLIST_ON:", err)
+		}
+		log.Infoln("Parsed BLACKLIST_ON:", blacklistEnabled)
+		blacklistOn = blacklistEnabled
+		whitelistOn = !blacklistEnabled
+	} else {
+		log.Infoln("Neither blacklist or whitelist options where specified, defaulting to blacklist:")
+		whitelistOn = false
 	}
 
 	// Parse namespaces.
 	if len(namespacesEnv) != 0 {
 		namespaces = strings.Split(namespacesEnv, ",")
 		log.Infoln("Parsed NAMESPACES:", namespaces)
-		switch {
-		case whitelistOn:
-			log.Infoln("Looking at", namespaces)
-		default:
-			log.Infoln("Ignoring", namespaces)
-		}
+	}
+	switch {
+	case whitelistOn:
+		log.Infoln("Looking at", namespaces)
+		namespaces = defaultWhitelistNamespaces
+	default:
+		log.Infoln("Ignoring", namespaces)
+		namespaces = defaultBlacklistNamespaces
 	}
 
 	// Parse memory and CPU thresholds.
@@ -71,12 +76,16 @@ func parseInputValues() {
 			log.Fatalln("error occurred attempting to parse THRESHOLD:", err)
 		}
 		log.Infoln("Parsed THRESHOLD:", threshold)
-		if threshold > 0.99 {
-			log.Infoln("Given THRESHOLD is greater than 0.99, setting to default of", defaultThreshold)
-			threshold = defaultThreshold
-		}
-		log.Infoln("Usage threshold set to:", threshold)
 	}
+	if threshold > 0.99 {
+		log.Infoln("Given THRESHOLD is greater than 0.99, setting to default of", defaultThreshold)
+		threshold = defaultThreshold
+	}
+	if threshold <= 0 {
+		log.Infoln("Threshold is less than or equal to 0, setting to default of ", defaultThreshold)
+		threshold = defaultThreshold
+	}
+	log.Infoln("Usage threshold set to:", threshold)
 
 	// Set check time limit to default.
 	checkTimeLimit = defaultCheckTimeLimit
