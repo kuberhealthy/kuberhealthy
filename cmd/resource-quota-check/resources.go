@@ -181,7 +181,7 @@ func examineResouceQuotasForNamespace(namespace string, c chan<- string) {
 func fillJobChan(namespaces *v1.NamespaceList, c chan<- *Job) {
 	defer close(c)
 
-	log.Infoln(len(namespaces.Items), "namespacese to look at.")
+	log.Infoln(len(namespaces.Items), "namespaces to look at.")
 	for _, ns := range namespaces.Items {
 		log.Debugln("Creating job for", ns.GetName(), "namespace.")
 		c <- &Job{

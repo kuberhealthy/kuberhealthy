@@ -5,18 +5,18 @@ metadata:
   name: resource-quota
   namespace: kuberhealthy
 spec:
-  runInterval: 3m
-  timeout: &resource_quota_check_timeout 1m
+  runInterval: 30m
+  timeout: &resource_quota_check_timeout 5m
   podSpec:
     containers:
     - name: resource-quota
       image: quay.io/comcast/resource-quota-check:1.0.0
-      imagePullPolicy: Always
+      imagePullPolicy: IfNotPresent
       env:
         - name: BLACKLIST
           value: "true"
         - name: BLACKLIST_NAMESPACES
-          value: "default,istio-system"
+          value: "default"
         - name: CHECK_TIME_LIMIT
           value: *resource_quota_check_timeout
       resources:

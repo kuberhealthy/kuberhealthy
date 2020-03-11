@@ -103,8 +103,8 @@ func parseInputValues() {
 		if duration.Seconds() < 1 {
 			log.Fatalln("error occurred attempting to parse CHECK_TIME_LIMIT. Check run time in seconds is less than 1:", duration.Seconds())
 		}
-		log.Infoln("Parsed CHECK_TIME_LIMIT:", duration.Seconds())
+		log.Infof("Parsed CHECK_TIME_LIMIT: %.0f seconds", duration.Seconds())
 		checkTimeLimit = duration
 	}
-	log.Infoln("Check time limit set to:", checkTimeLimit)
+	log.Infof("Check time limit set to: %.0f seconds", checkTimeLimit.Seconds())
 }
