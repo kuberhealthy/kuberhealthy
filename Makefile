@@ -7,88 +7,88 @@ build:
 push:
 	docker push $(IMAGE):$(TAG)
 
-amiCheck: buildAMICheck pushAMICheck
+# amiCheck: buildAMICheck pushAMICheck
 
-buildAMICheck:
-	docker build -t quay.io/comcast/ami-check:1.0.1 -f cmd/ami-check/Dockerfile .
+# buildAMICheck:
+# 	docker build -t quay.io/comcast/ami-check:1.0.1 -f cmd/ami-check/Dockerfile .
+#
+# pushAMICheck:
+# 	docker push quay.io/comcast/ami-check:1.0.1
 
-pushAMICheck:
-	docker push quay.io/comcast/ami-check:1.0.1
+# external: buildExternalChecker pushExternalChecker
+#
+# buildExternalChecker:
+# 	docker build -t quay.io/comcast/test-external-check:latest -f cmd/test-external-check/Dockerfile .
+#
+# pushExternalChecker:
+# 	docker push quay.io/comcast/test-external-check:latest
 
-external: buildExternalChecker pushExternalChecker
+# deploymentCheck: buildDeploymentCheck pushDeploymentCheck
 
-buildExternalChecker:
-	docker build -t quay.io/comcast/test-external-check:latest -f cmd/test-external-check/Dockerfile .
+# buildDeploymentCheck:
+# 	docker build -t quay.io/comcast/deployment-check:1.1.1 -f cmd/deployment-check/Dockerfile .
+#
+# pushDeploymentCheck:
+# 	docker push quay.io/comcast/deployment-check:1.1.1
 
-pushExternalChecker:
-	docker push quay.io/comcast/test-external-check:latest
+# daemonset: buildDaemonsetCheck pushDaemonsetCheck
 
-deploymentCheck: buildDeploymentCheck pushDeploymentCheck
+# buildDaemonsetCheck:
+# 	docker build -t quay.io/comcast/kh-daemonset-check:2.0.1 -f cmd/daemonSetCheck/Dockerfile .
+#
+# pushDaemonsetCheck:
+# 	docker push quay.io/comcast/kh-daemonset-check:2.0.1
 
-buildDeploymentCheck:
-	docker build -t quay.io/comcast/deployment-check:1.1.1 -f cmd/deployment-check/Dockerfile .
+# kiamCheck: buildKIAMCheck pushKIAMCheck
 
-pushDeploymentCheck:
-	docker push quay.io/comcast/deployment-check:1.1.1
+# buildKIAMCheck:
+# 	docker build -t quay.io/comcast/kiam-check:1.0.1 -f cmd/kiam-check/Dockerfile .
+#
+# pushKIAMCheck:
+# 	docker push quay.io/comcast/kiam-check:1.0.1
 
-daemonset: buildDaemonsetCheck pushDaemonsetCheck
+# podRestarts: buildPodRestartsCheck pushPodRestartsCheck
 
-buildDaemonsetCheck:
-	docker build -t quay.io/comcast/kh-daemonset-check:2.0.1 -f cmd/daemonSetCheck/Dockerfile .
+# buildPodRestartsCheck:
+# 	docker build -t quay.io/comcast/pod-restarts-check:2.0.0 -f cmd/podRestartsCheck/Dockerfile .
+#
+# pushPodRestartsCheck:
+# 	docker push quay.io/comcast/pod-restarts-check:2.0.0
 
-pushDaemonsetCheck:
-	docker push quay.io/comcast/kh-daemonset-check:2.0.1
+# dnsStatus: buildDNSStatusCheck pushDNSStatusCheck
 
-kiamCheck: buildKIAMCheck pushKIAMCheck
+# buildDNSStatusCheck:
+# 	docker build -t quay.io/comcast/dns-status-check:1.0.0 -f cmd/dnsStatusCheck/Dockerfile .
+#
+# pushDNSStatusCheck:
+# 	docker push quay.io/comcast/dns-status-check:1.0.0
 
-buildKIAMCheck:
-	docker build -t quay.io/comcast/kiam-check:1.0.1 -f cmd/kiam-check/Dockerfile .
+# podStatus: buildPodStatusCheck pushPodStatusCheck
 
-pushKIAMCheck:
-	docker push quay.io/comcast/kiam-check:1.0.1
+# buildPodStatusCheck:
+# 	docker build -t quay.io/comcast/pod-status-check:1.0.2 -f cmd/podStatusCheck/Dockerfile .
+#
+# pushPodStatusCheck:
+# 	docker push quay.io/comcast/pod-status-check:1.0.2
 
-podRestarts: buildPodRestartsCheck pushPodRestartsCheck
+# httpCheck: buildHTTPCheck pushHTTPCheck
 
-buildPodRestartsCheck:
-	docker build -t quay.io/comcast/pod-restarts-check:2.0.0 -f cmd/podRestartsCheck/Dockerfile .
+# buildHTTPCheck:
+# 	docker build -t quay.io/comcast/http-check:1.0.0 -f cmd/http-check/Dockerfile .
+#
+# pushHTTPCheck:
+# 	docker push quay.io/comcast/http-check:1.0.0
 
-pushPodRestartsCheck:
-	docker push quay.io/comcast/pod-restarts-check:2.0.0
+# checkReaper: buildCheckReaper pushCheckReaper
 
-dnsStatus: buildDNSStatusCheck pushDNSStatusCheck
+# buildCheckReaper:
+# 	docker build -t quay.io/comcast/check-reaper:1.1.0 -f cmd/check-reaper/Dockerfile .
+#
+# pushCheckReaper:
+# 	docker push quay.io/comcast/check-reaper:1.1.0
 
-buildDNSStatusCheck:
-	docker build -t quay.io/comcast/dns-status-check:1.0.0 -f cmd/dnsStatusCheck/Dockerfile .
-
-pushDNSStatusCheck:
-	docker push quay.io/comcast/dns-status-check:1.0.0
-
-podStatus: buildPodStatusCheck pushPodStatusCheck
-
-buildPodStatusCheck:
-	docker build -t quay.io/comcast/pod-status-check:1.0.2 -f cmd/podStatusCheck/Dockerfile .
-
-pushPodStatusCheck:
-	docker push quay.io/comcast/pod-status-check:1.0.2
-
-httpCheck: buildHTTPCheck pushHTTPCheck
-
-buildHTTPCheck:
-	docker build -t quay.io/comcast/http-check:1.0.0 -f cmd/http-check/Dockerfile .
-
-pushHTTPCheck:
-	docker push quay.io/comcast/http-check:1.0.0
-
-checkReaper: buildCheckReaper pushCheckReaper
-
-buildCheckReaper:
-	docker build -t quay.io/comcast/check-reaper:1.1.0 -f cmd/check-reaper/Dockerfile .
-
-pushCheckReaper:
-	docker push quay.io/comcast/check-reaper:1.1.0
-
-buildHttpContentChecker:
-	docker build -t jdowni000/http-content-check:v1.1.1 -f cmd/http-content-check/Dockerfile .
-
-pushHttpContentChecker:
-	docker push jdowni000/http-content-check:v1.1.1
+# buildHttpContentChecker:
+# 	docker build -t jdowni000/http-content-check:v1.1.1 -f cmd/http-content-check/Dockerfile .
+#
+# pushHttpContentChecker:
+# 	docker push jdowni000/http-content-check:v1.1.1
