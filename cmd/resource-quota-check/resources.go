@@ -108,6 +108,46 @@ func checkResourceQuotaThresholdForNamespace(namespace string, quotasChan chan s
 	defer wg.Done()
 	defer log.Debugln("worker for", namespace, "namespace is done!")
 	switch {
+	// If whitelist and blacklist options are enabled, look at all whitelisted namespaces but the blacklisted namespaces.
+	case whitelistOn && blacklistOn:
+		// Skip non-whitelisted namespaces.
+		if !contains(namespace, whitelistNamespaces) {
+			log.Infoln("Skipping", namespace, "namespace.")
+			return
+		}
+		// Skip blacklisted namespaces.
+		if contains(nameespace, blacklistNamespaces) {
+			log.Infoln("Skipping", namespace, "namespace.")
+			return
+		}
+		if contains(namespace)
+		log.Infoln("Looking at resource quotas for", namespace, "namespace.")
+		quotas, err := client.CoreV1().ResourceQuotas(namespace).List(metav1.ListOptions{})
+		if err != nil {
+			err = fmt.Errorf("error occurred listing resource quotas for %s namespace %v", namespace, err)
+			quotasChan <- err.Error()
+			return
+		}
+		// Check if usage is at certain a threshold (percentage) of the limit.
+		for _, rq := range quotas.Items {
+			limits := rq.Status.Hard
+			status := rq.Status.Used
+			percentCPUUsed := float64(status.Cpu().MilliValue()) / float64(limits.Cpu().MilliValue())
+			percentMemoryUsed := float64(status.Memory().MilliValue()) / float64(limits.Memory().MilliValue())
+			log.Debugln("Current used for", namespace, "CPU:", status.Cpu().MilliValue(), "Memory:", status.Memory().MilliValue())
+			log.Debugln("Limits for", namespace, "CPU:", limits.Cpu().MilliValue(), "Memory:", limits.Memory().MilliValue())
+			if percentCPUUsed >= threshold {
+				err := fmt.Errorf("cpu for %s namespace has reached threshold of %4.2f: USED: %d LIMIT: %d PERCENT_USED: %6.3f",
+					namespace, threshold, status.Cpu().Value(), limits.Cpu().Value(), percentCPUUsed)
+				quotasChan <- err.Error()
+			}
+			if percentMemoryUsed >= threshold {
+				err := fmt.Errorf("memory for %s namespace has reached threshold of %4.2f: USED: %d LIMIT: %d PERCENT_USED: %6.3f",
+					namespace, threshold, status.Memory().MilliValue(), limits.Memory().MilliValue(), percentMemoryUsed)
+				quotasChan <- err.Error()
+			}
+		}
+		return
 	// If whitelist option is enabled, only look at the specified namespaces.
 	case whitelistOn:
 		// Skip non-whitelisted namespaces.
@@ -143,12 +183,40 @@ func checkResourceQuotaThresholdForNamespace(namespace string, quotasChan chan s
 		}
 		return
 	// By default, use a blacklist.
-	default:
+	case blacklistOn:
 		// Skip blacklisted namespaces.
 		if contains(namespace, namespaces) {
 			log.Infoln("Skipping", namespace, "namespace")
 			return
 		}
+		log.Infoln("Looking at resource quotas for", namespace, "namespace.")
+		quotas, err := client.CoreV1().ResourceQuotas(namespace).List(metav1.ListOptions{})
+		if err != nil {
+			err = fmt.Errorf("error occurred listing resource quotas for %s namespace %v", namespace, err)
+			quotasChan <- err.Error()
+			return
+		}
+		// Check if usage is at certain a threshold (percentage) of the limit.
+		for _, rq := range quotas.Items {
+			limits := rq.Status.Hard
+			status := rq.Status.Used
+			percentCPUUsed := float64(status.Cpu().MilliValue()) / float64(limits.Cpu().MilliValue())
+			percentMemoryUsed := float64(status.Memory().MilliValue()) / float64(limits.Memory().MilliValue())
+			log.Debugln("Current used for", namespace, "CPU:", status.Cpu().MilliValue(), "Memory:", status.Memory().MilliValue())
+			log.Debugln("Limits for", namespace, "CPU:", limits.Cpu().MilliValue(), "Memory:", limits.Memory().MilliValue())
+			if percentCPUUsed >= threshold {
+				err := fmt.Errorf("cpu for %s namespace has reached threshold of %4.2f: USED: %d LIMIT: %d PERCENT_USED: %6.3f",
+					namespace, threshold, status.Cpu().MilliValue(), limits.Cpu().MilliValue(), percentCPUUsed)
+				quotasChan <- err.Error()
+			}
+			if percentMemoryUsed >= threshold {
+				err := fmt.Errorf("memory for %s namespace has reached threshold of %4.2f: USED: %d LIMIT: %d PERCENT_USED: %6.3f",
+					namespace, threshold, status.Memory().MilliValue(), limits.Memory().MilliValue(), percentMemoryUsed)
+				quotasChan <- err.Error()
+			}
+		}
+		return
+	default:
 		log.Infoln("Looking at resource quotas for", namespace, "namespace.")
 		quotas, err := client.CoreV1().ResourceQuotas(namespace).List(metav1.ListOptions{})
 		if err != nil {
