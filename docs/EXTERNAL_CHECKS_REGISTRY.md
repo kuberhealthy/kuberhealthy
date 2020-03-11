@@ -12,5 +12,6 @@ Here is a list of external checks you can apply to your kubernetes cluster once 
 | [HTTP Check](../cmd/http-check/README.md)| Checks that a URL endpoint can serve a 200 OK response | [http-check.yaml](../cmd/http-check/http-check.yaml) | @jonnydawg |
 | [KIAM Check](../cmd/kiam-check/README.md) | Checks that KIAM Servers and Agents are able to provide credentials | [kiam-check.yaml](../cmd/kiam-check.yaml) | @jonnydawg |
 | [HTTP Content Check](../cmd/http-content-check/README.md) | Checks for specific string in body of URL | [http-content-check.yaml](../cmd/http-content-check/http-content-check.yaml) | @jdowni000 |
+| [Resource Quota Check](../cmd/resource-quota-check/README.md) | Checks for specific string in body of URL | [resource-quota-check.yaml](../cmd/resource-quota-check/resource-quota-check.yaml) | @jonnydawg |
 
 If you have a check you would like to share with the community, please open a PR to this file!

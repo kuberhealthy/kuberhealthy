@@ -26,6 +26,9 @@ var (
 	// K8s config file for the client.
 	kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
+	// Given namespaces to ignore or to look at. (Determined by BLACKLIST_NAMESPACES or WHITELIST_NAMESPACES environment variables.)
+	// Blacklist is enabled by default (looks at all namespaces, except those specified in the blacklist).
+	// Expects a comma separated list of values (i.e. "default,kube-system")
 	// Ignores namespaces from the blacklist if turned on. (On by default, checks all namespaces)
 	blacklistOnEnv         = os.Getenv("BLACKLIST")
 	blacklistNamespacesEnv = os.Getenv("BLACKLIST_NAMESPACES")
@@ -36,19 +39,13 @@ var (
 	whitelistOnEnv         = os.Getenv("WHITELIST")
 	whitelistNamespacesEnv = os.Getenv("WHITELIST_NAMESPACES")
 	whitelistOn            bool
-	whitelsitNamespaces    []string
+	whitelistNamespaces    []string
 
 	// By default, ignore the "default" namespace.
 	defaultBlacklistNamespaces = []string{"default"}
 
 	// By default, look at "kube-system" and "kuberhealthy".
 	defaultWhitelistNamespaces = []string{"kube-system", "kuberhealthy"}
-
-	// Given namespaces to ignore to look at. (Determined by BLACKLIST_ON or WHITELIST_ON environment variables.)
-	// Blacklist is enabled by default (looks at all namespaces, except those specified in the blacklist).
-	// Expects a comma separated list of values (i.e. "default,kube-system")
-	namespacesEnv = os.Getenv("NAMESPACES")
-	namespaces    []string
 
 	// Threshold for resource quota usage. (inclusive)
 	// If given 0.9 (or 90%), this check will alert when usage for memory or CPU is at least 90%.

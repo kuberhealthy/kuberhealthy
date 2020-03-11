@@ -54,29 +54,23 @@ func parseInputValues() {
 
 	// Parse blacklist and whitelist namespaces.
 	if len(blacklistNamespacesEnv) != 0 {
-		blacklistNamespaces = strings.Split(namespacesEnv, ",")
-		log.Infoln("Parsed BLACKLIST_NAMESPACES:", namespaces)
-		log.Infoln("Given BLACKLIST_NAMESPACE:", blacklistNamespaces)
+		blacklistNamespaces = strings.Split(blacklistNamespacesEnv, ",")
+		log.Infoln("Parsed BLACKLIST_NAMESPACES:", blacklistNamespaces)
 	}
 	if len(whitelistNamespacesEnv) != 0 {
-		whitelistNamespaces = strings.Split(namespacesEnv, ",")
-		log.Infoln("Parsed WHITELIST_NAMESPACES:", namespaces)
-		log.Infoln("Given WHITELIST_NAMESPACES:", whitelistNamespaces)
-	}
-
-	// Parse namespaces.
-	if len(namespacesEnv) != 0 {
-		namespaces = strings.Split(namespacesEnv, ",")
-		log.Infoln("Parsed NAMESPACES:", namespaces)
+		whitelistNamespaces = strings.Split(whitelistNamespacesEnv, ",")
+		log.Infoln("Parsed WHITELIST_NAMESPACES:", whitelistNamespaces)
 	}
 
 	switch {
+	case whitelistOn && blacklistOn:
+		log.Infoln("Looking at", whitelistNamespaces, "but ignoring", blacklistNamespaces)
 	case whitelistOn:
-		log.Infoln("Looking at", namespaces)
-		namespaces = defaultWhitelistNamespaces
+		log.Infoln("Looking at", whitelistNamespaces)
+	case blacklistOn:
+		log.Infoln("Ignoring", blacklistNamespaces)
 	default:
-		log.Infoln("Ignoring", namespaces)
-		namespaces = defaultBlacklistNamespaces
+		log.Infoln("Looking at all namespaces.")
 	}
 
 	// Parse memory and CPU thresholds.
