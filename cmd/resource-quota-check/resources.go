@@ -45,7 +45,7 @@ func runResourceQuotaCheck() {
 		}
 		log.Infoln("No errors or warnings were created during this check!")
 	case <-ctx.Done():
-		log.Infoln("Canceling cleanup and shutting down from interrupt.")
+		log.Infoln("Exiting and shutting down from interrupt.")
 		return
 	case <-time.After(checkTimeLimit):
 		err := fmt.Errorf("Check took too long and timed out.")
