@@ -39,7 +39,6 @@ func parseInputValues() {
 		}
 		log.Infoln("Parsed WHITELIST_ON:", whitelistEnabled)
 		whitelistOn = whitelistEnabled
-		blacklistOn = !whitelistEnabled
 	} else if len(blacklistOnEnv) != 0 {
 		blacklistEnabled, err := strconv.ParseBool(blacklistOnEnv)
 		if err != nil {
@@ -47,10 +46,22 @@ func parseInputValues() {
 		}
 		log.Infoln("Parsed BLACKLIST_ON:", blacklistEnabled)
 		blacklistOn = blacklistEnabled
-		whitelistOn = !blacklistEnabled
-	} else {
-		log.Infoln("Neither blacklist or whitelist options where specified, defaulting to blacklist:")
-		whitelistOn = false
+	}
+
+	if whitelistOn && blacklistOn {
+		log.Infoln("Whitelist and blacklist are both enabled, looking at whitelisted namespaces except specified blacklisted namespaces.")
+	}
+
+	// Parse blacklist and whitelist namespaces.
+	if len(blacklistNamespacesEnv) != 0 {
+		blacklistNamespaces = strings.Split(namespacesEnv, ",")
+		log.Infoln("Parsed BLACKLIST_NAMESPACES:", namespaces)
+		log.Infoln("Given BLACKLIST_NAMESPACE:", blacklistNamespaces)
+	}
+	if len(whitelistNamespacesEnv) != 0 {
+		whitelistNamespaces = strings.Split(namespacesEnv, ",")
+		log.Infoln("Parsed WHITELIST_NAMESPACES:", namespaces)
+		log.Infoln("Given WHITELIST_NAMESPACES:", whitelistNamespaces)
 	}
 
 	// Parse namespaces.
@@ -58,6 +69,7 @@ func parseInputValues() {
 		namespaces = strings.Split(namespacesEnv, ",")
 		log.Infoln("Parsed NAMESPACES:", namespaces)
 	}
+
 	switch {
 	case whitelistOn:
 		log.Infoln("Looking at", namespaces)

@@ -27,12 +27,16 @@ var (
 	kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
 	// Ignores namespaces from the blacklist if turned on. (On by default, checks all namespaces)
-	blacklistOnEnv = os.Getenv("BLACKLIST")
-	blacklistOn    = true
+	blacklistOnEnv         = os.Getenv("BLACKLIST")
+	blacklistNamespacesEnv = os.Getenv("BLACKLIST_NAMESPACES")
+	blacklistOn            = true
+	blacklistNamespaces    []string
 
 	// Looks at specified namespaces from the whitelist if turned on.
-	whitelistOnEnv = os.Getenv("WHITELIST")
-	whitelistOn    bool
+	whitelistOnEnv         = os.Getenv("WHITELIST")
+	whitelistNamespacesEnv = os.Getenv("WHITELIST_NAMESPACES")
+	whitelistOn            bool
+	whitelsitNamespaces    []string
 
 	// By default, ignore the "default" namespace.
 	defaultBlacklistNamespaces = []string{"default"}
