@@ -212,9 +212,6 @@ func (dsc *Checker) generateDaemonSetSpec() {
 				"creatingInstance": dsc.hostname,
 				"checkRunTime":     checkRunTime,
 			},
-			Annotations: map[string]string{
-				"cluster-autoscaler.kubernetes.io/safe-to-evict": "true",
-			},
 		},
 		Spec: appsv1.DaemonSetSpec{
 			MinReadySeconds: 2,
@@ -235,6 +232,9 @@ func (dsc *Checker) generateDaemonSetSpec() {
 						"checkRunTime":     checkRunTime,
 					},
 					Name: dsc.DaemonSetName,
+					Annotations: map[string]string{
+						"cluster-autoscaler.kubernetes.io/safe-to-evict": "true",
+					},
 				},
 				Spec: apiv1.PodSpec{
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
