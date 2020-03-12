@@ -1,4 +1,4 @@
-name: Build and Push Kuberhealthy Latest
+name: Build and Push Pod-Status-Check Latest
 
 on:
   push:
@@ -7,11 +7,11 @@ on:
     - release/*
     - docker-hub # for testing this build spec
     paths:
-     - "cmd/kuberhealthy/**"
-     - "pkg/**"
+     - "cmd/podStatusCheck"
+
 
 env:
-  IMAGE_NAME: kuberhealthy
+  IMAGE_NAME: podStatusCheck
 
 jobs:
   build:
