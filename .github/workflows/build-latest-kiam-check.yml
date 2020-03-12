@@ -6,8 +6,8 @@ on:
     - master
     - release/*
     - docker-hub # for testing this build spec
-    paths:m
-     - "cmd/kiam-check
+    paths:
+     - "cmd/kiam-check"
 
 
 env:
