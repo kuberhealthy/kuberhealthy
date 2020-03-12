@@ -6,12 +6,12 @@ on:
     - master
     - release/*
     - docker-hub # for testing this build spec
-    paths:
-     - "cmd/kuberhealthy/**"
-     - "pkg/**"
+    paths:m
+     - "cmd/test-external-check
+
 
 env:
-  IMAGE_NAME: kuberhealthy
+  IMAGE_NAME: test-external-check
 
 jobs:
   build:

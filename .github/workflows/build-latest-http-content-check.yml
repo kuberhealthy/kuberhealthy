@@ -6,12 +6,12 @@ on:
     - master
     - release/*
     - docker-hub # for testing this build spec
-    paths:
-     - "cmd/kuberhealthy/**"
-     - "pkg/**"
+    paths:m
+     - "cmd/http-content-check
+
 
 env:
-  IMAGE_NAME: kuberhealthy
+  IMAGE_NAME: http-content-check
 
 jobs:
   build:

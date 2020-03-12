@@ -6,12 +6,12 @@ on:
     - master
     - release/*
     - docker-hub # for testing this build spec
-    paths:
-     - "cmd/kuberhealthy/**"
-     - "pkg/**"
+    paths:m
+     - "cmd/check-reaper
+
 
 env:
-  IMAGE_NAME: kuberhealthy
+  IMAGE_NAME: check-reaper
 
 jobs:
   build:
