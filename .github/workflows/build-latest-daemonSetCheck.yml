@@ -25,5 +25,5 @@ jobs:
         run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
       - name: Push new latest image
         run: |
-          docker tag $IMAGE_NAME comcast/$IMAGE_NAME
-          docker push comcast/$IMAGE_NAME
+          docker tag $IMAGE_NAME kuberhealthy/$IMAGE_NAME
+          docker push kuberhealthy/$IMAGE_NAME
