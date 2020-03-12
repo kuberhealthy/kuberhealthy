@@ -58,7 +58,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 10m
-  timeout: 15m
+  timeout: &deployment_check_timeout 15m
   podSpec:
     containers:
     - name: deployment
@@ -75,6 +75,8 @@ spec:
           value: "true"
         - name: ADDITIONAL_ENV_VARS
           value: "var1=foo,var2=bar"
+        - name: CHECK_TIME_LIMIT
+          value: *deployment_check_timeout
       resources:
         requests:
           cpu: 15m

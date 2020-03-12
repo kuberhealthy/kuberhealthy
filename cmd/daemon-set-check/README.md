@@ -18,7 +18,7 @@ deployment or tear down, an error is shown on the status page describing the iss
 
 #### Daemonset Check Kube Spec:
 
-```$xslt
+```yaml
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
@@ -60,7 +60,7 @@ spec:
 
 To implement the Daemonset Check with Kuberhealthy, run:
  
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/daemonSetCheck/daemonSetCheck.yaml`
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/daemon-set-check/daemon-set-check.yaml`
  
 Make sure you are using the latest release of Kuberhealthy 2.0.0. 
 
