@@ -1,4 +1,4 @@
-name: Build and Push Kuberhealthy Latest
+name: Build and Push HTTP-Check Latest
 
 on:
   push:

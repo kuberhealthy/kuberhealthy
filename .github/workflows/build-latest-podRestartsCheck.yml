@@ -1,4 +1,4 @@
-name: Build and Push Kuberhealthy Latest
+name: Build and Push Pod-Restarts-Check Latest
 
 on:
   push:

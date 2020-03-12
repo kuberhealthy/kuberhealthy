@@ -1,4 +1,4 @@
-name: Build and Push Kuberhealthy Latest
+name: Build and Push Daemon-Set-Check Latest
 
 on:
   push:
