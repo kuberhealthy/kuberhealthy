@@ -45,7 +45,7 @@ spec:
 
 To implement the DNS Status Check with Kuberhealthy, run 
 
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/dnsStatusCheck/externalDNSStatusCheck.yaml`
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/dnsStatusCheck/internalDNSStatusCheck.yaml`
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/dns-status-check/externalDNSStatusCheck.yaml`
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/dns-status-check/internalDNSStatusCheck.yaml`
 
  Make sure you are using the latest release of Kuberhealthy 2.0.0. 

@@ -46,8 +46,8 @@ Note: This check assumes that a pod is unhealthy if it is over 10 minutes old an
 
 
 #### How-to
-To implement the Pod Status Check with Kuberhealthy, apply the configuration file [podStatusCheck.yaml](podStatusCheck.yaml)
+To implement the Pod Status Check with Kuberhealthy, apply the configuration file [pod-status-check.yaml](pod-status-check.yaml)
 
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/podStatusCheck/podStatusCheck.yaml`
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/pod-status-check/pod-status-check.yaml`
 
 to your Kubernetes Cluster.  Make sure that you are using the latest release of Kuberhealthy 2.0.0.
