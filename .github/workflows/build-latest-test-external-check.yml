@@ -6,8 +6,8 @@ on:
     - master
     - release/*
     - docker-hub # for testing this build spec
-    paths:m
-     - "cmd/test-external-check
+    paths:
+     - "cmd/test-external-check"
 
 
 env:

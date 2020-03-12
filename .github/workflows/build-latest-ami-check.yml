@@ -6,8 +6,8 @@ on:
     - master
     - release/*
     - docker-hub # for testing this build spec
-    paths:m
-     - "cmd/ami-check
+    paths:
+     - "cmd/ami-check"
 
 
 env:
