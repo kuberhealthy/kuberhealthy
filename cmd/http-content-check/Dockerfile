@@ -1,4 +1,4 @@
-FROM golang:alpine
+FROM golang:1.14.0
 
 ADD . /build
 
