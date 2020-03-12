@@ -6,12 +6,12 @@ on:
     - master
     - release/*
     - docker-hub # for testing this build spec
-    paths:
-     - "cmd/kuberhealthy/**"
-     - "pkg/**"
+    paths:m
+     - "cmd/podStatusCheck
+
 
 env:
-  IMAGE_NAME: kuberhealthy
+  IMAGE_NAME: podStatusCheck
 
 jobs:
   build:
