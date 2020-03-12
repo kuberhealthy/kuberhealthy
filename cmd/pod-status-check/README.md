@@ -1,7 +1,7 @@
 ## Pod Status Check
 
 The `Pod Status Check` checks for pods older than ten minutes and are in an unhealthy lifecycle phase.  If a
-`podStatusCheck` detects that a pod is down, an alert is shown on the status page. When a pod is found to be in error, 
+`podStatusCheck` detects that a pod is down, an alert is shown on the status page. When a pod is found to be in error,
 the exact pod's name will be shown as one of the `Error` field's strings.
 
 
@@ -40,7 +40,7 @@ spec:
 
 `Phases that this check considers unhealthy`
 - Pending:  The Pod has been accepted by the Kubernetes system, but one or more of the Container images has not been created. This includes time before being scheduled as well as time spent downloading images over the network, which could take a while.
-Note: This check assumes that a pod is unhealthy if it is over 10 minutes old and still Pending. 
+Note: This check assumes that a pod is unhealthy if it is over 10 minutes old and still Pending.
 - Failed:  All Containers in the Pod have terminated, and at least one Container has terminated in failure. That is, the Container either exited with non-zero status or was terminated by the system.
 - Unknown:  For some reason the state of the Pod could not be obtained, typically due to an error in communicating with the host of the Pod.
 
@@ -48,6 +48,6 @@ Note: This check assumes that a pod is unhealthy if it is over 10 minutes old an
 #### How-to
 To implement the Pod Status Check with Kuberhealthy, apply the configuration file [podStatusCheck.yaml](podStatusCheck.yaml)
 
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/podStatusCheck/podStatusCheck.yaml`
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/pod-status-check/pod-status-check.yaml`
 
 to your Kubernetes Cluster.  Make sure that you are using the latest release of Kuberhealthy 2.0.0.
