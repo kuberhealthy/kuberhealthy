@@ -1,4 +1,4 @@
-name: Build and Push Kuberhealthy Latest
+name: Build and Push AMI-Check Latest
 
 on:
   push:

@@ -1,4 +1,4 @@
-name: Build and Push Kuberhealthy Latest
+name: Build and Push Pod-Status-Check Latest
 
 on:
   push:
