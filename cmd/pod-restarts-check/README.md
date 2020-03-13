@@ -12,7 +12,7 @@ timeout error on the status page.
 
 #### Pod Restarts Check Kube Spec:
 
-```$xslt
+```yaml
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
@@ -43,6 +43,6 @@ spec:
 
 To implement the Pod Restarts Check with Kuberhealthy, run:
  
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/podRestartsCheck/podRestartsCheck.yaml`
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/pod-restarts-check/pod-restarts-check.yaml`
 
 Make sure you are using the latest release of Kuberhealthy 2.0.0. 
