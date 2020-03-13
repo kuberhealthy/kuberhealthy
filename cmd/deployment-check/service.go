@@ -322,9 +322,9 @@ func findPreviousService() (bool, error) {
 	for _, svc := range serviceList.Items {
 
 		// Check using names.
-		if &svc.Name == nil {
-			continue
-		}
+		// if &svc.Name == nil {
+		// 	continue
+		// }
 		if svc.Name == checkServiceName {
 			log.Infoln("Found an old service belonging to this check:", svc.Name)
 			return true, nil

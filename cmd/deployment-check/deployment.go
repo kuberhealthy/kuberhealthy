@@ -497,9 +497,9 @@ func findPreviousDeployment() (bool, error) {
 	for _, deployment := range deploymentList.Items {
 
 		// Check using names.
-		if &deployment.Name == nil {
-			continue
-		}
+		// if &deployment.Name == nil {
+		// 	continue
+		// }
 		if deployment.Name == checkDeploymentName {
 			log.Infoln("Found an old deployment belonging to this check:", deployment.Name)
 			return true, nil
