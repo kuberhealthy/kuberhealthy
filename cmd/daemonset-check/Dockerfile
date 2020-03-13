@@ -6,6 +6,6 @@ ENV CGO_ENABLED=0
 RUN go test -v
 RUN go build -v
 
-FROM golang:1.13-alpine
+FROM scratch
 COPY --from=builder /build/cmd/daemonset-check/daemonset-check /app/daemonset-check
 ENTRYPOINT ["/app/daemonset-check"]
