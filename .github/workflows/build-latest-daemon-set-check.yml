@@ -7,7 +7,7 @@ on:
     - release/*
     - docker-hub # for testing this build spec
     paths:
-     - "cmd/daemon-set-check"
+     - "cmd/daemonset-check"
 
 
 env:
