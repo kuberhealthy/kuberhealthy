@@ -12,7 +12,7 @@ timeout error on the status page.
 
 #### Pod Restarts Check Kube Spec:
 
-```$xslt
+```yaml
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
