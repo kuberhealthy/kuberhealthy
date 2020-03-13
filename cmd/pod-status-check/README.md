@@ -40,6 +40,7 @@ spec:
 
 `Phases that this check considers unhealthy`
 - Pending:  The Pod has been accepted by the Kubernetes system, but one or more of the Container images has not been created. This includes time before being scheduled as well as time spent downloading images over the network, which could take a while.
+
 Note: This check assumes that a pod is unhealthy if it is over 10 minutes old and still Pending. 
 - Failed:  All Containers in the Pod have terminated, and at least one Container has terminated in failure. That is, the Container either exited with non-zero status or was terminated by the system.
 - Unknown:  For some reason the state of the Pod could not be obtained, typically due to an error in communicating with the host of the Pod.
