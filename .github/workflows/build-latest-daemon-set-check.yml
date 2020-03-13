@@ -11,7 +11,7 @@ on:
 
 
 env:
-  IMAGE_NAME: daemon-set-check
+  IMAGE_NAME: daemonset-check
 
 jobs:
   build:
