@@ -1,14 +1,15 @@
 ## Pod Restarts Check
 
-The *Pod Restarts Check* checks for excessive pod restarts in a given `POD_NAMESPACE`. When the spec is applied to your
-cluster, Kuberhealthy recognizes it as a KHCheck resource and provisions a checker pod to run the Pod Restarts Check.
+The *Pod Restarts Check* checks for excessive pod restarts in a given `POD_NAMESPACE`. When the spec is applied to your 
+cluster, Kuberhealthy recognizes it as a KHCheck resource and provisions a checker pod to run the Pod Restarts Check. 
+
 The Pod Restarts Check deploys a pod that looks for pod resource events in a given `POD_NAMESPACE` and checks for
 `Warning` event types with reason `BackOff`. If this specific event type count exceeds the `MAX_FAILURES_ALLOWED`, an
 error is reporting back to Kuberhealthy.
 
-In the example below, the check runs every 5m (spec.runInterval) with a check timeout set to 10 minutes (spec.timeout),
-and a `MAX_FAILURES_ALLOWED` count set to 10. If the check does not complete within the given timeout it will report a
-timeout error on the status page.
+In the example below, the check runs every 5m (spec.runInterval) with a check timeout set to 10 minutes (spec.timeout), 
+and a `MAX_FAILURES_ALLOWED` count set to 10. If the check does not complete within the given timeout it will report a 
+timeout error on the status page. 
 
 #### Pod Restarts Check Kube Spec:
 
@@ -39,10 +40,11 @@ spec:
             memory: 50Mi
 ```
 
-#### How-to
+#### How-to 
 
 To implement the Pod Restarts Check with Kuberhealthy, run:
-
+ 
 `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/pod-restarts-check/pod-restarts-check.yaml`
 
-Make sure you are using the latest release of Kuberhealthy 2.0.0.
+Make sure you are using the latest release of Kuberhealthy 2.0.0. 
+
