@@ -2,6 +2,7 @@
 
 The *Pod Restarts Check* checks for excessive pod restarts in a given `POD_NAMESPACE`. When the spec is applied to your 
 cluster, Kuberhealthy recognizes it as a KHCheck resource and provisions a checker pod to run the Pod Restarts Check. 
+
 The Pod Restarts Check deploys a pod that looks for pod resource events in a given `POD_NAMESPACE` and checks for
 `Warning` event types with reason `BackOff`. If this specific event type count exceeds the `MAX_FAILURES_ALLOWED`, an
 error is reporting back to Kuberhealthy.
@@ -46,3 +47,4 @@ To implement the Pod Restarts Check with Kuberhealthy, run:
 `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/pod-restarts-check/pod-restarts-check.yaml`
 
 Make sure you are using the latest release of Kuberhealthy 2.0.0. 
+
