@@ -71,5 +71,5 @@ To use the *Resource Quota Check* with Kuberhealthy, apply the configuration fil
 
 `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/cmd/resource-quota-check/resource-quota-check.yaml`
 
-Make sure you are using at least Kuberhealthy 2.0.0 or anything lateer. 
+Make sure you are using at least Kuberhealthy 2.0.0 or anything later. 
 
