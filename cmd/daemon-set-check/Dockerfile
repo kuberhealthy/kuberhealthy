@@ -1,4 +1,4 @@
-FROM golang:1.14.0 AS builder
+FROM golang AS builder
 RUN apk upgrade
 ADD . /build
 WORKDIR /build/cmd/daemon-set-check

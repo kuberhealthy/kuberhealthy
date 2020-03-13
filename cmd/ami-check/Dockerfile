@@ -1,4 +1,4 @@
-FROM golang:1.14.0 AS builder
+FROM golang AS builder
 ADD . /build
 WORKDIR /build/cmd/ami-check
 RUN CGO_ENABLED=0 go build -v
