@@ -100,8 +100,8 @@ const (
 	defaultCheckContainerName = "deployment-container"
 
 	// Default images used for check.
-	defaultCheckImageURL  = "nginx:latest"
-	defaultCheckImageURLB = "nginx:alpine"
+	defaultCheckImageURL  = "nginx:1.17.8"
+	defaultCheckImageURLB = "nginx:1.17.9"
 
 	// Default container port used for check.
 	defaultCheckContainerPort = int32(80)
