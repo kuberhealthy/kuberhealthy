@@ -1,4 +1,4 @@
-FROM golang:1.14 AS builder
+FROM golang AS builder
 ADD . /build
 WORKDIR /build/cmd/resource-quota-check
 RUN CGO_ENABLED=0 go build -v
