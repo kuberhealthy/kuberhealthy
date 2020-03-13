@@ -21,9 +21,6 @@ jobs:
       - name: build container
         run: docker build ../../ --file Dockerfile --tag $IMAGE_NAME
         working-directory: cmd/$IMAGE_NAME
-      - name: docker bench security
-        run: 
-    docker/docker-bench-security
       - name: Log into docker hub
         run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
       - name: Push new latest image
