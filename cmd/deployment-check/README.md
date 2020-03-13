@@ -34,8 +34,8 @@ __IF ROLLING-UPDATE OPTION IS ENABLED__
 - Check Interval: 30 minutes
 - Check name: `deployment`
 - Configurable check environment variables:
-  - `CHECK_IMAGE`: Initial container image. (default=`nginx:latest`)
-  - `CHECK_IMAGE_ROLL_TO`: Container image to roll to. (default=`nginx:alpine`)
+  - `CHECK_IMAGE`: Initial container image. (default=`nginx:1.17.8`)
+  - `CHECK_IMAGE_ROLL_TO`: Container image to roll to. (default=`nginx:1.17.9`)
   - `CHECK_DEPLOYMENT_NAME`: Name for the check's deployment. (default=`deployment-deployment`)
   - `CHECK_SERVICE_NAME`: Name for the check's service. (default=`deployment-svc`)
   - `CHECK_NAMESPACE`: Namespace for the check (default=`kuberhealthy`).
@@ -92,7 +92,7 @@ To use the *Deployment Check* with Kuberhealthy, apply the configuration file [d
 
 `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/deployment-check/deployment-check.yaml`
 
-Make sure you are using the latest release of Kuberhealthy 2.0.0. 
+Make sure you are using the latest release of Kuberhealthy 2.0.0 or later. 
 
 The check configuration file contains:
 - KuberhealthyCheck
