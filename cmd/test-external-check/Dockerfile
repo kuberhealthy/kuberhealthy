@@ -1,9 +1,8 @@
-FROM golang:1.14.0 AS builder
+FROM golang AS builder
 ADD . /build
 WORKDIR /build/cmd/test-external-check
-RUN go build -v
+RUN CGO_ENABLED=0 go build -v
 
-FROM scrapinghub/scrapinghub-stack-hworker
+FROM scratch
 COPY --from=builder /build/cmd/test-external-check/test-external-check /app/test-external-check
 ENTRYPOINT ["/app/test-external-check"]
-
