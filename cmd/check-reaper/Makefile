@@ -1,5 +1,5 @@
 build:
-	docker build -t quay.io/comcast/check-reaper:1.1.1 -f Dockerfile ../../
+	docker build -t kuberhealthy/check-reaper:1.1.1 -f Dockerfile ../../
 
 push:
-	docker push quay.io/comcast/check-reaper:1.1.1
+	docker push kuberhealthy/check-reaper:1.1.1
