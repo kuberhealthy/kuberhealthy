@@ -1,5 +1,5 @@
 build:
-	docker build -t quay.io/comcast/http-check:1.0.1 -f Dockerfile ../../
+	docker build -t kuberhealthy/http-check:1.0.1 -f Dockerfile ../../
 
 push:
-	docker push quay.io/comcast/http-check:1.0.1
+	docker push kuberhealthy/http-check:1.0.1
