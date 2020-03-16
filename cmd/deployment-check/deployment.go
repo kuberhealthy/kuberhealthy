@@ -88,6 +88,7 @@ func createDeploymentConfig(image string) *v1.Deployment {
 		Containers:                    containers,
 		RestartPolicy:                 corev1.RestartPolicyAlways,
 		TerminationGracePeriodSeconds: &graceSeconds,
+		ServiceAccountName:            checkServiceAccount,
 	}
 
 	// Make labels for pod and deployment.
@@ -497,9 +498,9 @@ func findPreviousDeployment() (bool, error) {
 	for _, deployment := range deploymentList.Items {
 
 		// Check using names.
-		if &deployment.Name == nil {
-			continue
-		}
+		// if &deployment.Name == nil {
+		// 	continue
+		// }
 		if deployment.Name == checkDeploymentName {
 			log.Infoln("Found an old deployment belonging to this check:", deployment.Name)
 			return true, nil
