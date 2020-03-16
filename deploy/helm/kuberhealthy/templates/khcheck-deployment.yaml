@@ -14,12 +14,12 @@ spec:
       image: {{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
       imagePullPolicy: IfNotPresent
       env:
-        - name: CHECK_DEPLOYMENT_REPLICAS
-          value: "4"
-        - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
-          value: "true"
         - name: CHECK_TIME_LIMIT
           value: *deployment_check_timeout
+{{- range $key, $value := .Values.check.deployment.extraEnvs }}
+        - name: {{ $key }}
+          value: {{ $value | quote }}
+{{- end }}
       resources:
         requests:
           cpu: 25m
