@@ -29,15 +29,15 @@ func runResourceQuotaCheck() {
 	}
 
 	select {
-	case errors := <-examineResourceQuotas(allNamespaces):
-		if len(errors) != 0 {
-			log.Infoln("This check created", len(errors), "errors and warnings.")
+	case rqErrors := <-examineResourceQuotas(allNamespaces):
+		if len(rqErrors) != 0 {
+			log.Infoln("This check created", len(rqErrors), "errors and warnings.")
 			log.Debugln("Errors and warnings:")
-			for _, err := range errors {
+			for _, err := range rqErrors {
 				log.Debugln(err)
 			}
 			log.Infoln("Reporting failures to kuberhealthy.")
-			reportErr := kh.ReportFailure(errors)
+			reportErr := kh.ReportFailure(rqErrors)
 			if reportErr != nil {
 				log.Fatalln("error reporting failures to kuberhealthy:", reportErr.Error())
 			}
@@ -104,47 +104,32 @@ func examineResourceQuotas(namespaceList *v1.NamespaceList) chan []string {
 
 // createWorkerForNamespaceResourceQuotaCheck looks at the resource quotas for a given namespace and creates error messages
 // if usage is over a threshold.
+/*
+if blacklist is specified, and whitelist is not, then we simply operate on a blacklist
+if blacklist is specified, and whitelist is also specified, then we operate on the whitelist unless the item is in the blacklist
+if blacklist is not specified, but whitelist is, then we operate on a whitelist
+if neither a blacklist or whitelist is specified, then all namespaces are targeted
+*/
 func createWorkerForNamespaceResourceQuotaCheck(namespace string, quotasChan chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer log.Debugln("worker for", namespace, "namespace is done!")
-	switch {
-	// If whitelist and blacklist options are enabled, look at all whitelisted namespaces but the blacklisted namespaces.
-	case whitelistOn && blacklistOn:
-		// Skip non-whitelisted namespaces.
-		if !contains(namespace, whitelistNamespaces) {
-			log.Infoln("Skipping", namespace, "namespace.")
+
+	// Prioritize blacklist over the whitelist.
+	if len(blacklist) > 0 {
+		if contains(namespace, blacklist) {
+			log.Infoln("Skipping", namespace, "namespace (Blacklist).")
 			return
 		}
-		// Skip blacklisted namespaces.
-		if contains(namespace, blacklistNamespaces) {
-			log.Infoln("Skipping", namespace, "namespace.")
-			return
-		}
-		examineResouceQuotasForNamespace(namespace, quotasChan)
-		return
-	// If whitelist option is enabled, only look at the specified namespaces.
-	case whitelistOn:
-		// Skip non-whitelisted namespaces.
-		if !contains(namespace, whitelistNamespaces) {
-			log.Infoln("Skipping", namespace, "namespace.")
-			return
-		}
-		examineResouceQuotasForNamespace(namespace, quotasChan)
-		return
-	// If blacklist option is enabled, ignore the specified namespaces.
-	case blacklistOn:
-		// Skip blacklisted namespaces.
-		if contains(namespace, blacklistNamespaces) {
-			log.Infoln("Skipping", namespace, "namespace")
-			return
-		}
-		examineResouceQuotasForNamespace(namespace, quotasChan)
-		return
-	// By default, look at all namespaces.
-	default:
-		examineResouceQuotasForNamespace(namespace, quotasChan)
-		return
 	}
+
+	if len(whitelist) > 0 {
+		if !contains(namespace, whitelist) {
+			log.Infoln("Skipping", namespace, "namespace (Whitelist).")
+			return
+		}
+	}
+
+	examineResouceQuotasForNamespace(namespace, quotasChan)
 }
 
 // examineResouceQuotasForNamespace looks at resource quotas and sends error messages on threshold violations.
@@ -166,7 +151,7 @@ func examineResouceQuotasForNamespace(namespace string, c chan<- string) {
 		log.Debugln("Limits for", namespace, "CPU:", limits.Cpu().MilliValue(), "Memory:", limits.Memory().MilliValue())
 		if percentCPUUsed >= threshold {
 			err := fmt.Errorf("cpu for %s namespace has reached threshold of %4.2f: USED: %d LIMIT: %d PERCENT_USED: %6.3f",
-				namespace, threshold, status.Cpu().Value(), limits.Cpu().Value(), percentCPUUsed)
+				namespace, threshold, status.Cpu().MilliValue(), limits.Cpu().MilliValue(), percentCPUUsed)
 			c <- err.Error()
 		}
 		if percentMemoryUsed >= threshold {

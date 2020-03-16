@@ -14,9 +14,9 @@ spec:
       imagePullPolicy: IfNotPresent
       env:
         - name: BLACKLIST
-          value: "true"
-        - name: BLACKLIST_NAMESPACES
           value: "default"
+        - name: WHITELIST
+          value: "kube-system,kuberhealthy"
         - name: CHECK_TIME_LIMIT
           value: *resource_quota_check_timeout
       resources:
