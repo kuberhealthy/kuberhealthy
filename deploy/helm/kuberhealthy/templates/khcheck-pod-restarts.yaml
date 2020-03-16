@@ -16,8 +16,10 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-          - name: MAX_FAILURES_ALLOWED
-            value: "10"
+{{- range $key, $value := .Values.check.podRestarts.extraEnvs }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+{{- end }}
         image: {{ .Values.check.podRestarts.image.repository }}:{{ .Values.check.podRestarts.image.tag }}
         imagePullPolicy: IfNotPresent
         name: main

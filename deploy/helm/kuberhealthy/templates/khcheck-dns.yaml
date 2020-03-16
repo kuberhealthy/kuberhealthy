@@ -13,8 +13,10 @@ spec:
       - env:
           - name: CHECK_POD_TIMEOUT
             value: "110s"
-          - name: HOSTNAME
-            value: "kubernetes.default"
+{{- range $key, $value := .Values.check.dnsInternal.extraEnvs }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+{{- end }}
         image: {{ .Values.check.dnsInternal.image.repository }}:{{ .Values.check.dnsInternal.image.tag }}
         imagePullPolicy: IfNotPresent
         name: main
