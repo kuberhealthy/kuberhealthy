@@ -179,20 +179,6 @@ subjects:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRoleBinding
 metadata:
-  name: kuberhealthy
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kuberhealthy
-subjects:
-- kind: ServiceAccount
-  name: kuberhealthy
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/clusterrolebinding.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRoleBinding
-metadata:
   name: kuberhealthy-daemonset-khcheck
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -201,6 +187,20 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: daemonset-khcheck
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/clusterrolebinding.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRoleBinding
+metadata:
+  name: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kuberhealthy
+subjects:
+- kind: ServiceAccount
+  name: kuberhealthy
   namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
@@ -395,7 +395,7 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: quay.io/comcast/check-reaper:1.1.0
+              image: quay.io/comcast/check-reaper:1.0.0
               imagePullPolicy: IfNotPresent
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
@@ -443,12 +443,12 @@ spec:
       image: quay.io/comcast/deployment-check:1.1.1
       imagePullPolicy: IfNotPresent
       env:
+        - name: CHECK_TIME_LIMIT
+          value: *deployment_check_timeout
         - name: CHECK_DEPLOYMENT_REPLICAS
           value: "4"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
-        - name: CHECK_TIME_LIMIT
-          value: *deployment_check_timeout
       resources:
         requests:
           cpu: 25m
