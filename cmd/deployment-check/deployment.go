@@ -88,6 +88,7 @@ func createDeploymentConfig(image string) *v1.Deployment {
 		Containers:                    containers,
 		RestartPolicy:                 corev1.RestartPolicyAlways,
 		TerminationGracePeriodSeconds: &graceSeconds,
+		ServiceAccountName:            checkServiceAccount,
 	}
 
 	// Make labels for pod and deployment.
