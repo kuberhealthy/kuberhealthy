@@ -30,22 +30,12 @@ var (
 	// Blacklist is enabled by default (looks at all namespaces, except those specified in the blacklist).
 	// Expects a comma separated list of values (i.e. "default,kube-system")
 	// Ignores namespaces from the blacklist if turned on. (On by default, checks all namespaces)
-	blacklistOnEnv         = os.Getenv("BLACKLIST")
-	blacklistNamespacesEnv = os.Getenv("BLACKLIST_NAMESPACES")
-	blacklistOn            = true
-	blacklistNamespaces    []string
+	blacklistEnv = os.Getenv("BLACKLIST")
+	blacklist    []string
 
 	// Looks at specified namespaces from the whitelist if turned on.
-	whitelistOnEnv         = os.Getenv("WHITELIST")
-	whitelistNamespacesEnv = os.Getenv("WHITELIST_NAMESPACES")
-	whitelistOn            bool
-	whitelistNamespaces    []string
-
-	// By default, ignore the "default" namespace.
-	defaultBlacklistNamespaces = []string{"default"}
-
-	// By default, look at "kube-system" and "kuberhealthy".
-	defaultWhitelistNamespaces = []string{"kube-system", "kuberhealthy"}
+	whitelistEnv = os.Getenv("WHITELIST")
+	whitelist    []string
 
 	// Threshold for resource quota usage. (inclusive)
 	// If given 0.9 (or 90%), this check will alert when usage for memory or CPU is at least 90%.
