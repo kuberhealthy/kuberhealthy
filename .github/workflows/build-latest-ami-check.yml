@@ -11,7 +11,7 @@ on:
 
 
 env:
-  IMAGE_NAME: ami-check
+    IMAGE_NAME: ami-check
 
 jobs:
   build:

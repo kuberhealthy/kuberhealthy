@@ -11,7 +11,7 @@ on:
 
 
 env:
-  IMAGE_NAME: pod-status-check
+    IMAGE_NAME: pod-status-check
 
 jobs:
   build:
