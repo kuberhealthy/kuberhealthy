@@ -62,6 +62,10 @@ var (
 	checkDeploymentReplicasEnv = os.Getenv("CHECK_DEPLOYMENT_REPLICAS")
 	checkDeploymentReplicas    int
 
+	// ServiceAccount that will deploy the test deployment [default = default]
+	checkServiceAccountEnv = os.Getenv("CHECK_SERVICE_ACCOUNT")
+	checkServiceAccount    string
+
 	// Check time limit.
 	checkTimeLimitSecondsEnv = os.Getenv("CHECK_TIME_LIMIT_SECONDS")
 	checkTimeLimit           time.Duration
@@ -112,6 +116,9 @@ const (
 	// Default k8s manifest resource names.
 	defaultCheckDeploymentName = "deployment-deployment"
 	defaultCheckServiceName    = "deployment-svc"
+
+	// Default k8s service account name.
+	defaultCheckServieAccount = "default"
 
 	// Default namespace for the check to run in.
 	defaultCheckNamespace = "kuberhealthy"

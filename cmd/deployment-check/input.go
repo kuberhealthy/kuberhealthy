@@ -115,6 +115,13 @@ func parseInputValues() {
 		log.Infoln("Parsed CHECK_DEPLOYMENT_REPLICAS:", checkDeploymentReplicas)
 	}
 
+	// Parse incoming check service account
+	checkServiceAccount = defaultCheckServieAccount
+	if len(checkServiceAccountEnv) != 0 {
+		checkServiceAccount = checkServiceAccountEnv
+		log.Infoln("Parsed CHECK_SERVICE_ACCOUNT:", checkServiceAccount)
+	}
+
 	// Set check time limit to default
 	checkTimeLimit = defaultCheckTimeLimit
 	if len(checkTimeLimitSecondsEnv) != 0 {
