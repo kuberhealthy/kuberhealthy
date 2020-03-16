@@ -17,6 +17,10 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
+{{- range $key, $value := .Values.check.daemonset.extraEnvs }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+{{- end }}
         image: {{ .Values.check.daemonset.image.repository }}:{{ .Values.check.daemonset.image.tag }}
         imagePullPolicy: IfNotPresent
         name: main

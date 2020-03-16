@@ -16,6 +16,10 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+{{- range $key, $value := .Values.check.podStatus.extraEnvs }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+{{- end }}
         image: {{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
         imagePullPolicy: IfNotPresent
         name: main
