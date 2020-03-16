@@ -1,5 +1,5 @@
 build:
-	docker build -t quay.io/comcast/test-external-check:latest -f Dockerfile ../../
+	docker build -t kuberhealthy/test-external-check:latest -f Dockerfile ../../
 
 push:
-	docker push quay.io/comcast/test-external-check:latest
+	docker push kuberhealthy/test-external-check:latest

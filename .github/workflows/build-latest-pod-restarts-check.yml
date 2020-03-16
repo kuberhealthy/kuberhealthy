@@ -1,4 +1,4 @@
-name: Build and Push Kuberhealthy Latest
+name: Build and Push Pod-Restarts-Check Latest
 
 on:
   push:
@@ -7,11 +7,11 @@ on:
     - release/*
     - docker-hub # for testing this build spec
     paths:
-     - "cmd/kuberhealthy/**"
-     - "pkg/**"
+     - "cmd/pod-restarts-check"
+
 
 env:
-  IMAGE_NAME: kuberhealthy
+  IMAGE_NAME: pod-restarts-check
 
 jobs:
   build:

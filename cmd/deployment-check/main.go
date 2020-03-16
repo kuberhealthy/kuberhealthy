@@ -19,7 +19,7 @@ import (
 	"syscall"
 	"time"
 
-	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkClient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
@@ -62,6 +62,10 @@ var (
 	checkDeploymentReplicasEnv = os.Getenv("CHECK_DEPLOYMENT_REPLICAS")
 	checkDeploymentReplicas    int
 
+	// ServiceAccount that will deploy the test deployment [default = default]
+	checkServiceAccountEnv = os.Getenv("CHECK_SERVICE_ACCOUNT")
+	checkServiceAccount    string
+
 	// Check time limit.
 	checkTimeLimitEnv = os.Getenv("CHECK_TIME_LIMIT")
 	checkTimeLimit    time.Duration
@@ -100,8 +104,8 @@ const (
 	defaultCheckContainerName = "deployment-container"
 
 	// Default images used for check.
-	defaultCheckImageURL  = "nginx:latest"
-	defaultCheckImageURLB = "nginx:alpine"
+	defaultCheckImageURL  = "nginx:1.17.8"
+	defaultCheckImageURLB = "nginx:1.17.9"
 
 	// Default container port used for check.
 	defaultCheckContainerPort = int32(80)
@@ -112,6 +116,9 @@ const (
 	// Default k8s manifest resource names.
 	defaultCheckDeploymentName = "deployment-deployment"
 	defaultCheckServiceName    = "deployment-svc"
+
+	// Default k8s service account name.
+	defaultCheckServieAccount = "default"
 
 	// Default namespace for the check to run in.
 	defaultCheckNamespace = "kuberhealthy"
