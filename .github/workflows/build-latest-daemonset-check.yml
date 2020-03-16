@@ -1,5 +1,4 @@
 name: Build and Push Daemon-Set-Check Latest
-
 on:
   push:
     branches:
@@ -8,11 +7,8 @@ on:
     - docker-hub # for testing this build spec
     paths:
      - "cmd/daemonset-check"
-
-
 env:
-  IMAGE_NAME: daemonset-check
-
+    IMAGE_NAME: daemonset-check
 jobs:
   build:
     runs-on: ubuntu-latest

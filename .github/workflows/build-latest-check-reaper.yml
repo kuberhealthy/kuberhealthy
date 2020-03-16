@@ -1,5 +1,4 @@
 name: Build and Push Check-Reaper Latest
-
 on:
   push:
     branches:
@@ -8,11 +7,8 @@ on:
     - docker-hub # for testing this build spec
     paths:
      - "cmd/check-reaper"
-
-
 env:
-  IMAGE_NAME: check-reaper
-
+    IMAGE_NAME: check-reaper
 jobs:
   build:
     runs-on: ubuntu-latest
