@@ -4,12 +4,7 @@ This check tests if namespace resource quotas `CPU` and `memory` are under a spe
 
 This check lists all namespaces in the cluster and checks if each resource (`CPU` and `memory`) are at an ok percentage.
 
-This check can be configured to use either a `blacklist` or a `whitelist` of namespaces, allowing you to explicitly target or ignore specific namespaces. This can be changed with the environment variables `BLACKLIST` and `WHITELIST` which take `"true" or "false`. This check assumes the use of a `BLACKLIST` on check runs; if both `BLACKLIST` and `WHITELIST` options are enabled, namespaces from the `WHITELIST` will be looked at unless it is contained within the `BLACKLIST`. The default lists are:
-
-    BLACKLIST = []string{"default"} // Ignores 'default' namespace by default.
-    whitelist = []string{"kube-system", "kuberhealthy"} // Explicitly looks at 'kube-system' and 'kuberhealthy' namespaces by default.
-
-If any namespaces for the check need to be on the `blacklist` or `whitelist` they can be specified with the environment variable `NAMESPACES`, which expects a comma-separated list of namespaces (`"default,kube-system,istio-system"`) and can help you configure which namespaces to check when used in combination, with the `BLACKLIST` and `WHITELIST` environment variables.
+This check can be configured to use either a `blacklist` or a `whitelist` of namespaces, allowing you to explicitly target or ignore specific namespaces. If any namespaces for the check need to be on the `blacklist` or `whitelist` they can be specified with the environment variables `BLACKLIST` and `WHITELIST` which expect a comma-separated list of namespaces (`"default,kube-system,istio-system"`) and can help you configure which namespaces to check when used in combination, with the `BLACKLIST` and `WHITELIST` environment variables.
 
 Additionally, a `threshold` or `percentage` can be set that will determine when the check will configure and create alert messages. You can configure this value with the environment variable `THRESHOLD`, which expects a float value between `0.0` and `1.00` (_not inclusive_). By default, the threshold is set to `0.90` or `90%`
 
@@ -19,17 +14,15 @@ This check follows the list of actions in order during the run of the check:
 1.  Lists all namespaces in the cluster.
 2.  Sends a `go routine` for each namespace.
 3.  Each `go routine` checks if used `CPU` and `memory` have reached the threshold.
-4.  Creates errors for each violating namespace. (Up to two errors -- one for `CPU` and one for `memory`)
+4.  Each `go routine` creates errors for each violating namespace. (Up to two errors -- one for `CPU` and one for `memory`)
 
 #### Check Details
 
 - Namespace: kuberhealthy
 - Check name: `resource-quota`
 - Configurable check environment variables:
-  - `BLACKLIST`: Blacklist option. (default=`false` | _this check assumes BLACKLIST by default, even if this option is not enabled_)
-  - `WHITELIST`: Whitelist option. (default=`false`)
-  - `BLACKLIST_NAMESPACES`: Blacklist of namespaces to look at (default for BLACKLIST=`default`)
-  - `WHITELIST_NAMESPACES`: Whitelist of namespaces to look at. (default for whitelist=`kube-system,kuberhealthy`)
+  - `BLACKLIST`: Blacklist of namespaces to look at (default for BLACKLIST=`default`)
+  - `WHITELIST`: Whitelist of namespaces to look at. (default for whitelist=`kube-system,kuberhealthy`)
   - `THRESHOLD`: Percentage or threshold for usage that should determine whether or not an error should be created. Expects a `float` value. (default=`0.9`)
   - `CHECK_TIME_LIMIT`: Amount of time the check will allow itself before timing out.
   - `DEBUG`: Turns on debug logging. (default=`false`)
@@ -49,9 +42,13 @@ spec:
   podSpec:
     containers:
     - name: resource-quota
-      image: quay.io/comcast/resource-quota-check:1.0.0
+      image: kuberhealthy/resource-quota-check:1.0.1
       imagePullPolicy: IfNotPresent
       env:
+        - name: BLACKLIST
+          value: "default"
+        - name: WHITELIST
+          value: "kube-system,kuberhealthy"
         - name: CHECK_TIME_LIMIT
           value: *resource_quota_check_timeout
       resources:
