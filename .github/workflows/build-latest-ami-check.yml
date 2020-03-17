@@ -15,7 +15,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: build container
-      run: docker build ../../ --file Dockerfile --tag $IMAGE_NAME
+      run: docker build ../../ --file /cmd/ami-check/Dockerfile --tag $IMAGE_NAME
       working-directory: cmd/$IMAGE_NAME
     - name: Log into docker hub
       run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
