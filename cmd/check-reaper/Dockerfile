@@ -1,5 +1,4 @@
 FROM golang AS builder
-RUN apk upgrade
 ADD . /build
 WORKDIR /build/cmd/check-reaper
 ENV CGO_ENABLED=0
