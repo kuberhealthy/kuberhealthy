@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
-	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkClient"
+	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 )
 
 var reportFailure bool
