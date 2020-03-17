@@ -134,3 +134,13 @@ The state of checks is centralized as [custom resource](https://kubernetes.io/do
 By default, Kuberhealthy exposes an insecure (non-HTTPS) JSON status endpoint without authentication. You should never expose this endpoint to the public internet. Exposing Kuberhealthy's status page to the public internet could result in private cluster information being exposed to the public internet when errors occur and are displayed on the page.
 
 Vulnerabilities or other security related issues should be logged as git issues in this project and immediately reported to The Security Incident Response Team (SIRT) via email at NETO_SIRT@comcast.com.  Please do not post sensitive information in git issues.
+
+
+## Contributing
+
+If you're interesting in contributing to this project:
+- Check out the [Contributing Guide](CONTRIBUTING.md).
+- If you use Kuberhealthy in a production environment, add yourself to the list of [Kuberhealthy adopters](docs/KUBERHEALTHY_ADOPTERS.md)!
+- Check out [open issues](https://github.com/Comcast/kuberhealthy/issues). If you're new to the project, look for the `good first issue` tag.
+- We're always looking for external check contributions (either in suggestions or in PRs) as well as feedback from folks implementing
+Kuberhealthy locally or in a test environment.
