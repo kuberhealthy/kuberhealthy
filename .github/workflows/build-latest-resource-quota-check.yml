@@ -1,4 +1,4 @@
-nname: Build and Push Resouce-Quota-Check Latest
+name: Build and Push Resouce-Quota-Check Latest
 on:
   push:
     branches:
