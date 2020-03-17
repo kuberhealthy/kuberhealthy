@@ -1,6 +1,7 @@
 FROM golang AS builder
 ADD . /build
 WORKDIR /build/cmd/pod-status-check
+ENV CGO_ENABLED=0
 RUN go build -v
 
 FROM scratch
