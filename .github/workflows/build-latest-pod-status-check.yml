@@ -6,7 +6,7 @@ on:
     - release/*
     - docker-hub # for testing this build spec
     paths:
-      - "cmd/pod-status-check"
+      - "cmd/pod-status-check/**"
 env:
     IMAGE_NAME: pod-status-check
 jobs:
