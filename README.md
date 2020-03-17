@@ -141,6 +141,6 @@ Vulnerabilities or other security related issues should be logged as git issues 
 If you're interesting in contributing to this project:
 - Check out the [Contributing Guide](CONTRIBUTING.md).
 - If you use Kuberhealthy in a production environment, add yourself to the list of [Kuberhealthy adopters](docs/KUBERHEALTHY_ADOPTERS.md)!
-- Check out [open issues](https://github.com/Comcast/kuberhealthy/issues). If you're new to the project,look for the `good first issue` tag.
-- We're always looking external check contributions (either in suggestions or in PRs) as well as feedback from folks implementing
+- Check out [open issues](https://github.com/Comcast/kuberhealthy/issues). If you're new to the project, look for the `good first issue` tag.
+- We're always looking for external check contributions (either in suggestions or in PRs) as well as feedback from folks implementing
 Kuberhealthy locally or in a test environment.
