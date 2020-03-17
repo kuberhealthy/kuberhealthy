@@ -1,5 +1,4 @@
 FROM golang AS builder
-RUN apk upgrade
 ADD . /build
 WORKDIR /build/cmd/dns-resolution-check
 ENV CGO_ENABLED=0
