@@ -6,7 +6,7 @@ on:
     - release/*
     - docker-hub # for testing this build spec
     paths:
-      - "cmd/dns-resolution-check"
+      - "cmd/dns-resolution-check/**"
 env:
     IMAGE_NAME: dns-resolution-check
 jobs:

@@ -6,7 +6,7 @@ on:
     - release/*
     - docker-hub # for testing this build spec
     paths:
-      - "cmd/test-external-check"
+      - "cmd/test-external-check/**"
 env:
     IMAGE_NAME: test-external-check
 jobs:

@@ -6,7 +6,7 @@ on:
     - release/*
     - docker-hub # for testing this build spec
     paths:
-      - "cmd/resource-quota-check"
+      - "cmd/resource-quota-check/**"
 env:
     IMAGE_NAME: resource-quota-check
 jobs:

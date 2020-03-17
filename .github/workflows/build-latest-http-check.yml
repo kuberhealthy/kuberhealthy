@@ -6,7 +6,7 @@ on:
     - release/*
     - docker-hub # for testing this build spec
     paths:
-      - "cmd/http-check"
+      - "cmd/http-check/**"
 env:
     IMAGE_NAME: http-check
 jobs:

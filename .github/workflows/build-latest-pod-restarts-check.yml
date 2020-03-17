@@ -6,7 +6,7 @@ on:
     - release/*
     - docker-hub # for testing this build spec
     paths:
-      - "cmd/pod-restarts-check"
+      - "cmd/pod-restarts-check/**"
 env:
     IMAGE_NAME: pod-restarts-check
 jobs:
