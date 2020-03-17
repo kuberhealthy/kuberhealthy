@@ -3,11 +3,12 @@
 package main
 
 import (
-	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkClient"
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	"os"
 	"path/filepath"
 	"time"
+
+	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 
 	// required for oidc kubectl testing
 	log "github.com/sirupsen/logrus"
@@ -68,7 +69,7 @@ func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
 
 	var failures []string
 
-	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector:"app!=kuberhealthy-check,source!=kuberhealthy"})
+	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: "app!=kuberhealthy-check,source!=kuberhealthy"})
 	if err != nil {
 		return failures, err
 	}
