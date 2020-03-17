@@ -6,7 +6,7 @@ on:
     - release/*
     - docker-hub # for testing this build spec
     paths:
-      - "cmd/ami-check"
+      - "cmd/ami-check/**"
 env:
     IMAGE_NAME: ami-check
 jobs:
