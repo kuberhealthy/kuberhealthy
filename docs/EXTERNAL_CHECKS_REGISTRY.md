@@ -4,7 +4,7 @@ Here is a list of external checks you can apply to your kubernetes cluster once 
 
 | Check Name | Description | khcheck Resource | Contributor |
 | --- | --- | --- | --- |
-| [Daemonset Check](../cmd/daemon-set-check/README.md) | Ensures daemonsets can be successfully deployed | [daemonSetCheck.yaml](../cmd/daemon-set-check/daemon-set-check.yaml) | @integrii @joshulyne |
+| [Daemonset Check](../cmd/daemonset-check/README.md) | Ensures daemonsets can be successfully deployed | [daemonSetCheck.yaml](../cmd/daemonset-check/daemon-set-check.yaml) | @integrii @joshulyne |
 | [Deployment Check](../cmd/deployment-check/README.md) | Ensures that a Deployment and Service can be provisioned, created, and serve traffic within the Kubernetes cluster | [deployment-check.yaml](../cmd/deployment-check/deployment-check.yaml) | @jonnydawg |
 | [Pod Restarts Check](../cmd/pod-restarts-check/README.md) | Checks for excessive pod restarts in any namespace | [podRestartsCheck.yaml](../cmd/pod-restarts-check/pod-restarts-check.yaml) | @integrii @joshulyne |
 | [Pod Status Check](../cmd/pod-status-check/README.md) | Checks for unhealthy pod statuses in a target namespace | [podStatusCheck.yaml](../cmd/pod-status-check/pod-status-check.yaml) | @integrii @rukatm |
