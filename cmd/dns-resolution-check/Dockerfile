@@ -6,5 +6,5 @@ RUN go test -v
 RUN go build -v
 
 FROM scratch
-COPY --from=builder /build/cmd/dns-resolution-check/dns-status-check /app/dns-resolution-check
+COPY --from=builder /build/cmd/dns-resolution-check/dns-resolution-check /app/dns-resolution-check
 ENTRYPOINT ["/app/dns-resolution-check"]
