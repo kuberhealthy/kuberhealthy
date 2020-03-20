@@ -42,7 +42,7 @@ spec:
             # Make sure this value is less than the Kuberhealthy check timeout.
             # Default is set to 10m (10 minutes).
             value: "10m"
-        image: quay.io/comcast/kh-daemonset-check:2.0.1
+        image: kuberhealthy/daemonset-check:v2.1.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:

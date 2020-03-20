@@ -42,7 +42,7 @@ spec:
   podSpec:
     containers:
     - name: resource-quota
-      image: kuberhealthy/resource-quota-check:1.0.1
+      image: kuberhealthy/resource-quota-check:v1.1.1
       imagePullPolicy: IfNotPresent
       env:
         - name: BLACKLIST
@@ -68,5 +68,4 @@ To use the *Resource Quota Check* with Kuberhealthy, apply the configuration fil
 
 `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/cmd/resource-quota-check/resource-quota-check.yaml`
 
-Make sure you are using at least Kuberhealthy 2.0.0 or anything later. 
-
+Make sure you are using at least Kuberhealthy 2.0.0 or anything later.

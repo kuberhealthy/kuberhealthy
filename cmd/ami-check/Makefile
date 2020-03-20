@@ -1,5 +1,5 @@
 build:
-	docker build -t kuberhealthy/ami-check:1.0.2 -f Dockerfile ../../
+	docker build -t kuberhealthy/ami-check:v1.1.0 -f Dockerfile ../../
 
 push:
-		docker push kuberhealthy/ami-check:1.0.2
+		docker push kuberhealthy/ami-check:v1.1.0
