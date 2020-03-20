@@ -52,7 +52,7 @@ spec:
     - env:
       - name: REPORT_FAILURE
         value: "false"
-      image: quay.io/comcast/testexternalcheck:latest
+      image: kuberhealthy/test-external-check:v1.1.0
       name: main
       resources:
         requests:
@@ -63,4 +63,3 @@ spec:
 Apply this check in your cluster (normally for testing) by running `kubectl apply -f khcheck.yaml`.
 
 **Pro tip: by setting the `imagePullPolicy` to `Never` on your check's spec or on the kuberhealthy deoplyment in your test environment, the Docker Kubernetes cluster will pull the image from your local docker host instead of the web.  This enables rapid development when doing local builds.**
-

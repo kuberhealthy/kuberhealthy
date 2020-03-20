@@ -1,5 +1,5 @@
 build:
-	docker build -t kuberhelthy/http-content-check:v1.1.2 -f Dockerfile ../../
+	docker build -t kuberhealthy/http-content-check:v1.2.2 -f Dockerfile ../../
 
 push:
-	docker push kuberhelthy/http-content-check:v1.1.2
+	docker push kuberhealthy/http-content-check:v1.2.2
