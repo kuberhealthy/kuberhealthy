@@ -19,7 +19,7 @@ resources:
     cpu: 400m
     memory: 300Mi
   limits:
-    cpu: 2
+    cpu: 2m
     memory: 1G1
 
 tolerations:
@@ -67,7 +67,7 @@ check:
     enabled: true
     image:
       repository: kuberhealthy/deployment-check
-      tag: 1.2.1
+      tag: v1.2.1
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
@@ -76,7 +76,7 @@ check:
     enabled: true
     image:
       repository: kuberhealthy/dns-resolution-check
-      tag: 1.1.0
+      tag: v1.1.0
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
@@ -84,7 +84,7 @@ check:
     enabled: false
     image:
       repository: kuberhealthy/pod-restarts-check
-      tag: 2.1.1
+      tag: v2.1.1
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
@@ -92,12 +92,12 @@ check:
     enabled: false
     image:
       repository: kuberhealthy/pod-status-check
-      tag: 1.1.2
+      tag: v1.1.2
     extraEnvs:
     nodeSelector: {}
 
 checkReaper:
   image:
     repository: kuberhealthy/check-reaper
-    tag: 1.2.1
+    tag: v1.2.1
   nodeSelector: {}
