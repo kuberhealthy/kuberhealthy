@@ -66,8 +66,8 @@ check:
   deployment:
     enabled: true
     image:
-      repository: kuberhealthy/deployment-check
-      tag: v1.2.2
+      repository: quay.io/comcast/deployment-check
+      tag: 1.1.1-patch
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
