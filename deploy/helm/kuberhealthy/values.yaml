@@ -67,7 +67,7 @@ check:
     enabled: true
     image:
       repository: kuberhealthy/deployment-check
-      tag: v1.2.1
+      tag: v1.2.2
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
