@@ -50,34 +50,6 @@ spec:
     matchLabels:
       app: kuberhealthy
 ---
-# Source: kuberhealthy/templates/check-reaper.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: check-reaper
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/khcheck-daemonset.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: daemonset-khcheck
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/khcheck-deployment.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: deployment-sa
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/serviceaccount.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kuberhealthy
-  namespace: kuberhealthy
----
 # Source: kuberhealthy/templates/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -107,6 +79,34 @@ data:
           severity: critical
         annotations:
           description: Kuberhealthy shows that the cluster is not healthy
+---
+# Source: kuberhealthy/templates/check-reaper.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: check-reaper
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/khcheck-daemonset.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: daemonset-khcheck
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/khcheck-deployment.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deployment-sa
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kuberhealthy
+  namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -209,20 +209,6 @@ subjects:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRoleBinding
 metadata:
-  name: kuberhealthy
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kuberhealthy
-subjects:
-- kind: ServiceAccount
-  name: kuberhealthy
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/clusterrolebinding.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRoleBinding
-metadata:
   name: kuberhealthy-daemonset-khcheck
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -231,6 +217,20 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: daemonset-khcheck
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/clusterrolebinding.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRoleBinding
+metadata:
+  name: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kuberhealthy
+subjects:
+- kind: ServiceAccount
+  name: kuberhealthy
   namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
@@ -426,7 +426,7 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: quay.io/comcast/check-reaper:1.1.0
+              image: kuberhealthy/check-reaper:v1.2.1
               imagePullPolicy: IfNotPresent
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
@@ -450,7 +450,7 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-        image: quay.io/comcast/kh-daemonset-check:2.0.1
+        image: kuberhealthy/daemonset-check:v2.1.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -471,15 +471,15 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: quay.io/comcast/deployment-check:1.1.1
+      image: quay.io/comcast/deployment-check:1.1.1-patch
       imagePullPolicy: IfNotPresent
       env:
+        - name: CHECK_TIME_LIMIT
+          value: *deployment_check_timeout
         - name: CHECK_DEPLOYMENT_REPLICAS
           value: "4"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
-        - name: CHECK_TIME_LIMIT
-          value: *deployment_check_timeout
       resources:
         requests:
           cpu: 25m
@@ -506,7 +506,7 @@ spec:
             value: "110s"
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: quay.io/comcast/dns-status-check:1.0.0
+        image: kuberhealthy/dns-resolution-check:v1.1.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
