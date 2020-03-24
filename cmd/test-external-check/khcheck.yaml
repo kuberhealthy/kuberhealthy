@@ -17,7 +17,7 @@ spec:
             value: "false"
           - name: REPORT_DELAY
             value: "5s"
-        image: quay.io/comcast/test-external-check:latest
+        image: kuberhealthy/test-external-check:v1.1.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:

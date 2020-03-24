@@ -15,7 +15,7 @@ spec:
         value: "false"
       - name: REPORT_DELAY
         value: "5s"
-      image: quay.io/comcast/test-external-check:latest
+      image: kuberhealthy/test-external-check:v1.1.0
       imagePullPolicy: Always
       name: main
       resources:
@@ -42,7 +42,7 @@ spec:
         value: "false"
       - name: REPORT_DELAY
         value: "5s"
-      image: quay.io/comcast/test-external-check:latest
+      image: kuberhealthy/test-external-check:v1.1.0
       imagePullPolicy: Always
       name: main
       resources:
@@ -69,7 +69,7 @@ spec:
         value: "5s"
       - name: REPORT_FAILURE
         value: "false"
-      image: quay.io/comcast/test-external-check:latest
+      image: kuberhealthy/test-external-check:v1.1.0
       imagePullPolicy: Always
       name: main
       resources:
@@ -135,7 +135,7 @@ spec:
   extraLabels:
     testLabel: testLabel
   podSpec:
-      image: quay.io/comcast/test-external-check:latest
+      image: kuberhealthy/test-external-check:v1.1.0
       imagePullPolicy: Always
       name: main
       resources:
@@ -162,7 +162,7 @@ spec:
         value: "5s"
       - name: REPORT_FAILURE
         value: "true"
-      image: quay.io/comcast/test-external-check:latest
+      image: kuberhealthy/test-external-check:v1.1.0
       imagePullPolicy: Always
       name: main
       resources:
@@ -189,7 +189,7 @@ spec:
         value: "5s"
       - name: REPORT_FAILURE
         value: "false"
-      image: quay.io/comcast/test-external-check:latest
+      image: kuberhealthy/test-external-check:v1.1.0
       imagePullPolicy: Always
       name: main
       resources:

@@ -19,7 +19,7 @@ resources:
     cpu: 400m
     memory: 300Mi
   limits:
-    cpu: 2
+    cpu: 2m
     memory: 1G1
 
 tolerations:
@@ -59,15 +59,15 @@ check:
   daemonset:
     enabled: true
     image:
-      repository: quay.io/comcast/kh-daemonset-check
-      tag: 2.0.1
+      repository: kuberhealthy/daemonset-check
+      tag: v2.1.1
     extraEnvs:
     nodeSelector: {}
   deployment:
     enabled: true
     image:
       repository: quay.io/comcast/deployment-check
-      tag: 1.1.1
+      tag: 1.1.1-patch
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
@@ -75,29 +75,29 @@ check:
   dnsInternal:
     enabled: true
     image:
-      repository: quay.io/comcast/dns-status-check
-      tag: 1.0.0
+      repository: kuberhealthy/dns-resolution-check
+      tag: v1.1.0
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
   podRestarts:
     enabled: false
     image:
-      repository: quay.io/comcast/pod-restarts-check
-      tag: 2.0.0
+      repository: kuberhealthy/pod-restarts-check
+      tag: v2.1.1
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
   podStatus:
     enabled: false
     image:
-      repository: quay.io/comcast/pod-status-check
-      tag: 1.0.1
+      repository: kuberhealthy/pod-status-check
+      tag: v1.1.2
     extraEnvs:
     nodeSelector: {}
 
 checkReaper:
   image:
-    repository: quay.io/comcast/check-reaper
-    tag: 1.0.0
+    repository: kuberhealthy/check-reaper
+    tag: v1.2.1
   nodeSelector: {}
