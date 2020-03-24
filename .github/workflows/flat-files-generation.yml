@@ -1,0 +1,86 @@
+name: Build Flat Spec Files from Helm Chart
+on:
+  push:
+    paths:
+      - 'deploy/helm/kuberhealthy/**'
+    branches:
+      - master
+      - flat-file-gen
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2.0.0
+      #with:
+        # Repository name with owner. For example, actions/checkout
+        #repository: # optional, default is ${{ github.repository }}
+        # The branch, tag or SHA to checkout. When checking out the repository that triggered a workflow, this defaults to the reference or SHA for that event.  Otherwise, defaults to `master`.
+
+        #ref: # optional
+        # Auth token used to fetch the repository. The token is stored in the local git config, which enables your scripts to run authenticated git commands. The post-job step removes the token from the git config.
+
+        #token: # optional, default is ${{ github.token }}
+        # Whether to persist the token in the git config
+        #persist-credentials: # optional, default is true
+        # Relative path under $GITHUB_WORKSPACE to place the repository
+        #path: # optional
+        # Whether to execute `git clean -ffdx && git reset --hard HEAD` before fetching
+        #clean: # optional, default is true
+        # Number of commits to fetch. 0 indicates all history.
+        #fetch-depth: # optional, default is 1
+        # Whether to download Git-LFS files
+        #lfs: # optional
+    - name: Run Kubernetes tools
+      uses: stefanprodan/kube-tools@v1
+      with:
+        #kubectl: 1.16.2
+        #kustomize: 3.4.0
+        #helm: 2.16.1
+        helmv3: 3.0.0
+        command: |
+          echo "Running helm flat file generation"
+          ls -al
+          pwd
+          helmv3 version
+          cd deploy/helm
+          alias helm="helmv3"
+          ./create-flat-files.sh
+          rm -f *.old
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v2.4.4
+      with:
+        # GITHUB_TOKEN or a repo scoped PAT
+        token: ${{ secrets.GITHUB_TOKEN }}
+        # Relative path under $GITHUB_WORKSPACE to the repository.
+        #path: # optional
+        # The message to use when committing changes.
+        commit-message: "flat file spec regeneration"
+        # The committer name and email address.
+        #author: "GitHub Automatic Template Render Job"
+        # The author name and email address.
+        committer: "Github Actions <action@github.com>"
+        # The title of the pull request.
+        title: "Flat Spec File Regeneration"
+        # The body of the pull request.
+        body: "An automatic PR for the regeneration of flat deployment files."
+        # A comma separated list of labels.
+        #labels: # optional
+        # A comma separated list of assignees (GitHub usernames).
+        #assignees: # optional
+        # A comma separated list of reviewers (GitHub usernames) to request a review from.
+        #reviewers: # optional
+        # A comma separated list of GitHub teams to request a review from.
+        #team-reviewers: # optional
+        # The number of the milestone to associate this pull request with.
+        #milestone: # optional
+        # The name of the project for which a card should be created.
+        #project: # optional
+        # The name of the project column under which a card should be created.
+        #project-column: # optional
+        # The pull request branch name.
+        branch: flat-file-auto-regen
+        # The pull request base branch.
+        base: master
+        # The branch suffix type.
+        #branch-suffix: # optional

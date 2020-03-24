@@ -11,4 +11,16 @@ subjects:
 - kind: ServiceAccount
   name: {{ template "kuberhealthy.name" . }}
   namespace: {{ .Release.Namespace }}
-
+---
+apiVersion: {{ template "rbac.apiVersion" . }}
+kind: ClusterRoleBinding
+metadata:
+  name: {{ template "kuberhealthy.name" . }}-daemonset-khcheck
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "kuberhealthy.name" . }}-daemonset-khcheck
+subjects:
+- kind: ServiceAccount
+  name: daemonset-khcheck
+  namespace: {{ .Release.Namespace }}

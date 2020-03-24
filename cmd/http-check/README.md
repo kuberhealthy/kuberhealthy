@@ -20,7 +20,7 @@ spec:
   podSpec:
     containers:
     - name: http
-      image: quay.io/comcast/http-check:1.0.0
+      image: kuberhealthy/http-check:v1.1.1
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_URL
@@ -37,6 +37,6 @@ spec:
 
 #### How-to
 
- Make sure you are using the latest release of Kuberhealthy 2.0.0. 
+ Make sure you are using the latest release of Kuberhealthy 2.0.0.
 
  Apply a `.yaml` file similar to the one shown above with ```kubectl apply -f```

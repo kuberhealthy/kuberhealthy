@@ -5,20 +5,21 @@
 prometheus:
   enabled: false
   name: "prometheus"
+  release: prometheus-operator
   enableScraping: false
   serviceMonitor: false
   enableAlerting: false
 
 image:
   repository: quay.io/comcast/kuberhealthy
-  tag: 2.0.0
+  tag: 2.1.0
 
 resources:
   requests:
     cpu: 400m
     memory: 300Mi
   limits:
-    cpu: 2
+    cpu: 2m
     memory: 1G1
 
 tolerations:
@@ -30,7 +31,9 @@ deployment:
   maxSurge: 0
   maxUnavailable: 1
   imagePullPolicy: IfNotPresent
+  nodeSelector: {}
   podAnnotations: {}
+  env: {}
   command:
   - /app/kuberhealthy
   # args:
@@ -53,8 +56,48 @@ service:
   annotations: {}
 
 check:
-  daemonset: true
-  deployment: true
-  dnsInternal: true
-  podRestarts: false
-  podStatus: false
+  daemonset:
+    enabled: true
+    image:
+      repository: kuberhealthy/daemonset-check
+      tag: v2.1.1
+    extraEnvs:
+    nodeSelector: {}
+  deployment:
+    enabled: true
+    image:
+      repository: quay.io/comcast/deployment-check
+      tag: 1.1.1-patch
+    extraEnvs:
+      CHECK_DEPLOYMENT_REPLICAS: "4"
+      CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
+    nodeSelector: {}
+  dnsInternal:
+    enabled: true
+    image:
+      repository: kuberhealthy/dns-resolution-check
+      tag: v1.1.0
+    extraEnvs:
+      HOSTNAME: "kubernetes.default"
+    nodeSelector: {}
+  podRestarts:
+    enabled: false
+    image:
+      repository: kuberhealthy/pod-restarts-check
+      tag: v2.1.1
+    extraEnvs:
+      MAX_FAILURES_ALLOWED: "10"
+    nodeSelector: {}
+  podStatus:
+    enabled: false
+    image:
+      repository: kuberhealthy/pod-status-check
+      tag: v1.1.2
+    extraEnvs:
+    nodeSelector: {}
+
+checkReaper:
+  image:
+    repository: kuberhealthy/check-reaper
+    tag: v1.2.1
+  nodeSelector: {}

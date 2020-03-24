@@ -11,8 +11,11 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: quay.io/comcast/check-reaper:1.0.0
-              imagePullPolicy: Always
+              image: kuberhealthy/check-reaper:v1.2.1
+              imagePullPolicy: IfNotPresent
+#              env:
+#                - name: SINGLE_NAMESPACE
+#                  value: kuberhealthy
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid

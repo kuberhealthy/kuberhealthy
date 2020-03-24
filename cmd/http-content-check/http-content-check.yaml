@@ -1,0 +1,19 @@
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: kh-http-content-check
+spec:
+  runInterval: 60s # The interval that Kuberhealthy will run your check on
+  timeout: 2m # After this much time, Kuberhealthy will kill your check and consider it "failed"
+  podSpec: # The exact pod spec that will run.  All normal pod spec is valid here.
+    containers:
+    - image: kuberhealthy/http-content-check:v1.2.2 # The image of the check you just pushed
+      imagePullPolicy: IfNotPresent # uses local image if present
+      name: main
+      env:
+        - name: "TARGET_URL"
+          value: "http://httpbin.org/" # The URL that application will use to look for a specified string
+        - name: "TARGET_STRING"
+          value: "http" # The string that will be used to parse through provided URL
+        - name: "TIMEOUT_DURATION"
+          value: "30s" # Specifies the time limit for requests made by the client to the URL

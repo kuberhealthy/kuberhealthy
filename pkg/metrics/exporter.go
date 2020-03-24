@@ -9,7 +9,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package metrics // import "github.com/Comcast/kuberhealthy/pkg/metrics"
+package metrics // import "github.com/Comcast/kuberhealthy/v2/pkg/metrics"
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/Comcast/kuberhealthy/pkg/health"
+	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 )
 
 //GenerateMetrics takes the state and returns it in the Prometheus format
@@ -36,8 +36,8 @@ func GenerateMetrics(state health.State) string {
 	metricsOutput += fmt.Sprintf("kuberhealthy_cluster_state %s\n", healthStatus)
 	metricsOutput += "# HELP kuberhealthy_check Shows the status of a Kuberhealthy check\n"
 	metricsOutput += "# TYPE kuberhealthy_check gauge\n"
-	metricsOutput += "# HELP kuberhealthy_check_duration_seconds Shows the check run duration of a Kuberhealthy check"
-	metricsOutput += "# TYPE kuberhealthy_check_duration_seconds gauge"
+	metricsOutput += "# HELP kuberhealthy_check_duration_seconds Shows the check run duration of a Kuberhealthy check\n"
+	metricsOutput += "# TYPE kuberhealthy_check_duration_seconds gauge\n"
 	checkMetricState := map[string]string{}
 	for c, d := range state.CheckDetails {
 		checkStatus := "0"

@@ -31,8 +31,9 @@ func runDeploymentCheck() {
 	runTimeout := time.After(checkTimeLimit)
 
 	// Init a timeout for cleaning up the check.  Assume that the check should not take more than 2m.
-	cleanupTimeout := time.After(time.Minute * 5)
+	cleanupTimeout := time.After(time.Minute * 2)
 
+	// TODO: Update this logic to unique services and deployments
 	// Delete all check resources (deployment & service) from this check that should not exist.
 	select {
 	case err := <-cleanUpOrphanedResources():

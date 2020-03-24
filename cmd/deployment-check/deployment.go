@@ -88,6 +88,7 @@ func createDeploymentConfig(image string) *v1.Deployment {
 		Containers:                    containers,
 		RestartPolicy:                 corev1.RestartPolicyAlways,
 		TerminationGracePeriodSeconds: &graceSeconds,
+		ServiceAccountName:            checkServiceAccount,
 	}
 
 	// Make labels for pod and deployment.
@@ -349,7 +350,7 @@ func deleteDeploymentAndWait(ctx context.Context) error {
 			}
 
 			// Wait between checks.
-			log.Debugln("Waiting 5 secodns before trying again.")
+			log.Debugln("Waiting 5 seconds before trying again.")
 			time.Sleep(time.Second * 5)
 
 			// Watch that it is gone by listing repeatedly.
@@ -497,17 +498,16 @@ func findPreviousDeployment() (bool, error) {
 	for _, deployment := range deploymentList.Items {
 
 		// Check using names.
-		if &deployment.Name == nil {
-			continue
-		}
+		// if &deployment.Name == nil {
+		// 	continue
+		// }
 		if deployment.Name == checkDeploymentName {
 			log.Infoln("Found an old deployment belonging to this check:", deployment.Name)
 			return true, nil
 		}
 
-		// check using labels
-		// labels := deployment.Labels
-		// for k, v := range labels {
+		// Check using labels.
+		// for k, v := range deployment.Labels {
 		// 	if k == defaultLabelKey && v != defaultLabelValueBase+strconv.Itoa(int(now.Unix())) {
 		// 		log.Infoln("Found an old deployment belonging to this check.")
 		// 		return true, nil

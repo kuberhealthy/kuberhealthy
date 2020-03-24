@@ -115,18 +115,25 @@ func parseInputValues() {
 		log.Infoln("Parsed CHECK_DEPLOYMENT_REPLICAS:", checkDeploymentReplicas)
 	}
 
+	// Parse incoming check service account
+	checkServiceAccount = defaultCheckServieAccount
+	if len(checkServiceAccountEnv) != 0 {
+		checkServiceAccount = checkServiceAccountEnv
+		log.Infoln("Parsed CHECK_SERVICE_ACCOUNT:", checkServiceAccount)
+	}
+
 	// Set check time limit to default
 	checkTimeLimit = defaultCheckTimeLimit
-	if len(checkTimeLimitSecondsEnv) != 0 {
-		secs, err := strconv.Atoi(checkTimeLimitSecondsEnv)
+	if len(checkTimeLimitEnv) != 0 {
+		duration, err := time.ParseDuration(checkTimeLimitEnv)
 		if err != nil {
-			log.Fatalln("error occurred attempting to parse CHECK_TIME_LIMIT_SECONDS:", err)
+			log.Fatalln("error occurred attempting to parse CHECK_TIME_LIMIT:", err)
 		}
-		if secs < 1 {
-			log.Fatalln("error occurred attempting to parse CHECK_TIME_LIMIT_SECONDS.  Check run time in seconds is less than 1:", secs)
+		if duration.Seconds() < 1 {
+			log.Fatalln("error occurred attempting to parse CHECK_TIME_LIMIT. Check run time in seconds is less than 1:", duration.Seconds())
 		}
-		log.Infoln("Parsed CHECK_TIME_LIMIT_SECONDS:", secs)
-		checkTimeLimit = time.Duration(time.Second * time.Duration(secs))
+		log.Infoln("Parsed CHECK_TIME_LIMIT:", duration.Seconds())
+		checkTimeLimit = duration
 	}
 	log.Infoln("Check time limit set to:", checkTimeLimit)
 
@@ -164,16 +171,16 @@ func parseInputValues() {
 	}
 
 	// Parse incoming custom shutdown grace period seconds
-	shutdownGracePeriodSeconds = defaultShutdownGracePeriodSeconds
-	if len(shutdownGracePeriodSecondsEnv) != 0 {
-		sec, err := strconv.Atoi(shutdownGracePeriodSecondsEnv)
+	shutdownGracePeriod = defaultShutdownGracePeriod
+	if len(shutdownGracePeriodEnv) != 0 {
+		duration, err := time.ParseDuration(shutdownGracePeriodEnv)
 		if err != nil {
-			log.Fatalln("error occurred attempting to parse SHUTDOWN_GRACE_PERIOD_SECONDS:", err)
+			log.Fatalln("error occurred attempting to parse SHUTDOWN_GRACE_PERIOD:", err)
 		}
-		if sec < 1 {
-			log.Fatalln("error occurred attempting to parse SHUTDOWN_GRACE_PERIOD_SECONDS.  A value less than 1 was parsed:", sec)
+		if duration.Seconds() < 1 {
+			log.Fatalln("error occurred attempting to parse SHUTDOWN_GRACE_PERIOD.  A value less than 1 was parsed:", duration.Seconds())
 		}
-		shutdownGracePeriodSeconds = sec
-		log.Infoln("Parsed SHUTDOWN_GRACE_PERIOD_SECONDS:", shutdownGracePeriodSeconds)
+		shutdownGracePeriod = duration
+		log.Infoln("Parsed SHUTDOWN_GRACE_PERIOD:", shutdownGracePeriod)
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	kh "github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient"
+	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	log "github.com/sirupsen/logrus"
 )
 

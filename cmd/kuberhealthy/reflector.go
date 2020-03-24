@@ -9,8 +9,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/Comcast/kuberhealthy/pkg/health"
-	"github.com/Comcast/kuberhealthy/pkg/khstatecrd"
+	"github.com/Comcast/kuberhealthy/v2/pkg/health"
+	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
 )
 
 // StateReflector watches the state of khstate objects and stores them in a local cache.  Then, when the current

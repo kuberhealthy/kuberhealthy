@@ -1,4 +1,4 @@
-{{- if .Values.check.podRestarts }}
+{{- if .Values.check.podRestarts.enabled }}
 ---
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
@@ -16,14 +16,20 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-          - name: MAX_FAILURES_ALLOWED
-            value: "10"
-        image: quay.io/comcast/pod-restarts-check:2.0.0
+{{- range $key, $value := .Values.check.podRestarts.extraEnvs }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+{{- end }}
+        image: {{ .Values.check.podRestarts.image.repository }}:{{ .Values.check.podRestarts.image.tag }}
         imagePullPolicy: IfNotPresent
         name: main
         resources:
           requests:
             cpu: 10m
             memory: 50Mi
+    {{- if .Values.check.podRestarts.nodeSelector }}
+    nodeSelector:
+{{- toYaml .Values.check.podRestarts.nodeSelector | nindent 6 }}
+    {{- end }}
     restartPolicy: Never
 {{- end }}

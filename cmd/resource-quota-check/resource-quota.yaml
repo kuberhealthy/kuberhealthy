@@ -1,0 +1,29 @@
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: resource-quota
+  namespace: kuberhealthy
+spec:
+  runInterval: 30m
+  timeout: &resource_quota_check_timeout 5m
+  podSpec:
+    containers:
+    - name: resource-quota
+      image: kuberhealthy/resource-quota-check:v1.1.1
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: BLACKLIST
+          value: "default"
+        - name: WHITELIST
+          value: "kube-system,kuberhealthy"
+        - name: CHECK_TIME_LIMIT
+          value: *resource_quota_check_timeout
+      resources:
+        requests:
+          cpu: 15m
+          memory: 15Mi
+        limits:
+          cpu: 50m
+      restartPolicy: Never
+    terminationGracePeriodSeconds: 30
