@@ -395,7 +395,7 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: quay.io/comcast/check-reaper:1.1.0
+              image: kuberhealthy/check-reaper:v1.2.1
               imagePullPolicy: IfNotPresent
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
@@ -419,7 +419,7 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-        image: quay.io/comcast/kh-daemonset-check:2.0.1
+        image: kuberhealthy/daemonset-check:v2.1.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -440,15 +440,15 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: quay.io/comcast/deployment-check:1.1.1
+      image: quay.io/comcast/deployment-check:1.1.1-patch
       imagePullPolicy: IfNotPresent
       env:
+        - name: CHECK_TIME_LIMIT
+          value: *deployment_check_timeout
         - name: CHECK_DEPLOYMENT_REPLICAS
           value: "4"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
-        - name: CHECK_TIME_LIMIT
-          value: *deployment_check_timeout
       resources:
         requests:
           cpu: 25m
@@ -475,7 +475,7 @@ spec:
             value: "110s"
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: quay.io/comcast/dns-status-check:1.0.0
+        image: kuberhealthy/dns-resolution-check:v1.1.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
