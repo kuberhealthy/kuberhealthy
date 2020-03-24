@@ -1,8 +1,8 @@
 ## kops AMI Check
 
-This check looks to see if the images used for kops instance groups still exist in the AWS Amazon marketplace. The check 
-pulls object contents from AWS S3, parsing them into kops-instance-group structs and then pulls a list of available 
-images from the AWS EC2 AMI marketplace. Images used for these kops-instance-groups are checked against the available 
+This check looks to see if the images used for kops instance groups still exist in the AWS Amazon marketplace. The check
+pulls object contents from AWS S3, parsing them into kops-instance-group structs and then pulls a list of available
+images from the AWS EC2 AMI marketplace. Images used for these kops-instance-groups are checked against the available
 list of AMIs to ensure that the instance-group image is available for new nodes.
 
 #### Check Steps
@@ -39,7 +39,7 @@ spec:
   podSpec:
     containers:
     - name: ami
-      image: quay.io/comcast/ami-check:1.0.0
+      image: kuberhealthy/ami-check:v1.1.0
       imagePullPolicy: IfNotPresent
       env:
         - name: AWS_REGION
@@ -64,7 +64,7 @@ You must first configure a valid role ARN via IAM in your AWS account. The ARN n
 
 To use the *kops AMI Check* with Kuberhealthy, replace the `<role-arn>` value in the configuration file at [ami-check](ami-check.yaml). Then apply it to your Kubernetes Cluster `kubectl apply -f kiam-check.yaml`.`
 
-Make sure you are using the latest release of Kuberhealthy 2.0.0. 
+Make sure you are using the latest release of Kuberhealthy 2.0.0.
 
 The check configuration file contains:
 - KuberhealthyCheck

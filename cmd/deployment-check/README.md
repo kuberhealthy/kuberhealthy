@@ -2,7 +2,7 @@
 
 This check tests if a `deployment` and `service` can be created within your Kubernetes cluster. It will attempt to bring up a `deployment` with `2` replicas and a `service` of type `ClusterIP` in the `kuberhealthy` namespace and waits for the pods to come up. Once the `deployment` is ready, the check makes a request to the hostname looking for a `200 OK`. The check then proceeds to terminate them and ensures that the deployment and service terminations were successful. A complete tear down of the `deployment` and `service` after receiving a `200 OK` marks a successful test run.
 
-Container resource requests are set to `15 millicores` of CPU and `20Mi` units of memory and use the Nginx's latest image `nginx:latest` for the deployment. If the environment variable `CHECK_DEPLOYMENT_ROLLING_UPDATE` is set to `true`, the check will attempt to perform a rolling-update on the `deployment`. Once this rolling-update completes, the check makes another request to the hostname looking for a `200 OK` again before cleaning up. By default, the check will initially deploy Nginx's `nginx:latest` image, and update to `nginx:alpine`. 
+Container resource requests are set to `15 millicores` of CPU and `20Mi` units of memory and use the Nginx's latest image `nginx:latest` for the deployment. If the environment variable `CHECK_DEPLOYMENT_ROLLING_UPDATE` is set to `true`, the check will attempt to perform a rolling-update on the `deployment`. Once this rolling-update completes, the check makes another request to the hostname looking for a `200 OK` again before cleaning up. By default, the check will initially deploy Nginx's `nginx:1.17.8` image, and update to `nginx:1.17.9`.
 
 Custom images can be used for this check and can be specified with the `CHECK_IMAGE` and `CHECK_IMAGE_ROLL_TO` environment variables. If a custom image requires the use of environment variables, they can be passed down into your container by setting the environment variable `ADDITIONAL_ENV_VARS` to a string of comma-separated values (`"X=foo,Y=bar"`).
 
@@ -34,16 +34,17 @@ __IF ROLLING-UPDATE OPTION IS ENABLED__
 - Check Interval: 30 minutes
 - Check name: `deployment`
 - Configurable check environment variables:
-  - `CHECK_IMAGE`: Initial container image. (default=`nginx:latest`)
-  - `CHECK_IMAGE_ROLL_TO`: Container image to roll to. (default=`nginx:alpine`)
+  - `CHECK_IMAGE`: Initial container image. (default=`nginx:1.17.8`)
+  - `CHECK_IMAGE_ROLL_TO`: Container image to roll to. (default=`nginx:1.17.9`)
   - `CHECK_DEPLOYMENT_NAME`: Name for the check's deployment. (default=`deployment-deployment`)
   - `CHECK_SERVICE_NAME`: Name for the check's service. (default=`deployment-svc`)
   - `CHECK_NAMESPACE`: Namespace for the check (default=`kuberhealthy`).
   - `CHECK_DEPLOYMENT_REPLICAS`: Number of replicas in the deployment (default=`2`).
-  - `CHECK_TIME_LIMIT_SECONDS`: Number of seconds the check will allow itself before timing out.
+  - `CHECK_TIME_LIMIT`: Number of seconds the check will allow itself before timing out.
   - `CHECK_DEPLOYMENT_ROLLING_UPDATE`: Boolean to enable rolling-update (default=`false`).
   - `ADDITIONAL_ENV_VARS`: Comma separated list of `key=value` variables passed into the pod's containers.
-  - `SHUTDOWN_GRACE_PERIOD_SECONDS`: Amount of time in seconds the shutdown will allow itself to clean up after an interrupt signal (default=`30s`).
+  - `SHUTDOWN_GRACE_PERIOD`: Amount of time in seconds the shutdown will allow itself to clean up after an interrupt signal (default=`30s`).
+  - `DEBUG`: Verbose debug logging.
 
 #### Example KuberhealthyCheck Spec
 
@@ -56,12 +57,12 @@ metadata:
   name: deployment
   namespace: kuberhealthy
 spec:
-  runInterval: 30m
-  timeout: 15m
+  runInterval: 10m
+  timeout: &deployment_check_timeout 15m
   podSpec:
     containers:
     - name: deployment
-      image: quay.io/comcast/deployment-check:1.0.5
+      image: kuberhealthy/deployment-check:v1.2.2
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_IMAGE
@@ -74,6 +75,8 @@ spec:
           value: "true"
         - name: ADDITIONAL_ENV_VARS
           value: "var1=foo,var2=bar"
+        - name: CHECK_TIME_LIMIT
+          value: *deployment_check_timeout
       resources:
         requests:
           cpu: 15m
@@ -89,7 +92,7 @@ To use the *Deployment Check* with Kuberhealthy, apply the configuration file [d
 
 `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/deployment-check/deployment-check.yaml`
 
-Make sure you are using the latest release of Kuberhealthy 2.0.0. 
+Make sure you are using the latest release of Kuberhealthy 2.0.0 or later.
 
 The check configuration file contains:
 - KuberhealthyCheck
@@ -97,4 +100,4 @@ The check configuration file contains:
 - Rolebinding
 - ServiceAccount
 
-The role, rolebinding, and service account are all required to create and delete all deployments and services from the check in the given namespaces you install the check for. The assumed default service account does not provide enough permissions for this check to run. 
+The role, rolebinding, and service account are all required to create and delete all deployments and services from the check in the given namespaces you install the check for. The assumed default service account does not provide enough permissions for this check to run.

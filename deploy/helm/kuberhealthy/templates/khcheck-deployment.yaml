@@ -1,29 +1,36 @@
-{{- if .Values.check.deployment }}
+{{- if .Values.check.deployment.enabled }}
 ---
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
   name: deployment
+  namespace: {{ .Release.Namespace }}
 spec:
-  runInterval: 5m
-  timeout: 15m
+  runInterval: 10m
+  timeout: &deployment_check_timeout 15m
   podSpec:
     containers:
     - name: deployment
-      image: quay.io/comcast/deployment-check:1.0.4
+      image: {{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
       imagePullPolicy: IfNotPresent
       env:
-        - name: CHECK_DEPLOYMENT_REPLICAS
-          value: "4"
-        - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
-          value: "true"
+        - name: CHECK_TIME_LIMIT
+          value: *deployment_check_timeout
+{{- range $key, $value := .Values.check.deployment.extraEnvs }}
+        - name: {{ $key }}
+          value: {{ $value | quote }}
+{{- end }}
       resources:
         requests:
           cpu: 25m
           memory: 15Mi
         limits:
           cpu: 40m
-      restartPolicy: Always
+      restartPolicy: Never
+    {{- if .Values.check.deployment.nodeSelector }}
+    nodeSelector:
+{{- toYaml .Values.check.deployment.nodeSelector | nindent 6 }}
+    {{- end }}
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
 ---
@@ -31,6 +38,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: deployment-check-rb
+  namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -43,6 +51,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: deployment-service-role
+  namespace: {{ .Release.Namespace }}
 rules:
   - apiGroups:
       - "apps"
@@ -81,5 +90,6 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: deployment-sa
+  namespace: {{ .Release.Namespace }}
 {{- end }}
 

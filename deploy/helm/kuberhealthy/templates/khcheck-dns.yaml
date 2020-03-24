@@ -1,9 +1,10 @@
-{{- if .Values.check.dnsInternal }}
+{{- if .Values.check.dnsInternal.enabled }}
 ---
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
   name: dns-status-internal
+  namespace: {{ .Release.Namespace }}
 spec:
   runInterval: 2m
   timeout: 15m
@@ -12,13 +13,19 @@ spec:
       - env:
           - name: CHECK_POD_TIMEOUT
             value: "110s"
-          - name: HOSTNAME
-            value: "kubernetes.default"
-        image: quay.io/comcast/dns-status-check:1.0.0
+{{- range $key, $value := .Values.check.dnsInternal.extraEnvs }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+{{- end }}
+        image: {{ .Values.check.dnsInternal.image.repository }}:{{ .Values.check.dnsInternal.image.tag }}
         imagePullPolicy: IfNotPresent
         name: main
         resources:
           requests:
             cpu: 10m
             memory: 50Mi
+    {{- if .Values.check.dnsInternal.nodeSelector }}
+    nodeSelector:
+{{- toYaml .Values.check.dnsInternal.nodeSelector | nindent 6 }}
+    {{- end }}
 {{- end }}

@@ -1,0 +1,70 @@
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: daemonset
+  namespace: kuberhealthy
+spec:
+  runInterval: 15m
+  # Make sure this Kuberhealthy check timeout is GREATER THAN the daemonset checker timeout
+  # set in the env var CHECK_POD_TIMEOUT. Default is set to 5m (5 minutes).
+  timeout: 12m
+  podSpec:
+    containers:
+      - env:
+          - name: POD_NAMESPACE
+            value: "kuberhealthy"
+          - name: CHECK_POD_TIMEOUT
+            # Make sure this value is less than the Kuberhealthy check timeout.
+            # Default is set to 10m (10 minutes).
+            value: "10m"
+        image: kuberhealthy/daemonset-check:v2.1.1
+        imagePullPolicy: IfNotPresent
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
+    serviceAccountName: daemonset-khcheck
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: daemonset-khcheck
+  namespace: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ds-admin
+subjects:
+  - kind: ServiceAccount
+    name: daemonset-khcheck
+    namespace: kuberhealthy
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ds-admin
+  namespace: kuberhealthy
+rules:
+  - apiGroups:
+      - ""
+      - extensions
+      - apps
+    resources:
+      - daemonsets
+      - pods
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: daemonset-khcheck
+  namespace: kuberhealthy

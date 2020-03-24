@@ -1,0 +1,37 @@
+name: Build and Push Latest
+
+on:
+  push:
+    branches:
+    - master
+    - release/*
+    - docker-hub # for testing this build spec
+
+env:
+  IMAGE_NAME: kuberhealthy
+
+jobs:
+
+  # Push image to GitHub Package Registry.
+  # See also https://docs.docker.com/docker-hub/builds/
+  push:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v2
+
+# name unknown: docker image push is only supported with a tag of the format :owner/:repo_name/:image_name.
+#		Please add an image name to "comcast/kuberhealthy" tag. e.g. "comcast/kuberhealthy/<image_name>"
+
+
+      - name: Build image
+        run: docker build . --file Dockerfile --tag $IMAGE_NAME
+
+      - name: Log into registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+
+      - name: Push image
+        run: |
+          docker tag $IMAGE_NAME docker.pkg.github.com/comcast/kuberhealthy/$IMAGE_NAME
+          docker push docker.pkg.github.com/comcast/kuberhealthy/$IMAGE_NAME

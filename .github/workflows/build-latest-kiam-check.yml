@@ -1,0 +1,24 @@
+name: Build and Push KIAM-Check Latest
+on:
+  push:
+    branches:
+    - master
+    - release/*
+    - docker-hub # for testing this build spec
+    paths:
+      - "cmd/kiam-check/**"
+env:
+    IMAGE_NAME: kiam-check
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: build container
+      run: docker build --file cmd/kiam-check/Dockerfile --tag $IMAGE_NAME .
+    - name: Log into docker hub
+      run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
+    - name: Push new latest image
+      run: |
+          docker tag $IMAGE_NAME kuberhealthy/$IMAGE_NAME
+          docker push kuberhealthy/$IMAGE_NAME

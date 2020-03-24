@@ -5,9 +5,10 @@ metadata:
   labels:
     app: {{ template "kuberhealthy.name" . }}
   name: {{ template "kuberhealthy.name" . }}
+  namespace: {{ .Release.Namespace }}
   {{- if or .Values.prometheus.enabled .Values.service.annotations }}
   annotations:
-  {{- if .Values.prometheus.enabled }}
+  {{- if and .Values.prometheus.enabled (not .Values.prometheus.serviceMonitor) }}
     prometheus.io/scrape: "true"
     prometheus.io/port: "80"
     prometheus.io/path: "/metrics"

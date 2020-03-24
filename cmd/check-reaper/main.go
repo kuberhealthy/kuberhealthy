@@ -12,12 +12,23 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
-	"github.com/Comcast/kuberhealthy/pkg/kubeClient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var ReapCheckerPods map[string]v1.Pod
 var MaxPodsThreshold = 4
+var Namespace string
+
+func init(){
+	Namespace = os.Getenv("SINGLE_NAMESPACE")
+	if len(Namespace) == 0 {
+		log.Infoln("Single namespace not specified, running check reaper across all namespaces")
+		Namespace = ""
+	} else {
+		log.Infoln("Single namespace specified. Running check-reaper in namespace:", Namespace)
+	}
+}
 
 func main() {
 
@@ -26,7 +37,7 @@ func main() {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
-	podList, err := listCheckerPods(client)
+	podList, err := listCheckerPods(client, Namespace)
 	if err != nil {
 		log.Fatalln("Failed to list and delete old checker pods", err)
 	}
@@ -45,21 +56,21 @@ func main() {
 }
 
 // listCheckerPods returns a list of pods with the khcheck name label
-func listCheckerPods(client *kubernetes.Clientset) (map[string]v1.Pod, error) {
-	log.Infoln("Listing checker pods from all namespaces")
+func listCheckerPods(client *kubernetes.Clientset, namespace string) (map[string]v1.Pod, error) {
+	log.Infoln("Listing checker pods")
 
 	ReapCheckerPods = make(map[string]v1.Pod)
 
-	pods, err := client.CoreV1().Pods("").List(metav1.ListOptions{LabelSelector: "kuberhealthy-check-name"})
+	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: "kuberhealthy-check-name"})
 	if err != nil {
-		log.Errorln("Failed to list checker pods from all namespaces")
+		log.Errorln("Failed to list checker pods")
 		return ReapCheckerPods, err
 	}
 
 	log.Infoln("Found:", len(pods.Items), "checker pods")
 
 	for _, p := range pods.Items {
-		if p.Status.Phase == "Succeeded" || p.Status.Phase == "Failed"  {
+		if p.Status.Phase == "Succeeded" || p.Status.Phase == "Failed" {
 			//log.Infoln("Checker pod: ", p.Name, "found in namespace: ", p.Namespace)
 			ReapCheckerPods[p.Name] = p
 		}
@@ -74,7 +85,7 @@ func deleteFilteredCheckerPods(client *kubernetes.Clientset, reapCheckerPods map
 	var err error
 
 	for k, v := range reapCheckerPods {
-		
+
 		// Delete pods older than 5 hours and is in status Succeeded
 		if time.Now().Sub(v.CreationTimestamp.Time).Hours() > 5 && v.Status.Phase == "Succeeded" {
 			log.Infoln("Found pod older than 5 hours in status `Succeeded`. Deleting pod:", k)

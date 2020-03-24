@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/pkg/checks/external"
-	checkclient "github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
+	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 )
 
 var reportFailure bool

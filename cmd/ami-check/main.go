@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"syscall"
 
-	awsutil "github.com/Comcast/kuberhealthy/pkg/aws"
-	kh "github.com/Comcast/kuberhealthy/pkg/checks/external/checkClient"
+	awsutil "github.com/Comcast/kuberhealthy/v2/pkg/aws"
+	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/aws/aws-sdk-go/aws/session"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"

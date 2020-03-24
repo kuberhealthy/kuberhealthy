@@ -2,7 +2,7 @@ apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
   name: check-reaper
-  namespace: kuberhealthy
+  namespace: {{ .Release.Namespace }}
 spec:
   schedule: "*/3 * * * *"
   jobTemplate:
@@ -11,8 +11,12 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: quay.io/comcast/check-reaper:1.0.0
-              imagePullPolicy: Always
+              image: {{ .Values.checkReaper.image.repository }}:{{ .Values.checkReaper.image.tag }}
+              imagePullPolicy: IfNotPresent
+          {{- if .Values.checkReaper.nodeSelector }}
+          nodeSelector:
+{{- toYaml .Values.checkReaper.nodeSelector | nindent 12 }}
+          {{- end }}
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
@@ -21,6 +25,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: check-reaper
+  namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -28,10 +33,10 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: check-reaper
-    namespace: kuberhealthy
+    namespace: {{ .Release.Namespace }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: check-reaper
-  namespace: kuberhealthy
+  namespace: {{ .Release.Namespace }}
