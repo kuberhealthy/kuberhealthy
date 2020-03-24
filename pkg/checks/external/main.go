@@ -87,7 +87,7 @@ type Checker struct {
 	OriginalPodSpec          apiv1.PodSpec // the user-provided spec of the pod
 	RunID                    string        // the uuid of the current run
 	KuberhealthyReportingURL string        // the URL that the check should want to report results back to
-	RunStartTime             time.Time
+	RunStartTime             time.Time     // the start time of when code has started
 	ExtraAnnotations         map[string]string
 	ExtraLabels              map[string]string
 	currentCheckUUID         string             // the UUID of the current external checker running
