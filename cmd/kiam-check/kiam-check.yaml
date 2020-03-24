@@ -11,7 +11,7 @@ spec:
   podSpec:
     containers:
     - name: kiam
-      image: quay.io/comcast/kiam-check:1.0.1
+      image: kuberhealthy/kiam-check:v1.1.2
       imagePullPolicy: IfNotPresent
       env:
       - name: AWS_REGION

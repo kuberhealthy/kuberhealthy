@@ -12,7 +12,7 @@ spec:
   podSpec:
     containers:
     - name: ami
-      image: quay.io/comcast/ami-check:1.0.0
+      image: kuberhealthy/ami-check:v1.1.0
       imagePullPolicy: IfNotPresent
       env:
         - name: AWS_REGION
