@@ -77,7 +77,7 @@ function sendReport(statusReport) {
 
     // For https:
     if (httpsOn) {
-        // Create and options object for a https request.
+        // Create an options object for a https request.
         let opts = {
             hostname: khURL.hostname,
             port: 443,
@@ -113,7 +113,7 @@ function sendReport(statusReport) {
     }
 
     // For http:
-    // Create and options object for a https request.
+    // Create an options object for a https request.
     let opts = {
         hostname: khURL.hostname,
         port: 80,
@@ -171,7 +171,7 @@ function getKuberhealthyURL() {
 
 /**
  * newReport creates a new error report to be sent to the kuberhealthy server. If the
- * number of error supplied is 0, then we assume the status report is OK. If any errors
+ * number of errors supplied is 0, then we assume the status report is OK. If any errors
  * are present in the list, we assume the status is DOWN.
  * @param {Array} errorMessages - A list of strings representing error messages from the check.
  * @returns {StatusReport} Returns an object representing a status report for a check.
