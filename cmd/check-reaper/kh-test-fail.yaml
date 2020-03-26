@@ -11,7 +11,7 @@ spec:
   podSpec:
     containers:
       - name: main
-        image: busybox
+        image: kuberhealthy/check-reaper:v1.2.1
         imagePullPolicy: IfNotPresent
         command: ['sh', '-c', 'echo The Pod is running && exit 1']
   runInterval: 30s

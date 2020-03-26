@@ -32,7 +32,7 @@ spec:
             value: "110s"
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: quay.io/comcast/dns-resolution-check:1.0.0
+        image: kuberhealthy/dns-resolution-check:v1.1.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
