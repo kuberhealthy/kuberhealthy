@@ -1,7 +1,7 @@
 ### client-js
 
-This is a *JavaScript* client Kuberhealthy external checks. This client exports functions and methods for sending status
-report POST requests to kuberhealthy.
+This is a `JavaScript` client Kuberhealthy external checks. This client exports functions and methods for sending status
+report POST requests to kuberhealthy. This is a `JavaScript` implementation of the go client found [here](../../pkg/checks/external/checkclient/main.go).
 
 ##### Usage
 
@@ -21,7 +21,11 @@ const kh = require("./kh-client");
 Then you can report check status to Kuberhealthy using `ReportSuccess()` or `ReportFailure()`:
 
 ```js
+    // Report failure. 
     kh.ReportFailure(["example failure message"]);
+
+    // Report success.
+    kh.ReportSuccess();
 ```
 
 ##### Example Use
