@@ -29,6 +29,29 @@ Never send `"OK": true` if `Errors` has values or you will be given a `400` retu
 
 Simply build your program into a container, `docker push` it to somewhere your cluster has access and craft a `khcheck` resource to enable it in your cluster where Kuberhealthy is installed.
 
+Clients outside of Go can be found in the [clients directory](../clients).
+
+#### JavaScript client
+
+If you would like to write a check in JavaScript, there is a client for external checks found [here](../clients/js/).
+
+There is also an [example check](../clients/js/example) in the under the same folder with a Dockerfile for reference.
+
+Example:
+```js
+const kh = require("./kh-client");
+
+try {
+    kh.ReportSuccess();
+} catch (err) {
+    console.error("Error when reporting success: " + err.message);
+    process.exit(1);
+}
+process.exit(0);
+```
+
+For more information on the external client for JavaScript go [here](../clients/js/README.md).
+
 ### Creating Your `khcheck` Resource
 
 Every check needs a `khcheck` to enable and configure it.  As soon as this resource is applied to the cluster, Kuberhealthy will begin running your check.  Whenever you make a change, Kuberhealthy will automatically re-load the check and restart any checks currently in progress gracefully.
