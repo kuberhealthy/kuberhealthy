@@ -1,8 +1,8 @@
 const kh = require("./kh-client");
 
 let fail = false;
-fail = process.env["FAILURE"];
-if (fail == 'true') {
+failEnv = process.env["FAILURE"];
+if (failEnv == 'true') {
     fail = true;
 }
 
