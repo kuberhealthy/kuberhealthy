@@ -11,8 +11,8 @@ prometheus:
   enableAlerting: false
 
 image:
-  repository: quay.io/comcast/kuberhealthy
-  tag: 2.1.0
+  repository: kuberhealthy/kuberhealthy
+  tag: v2.1.0
 
 resources:
   requests:
