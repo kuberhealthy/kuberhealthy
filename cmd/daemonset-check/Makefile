@@ -1,5 +1,5 @@
 build:
-	docker build -t kuberhealthy/daemonset-check:2.0.1 -f Dockerfile ../../
+	docker build -t kuberhealthy/daemonset-check:v2.1.1 -f Dockerfile ../../
 
 push:
-	docker push kuberhealthy/daemonset-check:2.0.1
+	docker push kuberhealthy/daemonset-check:v2.1.1

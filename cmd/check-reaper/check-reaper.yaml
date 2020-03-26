@@ -11,7 +11,7 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: quay.io/comcast/check-reaper:1.1.0
+              image: kuberhealthy/check-reaper:v1.2.1
               imagePullPolicy: IfNotPresent
 #              env:
 #                - name: SINGLE_NAMESPACE
