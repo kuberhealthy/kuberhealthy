@@ -44,7 +44,6 @@ exports.ReportFailure = (errorMessages) => {
 /**
  * sendReport sends a report to Kuberhealthy based on a check's status. This takes a status 
  * that contains a list of check errors and a boolean value representing the status of the check.
- * Throws an error if an errors occur.
  * @param {Object} statusReport - An object status report for the check. Contains list of string `Errors` and boolean `OK`.
  * @throws Throws an error if there was an issue stringifying the report, retrieving reporting url, or making a POST request.
  */
