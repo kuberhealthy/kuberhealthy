@@ -28,15 +28,15 @@ import (
 	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
 )
 
-// KHRunStartTime is a environment variable used to tell external checks when a check should timeout based on timestamp
-const KHRunStartTime = "KH_START_TIME"
-
 // KHReportingURL is the environment variable used to tell external checks where to send their status updates
 const KHReportingURL = "KH_REPORTING_URL"
 
 // KHRunUUID is the environment variable used to tell external checks their check's UUID so that they
 // can be de-duplicated on the server side.
 const KHRunUUID = "KH_RUN_UUID"
+
+// KHDeadline is the environment variable name for when checks must finish their runs by in unixtime
+const KHDeadline = "KH_CHECK_RUN_DEADLINE"
 
 // KH_CHECK_NAME_ANNOTATION_KEY is the annotation which holds the check's name for later validation when the pod calls in
 const KH_CHECK_NAME_ANNOTATION_KEY = "comcast.github.io/check-name"
@@ -87,7 +87,6 @@ type Checker struct {
 	OriginalPodSpec          apiv1.PodSpec // the user-provided spec of the pod
 	RunID                    string        // the uuid of the current run
 	KuberhealthyReportingURL string        // the URL that the check should want to report results back to
-	RunStartTime             time.Time     // the start time of when code has started
 	ExtraAnnotations         map[string]string
 	ExtraLabels              map[string]string
 	currentCheckUUID         string             // the UUID of the current external checker running
@@ -114,7 +113,6 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 		KHStateClient:            khStateClient,
 		CheckName:                checkConfig.Name,
 		KuberhealthyReportingURL: reportingURL,
-		RunStartTime:             time.Now(),
 		RunTimeout:               defaultTimeout,
 		ExtraAnnotations:         make(map[string]string),
 		ExtraLabels:              make(map[string]string),
@@ -527,9 +525,14 @@ func (ext *Checker) RunOnce() error {
 		return err
 	}
 
+	// init a timeout for this whole check
+	ext.log("Timeout set to", ext.RunTimeout.String())
+	deadline := time.Now().Add(ext.RunTimeout)
+	timeoutChan := time.After(ext.RunTimeout)
+
 	// condition the spec with the required labels and environment variables
 	ext.log("Configuring spec of external check")
-	err = ext.configureUserPodSpec()
+	err = ext.configureUserPodSpec(deadline)
 	if err != nil {
 		return ext.newError("failed to configure pod spec for Kubernetes from user specified pod spec: " + err.Error())
 	}
@@ -540,10 +543,6 @@ func (ext *Checker) RunOnce() error {
 	if err != nil {
 		return err
 	}
-
-	// init a timeout for this whole check
-	ext.log("Timeout set to", ext.RunTimeout.String())
-	timeoutChan := time.After(ext.RunTimeout)
 
 	// waiting for all checker pods are gone...
 	ext.log("Waiting for all existing pods to clean up")
@@ -1034,7 +1033,7 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 // the unique and required fields for compatibility with an external
 // kuberhealthy check.  Required environment variables and settings
 // overwrite user-specified values.
-func (ext *Checker) configureUserPodSpec() error {
+func (ext *Checker) configureUserPodSpec(deadline time.Time) error {
 
 	// start with a fresh spec each time we regenerate the spec
 	ext.PodSpec = ext.OriginalPodSpec
@@ -1052,8 +1051,8 @@ func (ext *Checker) configureUserPodSpec() error {
 			Value: ext.currentCheckUUID,
 		},
 		{
-			Name:  KHRunStartTime,
-			Value: strconv.Itoa(int(ext.RunStartTime.Unix())),
+			Name:  KHDeadline,
+			Value: strconv.FormatInt(deadline.Unix(), 10),
 		},
 		{
 			Name: KHPodNamespace,
@@ -1067,7 +1066,7 @@ func (ext *Checker) configureUserPodSpec() error {
 
 	// apply overwrite env vars on every container in the pod
 	for i := range ext.PodSpec.Containers {
-		ext.PodSpec.Containers[i].Env = resetInjectedContainerEnvVars(ext.PodSpec.Containers[i].Env, []string{KHReportingURL, KHRunUUID, KHPodNamespace, KHRunStartTime})
+		ext.PodSpec.Containers[i].Env = resetInjectedContainerEnvVars(ext.PodSpec.Containers[i].Env, []string{KHReportingURL, KHRunUUID, KHPodNamespace, KHDeadline})
 		ext.PodSpec.Containers[i].Env = append(ext.PodSpec.Containers[i].Env, overwriteEnvVars...)
 	}
 
