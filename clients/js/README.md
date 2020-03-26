@@ -1,6 +1,6 @@
 ### client-js
 
-This is a `JavaScript` client Kuberhealthy external checks. This client exports functions and methods for sending status
+This is a `JavaScript` client for Kuberhealthy external checks. This client exports functions and methods for sending status
 report POST requests to kuberhealthy. This is a `JavaScript` implementation of the go client found [here](../../pkg/checks/external/checkclient/main.go). More documentation on external checks can be found [here](../../docs/EXTERNAL_CHECKS.md).
 
 ##### Usage
