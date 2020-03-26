@@ -7,7 +7,6 @@ const KHReportingURL = "KH_REPORTING_URL";
  * @throws Throws an error if there was an issue sending the report to kuberhealthy.
  */
 exports.ReportSuccess = () => {
-    console.log("INFO: Reporting SUCCESS");
 
     let report = newReport([]);
 
@@ -16,7 +15,7 @@ exports.ReportSuccess = () => {
     } catch (err) {
         // Throw the error upstream.
         let reportErr = new Error("failed to send report: " + err.message);
-        console.error(reportErr.message);
+        // console.error(reportErr.message);
         throw reportErr;
     }
 }
@@ -27,7 +26,6 @@ exports.ReportSuccess = () => {
  * @throws Throws an error if there was an issue sending the report to kuberhealthy.
  */
 exports.ReportFailure = (errorMessages) => {
-    console.log("INFO: Reporting FAILURE");
 
     let report = newReport(errorMessages);
 
@@ -36,7 +34,7 @@ exports.ReportFailure = (errorMessages) => {
     } catch (err) {
         // Throw the error upstream.
         let reportErr = new Error("failed to send report: " + err.message);
-        console.error(reportErr.message);
+        // console.error(reportErr.message);
         throw reportErr;
     }
 }
@@ -56,7 +54,7 @@ function sendReport(statusReport) {
     } catch (err) {
         // Throw an error if there was a problem converting the report to JSON string.
         let jsonErr = new Error("failed to convert status report to json string: " + err.message);
-        console.error(jsonErr.message);
+        // console.error(jsonErr.message);
         throw jsonErr;
     }
 
@@ -67,10 +65,9 @@ function sendReport(statusReport) {
     } catch (err) {
         // Throw an error if there was a problem fetching the reporting URL.
         let urlErr = new Error("failed to fetch the kuberhealthy url: " + err.message);
-        console.error(urlErr.message);
+        // console.error(urlErr.message);
         throw urlErr;
     }
-    console.log("INFO: Using kuberhealthy reporting URL: " + khURL.toString());
 
     // Check the protocol used for the reporting URL.
     let httpsOn = false;
@@ -97,17 +94,15 @@ function sendReport(statusReport) {
             // Throw an error if status code was not OK / 200.
             if (res.statusCode != 200) {
                 let reportErr = new Error("got a bad status code from kuberhealthy: " + res.statusCode);
-                console.error(reportErr.message);
+                // console.error(reportErr.message);
                 throw reportErr;
             }
-
-            console.log("INFO: Got a good http return status code from kuberhealthy URL: " + res.statusCode);
         });
 
         // Throw an error if there was a problem sending the request.
         req.on("error", (error) => {
             let requestErr = new Error("error occurred during POST request to kuberhealthy: " + error);
-            console.error(requestErr);
+            // console.error(requestErr);
             throw requestErr;
         });
 
@@ -135,17 +130,15 @@ function sendReport(statusReport) {
         // Throw an error if status code was not OK / 200.
         if (res.statusCode != 200) {
             let reportErr = new Error("got a bad status code from kuberhealthy: " + res.statusCode);
-            console.error(reportErr.message);
+            // console.error(reportErr.message);
             throw reportErr;
         }
-
-        console.log("INFO: Got a good http return status code from kuberhealthy URL: " + res.statusCode);
     });
 
     // Throw an error if there was a problem sending the request.
     req.on("error", (error) => {
         let requestErr = new Error("error occurred during POST request to kuberhealthy: " + error);
-        console.error(requestErr);
+        // console.error(requestErr);
         throw requestErr;
     });
 
@@ -166,7 +159,7 @@ function getKuberhealthyURL() {
     // Throw an error if the URL is empty.
     if (reportingURLEnv.length < 1) {
         let err = new Error("fetched " + KHReportingURL + " environment variable but it was blank");
-        console.error(err.message);
+        // console.error(err.message);
         throw err;
     }
 
