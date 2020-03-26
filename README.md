@@ -23,7 +23,7 @@ Here is an illustration of how Kuberhealthy provisions and operates checker pods
 
 ## Create Synthetic Checks for Your App
 
-With Kuberhealthy, you can easily create synthetic tests to check your applications with real world use cases.  Read more about how external checks are configured in the documentation [here](docs/EXTERNAL_CHECKS.md) and learn how to create your own check container in any language [here](docs/EXTERNAL_CHECK_CREATION.md).
+With Kuberhealthy, you can easily create synthetic tests to check your applications with real world use cases.  Read more about how external checks are configured in the documentation [here](docs/EXTERNAL_CHECKS.md) and learn how to create your own check container in any language [here](docs/EXTERNAL_CHECK_CREATION.md). Clients for external checks outside of Go can be found in the [clients directory](/clients).
 
 
 ## Installation
