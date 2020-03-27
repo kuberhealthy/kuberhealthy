@@ -212,7 +212,7 @@ func deleteServiceAndWait(ctx context.Context) error {
 	// Send a delete on the service.
 	err := deleteService()
 	if err != nil {
-		log.Warningln("Error when running a delete on service:", checkServiceName)
+		log.Infoln("Could not delete service:", checkServiceName)
 	}
 
 	return <-deleteChan

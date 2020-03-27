@@ -35,6 +35,9 @@ const KHReportingURL = "KH_REPORTING_URL"
 // can be de-duplicated on the server side.
 const KHRunUUID = "KH_RUN_UUID"
 
+// KHDeadline is the environment variable name for when checks must finish their runs by in unixtime
+const KHDeadline = "KH_CHECK_RUN_DEADLINE"
+
 // KH_CHECK_NAME_ANNOTATION_KEY is the annotation which holds the check's name for later validation when the pod calls in
 const KH_CHECK_NAME_ANNOTATION_KEY = "comcast.github.io/check-name"
 
@@ -522,9 +525,14 @@ func (ext *Checker) RunOnce() error {
 		return err
 	}
 
+	// init a timeout for this whole check
+	ext.log("Timeout set to", ext.RunTimeout.String())
+	deadline := time.Now().Add(ext.RunTimeout)
+	timeoutChan := time.After(ext.RunTimeout)
+
 	// condition the spec with the required labels and environment variables
 	ext.log("Configuring spec of external check")
-	err = ext.configureUserPodSpec()
+	err = ext.configureUserPodSpec(deadline)
 	if err != nil {
 		return ext.newError("failed to configure pod spec for Kubernetes from user specified pod spec: " + err.Error())
 	}
@@ -535,10 +543,6 @@ func (ext *Checker) RunOnce() error {
 	if err != nil {
 		return err
 	}
-
-	// init a timeout for this whole check
-	ext.log("Timeout set to", ext.RunTimeout.String())
-	timeoutChan := time.After(ext.RunTimeout)
 
 	// waiting for all checker pods are gone...
 	ext.log("Waiting for all existing pods to clean up")
@@ -1029,7 +1033,7 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 // the unique and required fields for compatibility with an external
 // kuberhealthy check.  Required environment variables and settings
 // overwrite user-specified values.
-func (ext *Checker) configureUserPodSpec() error {
+func (ext *Checker) configureUserPodSpec(deadline time.Time) error {
 
 	// start with a fresh spec each time we regenerate the spec
 	ext.PodSpec = ext.OriginalPodSpec
@@ -1047,6 +1051,10 @@ func (ext *Checker) configureUserPodSpec() error {
 			Value: ext.currentCheckUUID,
 		},
 		{
+			Name:  KHDeadline,
+			Value: strconv.FormatInt(deadline.Unix(), 10),
+		},
+		{
 			Name: KHPodNamespace,
 			ValueFrom: &apiv1.EnvVarSource{
 				FieldRef: &apiv1.ObjectFieldSelector{
@@ -1058,7 +1066,7 @@ func (ext *Checker) configureUserPodSpec() error {
 
 	// apply overwrite env vars on every container in the pod
 	for i := range ext.PodSpec.Containers {
-		ext.PodSpec.Containers[i].Env = resetInjectedContainerEnvVars(ext.PodSpec.Containers[i].Env, []string{KHReportingURL, KHRunUUID, KHPodNamespace})
+		ext.PodSpec.Containers[i].Env = resetInjectedContainerEnvVars(ext.PodSpec.Containers[i].Env, []string{KHReportingURL, KHRunUUID, KHPodNamespace, KHDeadline})
 		ext.PodSpec.Containers[i].Env = append(ext.PodSpec.Containers[i].Env, overwriteEnvVars...)
 	}
 
