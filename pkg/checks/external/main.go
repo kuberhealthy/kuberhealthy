@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 
@@ -70,6 +71,8 @@ var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 // constants for using the kuberhealthy check CRD
 const CRDGroup = "comcast.github.io"
 const CRDVersion = "v1"
+const CRDGroupPlusVersion = CRDGroup + "/" + CRDVersion
+const CRDKind = "KuberhealthyCheck"
 const checkCRDResource = "khchecks"
 const stateCRDResource = "khstates"
 
@@ -96,6 +99,7 @@ type Checker struct {
 	wg                       sync.WaitGroup     // used to track background workers and processes
 	hostname                 string             // hostname cache
 	checkPodName             string             // the current unique checker pod name
+	crdUID                   types.UID
 }
 
 // New creates a new external checker
@@ -119,6 +123,7 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 		OriginalPodSpec:          checkConfig.Spec.PodSpec,
 		PodSpec:                  checkConfig.Spec.PodSpec,
 		KubeClient:               client,
+		crdUID:                   checkConfig.GetObjectMeta().GetUID(),
 	}
 }
 
@@ -1026,6 +1031,15 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	// enforce various labels and annotations on all checker pods created
 	ext.addKuberhealthyLabels(p)
 
+	// Sets OwnerRefernces on all checker pods
+	p.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion: CRDGroupPlusVersion,
+			Kind:       CRDKind,
+			Name:       ext.CheckName,
+			UID:        ext.crdUID,
+		},
+	}
 	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
 }
 
