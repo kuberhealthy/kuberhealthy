@@ -113,7 +113,7 @@ function sendReport(statusReport) {
     }
 
     // For http:
-    // Create an options object for a https request.
+    // Create an options object for a http request.
     let opts = {
         hostname: khURL.hostname,
         port: 80,
