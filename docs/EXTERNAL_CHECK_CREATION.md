@@ -14,6 +14,8 @@ Your check only needs to do a few things:
 
 - Read the `KH_REPORTING_URL` environment variable.
 - Send a `POST` to the `KH_REPORTING_URL` with the following JSON body:
+- Ensure that your check finishes running before the unix time specified in the `KH_CHECK_RUN_DEADLINE` environment variable occurs. (Optional)
+  - This is optional, but by respecting `KH_CHECK_RUN_DEADLINE` means you won't have an unexpected `400` returned from Kuberhealthy when reporting your check's status.
 
 ```json
 {
