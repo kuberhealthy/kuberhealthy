@@ -15,7 +15,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install hadolint
-      run:  apt-get update && apt-get -y install hadolint
+      run:  sudo apt-get update && sudo apt-get -y install hadolint
     - name: run hadolint
       run:  hadolint Dockerfile
     - name: build container
