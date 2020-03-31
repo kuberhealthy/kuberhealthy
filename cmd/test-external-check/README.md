@@ -1,37 +1,11 @@
 ### test-external-check
 
-This is a container used to test external checks in Kuberhealthy. This container simply runs, waits for a set interval of seconds and then either reports a success or failure depending on the `REPORT_FAILURE` environment variable set in the pod spec.
+This is a container used to test external checks in Kuberhealthy. This container simply runs, waits for a set interval of seconds and then either reports a success or failure depending on the `REPORT_FAILURE` environment variable set in the pod spec.  Simply set `REPORT_FAILURE` to `"true"` (a string not a bool) to cause this check to report an error message.
 
-##### test-external-check Setup
 
-To setup external checks on Kuberhealthy 2.0.0 the container for Kubernetes can be found at: `quay.io/comcast/kuberhealthy:2.0.0`.  
+##### Example `khcheck`
 
-The external checks are only in available in Kuberhealthy 2.0.0 and later.
-
-To begin using the external checks, be sure that the `khchecks.comcast.github.io` CRD is already applied to your cluster.
-
-To apply the CRD simply copy and paste the YAML specs below in a new file. Then run the following command to apply the YAML file `kubectl apply -f crd-file.yaml`.
-
-```yaml
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: khchecks.comcast.github.io
-spec:
-  group: comcast.github.io
-  version: v1
-  scope: Namespaced
-  names:
-    plural: khchecks
-    singular: khcheck
-    kind: KuberhealthyCheck
-    shortNames:
-      - khc
-```
-
-##### Example Check Template
-
-The pod is designed to run continuously and wait every few seconds then report a success or failure when communicating to the Kuberhealthy Servers. The pod is also design to log any errors it encounters when communicating to the Kuberhealthy API.
+The pod is designed to wait every few seconds before reporting a success or failure to the Kuberhealthy API. The pod is also design to log any errors it encounters when communicating to the Kuberhealthy API.
 
 Below is a YAML template for enabling the test-external-check in Kuberhealthy.
 
