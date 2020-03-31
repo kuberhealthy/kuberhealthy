@@ -15,11 +15,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: hadolint on http-content-check
-    - uses: burdzwastaken/hadolint-action@master
+      uses: burdzwastaken/hadolint-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         HADOLINT_ACTION_DOCKERFILE_FOLDER: cmd/http-content-check
     - name: build container
+      run: docker build --file cmd/http-content-check/Dockerfile --tag $IMAGE_NAME .
     - name: Log into docker hub
       run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
     - name: Push new latest image
