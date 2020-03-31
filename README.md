@@ -30,14 +30,14 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 
 **Requires Kubernetes 1.11 or above and Helm 3**
 
-1. Create namespace "kuberhealthy" in the desired Kubernetes cluster/context:
-	kubectl create namespace kuberhealthy
-2. Set your current namespace to "kuberhealthy":
-	kubectl config set-context --current --namespace=kuberhealthy
-3. Add the kuberhealthy repo to Helm:
-	helm repo add kuberhealthy https://chadbitzer.github.io/kuberhealthy/helm-repos
-4. Install kuberhealthy:
-	helm install kuberhealthy
+1. Create namespace "kuberhealthy" in the desired Kubernetes cluster/context:  
+	`kubectl create namespace kuberhealthy`
+2. Set your current namespace to "kuberhealthy":  
+	`kubectl config set-context --current --namespace=kuberhealthy`
+3. Add the kuberhealthy repo to Helm:  
+	`helm repo add kuberhealthy https://chadbitzer.github.io/kuberhealthy/helm-repos`
+4. Install kuberhealthy:  
+	`helm install kuberhealthy`
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer`.  This is done for security.  Options are available in the Helm chart to bypass this and deploy with `Type: LoadBalancer` directly.
 
