@@ -1,6 +1,6 @@
-FROM golang AS builder
+FROM golang:latest AS builder
 
-ADD . /build
+COPY . /build
 
 WORKDIR /build/cmd/http-content-check
 
@@ -11,4 +11,4 @@ FROM scratch
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /build/cmd/http-content-check/http-content-check /app/http-content-check
 
-ENTRYPOINT /app/http-content-check
+ENTRYPOINT ["/app/http-content-check"]
