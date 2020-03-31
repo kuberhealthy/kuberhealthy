@@ -19,6 +19,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         HADOLINT_ACTION_DOCKERFILE_FOLDER: cmd/http-content-check
+        HADOLINT_ACTION_COMMENT: false
     - name: build container
       run: docker build --file cmd/http-content-check/Dockerfile --tag $IMAGE_NAME .
     - name: Log into docker hub
