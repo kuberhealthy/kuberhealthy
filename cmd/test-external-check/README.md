@@ -8,7 +8,7 @@ To setup external checks on Kuberhealthy 2.0.0 the container for Kubernetes can 
 
 The external checks are only in available in Kuberhealthy 2.0.0 and later.
 
-To begin using the external checks be sure that the `khchecks.comcast.github.io` CRD is already applied to your cluster.
+To begin using the external checks, be sure that the `khchecks.comcast.github.io` CRD is already applied to your cluster.
 
 To apply the CRD simply copy and paste the YAML specs below in a new file. Then run the following command to apply the YAML file `kubectl apply -f crd-file.yaml`.
 
@@ -31,7 +31,7 @@ spec:
 
 ##### Example Check Template
 
-The pod is designed to run continuously and wait every few seconds then report a success or failure when communicating to the Kuberhealthy Servers. The pod is also design to log any errors it encounters when communicating to the KuberHealthy API.
+The pod is designed to run continuously and wait every few seconds then report a success or failure when communicating to the Kuberhealthy Servers. The pod is also design to log any errors it encounters when communicating to the Kuberhealthy API.
 
 Below is a YAML template for enabling the test-external-check in Kuberhealthy.
 
