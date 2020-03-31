@@ -146,6 +146,7 @@ func main() {
 	err = ds.Run(client)
 	if err != nil {
 		log.Errorln("Error running check:", ds.Name(), "in namespace", ds.CheckNamespace()+":", err)
+		os.Exit(1)
 	}
 	log.Debugln("Done running check:", ds.Name(), "in namespace", ds.CheckNamespace())
 }
@@ -685,13 +686,22 @@ func (dsc *Checker) Run(client *kubernetes.Clientset) error {
 		log.Println("Successfully reported failure to Kuberhealthy servers")
 	case err := <-doneChan:
 		dsc.cancelFunc()
+		if err != nil {
+			log.Println("Check failed with error:", err)
+			err = checkclient.ReportFailure([]string{err.Error()})
+			if err != nil {
+				log.Println("Failed to report error to Kuberhealthy servers:", err)
+				return err
+			}
+			log.Println("Successfully reported error to Kuberhealthy servers")
+			return nil
+		}
 		err = checkclient.ReportSuccess()
 		if err != nil {
 			log.Println("Error reporting success to Kuberhealthy servers:", err)
 			return err
 		}
 		log.Println("Successfully reported success to Kuberhealthy servers")
-		return err
 	}
 
 	return nil
