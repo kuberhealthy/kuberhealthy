@@ -37,7 +37,7 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 3. Add the kuberhealthy repo to Helm:  
 	`helm repo add kuberhealthy https://comcast.github.io/kuberhealthy/helm-repos`
 4. Install kuberhealthy:  
-	`helm install kuberhealthy`
+	`helm install kuberhealthy kuberhealthy/kuberhealthy`
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer`.  This is done for security.  Options are available in the Helm chart to bypass this and deploy with `Type: LoadBalancer` directly.
 
