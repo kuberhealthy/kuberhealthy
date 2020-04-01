@@ -1,5 +1,5 @@
-FROM golang AS builder
-ADD . /build
+FROM golang:1.13 AS builder
+COPY . /build
 WORKDIR /build/cmd/dns-resolution-check
 ENV CGO_ENABLED=0
 RUN go test -v
