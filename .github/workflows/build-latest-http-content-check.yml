@@ -22,6 +22,17 @@ jobs:
         HADOLINT_ACTION_COMMENT: false
     - name: build container
       run: docker build --file cmd/http-content-check/Dockerfile --tag $IMAGE_NAME .
+    - name: scan docker image
+      run: git clone https://github.com/docker/docker-bench-security.git
+           cd docker-bench-security
+           docker build --no-cache -t docker-bench-security .
+           docker run -it --net host --pid host --cap-add audit_control \
+           -e DOCKER_CONTENT_TRUST=$DOCKER_CONTENT_TRUST \
+           -v /var/lib:/var/lib:ro \
+           -v /var/run/docker.sock:/var/run/docker.sock:ro \
+           -v /usr/lib/systemd:/usr/lib/systemd:ro \
+           -v /etc:/etc:ro --label docker_bench_security \
+           docker-bench-security
     - name: Log into docker hub
       run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
     - name: Push new latest image
