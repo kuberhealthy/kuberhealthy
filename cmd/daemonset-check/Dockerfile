@@ -1,5 +1,4 @@
 FROM golang:1.13-alpine AS builder
-RUN apk upgrade
 COPY . /build
 WORKDIR /build/cmd/daemonset-check
 ENV CGO_ENABLED=0
