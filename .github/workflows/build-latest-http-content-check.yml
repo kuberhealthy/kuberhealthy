@@ -23,7 +23,8 @@ jobs:
     - name: build container
       run: docker build --file cmd/http-content-check/Dockerfile --tag $IMAGE_NAME .
     - name: scan docker image
-      run: git clone https://github.com/docker/docker-bench-security.git
+      run: |
+           git clone https://github.com/docker/docker-bench-security.git
            cd docker-bench-security
            docker build --no-cache -t docker-bench-security .
            docker run -it --net host --pid host --cap-add audit_control \
