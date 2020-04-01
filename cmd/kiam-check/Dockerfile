@@ -1,5 +1,5 @@
-FROM golang AS builder
-ADD . /build
+FROM golang:1.13 AS builder
+COPY . /build
 WORKDIR /build/cmd/kiam-check
 RUN CGO_ENABLED=0 go build -v
 
