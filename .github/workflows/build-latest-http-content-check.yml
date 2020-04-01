@@ -23,7 +23,7 @@ jobs:
     - name: build container
       run: docker build --file cmd/http-content-check/Dockerfile --tag $IMAGE_NAME .
     - name: scan docker image
-      run: curl -s https://ci-tools.anchore.io/inline_scan-v0.6.0 | bash -s -- -f -d Dockerfile -b .anchore-policy.json $IMAGE_NAME
+      run: curl -s https://ci-tools.anchore.io/inline_scan-v0.6.0 | bash -s -- -p -r $IMAGE_NAME
     - name: Log into docker hub
       run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
     - name: Push new latest image
