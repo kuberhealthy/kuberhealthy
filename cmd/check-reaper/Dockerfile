@@ -1,4 +1,4 @@
-FROM golang AS builder
+FROM golang:1.13 AS builder
 COPY . /build
 WORKDIR /build/cmd/check-reaper
 ENV CGO_ENABLED=0
