@@ -22,11 +22,11 @@ jobs:
         HADOLINT_ACTION_COMMENT: false
     - name: build container
       run: docker build --file cmd/http-content-check/Dockerfile --tag $IMAGE_NAME .
-    - name: scan docker image for vulnerabilities
-      run: curl -s https://ci-tools.anchore.io/inline_scan-v0.6.0 | bash -s -- -f -d cmd/http-content-check/Dockerfile -b http-content-check
     - name: Log into docker hub
       run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
     - name: Push new latest image
       run: |
           docker tag $IMAGE_NAME kuberhealthy/$IMAGE_NAME
           docker push kuberhealthy/$IMAGE_NAME
+    - name: scan docker image for vulnerabilities
+      run: curl -s https://ci-tools.anchore.io/inline_scan-v0.6.0 | bash -s -- -p -r kuberhealthy/$IMAGE_NAME
