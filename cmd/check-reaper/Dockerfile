@@ -1,5 +1,5 @@
 FROM golang AS builder
-ADD . /build
+COPY . /build
 WORKDIR /build/cmd/check-reaper
 ENV CGO_ENABLED=0
 RUN go build -v
