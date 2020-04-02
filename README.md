@@ -45,14 +45,8 @@ RBAC bindings and roles are included in all configurations.
 
 Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.15.x`.
 
+More installation options, including static yaml files are available in the [/deploy](/deploy) directory.
 
-### Prometheus Alerts
-
-A `ServiceMonitor` configuration is available at [deploy/servicemonitor.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/servicemonitor.yaml).
-
-### Prometheus Grafana Dashboard
-
-A `Grafana` dashboard is available at [deploy/grafana/dashboard.json](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/grafana/dashboard.json).  To install this dashboard, follow the instructions [here](http://docs.grafana.org/reference/export_import/#importing-a-dashboard).
 
 ### Why Are Synthetic Tests Important?
 
