@@ -5,9 +5,9 @@ USER docker
 COPY . /build
 WORKDIR /build/cmd/http-content-check
 ENV CGO_ENABLED=0
+RUN chmod a+x /build/cmd/http-content-check
 RUN go build -v
 FROM scratch
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /build/cmd/http-content-check/http-content-check /app/http-content-check
-RUN chmod a+x /app/http-content-check 
 ENTRYPOINT ["/app/http-content-check"]
