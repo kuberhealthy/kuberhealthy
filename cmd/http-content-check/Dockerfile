@@ -1,7 +1,7 @@
 FROM golang:1.13 AS builder
-RUN groupadd -g 777 appuser && \
-    useradd -r -u 777 -g appuser appuser
-USER appuser
+RUN groupadd -g 61000 docker
+RUN useradd -g 61000 -l -m -s /bin/false -u 61000 docker
+USER docker
 COPY . /build
 WORKDIR /build/cmd/http-content-check
 ENV CGO_ENABLED=0
