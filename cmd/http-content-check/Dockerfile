@@ -1,6 +1,6 @@
 FROM golang:1.13 AS builder
-RUN groupadd -g 999 appuser && \
-    useradd -r -u 999 -g appuser appuser
+RUN groupadd -g 777 appuser && \
+    useradd -r -u 777 -g appuser appuser
 USER appuser
 COPY . /build
 WORKDIR /build/cmd/http-content-check
