@@ -1,7 +1,7 @@
 FROM golang:1.13 AS builder
 RUN groupadd -g 999 user && \
     useradd -r -u 999 -g user user
-COPY [--chown=docker:docker] . /build
+COPY --chown=user:user . /build
 WORKDIR /build/cmd/http-content-check
 ENV CGO_ENABLED=0
 RUN go build -v
