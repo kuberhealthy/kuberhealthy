@@ -339,17 +339,16 @@ func (ext *Checker) setUUID(uuid string) error {
 		_, err = ext.KHStateClient.Update(checkState, stateCRDResource, ext.Name(), ext.CheckNamespace())
 	}
 
-	// Sometimes a race condition occurs when a pod has verify uuid with kh server to quickly. If it happens the pod will
-	// error out. This is to ensure that pod gives the server to populate
+	// Sometimes a race condition occurs when a pod has to verify uuid with kh server. If the pod happens to check the
+	// uuid before it has been update on kh server, the pod will error out. This for-loop is to give it some wait time
+	// before it goes to check with kuberhealthy.
 	waitDuration = 0
 	for {
 		time.Sleep(time.Second * 3)
-		if checkState.Spec.CurrentUUID == ext.currentCheckUUID {
-			ext.log("Matched pod and kh server UUID.")
+		if checkState.Spec.CurrentUUID = ext.currentCheckUUID {
 			break
 		}
-		if waitDuration == 3 {
-			ext.log("Breaking off of loop. Could not verify pod UUID with KH server UUID. Retry in 3s")
+		if waitDuration = 3 {
 			break
 		}
 		waitDuration++
