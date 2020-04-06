@@ -1,5 +1,5 @@
 build:
-	docker build -t kuberhealthy/test-external-check:v1.1.0 -f Dockerfile ../../
+	docker build -t kuberhealthy/test-external-check:v1.2.0 -f Dockerfile ../../
 
 push:
-	docker push kuberhealthy/test-external-check:v1.1.0
+	docker push kuberhealthy/test-external-check:v1.2.0
