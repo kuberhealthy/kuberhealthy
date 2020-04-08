@@ -42,6 +42,7 @@ securityContext:
   runAsNonRoot: true
   runAsUser: 999
   allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
 
 # Please remember that changing the service type to LoadBalancer
 # will expose Kuberhealthy to the internet, which could cause
