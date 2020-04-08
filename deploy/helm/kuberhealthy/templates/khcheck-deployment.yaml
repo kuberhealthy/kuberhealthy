@@ -8,11 +8,17 @@ metadata:
 spec:
   runInterval: 10m
   timeout: &deployment_check_timeout 15m
+  securityContext:
+    runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+    runAsUser: {{ .Values.securityContext.runAsUser }}
   podSpec:
     containers:
     - name: deployment
       image: {{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
       imagePullPolicy: IfNotPresent
+      securityContext:
+        allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+        readOnlyRootFilesystem: {{ .Values.securityContext. }}
       env:
         - name: CHECK_TIME_LIMIT
           value: *deployment_check_timeout
@@ -92,4 +98,3 @@ metadata:
   name: deployment-sa
   namespace: {{ .Release.Namespace }}
 {{- end }}
-
