@@ -343,7 +343,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	// uuid before it shows as updated on kube-apiserver, the pod will not be allowed to report its status. This for-loop is to verify the pod uuid is properly set with the api server before the checker pod is started.
 	waitDuration = 0
 	for {
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second)
 		if checkState.Spec.CurrentUUID = ext.currentCheckUUID {
 			break
 		}
