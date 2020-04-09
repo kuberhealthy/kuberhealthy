@@ -340,7 +340,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	}
 
 	// Sometimes a race condition occurs when a pod has to verify uuid with kh server. If the pod happens to check the
-	// uuid before it has been update on kh server, the pod will error out. This for-loop is to give it some wait time
+	// uuid before it shows as updated on kube-apiserver, the pod will not be allowed to report its status. This for-loop is to verify the pod uuid is properly set with the api server before the checker pod is started.
 	// before it goes to check with kuberhealthy.
 	waitDuration = 0
 	for {
