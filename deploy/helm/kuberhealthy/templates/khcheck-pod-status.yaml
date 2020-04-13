@@ -8,6 +8,9 @@ spec:
   runInterval: 5m
   timeout: 15m
   podSpec:
+    securityContext:
+      runAsUser: {{ .Values.securityContext.runAsUser }}
+      fsGroup: {{ .Values.securityContext.fsGroup }}
     containers:
       - env:
           - name: SKIP_DURATION
@@ -27,6 +30,9 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+        securityContext:
+          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
     {{- if .Values.check.podStatus.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.podStatus.nodeSelector | nindent 6 }}
