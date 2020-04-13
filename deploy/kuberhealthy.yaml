@@ -29,15 +29,6 @@ spec:
     shortNames:
       - khs
 ---
-# Source: kuberhealthy/templates/namespace.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: kuberhealthy
-spec:
-  finalizers:
-  - kubernetes
----
 # Source: kuberhealthy/templates/poddisruptionbudget.yaml
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
@@ -77,19 +68,6 @@ kind: ServiceAccount
 metadata:
   name: kuberhealthy
   namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
 ---
 # Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -160,6 +138,19 @@ rules:
     verbs:
     - create
 ---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
+  name: kuberhealthy-daemonset-khcheck
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
+---
 # Source: kuberhealthy/templates/check-reaper.yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -179,6 +170,20 @@ subjects:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRoleBinding
 metadata:
+  name: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kuberhealthy
+subjects:
+- kind: ServiceAccount
+  name: kuberhealthy
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/clusterrolebinding.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRoleBinding
+metadata:
   name: kuberhealthy-daemonset-khcheck
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -187,20 +192,6 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: daemonset-khcheck
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/clusterrolebinding.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRoleBinding
-metadata:
-  name: kuberhealthy
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kuberhealthy
-subjects:
-- kind: ServiceAccount
-  name: kuberhealthy
   namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
@@ -395,7 +386,7 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: kuberhealthy/check-reaper:v1.2.1
+              image: kuberhealthy/check-reaper:v1.3.1
               imagePullPolicy: IfNotPresent
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
@@ -419,7 +410,7 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-        image: kuberhealthy/daemonset-check:v2.1.1
+        image: kuberhealthy/daemonset-check:v2.2.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -440,7 +431,7 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.2.3
+      image: kuberhealthy/deployment-check:v1.3.4
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_TIME_LIMIT
@@ -475,7 +466,7 @@ spec:
             value: "110s"
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.1.0
+        image: kuberhealthy/dns-resolution-check:v1.2.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
