@@ -8,6 +8,9 @@ spec:
   runInterval: 5m
   timeout: 10m
   podSpec:
+    securityContext:
+      allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+      readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
     containers:
       - env:
           - name: POD_NAMESPACE
@@ -27,6 +30,9 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+        securityContext:
+          runAsUser: {{ .Values.securityContext.runAsUser }}
+          fsGroup: {{ .Values.securityContext.fsGroup }}
     {{- if .Values.check.podRestarts.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.podRestarts.nodeSelector | nindent 6 }}

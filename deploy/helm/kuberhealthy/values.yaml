@@ -41,6 +41,7 @@ deployment:
 securityContext:
   runAsNonRoot: true
   runAsUser: 999
+  fsGroup: 999
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
 
@@ -90,7 +91,7 @@ check:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
   podStatus:
-    enabled: false
+    enabled: true
     image:
       repository: kuberhealthy/pod-status-check
       tag: v1.2.2

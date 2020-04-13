@@ -9,6 +9,9 @@ spec:
   runInterval: 2m
   timeout: 15m
   podSpec:
+    securityContext:
+      runAsUser: {{ .Values.securityContext.runAsUser }}
+      fsGroup: {{ .Values.securityContext.fsGroup }}
     containers:
       - env:
           - name: CHECK_POD_TIMEOUT
@@ -24,6 +27,9 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+        securityContext:
+          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
     {{- if .Values.check.dnsInternal.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.dnsInternal.nodeSelector | nindent 6 }}
