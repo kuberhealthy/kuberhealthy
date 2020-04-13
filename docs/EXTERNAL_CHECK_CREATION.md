@@ -8,6 +8,14 @@ Creating your own `khcheck` is very easy.  If you are using Go, we have an easy 
 
 An example check with working Dockerfile is available to use as an example [here](../cmd/test-external-check/main.go).
 
+### Using JavaScript
+
+If you would like to write a check in JavaScript, there is a client for external checks found [here](../clients/js/).
+
+There is also an [example check](../clients/js/example) in the under the same folder with a Dockerfile for reference.
+
+For more information on the external client for JavaScript go [here](../clients/js/README.md).
+
 ### Using Another Language
 
 Your check only needs to do a few things:
@@ -30,6 +38,8 @@ Your check only needs to do a few things:
 Never send `"OK": true` if `Errors` has values or you will be given a `400` return code.
 
 Simply build your program into a container, `docker push` it to somewhere your cluster has access and craft a `khcheck` resource to enable it in your cluster where Kuberhealthy is installed.
+
+Clients outside of Go can be found in the [clients directory](../clients).
 
 ### Creating Your `khcheck` Resource
 

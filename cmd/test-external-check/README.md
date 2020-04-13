@@ -1,38 +1,16 @@
 ### test-external-check
 
-This is a container for use in testing external checks on Kuberhealthy.  This container simply runs and either reports a pass or fail depending on the `REPORT_FAILURE` environment variable in its spec.
-
-##### 2.0.0 alpha setup
-
-The version 2.0.0 alpha for Kubernetes image is: `quay.io/comcast/kuberhealthy:2.0.0alpha`.  
-
-You will need to run this image of kuberhealthy in your cluster before external checks are available to you.
-
-You will also need to define the following CRD for Kuberhealthy 2 to use.
-
-```
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: khchecks.comcast.github.io
-spec:
-  group: comcast.github.io
-  version: v1
-  scope: Namespaced
-  names:
-    plural: khchecks
-    singular: khcheck
-    kind: KuberhealthyCheck
-    shortNames:
-      - khc
-```
+This is a container used to test external checks in Kuberhealthy. This container simply runs, waits for a set interval of seconds and then either reports a success or failure depending on the `REPORT_FAILURE` environment variable set in the pod spec.  Simply set `REPORT_FAILURE` to `"true"` (a string not a bool) to cause this check to report an error message.
 
 
-##### Example Check
+##### Example `khcheck`
 
-An example checker pod for testing the external check functionality.  Waits a few seconds and reports success every time.  Logs any Kuberhealthy API communication failures.
+The pod is designed to wait every few seconds before reporting a success or failure to the Kuberhealthy API. The pod is also design to log any errors it encounters when communicating to the Kuberhealthy API.
 
-The spec for enabling this check in Kuberhealthy looks like this:
+Below is a YAML template for enabling the test-external-check in Kuberhealthy.
+
+Simply copy and paste the YAML specs below into a new file and apply it by using the command `kubectl apply -f your-named-khcheck.yaml`.
+
 
 ```yaml
 apiVersion: comcast.github.io/v1
@@ -60,6 +38,20 @@ spec:
           memory: 50Mi
 ```
 
-Apply this check in your cluster (normally for testing) by running `kubectl apply -f khcheck.yaml`.
+You don't have to use the default settings in the above YAML. Change specs as needed to extend or shorten timeouts or run intervals.
 
-**Pro tip: by setting the `imagePullPolicy` to `Never` on your check's spec or on the kuberhealthy deoplyment in your test environment, the Docker Kubernetes cluster will pull the image from your local docker host instead of the web.  This enables rapid development when doing local builds.**
+##### Local Image Pull (optional)
+
+By setting your external check pod spec `imagePullPolicy` to `Never` you will allow Kubernetes to pull the image locally from your Kubernetes hosts. This enables you to build the container inside of Kubernetes more rapidly instead of fetching it from the web.
+
+See below on a example on how to set `imagePullPolicy`:
+
+```yaml
+    containers:
+    - env:
+      - name: REPORT_FAILURE
+        value: "false"
+      image: kuberhealthy/test-external-check:v1.1.0
+      imagePullPolicy: Never
+      name: main
+```
