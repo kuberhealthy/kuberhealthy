@@ -344,14 +344,20 @@ func (ext *Checker) setUUID(uuid string) error {
 	// This for-loop is to verify the pod uuid is properly set with the api server before the checker pod is started.
 	tries := 0
 	for {
-		time.Sleep(time.Second)
-		if checkState.Spec.CurrentUUID == ext.currentCheckUUID {
-			break
-		}
-		if tries == 3 {
-			return fmt.Errorf("error attempted 3 tries to verify uuid match %s", ext.currentCheckUUID)
+		if tries >= 3 {
+			return fmt.Errorf("failed to verify uuid match %s after %d tries", checkState.Spec.CurrentUUID, tries)
 		}
 		tries++
+		ext.log("Waiting 1 second before checking " + ext.Name() + " uuid.")
+		time.Sleep(time.Second)
+		extCheck, err := ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.Name(), ext.CheckNamespace())
+		if err != nil {
+			ext.log("failed to getch khstate while truing up check uuid:", err)
+			continue
+		}
+		if checkState.Spec.CurrentUUID == extCheck.Spec.CurrentUUID {
+			break
+		}
 	}
 
 	return err
