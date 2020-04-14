@@ -25,7 +25,4 @@ jobs:
       run: ./.ci/start-minikube.sh
 
     - name: "running end to end test"
-      env:
-        CI: true
-        TEST_GROUP: ${{ matrix.TEST_GROUP }}
-      run: ./.ci/run-e2e-tests.sh
+      run: ./.ci/e2e.sh
