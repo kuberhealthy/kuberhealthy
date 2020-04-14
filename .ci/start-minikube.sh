@@ -28,7 +28,8 @@ mkdir "${HOME}"/.kube || true
 touch "${HOME}"/.kube/config
 
 # minikube config
-minikube config set driver docker
+minikube config set WantNoneDriverWarning false
+minikube config set driver none
 
 
 minikube version
