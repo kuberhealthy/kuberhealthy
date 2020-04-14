@@ -19,6 +19,7 @@ export MINIKUBE_VERSION=v1.9.2
 export KUBERNETES_VERSION=v1.18.0
 
 MINIKUBE=$(which minikube) # it's outside of the regular PATH, so, need the full path when calling with sudo
+export PATH=$PATH:$(dirname $MINIKUBE)
 
 sudo mount --make-rshared /
 sudo mount --make-rshared /proc
@@ -29,11 +30,11 @@ touch "${HOME}"/.kube/config
 
 # minikube config
 minikube config set WantNoneDriverWarning false
-minikube config set driver none
+minikube config set driver docker
 
 
 minikube version
-sudo ${MINIKUBE} start --kubernetes-version=$KUBERNETES_VERSION --extra-config=apiserver.authorization-mode=RBAC
+${MINIKUBE} start --kubernetes-version=$KUBERNETES_VERSION --extra-config=apiserver.authorization-mode=RBAC
 sudo chown -R $USER $HOME/.kube $HOME/.minikube
 
 minikube update-context
