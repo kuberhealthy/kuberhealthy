@@ -15,6 +15,9 @@ jobs:
       with:
         go-version: '1.13.3'
     - uses: jpkrohling/setup-minikube@v1-release
+      with:
+        minikube-version: v1.9.2
+
     - uses: jpkrohling/setup-kubectl@v1-release
     - uses: actions/checkout@v2
 
