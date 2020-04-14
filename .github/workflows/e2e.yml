@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches:
+    - master
+    - release/*
+    - actions # for testing this build spec
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/setup-go@v1
+      with:
+        go-version: '1.13.3'
+    - uses: jpkrohling/setup-minikube@v1-release
+    - uses: jpkrohling/setup-kubectl@v1-release
+    - uses: actions/checkout@v2
+
+    - name: "setup docker"
+      run: ./.ci/setup-docker.sh
+
+    - name: "start minikube"
+      run: ./.ci/start-minikube.sh
+
+    - name: "running end to end test"
+      env:
+        CI: true
+        TEST_GROUP: ${{ matrix.TEST_GROUP }}
+      run: ./.ci/run-e2e-tests.sh
