@@ -12,7 +12,7 @@ prometheus:
 
 image:
   repository: kuberhealthy/kuberhealthy
-  tag: v2.1.2
+  tag: v2.1.0
 
 resources:
   requests:
