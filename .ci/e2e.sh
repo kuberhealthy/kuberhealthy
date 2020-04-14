@@ -17,6 +17,7 @@ kubectl create -f deploy/kuberhealthy.yaml
 # Wait for kuberhealthy operator to start
 JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n $NS get pods -l app=kuberhealthy -o jsonpath="$JSONPATH" 2>&1 |grep -q "Ready=True"; do sleep 1;echo "waiting for kuberhealthy operator to be available"; kubectl get pods -n $NS; done
 
+# Verify that the khc went as they should.
 for i in {1..60}
 do
     khsCount=$(kubectl get -n $NS khs -o yaml |grep OK |wc -l)
@@ -30,3 +31,10 @@ do
         sleep 10
     fi
 done
+
+# Print some final output to make debuging easier.
+kubectl logs deployment/kuberhealthy
+
+kubectl get -n $NS khs -o yaml
+
+kubectl get -n $NS pods
