@@ -367,30 +367,10 @@ spec:
           timeoutSeconds: 1
         resources:
           requests:
-            cpu: 200m
-            memory: 150Mi
+            cpu: 400m
+            memory: 300Mi
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
----
-# Source: kuberhealthy/templates/check-reaper.yaml
-apiVersion: batch/v1beta1
-kind: CronJob
-metadata:
-  name: check-reaper
-  namespace: kuberhealthy
-spec:
-  schedule: "*/3 * * * *"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-            - name: check-reaper
-              image: kuberhealthy/check-reaper:v1.3.1
-              imagePullPolicy: IfNotPresent
-          restartPolicy: OnFailure
-          serviceAccountName: check-reaper
-  concurrencyPolicy: Forbid
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
 apiVersion: comcast.github.io/v1
