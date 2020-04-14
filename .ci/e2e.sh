@@ -29,7 +29,7 @@ do
         break
     else
         kubectl get -n $NS khs -o yaml
-        kubectl get -n $NS pods -o yaml
+        kubectl get -n $NS pods
         sleep 10
     fi
 done
