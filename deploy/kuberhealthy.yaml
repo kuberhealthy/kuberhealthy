@@ -367,8 +367,8 @@ spec:
           timeoutSeconds: 1
         resources:
           requests:
-            cpu: 400m
-            memory: 300Mi
+            cpu: 200m
+            memory: 150Mi
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
 ---
