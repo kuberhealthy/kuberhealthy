@@ -21,13 +21,15 @@ JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.ty
 for i in {1..60}
 do
     khsCount=$(kubectl get -n $NS khs -o yaml |grep OK |wc -l)
+    completedCount=$(kubectl get pods -l app=kuberhealthy-check |grep Completed |wc -l)
 
-    if [ $khsCount -eq 3 ]
+    if [ $khsCount -ge 3 ] && [ $completedCount -ge 3 ]
     then
         echo "Kuberhealthy is working like it should and all tests passed"
         break
     else
         kubectl get -n $NS khs -o yaml
+        kubectl get -n $NS pods -o yaml
         sleep 10
     fi
 done
