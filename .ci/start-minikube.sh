@@ -13,7 +13,7 @@ set -x
 # https://github.com/coreos/prometheus-operator/blob/master/scripts/create-minikube.sh
 
 # socat is needed for port forwarding
-sudo apt-get update && sudo apt-get install socat
+sudo apt-get update && sudo apt-get install socat conntrack
 
 export MINIKUBE_VERSION=v1.9.2
 export KUBERNETES_VERSION=v1.18.0
