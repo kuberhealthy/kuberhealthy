@@ -12,9 +12,13 @@ NS=kuberhealthy
 kubectl create namespace $NS
 
 # Create kuberhealthy crd etc.
-kubectl create -f deploy/kuberhealthy.yaml
+kubectl create -f .ci/kuberhealthy-e2e.yaml
 
 sleep 120
+
+kubectl -n $NS get all
+kubectl -n $NS get khc
+kubectl -n $NS get khs
 
 # Wait for kuberhealthy operator to start
 JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n $NS get pods -l app=kuberhealthy -o jsonpath="$JSONPATH" 2>&1 |grep -q "Ready=True"; do sleep 1;echo "waiting for kuberhealthy operator to be available"; kubectl get pods -n $NS; done
