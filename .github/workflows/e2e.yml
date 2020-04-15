@@ -23,6 +23,7 @@ jobs:
       run: |
         kubectl cluster-info
         kubectl get pods -n kube-system
+        kubectl get nodes
         echo "current-context:" $(kubectl config current-context)
         echo "environment-kubeconfig:" ${KUBECONFIG}
 
