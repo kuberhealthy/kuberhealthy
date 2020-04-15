@@ -7,6 +7,7 @@
 
 # Set NS
 NS=kuberhealthy
+name=kuberhealthy
 
 # Create namespace
 kubectl create namespace $NS
@@ -32,12 +33,14 @@ kubectl -n $NS get khs
 JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n $NS get pods -l app=kuberhealthy -o jsonpath="$JSONPATH" 2>&1 |grep -q "Ready=True"; do sleep 1;echo "waiting for kuberhealthy operator to be available"; kubectl get pods -n $NS; done
 
 echo "get deployment logs \n"
-kubectl logs deployment/kuberhealthy
+selfLink=$(kubectl get deployment.apps $name -n $NS -o jsonpath={.metadata.selfLink})
+selector=$(kubectl -n $NS get --raw "${selfLink}/scale" | jq -r .status.selector)
+kubectl logs -n $NS --selector $selector
 
 # Verify that the khc went as they should.
 for i in {1..60}
 do
-    khsCount=$(kubectl get -n $NS khs -o yaml |grep OK |wc -l)
+    khsCount=$(kubectl get -n $NS khs -o yaml |grep "OK: true" |wc -l)
     cDeploy=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep deployment |grep Completed |wc -l)
     cDNS=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep dns-status-internal |grep Completed |wc -l)
     cDS=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep daemonset |grep Completed |wc -l)
@@ -47,14 +50,19 @@ do
         echo "Kuberhealthy is working like it should and all tests passed"
         break
     else
+        echo "\n"
         kubectl get -n $NS pods
         sleep 10
+        echo "\n"
+        kubectl get -n $NS khs -o yaml
     fi
 done
 
 # Print some final output to make debuging easier.
-kubectl logs deployment/kuberhealthy
+kubectl logs -n $NS --selector $selector
 
+echo "get khs \n"
 kubectl get -n $NS khs -o yaml
 
-kubectl get -n $NS pods
+echo "get all \n"
+kubectl get -n $NS all
