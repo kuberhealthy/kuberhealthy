@@ -14,7 +14,7 @@ kubectl create namespace $NS
 # Create kuberhealthy crd etc.
 kubectl create -f deploy/kuberhealthy.yaml
 
-sleep 60
+sleep 120
 
 # Wait for kuberhealthy operator to start
 JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n $NS get pods -l app=kuberhealthy -o jsonpath="$JSONPATH" 2>&1 |grep -q "Ready=True"; do sleep 1;echo "waiting for kuberhealthy operator to be available"; kubectl get pods -n $NS; done
@@ -23,14 +23,15 @@ JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.ty
 for i in {1..60}
 do
     khsCount=$(kubectl get -n $NS khs -o yaml |grep OK |wc -l)
-    completedCount=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep Completed |wc -l)
+    cDeploy=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep deployment |grep Completed |wc -l)
+    cDNS=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep dns-status-internal |grep Completed |wc -l)
+    cDS=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep daemonset |grep Completed |wc -l)
 
-    if [ $khsCount -ge 3 ] && [ $completedCount -ge 3 ]
+    if [ $khsCount -ge 3 ] && [ $cDeploy -ge 1 ] && [ $cDS -ge 1 ] && [ $cDNS -ge 1 ]
     then
         echo "Kuberhealthy is working like it should and all tests passed"
         break
     else
-        kubectl get -n $NS khs -o yaml
         kubectl get -n $NS pods
         sleep 10
     fi
