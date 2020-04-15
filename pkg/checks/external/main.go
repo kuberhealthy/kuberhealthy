@@ -23,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
+	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
@@ -1026,38 +1027,16 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	// enforce various labels and annotations on all checker pods created
 	ext.addKuberhealthyLabels(p)
 
-	// Get the hostname of the kuberhealthy pod
-	kPodName, err := os.Hostname()
+	// Get ownerRefernece for the kuberhealthy pod
+	ownerRef, err := checkclient.GetOwnerRef(ext.KubeClient, ext.Namespace)
 	if err != nil {
-		ext.log("Unable to get kuberhealthy pod podname")
-	}
-
-	// Get the podspec of kuberhealthy pod
-	kHealthyPod, err := ext.getKuberHealthyPod(kPodName)
-	if err != nil {
-		ext.log("Unable to find kuberhealthy pod", err)
+		ext.log("Unable to get the ownerRef from pod", err)
 	} else {
 		// Sets OwnerRefernces on all checker pods
-		p.OwnerReferences = []metav1.OwnerReference{
-			{
-				APIVersion: "v1",
-				Kind:       "Pod",
-				Name:       kPodName,
-				UID:        kHealthyPod.GetUID(),
-			},
-		}
+		p.OwnerReferences = ownerRef
 	}
-	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
-}
 
-// getKuberHealthyPod gets the pod spec of kuberhealthy operator
-func (ext *Checker) getKuberHealthyPod(kPodName string) (*apiv1.Pod, error) {
-	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
-	kHealthyPod, err := podClient.Get(kPodName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return kHealthyPod, nil
+	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
 }
 
 // configureUserPodSpec configures a user-specified pod spec with
