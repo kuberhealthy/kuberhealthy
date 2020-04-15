@@ -11,13 +11,9 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/status"
-	apiv1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -115,33 +111,4 @@ func getKuberhealthyURL() (string, error) {
 	}
 
 	return reportingURL, nil
-}
-
-// GetOwnerRef fetches the UID from the pod and returns OwnerReference
-func GetOwnerRef(client *kubernetes.Clientset, namespace string) ([]metav1.OwnerReference, error) {
-	podName, err := os.Hostname()
-	if err != nil {
-		return nil, err
-	}
-	podSpec, err := getKuberHealthyPod(client, namespace, strings.ToLower(podName))
-	if err != nil {
-		return nil, err
-	}
-	return []metav1.OwnerReference{
-		{
-			APIVersion: podAPIVersion,
-			Kind:       podKind,
-			Name:       podSpec.GetName(),
-			UID:        podSpec.GetUID(),
-		},
-	}, nil
-}
-
-func getKuberHealthyPod(client *kubernetes.Clientset, namespace, podName string) (*apiv1.Pod, error) {
-	podClient := client.CoreV1().Pods(namespace)
-	kHealthyPod, err := podClient.Get(podName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return kHealthyPod, nil
 }
