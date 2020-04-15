@@ -418,7 +418,7 @@ spec:
         - name: CHECK_TIME_LIMIT
           value: *deployment_check_timeout
         - name: CHECK_DEPLOYMENT_REPLICAS
-          value: "4"
+          value: "2"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
       resources:
@@ -438,7 +438,7 @@ metadata:
   name: dns-status-internal
   namespace: kuberhealthy
 spec:
-  runInterval: 2m
+  runInterval: 5m
   timeout: 15m
   podSpec:
     containers:
