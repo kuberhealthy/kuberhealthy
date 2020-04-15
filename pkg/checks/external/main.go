@@ -23,6 +23,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
+
 	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
@@ -72,8 +74,6 @@ const CRDGroup = "comcast.github.io"
 const CRDVersion = "v1"
 const checkCRDResource = "khchecks"
 const stateCRDResource = "khstates"
-const podAPIVersion = "v1"
-const podKind = "Pod"
 
 // Checker implements a KuberhealthyCheck for external
 // check execution and lifecycle management.
@@ -1029,7 +1029,7 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	ext.addKuberhealthyLabels(p)
 
 	// Get ownerRefernece for the kuberhealthy pod
-	ownerRef, err := getOwnerRef(ext.KubeClient, ext.Namespace)
+	ownerRef, err := util.GetOwnerRef(ext.KubeClient, ext.Namespace)
 	if err != nil {
 		ext.log("Unable to get the ownerRef from pod", err)
 	} else {
@@ -1038,35 +1038,6 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	}
 
 	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
-}
-
-// GetOwnerRef fetches the UID from the pod and returns OwnerReference
-func getOwnerRef(client *kubernetes.Clientset, namespace string) ([]metav1.OwnerReference, error) {
-	podName, err := os.Hostname()
-	if err != nil {
-		return nil, err
-	}
-	podSpec, err := getKuberHealthyPod(client, namespace, strings.ToLower(podName))
-	if err != nil {
-		return nil, err
-	}
-	return []metav1.OwnerReference{
-		{
-			APIVersion: podAPIVersion,
-			Kind:       podKind,
-			Name:       podSpec.GetName(),
-			UID:        podSpec.GetUID(),
-		},
-	}, nil
-}
-
-func getKuberHealthyPod(client *kubernetes.Clientset, namespace, podName string) (*apiv1.Pod, error) {
-	podClient := client.CoreV1().Pods(namespace)
-	kHealthyPod, err := podClient.Get(podName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return kHealthyPod, nil
 }
 
 // configureUserPodSpec configures a user-specified pod spec with
