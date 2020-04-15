@@ -11,17 +11,28 @@ NS=kuberhealthy
 # Create namespace
 kubectl create namespace $NS
 
+# Sometimes the kuberhealthy resources get's created...
+sleep 2
+
 # Create kuberhealthy crd etc.
 kubectl create -f .ci/kuberhealthy-e2e.yaml
 
-sleep 120
-
-kubectl -n $NS get all
 kubectl -n $NS get khc
+
+sleep 90
+
+echo "get all \n"
+kubectl -n $NS get all
+echo "get khc  \n"
+kubectl -n $NS get khc
+echo "get khs \n"
 kubectl -n $NS get khs
 
 # Wait for kuberhealthy operator to start
 JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n $NS get pods -l app=kuberhealthy -o jsonpath="$JSONPATH" 2>&1 |grep -q "Ready=True"; do sleep 1;echo "waiting for kuberhealthy operator to be available"; kubectl get pods -n $NS; done
+
+echo "get deployment logs \n"
+kubectl logs deployment/kuberhealthy
 
 # Verify that the khc went as they should.
 for i in {1..60}
