@@ -66,3 +66,9 @@ kubectl get -n $NS khs -o yaml
 
 echo "get all \n"
 kubectl get -n $NS all
+
+echo "completed deployment logs"
+oc -n $NS logs $(oc get pod -n $NS -l kuberhealthy-check-name=deployment |grep Completed |tail -1 |awk '{print $1}')
+
+echo "Error deployment logs"
+oc -n $NS logs $(oc get pod -n $NS -l kuberhealthy-check-name=deployment |grep Error |tail -1 |awk '{print $1}')
