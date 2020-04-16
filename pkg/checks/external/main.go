@@ -1031,11 +1031,10 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	// Get ownerRefernece for the kuberhealthy pod
 	ownerRef, err := util.GetOwnerRef(ext.KubeClient, ext.Namespace)
 	if err != nil {
-		ext.log("Unable to get the ownerRef from pod", err)
-	} else {
-		// Sets OwnerRefernces on all checker pods
-		p.OwnerReferences = ownerRef
+		return nil, err
 	}
+	// Sets OwnerRefernces on all checker pods
+	p.OwnerReferences = ownerRef
 
 	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
 }
