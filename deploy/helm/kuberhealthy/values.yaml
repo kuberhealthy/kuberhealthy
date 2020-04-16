@@ -60,14 +60,14 @@ check:
     enabled: true
     image:
       repository: kuberhealthy/daemonset-check
-      tag: v2.2.1
+      tag: v2.1.1
     extraEnvs:
     nodeSelector: {}
   deployment:
     enabled: true
     image:
       repository: kuberhealthy/deployment-check
-      tag: v1.3.4
+      tag: v1.2.3
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
@@ -76,7 +76,7 @@ check:
     enabled: true
     image:
       repository: kuberhealthy/dns-resolution-check
-      tag: v1.2.0
+      tag: v1.1.0
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
@@ -84,7 +84,7 @@ check:
     enabled: false
     image:
       repository: kuberhealthy/pod-restarts-check
-      tag: v2.2.1
+      tag: v2.1.1
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
@@ -92,12 +92,12 @@ check:
     enabled: false
     image:
       repository: kuberhealthy/pod-status-check
-      tag: v1.2.2
+      tag: v1.1.2
     extraEnvs:
     nodeSelector: {}
 
 checkReaper:
   image:
     repository: kuberhealthy/check-reaper
-    tag: v1.3.1
+    tag: v1.2.1
   nodeSelector: {}

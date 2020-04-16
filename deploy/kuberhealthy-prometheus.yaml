@@ -420,7 +420,7 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: kuberhealthy/check-reaper:v1.3.1
+              image: kuberhealthy/check-reaper:v1.2.1
               imagePullPolicy: IfNotPresent
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
@@ -444,7 +444,7 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-        image: kuberhealthy/daemonset-check:v2.2.1
+        image: kuberhealthy/daemonset-check:v2.1.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -465,7 +465,7 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.3.4
+      image: kuberhealthy/deployment-check:v1.2.3
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_TIME_LIMIT
@@ -500,7 +500,7 @@ spec:
             value: "110s"
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.2.0
+        image: kuberhealthy/dns-resolution-check:v1.1.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
