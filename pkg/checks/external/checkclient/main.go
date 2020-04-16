@@ -16,11 +16,6 @@ import (
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/status"
 )
 
-const (
-	podAPIVersion = "v1"
-	podKind       = "Pod"
-)
-
 // Debug can be used to enable output logging from the checkClient
 var Debug bool
 

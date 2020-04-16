@@ -16,15 +16,13 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-ini/ini v1.49.0 // indirect
 	github.com/gogo/protobuf v1.3.0 // indirect
-	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gophercloud/gophercloud v0.1.0 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20190402204710-8ff2fc3824fc
 	github.com/integrii/flaggy v1.2.2
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/sftp v1.10.1 // indirect
-	github.com/prometheus/common v0.9.1
-	github.com/sirupsen/logrus v1.4.2
+	github.com/sirupsen/logrus v1.4.0
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
 	golang.org/x/sys v0.0.0-20190904005037-43c01164e931 // indirect
