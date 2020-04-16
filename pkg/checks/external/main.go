@@ -352,10 +352,11 @@ func (ext *Checker) setUUID(uuid string) error {
 		time.Sleep(time.Second)
 		extCheck, err := ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.Name(), ext.CheckNamespace())
 		if err != nil {
-			ext.log("failed to getch khstate while truing up check uuid:", err)
+			ext.log("failed to get khstate while truing up check uuid:", err)
 			continue
 		}
 		if checkState.Spec.CurrentUUID == extCheck.Spec.CurrentUUID {
+			ext.log(ext.Name() + " verified uuid match.")
 			break
 		}
 	}
