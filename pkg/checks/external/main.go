@@ -339,6 +339,28 @@ func (ext *Checker) setUUID(uuid string) error {
 		_, err = ext.KHStateClient.Update(checkState, stateCRDResource, ext.Name(), ext.CheckNamespace())
 	}
 
+	// Sometimes a race condition occurs when a pod has to verify uuid with kh server. If the pod happens to check the
+	// uuid before it shows as updated on kube-apiserver, the pod will not be allowed to report its status.
+	// This for-loop is to verify the pod uuid is properly set with the api server before the checker pod is started.
+	tries := 0
+	for {
+		if tries >= 3 {
+			return fmt.Errorf("failed to verify uuid match %s after %d tries", checkState.Spec.CurrentUUID, tries)
+		}
+		tries++
+		ext.log("Waiting 1 second before checking " + ext.Name() + " uuid.")
+		time.Sleep(time.Second)
+		extCheck, err := ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.Name(), ext.CheckNamespace())
+		if err != nil {
+			ext.log("failed to get khstate while truing up check uuid:", err)
+			continue
+		}
+		if checkState.Spec.CurrentUUID == extCheck.Spec.CurrentUUID {
+			ext.log(ext.Name() + " verified uuid match.")
+			break
+		}
+	}
+
 	return err
 }
 
