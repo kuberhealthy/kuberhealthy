@@ -107,6 +107,7 @@ check:
     nodeSelector: {}
 
 checkReaper:
+  enabled: true
   image:
     repository: kuberhealthy/check-reaper
     tag: v1.3.1
