@@ -440,6 +440,8 @@ spec:
           value: "4"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
+        - name: CHECK_SERVICE_ACCOUNT
+          value: "default"
       resources:
         requests:
           cpu: 25m
