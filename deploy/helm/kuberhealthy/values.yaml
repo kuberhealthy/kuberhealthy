@@ -107,7 +107,7 @@ check:
     nodeSelector: {}
 
 checkReaper:
-  enabled: true
+  enabled: true # Don't disable checkRepear, this flag exist to make e2e tests easier.
   image:
     repository: kuberhealthy/check-reaper
     tag: v1.3.1
