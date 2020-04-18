@@ -20,7 +20,7 @@ func GetOwnerRef(client *kubernetes.Clientset, namespace string) ([]metav1.Owner
 	if err != nil {
 		return nil, err
 	}
-	podSpec, err := getKuberHealthyPod(client, namespace, strings.ToLower(podName))
+	podSpec, err := getKuberhealthyPod(client, namespace, strings.ToLower(podName))
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,8 @@ func GetOwnerRef(client *kubernetes.Clientset, namespace string) ([]metav1.Owner
 	}, nil
 }
 
-func getKuberHealthyPod(client *kubernetes.Clientset, namespace, podName string) (*apiv1.Pod, error) {
+// getKuberhealthyPod fetches the podSpec
+func getKuberhealthyPod(client *kubernetes.Clientset, namespace, podName string) (*apiv1.Pod, error) {
 	podClient := client.CoreV1().Pods(namespace)
 	kHealthyPod, err := podClient.Get(podName, metav1.GetOptions{})
 	if err != nil {
