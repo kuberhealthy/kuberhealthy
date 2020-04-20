@@ -58,7 +58,7 @@ service:
 check:
   daemonset:
     enabled: true
-    runInterval: 10m
+    runInterval: 15m
     timeout: 12m
     image:
       repository: kuberhealthy/daemonset-check
