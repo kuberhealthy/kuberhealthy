@@ -399,7 +399,7 @@ metadata:
   name: daemonset
   namespace: kuberhealthy
 spec:
-  runInterval:  10m
+  runInterval:  15m
   timeout: 12m
   podSpec:
     containers:
@@ -458,7 +458,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 2m
-  timeout: 2m
+  timeout: 15m
   podSpec:
     containers:
       - env:
