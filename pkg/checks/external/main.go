@@ -23,6 +23,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
+
 	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
@@ -1047,6 +1049,14 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 
 	// enforce various labels and annotations on all checker pods created
 	ext.addKuberhealthyLabels(p)
+
+	// Get ownerRefernece for the kuberhealthy pod
+	ownerRef, err := util.GetOwnerRef(ext.KubeClient, ext.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	// Sets OwnerRefernces on all checker pods
+	p.OwnerReferences = ownerRef
 
 	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
 }
