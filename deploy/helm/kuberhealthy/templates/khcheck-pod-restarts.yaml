@@ -5,8 +5,8 @@ kind: KuberhealthyCheck
 metadata:
   name: pod-restarts
 spec:
-  runInterval: 5m
-  timeout: 10m
+  runInterval: {{ .Values.check.podRestarts.runInterval }}
+  timeout: {{ .Values.check.podRestarts.timeout }}
   podSpec:
     containers:
       - env:

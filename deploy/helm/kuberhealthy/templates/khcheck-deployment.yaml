@@ -6,8 +6,8 @@ metadata:
   name: deployment
   namespace: {{ .Release.Namespace }}
 spec:
-  runInterval: 10m
-  timeout: &deployment_check_timeout 15m
+  runInterval:  {{ .Values.check.deployment.runInterval }}
+  timeout: {{ .Values.check.deployment.timeout }}
   podSpec:
     containers:
     - name: deployment
@@ -15,7 +15,7 @@ spec:
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_TIME_LIMIT
-          value: *deployment_check_timeout
+          value: {{ .Values.check.deployment.timeout }}
 {{- range $key, $value := .Values.check.deployment.extraEnvs }}
         - name: {{ $key }}
           value: {{ $value | quote }}
