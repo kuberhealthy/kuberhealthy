@@ -22,16 +22,21 @@ func init() {
 
 	// parse REPORT_FAILURE environment var
 	reportFailureStr := os.Getenv("REPORT_FAILURE")
-	reportFailure, err = strconv.ParseBool(reportFailureStr)
-	if err != nil {
-		log.Fatalln("Failed to parse REPORT_FAILURE env var:", err)
+	if len(reportFailureStr) != 0 {
+		reportFailure, err = strconv.ParseBool(reportFailureStr)
+		if err != nil {
+			log.Fatalln("Failed to parse REPORT_FAILURE env var:", err)
+		}
 	}
 
 	// parse REPORT_DELAY environment var
 	reportDelayStr := os.Getenv("REPORT_DELAY")
-	reportDelay, err = time.ParseDuration(reportDelayStr)
-	if err != nil {
-		log.Fatalln("Failed to parse REPORT_DELAY env var:", err)
+	reportDelay = time.Duration(time.Second * 5)
+	if len(reportDelayStr) != 0 {
+		reportDelay, err = time.ParseDuration(reportDelayStr)
+		if err != nil {
+			log.Fatalln("Failed to parse REPORT_DELAY env var:", err)
+		}
 	}
 }
 

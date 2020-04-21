@@ -5,8 +5,8 @@ kind: KuberhealthyCheck
 metadata:
   name: pod-status
 spec:
-  runInterval: 5m
-  timeout: 15m
+  runInterval: {{ .Values.check.podStatus.runInterval }}
+  timeout: {{ .Values.check.podStatus.timeout }}
   podSpec:
     containers:
       - env:
