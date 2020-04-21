@@ -15,12 +15,14 @@ kubectl create namespace $NS
 # Sometimes the kuberhealthy resources get's created...
 sleep 2
 
-# Create kuberhealthy crd etc.
-kubectl create -f .ci/kuberhealthy-e2e.yaml
+# Use helm to install kuberhealthy
+helm install -n $NS -f .ci/values.yaml $name deploy/helm/kuberhealthy
 
 kubectl -n $NS get khc
 
 sleep 90
+
+helm ls
 
 echo "get all \n"
 kubectl -n $NS get all
