@@ -872,7 +872,7 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 }
 
 // fetchPodByIPForDuration attempts to fetch a pod by its IP repeatedly for the supplied duration.  If the pod is found,
-// then we return it.  If the pod is not found after the duraiton, we return an error
+// then we return it.  If the pod is not found after the duraton, we return an error
 func (k *Kuberhealthy) fetchPodByIPForDuration(remoteIP string, d time.Duration) (v1.Pod, error) {
 	endTime := time.Now().Add(d)
 
