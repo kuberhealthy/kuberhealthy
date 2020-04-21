@@ -37,11 +37,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
 const daemonSetBaseName = "ds-check"
 const defaultDSCheckTimeout = "10m"
+const defaultUser = int64(1000)
 
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var Namespace string
@@ -189,9 +191,14 @@ func (dsc *Checker) generateDaemonSetSpec() {
 
 	checkRunTime := strconv.Itoa(int(CheckRunTime))
 	terminationGracePeriod := int64(1)
-	runAsUser := int64(1000)
-	log.Debug("Running daemon set as user 1000.")
-	var err error
+
+	// Set the runAsUser
+	runAsUser := defaultUser
+	currentUser, err := util.GetCurrentUser(defaultUser)
+	if err != nil {
+		log.Infoln("runAsUser will be set to %v", currentUser)
+	}
+	runAsUser = currentUser
 
 	// if a list of tolerations wasnt passed in, default to tolerating all taints
 	if len(dsc.Tolerations) == 0 {
