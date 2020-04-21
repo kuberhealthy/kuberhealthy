@@ -8,9 +8,11 @@ spec:
   runInterval: 5m
   timeout: 15m
   podSpec:
+    {{- if .Values.securityContext.enabled }}
     securityContext:
       runAsUser: {{ .Values.securityContext.runAsUser }}
       fsGroup: {{ .Values.securityContext.fsGroup }}
+    {{- end}}
     containers:
       - env:
           - name: SKIP_DURATION

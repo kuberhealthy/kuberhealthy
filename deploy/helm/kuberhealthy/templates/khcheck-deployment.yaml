@@ -9,9 +9,11 @@ spec:
   runInterval: 10m
   timeout: &deployment_check_timeout 15m
   podSpec:
+    {{- if .Values.securityContext.enabled }}
     securityContext:
       runAsUser: {{ .Values.securityContext.runAsUser }}
       fsGroup: {{ .Values.securityContext.fsGroup }}
+    {{- end}}
     containers:
     - name: deployment
       image: {{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
@@ -30,8 +32,8 @@ spec:
         limits:
           cpu: 40m
       securityContext:
-        runAsUser: {{ .Values.securityContext.runAsUser }}
-        fsGroup: {{ .Values.securityContext.fsGroup }}
+        allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+        readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
       restartPolicy: Never
     {{- if .Values.check.deployment.nodeSelector }}
     nodeSelector:

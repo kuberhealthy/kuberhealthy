@@ -9,9 +9,11 @@ spec:
   runInterval: 15m
   timeout: 12m
   podSpec:
+    {{- if .Values.securityContext.enabled }}
     securityContext:
       runAsUser: {{ .Values.securityContext.runAsUser }}
       fsGroup: {{ .Values.securityContext.fsGroup }}
+    {{- end}}
     containers:
       - env:
           - name: POD_NAMESPACE
