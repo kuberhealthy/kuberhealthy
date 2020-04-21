@@ -23,6 +23,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
+
 	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
@@ -337,6 +339,28 @@ func (ext *Checker) setUUID(uuid string) error {
 		ext.log("Failed to write new UUID for check because object was modified by another process.  Retrying in 5s")
 		time.Sleep(time.Second * 5)
 		_, err = ext.KHStateClient.Update(checkState, stateCRDResource, ext.Name(), ext.CheckNamespace())
+	}
+
+	// Sometimes a race condition occurs when a pod has to verify uuid with kh server. If the pod happens to check the
+	// uuid before it shows as updated on kube-apiserver, the pod will not be allowed to report its status.
+	// This for-loop is to verify the pod uuid is properly set with the api server before the checker pod is started.
+	tries := 0
+	for {
+		if tries >= 3 {
+			return fmt.Errorf("failed to verify uuid match %s after %d tries", checkState.Spec.CurrentUUID, tries)
+		}
+		tries++
+		ext.log("Waiting 1 second before checking " + ext.Name() + " uuid.")
+		time.Sleep(time.Second)
+		extCheck, err := ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.Name(), ext.CheckNamespace())
+		if err != nil {
+			ext.log("failed to get khstate while truing up check uuid:", err)
+			continue
+		}
+		if checkState.Spec.CurrentUUID == extCheck.Spec.CurrentUUID {
+			ext.log(ext.Name() + " verified uuid match.")
+			break
+		}
 	}
 
 	return err
@@ -1025,6 +1049,14 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 
 	// enforce various labels and annotations on all checker pods created
 	ext.addKuberhealthyLabels(p)
+
+	// Get ownerRefernece for the kuberhealthy pod
+	ownerRef, err := util.GetOwnerRef(ext.KubeClient, ext.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	// Sets OwnerRefernces on all checker pods
+	p.OwnerReferences = ownerRef
 
 	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
 }

@@ -6,8 +6,8 @@ metadata:
   name: daemonset
   namespace: {{ .Release.Namespace }}
 spec:
-  runInterval: 15m
-  timeout: 12m
+  runInterval:  {{ .Values.check.daemonset.runInterval }}
+  timeout: {{ .Values.check.daemonset.timeout }}
   podSpec:
     containers:
       - env:

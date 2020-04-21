@@ -6,8 +6,8 @@ metadata:
   name: dns-status-internal
   namespace: {{ .Release.Namespace }}
 spec:
-  runInterval: 2m
-  timeout: 15m
+  runInterval: {{ .Values.check.dnsInternal.runInterval }}
+  timeout: {{ .Values.check.dnsInternal.timeout }}
   podSpec:
     containers:
       - env:
