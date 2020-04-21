@@ -196,8 +196,9 @@ func (dsc *Checker) generateDaemonSetSpec() {
 	runAsUser := defaultUser
 	currentUser, err := util.GetCurrentUser(defaultUser)
 	if err != nil {
-		log.Infoln("runAsUser will be set to %v", currentUser)
+		log.Infoln("Unable to get the current user id %v", err)
 	}
+	log.Infoln("runAsUser will be set to %v", currentUser)
 	runAsUser = currentUser
 
 	// if a list of tolerations wasnt passed in, default to tolerating all taints
