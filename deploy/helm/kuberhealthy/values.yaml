@@ -41,7 +41,7 @@ deployment:
 # When enabled equals to true, runAsUser and fsGroup will be
 # included to all khchecks as specified below.
 securityContext:
-  enabled: true
+  enabled: true # if enabled is set to false, securityContext settings will not be applied at all in checker pod custom resources
   runAsNonRoot: true
   runAsUser: 999
   fsGroup: 999
