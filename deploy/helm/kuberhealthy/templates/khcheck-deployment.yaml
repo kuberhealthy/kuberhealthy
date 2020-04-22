@@ -35,6 +35,7 @@ spec:
       securityContext:
         allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
         readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+{{- end}}
       restartPolicy: Never
     {{- if .Values.check.deployment.nodeSelector }}
     nodeSelector:
