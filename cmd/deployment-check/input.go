@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -124,18 +125,22 @@ func parseInputValues() {
 
 	// Set check time limit to default
 	checkTimeLimit = defaultCheckTimeLimit
-	if len(checkTimeLimitEnv) != 0 {
-		duration, err := time.ParseDuration(checkTimeLimitEnv)
-		if err != nil {
-			log.Fatalln("error occurred attempting to parse CHECK_TIME_LIMIT:", err)
-		}
-		if duration.Seconds() < 1 {
-			log.Fatalln("error occurred attempting to parse CHECK_TIME_LIMIT. Check run time in seconds is less than 1:", duration.Seconds())
-		}
-		log.Infoln("Parsed CHECK_TIME_LIMIT:", duration.Seconds())
-		checkTimeLimit = duration
+	// Get the deadline time in unix from the env var
+	unixDeadline, err := kh.GetDeadline()
+	if err != nil {
+		log.Infoln("There was an issue getting the check deadline:", err.Error())
 	}
-	log.Infoln("Check time limit set to:", checkTimeLimit)
+	// Calculate check run duration from the deadline and now
+	deadline, err := strconv.Atoi(unixDeadline)
+	if err != nil {
+		log.Fatalln("Failed to parse unix deadline from environment.")
+	}
+	if deadline > 0 {
+		log.Infoln("Parsed check deadline time from the environment:", deadline)
+		log.Infoln("Now:", time.Now().Unix())
+		log.Infoln("Deadline:", int64(deadline))
+		checkTimeLimit = time.Duration((int64(deadline) - time.Now().Unix()) * 1e9) // Multiply by 1,000,000,000 because that's how many nanoseconds are in a second
+	}
 
 	// Parse incoming deployment rolling-update environment variable
 	if len(rollingUpdateEnv) != 0 {
