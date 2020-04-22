@@ -31,6 +31,7 @@ spec:
           memory: 15Mi
         limits:
           cpu: 40m
+{{- if .Values.securityContext.enabled }}
       securityContext:
         allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
         readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
