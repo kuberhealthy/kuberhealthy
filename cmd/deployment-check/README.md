@@ -40,7 +40,6 @@ __IF ROLLING-UPDATE OPTION IS ENABLED__
   - `CHECK_SERVICE_NAME`: Name for the check's service. (default=`deployment-svc`)
   - `CHECK_NAMESPACE`: Namespace for the check (default=`kuberhealthy`).
   - `CHECK_DEPLOYMENT_REPLICAS`: Number of replicas in the deployment (default=`2`).
-  - `CHECK_TIME_LIMIT`: Number of seconds the check will allow itself before timing out.
   - `CHECK_DEPLOYMENT_ROLLING_UPDATE`: Boolean to enable rolling-update (default=`false`).
   - `ADDITIONAL_ENV_VARS`: Comma separated list of `key=value` variables passed into the pod's containers.
   - `SHUTDOWN_GRACE_PERIOD`: Amount of time in seconds the shutdown will allow itself to clean up after an interrupt signal (default=`30s`).
@@ -58,7 +57,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 10m
-  timeout: &deployment_check_timeout 15m
+  timeout: 15m
   podSpec:
     containers:
     - name: deployment
@@ -75,8 +74,6 @@ spec:
           value: "true"
         - name: ADDITIONAL_ENV_VARS
           value: "var1=foo,var2=bar"
-        - name: CHECK_TIME_LIMIT
-          value: *deployment_check_timeout
       resources:
         requests:
           cpu: 15m
