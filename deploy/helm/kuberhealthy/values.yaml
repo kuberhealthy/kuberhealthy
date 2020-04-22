@@ -39,7 +39,7 @@ deployment:
   # args:
 
 # When enabled equals to true, runAsUser and fsGroup will be
-# included to all khchecks as 999.
+# included to all khchecks as specified below.
 securityContext:
   enabled: true
   runAsNonRoot: true
