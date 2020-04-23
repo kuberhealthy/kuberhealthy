@@ -10,24 +10,12 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.2.4
+      image: kuberhealthy/deployment-check:v1.4.0
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
           value: "4"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
-          value: "true"
-        - name: CHECK_SERVICE_ACCOUNT
-          value: default
-        - name: CHECK_POD_CPU_REQUEST
-          value: "10"
-        - name: CHECK_POD_CPU_LIMIT
-          value: "10"
-        - name: CHECK_POD_MEM_REQUEST
-          value: "10"
-        - name: CHECK_POD_MEM_LIMIT
-          value: "10"
-        - name: DEBUG
           value: "true"
       resources:
         requests:
