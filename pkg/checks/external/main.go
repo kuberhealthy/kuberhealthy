@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -156,7 +157,7 @@ func (ext *Checker) CurrentStatus() (bool, []string) {
 	// fetch the state from the resource
 	state, err := ext.getKHState()
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if k8sErrors.IsNotFound(err) {
 			// if the resource is not found, we default to "up" so not to throw alarms before the first run completes
 			return true, []string{}
 		}
@@ -294,12 +295,12 @@ func (ext *Checker) setUUID(uuid string) error {
 	checkState, err := ext.getKHState()
 
 	// if the fetch operation had an error, but it wasn't 'not found', we return here
-	if err != nil && !strings.Contains(err.Error(), "not found") {
+	if err != nil && !k8sErrors.IsNotFound(err) {
 		return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
 	}
 
 	// if the check was not found, we create a fresh one and start there
-	if err != nil && strings.Contains(err.Error(), "not found") {
+	if err != nil && k8sErrors.IsNotFound(err) {
 		ext.log("khstate did not exist, so a default object will be created")
 		details := health.NewCheckDetails()
 		details.Namespace = ext.CheckNamespace()
@@ -703,7 +704,7 @@ func (ext *Checker) deletePod(podName string) error {
 		GracePeriodSeconds: &gracePeriodSeconds,
 		PropagationPolicy:  &deletionPolicy,
 	})
-	if err != nil && !strings.Contains(err.Error(), "not found") {
+	if err != nil && !k8sErrors.IsNotFound(err) {
 		return err
 	}
 	return nil
@@ -738,7 +739,7 @@ func (ext *Checker) getCheckLastUpdateTime() (time.Time, error) {
 
 	// fetch the state from the resource
 	state, err := ext.getKHState()
-	if err != nil && strings.Contains(err.Error(), "not found") {
+	if err != nil && k8sErrors.IsNotFound(err) {
 		return time.Time{}, nil
 	}
 
@@ -847,7 +848,7 @@ func (ext *Checker) waitForAllPodsToClear() chan error {
 
 			// if we got a "not found" message, then we are done.  This is the happy path.
 			if err != nil {
-				if strings.Contains(err.Error(), "not found") {
+				if k8sErrors.IsNotFound(err) {
 					ext.log("all pods cleared")
 					outChan <- nil
 					return
@@ -1167,7 +1168,7 @@ func (ext *Checker) podExists() (bool, error) {
 
 	// if the pod is "not found", then it does not exist
 	p, err := podClient.Get(ext.podName(), metav1.GetOptions{})
-	if err != nil && strings.Contains(err.Error(), "not found") {
+	if err != nil && k8sErrors.IsNotFound(err) {
 		return false, nil
 	}
 
