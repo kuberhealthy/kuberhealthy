@@ -18,7 +18,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -26,6 +25,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
@@ -191,7 +191,7 @@ func (prc *Checker) verifyBadPodRestartExists(podName string) error {
 
 	_, err := prc.client.CoreV1().Pods(prc.Namespace).Get(podName, metav1.GetOptions{})
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if k8sErrors.IsNotFound(err) {
 			log.Infoln("Bad Pod:", podName, "no longer exists. Removing from bad pods map")
 			delete(prc.BadPods, podName)
 		} else {
