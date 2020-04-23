@@ -36,7 +36,8 @@ deployment:
   env: {}
   command:
   - /app/kuberhealthy
-  # args:
+  args:
+  - --deploy
 
 securityContext:
   runAsNonRoot: true
