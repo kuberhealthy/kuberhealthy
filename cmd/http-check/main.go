@@ -30,29 +30,38 @@ func init() {
 
 func main() {
 	log.Infoln("Beginning check.")
+	checksRan := 0
+	checksPassed := 0
+	checksFailed := 0
 
 	// Make a GET request.
-	r, err := http.Get(checkURL)
-	if err != nil {
-		reportErr := fmt.Errorf("error occurred performing a " + http.MethodGet + " to " + checkURL + ": " + err.Error())
-		log.Errorln(reportErr.Error())
-		err = kh.ReportFailure([]string{reportErr.Error()})
-		if err != nil {
-			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+	for checksRan <= 10 {
+		R, err := http.Get(checkURL)
+		checksRan = checksRan + 1
+		if err != nil && R.StatusCode != http.StatusOK {
+			checksFailed = checksFailed + 1
+			reportErr := fmt.Errorf("error occurred performing a " + http.MethodGet + " to " + checkURL + ": " + err.Error())
+			log.Errorln(reportErr.Error())
+			log.Infoln("Got a", R.StatusCode, "with a", http.MethodGet, "to", checkURL)
+			continue
 		}
-		os.Exit(0)
+		checksPassed = checksPassed + 1
+
+		// Check if the response status code is a 200.
+		if checksPassed >= 8 {
+			err = kh.ReportSuccess()
+			if err != nil {
+				log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+				os.Exit(0)
+				continue
+			}
+			reportErr := fmt.Errorf("unable to retrieve a " + strconv.Itoa(http.StatusOK) + " from " + checkURL + " got a " + strconv.Itoa(R.StatusCode) + " instead")
+			log.Println("Error retrieving URL: ", checksFailed, " out of 10 attempts")
+			err = kh.ReportFailure([]string{reportErr.Error()})
+			if err != nil {
+				log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+			}
+			os.Exit(0)
+		}
 	}
-
-	// Check if the response status code is a 200.
-	if r.StatusCode == http.StatusOK {
-		log.Infoln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
-		kh.ReportSuccess()
-		os.Exit(0)
-	}
-
-	reportErr := fmt.Errorf("unable to retrieve a " + strconv.Itoa(http.StatusOK) + " from " + checkURL + " got a " + strconv.Itoa(r.StatusCode) + " instead")
-	log.Errorln(reportErr.Error())
-	kh.ReportFailure([]string{reportErr.Error()})
-
-	os.Exit(0)
 }
