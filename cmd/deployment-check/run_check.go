@@ -118,9 +118,7 @@ func runDeploymentCheck() {
 	// hostname := getServiceLoadBalancerHostname()
 	ipAddress := getServiceClusterIP()
 	if len(ipAddress) == 0 {
-		// if len(hostname) == 0 {
 		// If the retrieved address is empty or nil, clean up and exit.
-		// log.Infoln("Cleaning up check and exiting because the load balancer hostname is nil.")
 		log.Infoln("Cleaning up check and exiting because the cluster IP is nil: ", ipAddress)
 		errorReport := []string{} // Make a slice for errors here, because there can be more than 1 error.
 		// Clean up the check. A deployment was brought up, but no ingress was created.
