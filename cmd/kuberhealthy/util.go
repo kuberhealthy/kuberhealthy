@@ -79,7 +79,7 @@ func notifyChanLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan cha
 				continue
 			}
 
-			// if it has been sufficient time since the last inChan message, send a mesage out outChan
+			// if it has been sufficient time since the last inChan message, send a message out outChan
 			log.Println("channel notify limiter sending a message on outChan")
 			outChan <- struct{}{}
 			changePending = false

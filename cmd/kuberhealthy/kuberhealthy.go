@@ -500,7 +500,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 // StartChecks starts all checks concurrently and ensures they stay running
 func (k *Kuberhealthy) StartChecks() {
-	// wait for theor check wg to be done, just in case
+	// wait for all check wg to be done, just in case
 	k.wg.Wait()
 
 	log.Infoln("control: Reloading check configuration...")
