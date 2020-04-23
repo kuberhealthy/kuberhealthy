@@ -37,7 +37,7 @@ deployment:
   command:
   - /app/kuberhealthy
   args:
-  - "--deploy"
+  - "--debug"
 
 securityContext:
   runAsNonRoot: true
