@@ -55,6 +55,7 @@ func main() {
 
 	}
 
+	// Debug logging counts
 	log.Println(checksRan)
 	log.Println(checksPassed)
 	log.Println(checksFailed)
