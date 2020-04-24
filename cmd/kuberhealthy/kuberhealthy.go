@@ -26,6 +26,7 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	k8sError "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
@@ -234,6 +235,7 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 				c <- struct{}{}
 			case watch.Deleted:
 				log.Debugln("khcheck monitor saw a deleted event")
+				go k.deleteRelatedKhstate(*khc.Object.(*khcheckcrd.KuberhealthyCheck))
 				c <- struct{}{}
 			case watch.Error:
 				log.Debugln("khcheck monitor saw an error event")
@@ -253,6 +255,26 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 			return
 		default:
 		}
+	}
+}
+
+// delete the khstate object
+func (k *Kuberhealthy) deleteRelatedKhstate(khCheck khcheckcrd.KuberhealthyCheck) {
+	khState, err := khStateClient.Get(metav1.GetOptions{}, stateCRDResource, khCheck.GetName(), khCheck.GetNamespace())
+	if err != nil {
+		if k8sError.IsNotFound(err) {
+			return
+		}
+		log.Errorln(fmt.Errorf("khState reaper: error when get the invalid khstate: %w", err))
+	}
+
+	_, err = khStateClient.Delete(khState, stateCRDResource, khState.GetName(), khState.GetNamespace())
+	if err != nil {
+		if k8sError.IsNotFound(err) {
+			return
+		}
+		log.Errorln(fmt.Errorf("khState reaper: error when removing invalid khstate: %w", err))
+		return
 	}
 }
 
