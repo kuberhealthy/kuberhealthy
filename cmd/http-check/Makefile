@@ -1,5 +1,5 @@
 build:
-	docker build -t kuberhealthy/http-check:v1.2.1 -f Dockerfile ../../
+	docker build -t jdowni000/http-check:v1.0.4 -f Dockerfile ../../
 
 push:
-	docker push kuberhealthy/http-check:v1.2.1
+	docker push jdowni000/http-check:v1.0.4

@@ -2,13 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -29,35 +28,48 @@ func init() {
 }
 
 func main() {
-	log.Infoln("Beginning check.")
+	log.Println("Beginning check.")
 	checksRan := 0
 	checksPassed := 0
 	checksFailed := 0
 
 	// Make a GET request.
-	for checksRan <= 10 {
-		R, err := http.Get(checkURL)
+	for checksRan < 9 {
+		r, err := http.Get(checkURL)
 		checksRan = checksRan + 1
-		if err != nil && R.StatusCode != http.StatusOK {
+
+		if r.StatusCode == http.StatusOK {
+			log.Println("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
+			kh.ReportSuccess()
+			os.Exit(0)
+		}
+
+		if err != nil {
 			checksFailed = checksFailed + 1
-			reportErr := fmt.Errorf("error occurred performing a " + http.MethodGet + " to " + checkURL + ": " + err.Error())
-			log.Errorln(reportErr.Error())
-			log.Infoln("Got a", R.StatusCode, "with a", http.MethodGet, "to", checkURL)
+			// log.Println("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
+			log.Println("Failed to reach URL: ", checkURL, " recieved a ", r.StatusCode)
 			continue
 		}
 		checksPassed = checksPassed + 1
+		log.Println("Debug Test")
 
-		// Check if the response status code is a 200.
-		if checksPassed >= 8 {
-			err = kh.ReportSuccess()
-			if err != nil {
-				log.Fatalln("error when reporting to kuberhealthy:", err.Error())
-				os.Exit(0)
-				continue
-			}
-			reportErr := fmt.Errorf("unable to retrieve a " + strconv.Itoa(http.StatusOK) + " from " + checkURL + " got a " + strconv.Itoa(R.StatusCode) + " instead")
+	}
+
+	log.Println(checksRan)
+	log.Println(checksPassed)
+	log.Println(checksFailed)
+
+	// Check to see if the 10 requests passed at 80%
+	if checksPassed >= 8 {
+		err := kh.ReportSuccess()
+		if err != nil {
+			log.Println("error when reporting to kuberhealthy:", err.Error())
+			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+			os.Exit(0)
+		} else {
+			reportErr := fmt.Errorf("unable to retrieve a response from " + checkURL)
 			log.Println("Error retrieving URL: ", checksFailed, " out of 10 attempts")
-			err = kh.ReportFailure([]string{reportErr.Error()})
+			err := kh.ReportFailure([]string{reportErr.Error()})
 			if err != nil {
 				log.Fatalln("error when reporting to kuberhealthy:", err.Error())
 			}

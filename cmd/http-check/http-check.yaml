@@ -10,8 +10,8 @@ spec:
   podSpec:
     containers:
     - name: http
-      image: jdowni000/http-check:v1.0.0
-      imagePullPolicy: IfNotPresent
+      image: jdowni000/http-check:v1.0.4
+      imagePullPolicy: Always
       env:
         - name: CHECK_URL
           value: "http://google.com"
