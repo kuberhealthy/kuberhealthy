@@ -13,9 +13,10 @@ package main
 
 import (
 	"errors"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 	"time"
+
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,7 +65,7 @@ func sanitizeResourceName(c string) string {
 }
 
 // ensureStateResourceExists checks for the existence of the specified resource and creates it if it does not exist
-func ensureStateResourceExists(checkName string, checkNamespace string) error {
+func ensureStateResourceExists(checkName string, checkNamespace string, k *Kuberhealthy) error {
 	name := sanitizeResourceName(checkName)
 
 	log.Debugln("Checking existence of custom resource:", name)
@@ -74,7 +75,18 @@ func ensureStateResourceExists(checkName string, checkNamespace string) error {
 			log.Infoln("Custom resource not found, creating resource:", name, " - ", err)
 			initialDetails := health.NewCheckDetails()
 			initialState := khstatecrd.NewKuberhealthyState(name, initialDetails)
-			_, err := khStateClient.Create(&initialState, stateCRDResource, checkNamespace)
+			checker, err := k.getCheck(checkName, checkNamespace)
+			if err != nil {
+				return err
+			}
+			// Get ownerReference for the kuberhealthy khstate
+			ownerRef, err := checker.GenOwnerRef()
+			if err != nil {
+				return errors.New("Failed to getOwnerReference for khstate: " + initialState.Name + ", err: " + err.Error())
+			}
+			// Set ownerReference on khstate
+			initialState.OwnerReferences = ownerRef
+			_, err = khStateClient.Create(&initialState, stateCRDResource, checkNamespace)
 			if err != nil {
 				return errors.New("Error creating custom resource: " + name + ": " + err.Error())
 			}
@@ -90,14 +102,14 @@ func ensureStateResourceExists(checkName string, checkNamespace string) error {
 
 // getCheckState retrieves the check values from the kuberhealthy khstate
 // custom resource
-func getCheckState(c KuberhealthyCheck) (health.CheckDetails, error) {
+func getCheckState(c KuberhealthyCheck, k *Kuberhealthy) (health.CheckDetails, error) {
 
 	var state = health.NewCheckDetails()
 	var err error
 	name := sanitizeResourceName(c.Name())
 
 	// make sure the CRD exists, even when checking status
-	err = ensureStateResourceExists(c.Name(), c.CheckNamespace())
+	err = ensureStateResourceExists(c.Name(), c.CheckNamespace(), k)
 	if err != nil {
 		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
 	}

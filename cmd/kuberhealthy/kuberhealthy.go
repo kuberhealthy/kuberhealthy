@@ -76,7 +76,7 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace s
 	if err != nil {
 		log.Errorln("Error when setting execution error on check", checkName, checkNamespace, err)
 	}
-	checkState, err := getCheckState(khc)
+	checkState, err := getCheckState(khc, k)
 	if err != nil {
 		log.Errorln("Error when setting execution error on check (getting check state for current UUID)", checkName, checkNamespace, err)
 	}
@@ -196,75 +196,6 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 func (k *Kuberhealthy) RestartChecks() {
 	k.StopChecks()
 	k.StartChecks()
-}
-
-// khStateResourceReaper runs reapKHStateResources on an interval until the context for it is canceled
-func (k *Kuberhealthy) khStateResourceReaper(ctx context.Context) {
-
-	ticker := time.NewTicker(time.Minute)
-	defer ticker.Stop()
-	log.Infoln("khState reaper: starting up")
-
-	for {
-		select {
-		case <-ticker.C:
-			log.Infoln("khState reaper: starting to run an audit")
-			err := k.reapKHStateResources()
-			if err != nil {
-				log.Errorln("khState reaper: Error when reaping khState resources:", err)
-			}
-		case <-ctx.Done():
-			log.Infoln("khState reaper: stopping")
-			return
-		}
-	}
-
-}
-
-// reapKHStateResources runs a single audit on khState resources.  Any that don't have a matching khCheck are
-// deleted.
-func (k *Kuberhealthy) reapKHStateResources() error {
-
-	// list all khStates in the cluster
-	khStates, err := khStateClient.List(metav1.ListOptions{}, stateCRDResource, "")
-	if err != nil {
-		return fmt.Errorf("khState reaper: error listing khStates for reaping: %w", err)
-	}
-
-	// list all khChecks
-	khChecks, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
-	if err != nil {
-		return fmt.Errorf("khState reaper: error listing khChecks for khState reaping: %w", err)
-	}
-
-	log.Infoln("khState reaper: analyzing", len(khStates.Items), "khState resources")
-
-	// any khState that does not have a matching khCheck should be deleted (ignore errors)
-	for i := range khStates.Items {
-		khState := khStates.Items[i]
-		log.Debugln("khState reaper: analyzing khState", khState.GetName(), "in", khState.GetName())
-		var foundKHCheck bool
-		for _, khCheck := range khChecks.Items {
-			log.Debugln("khState reaper:", khCheck.GetName(), "==", khState.GetName(), "&&", khCheck.GetNamespace(), "==", khState.GetNamespace())
-			if khCheck.GetName() == khState.GetName() && khCheck.GetNamespace() == khState.GetNamespace() {
-				log.Infoln("khState reaper:", khState.GetName(), "in", khState.GetNamespace(), "is still valid")
-				foundKHCheck = true
-				break
-			}
-		}
-
-		// if we didn't find a matching khCheck, delete the rogue khState
-		if !foundKHCheck {
-			log.Infoln("khState reaper: removing khState", khState.GetName(), "in", khState.GetNamespace())
-			_, err := khStateClient.Delete(&khState, stateCRDResource, khState.GetName(), khState.GetNamespace())
-			if err != nil {
-				log.Errorln(fmt.Errorf("khState reaper: error when removing invalid khstate: %w", err))
-			}
-		}
-	}
-
-	return nil
-
 }
 
 // watchForKHCheckChanges watches for changes to khcheck objects and returns them through the specified channel
@@ -521,10 +452,6 @@ func (k *Kuberhealthy) StartChecks() {
 		// start the check in its own routine
 		go k.runCheck(ctx, c)
 	}
-
-	// spin up the khState reaper with a context after checks have been configured and started
-	log.Infoln("control: reaper starting!")
-	go k.khStateResourceReaper(ctx)
 }
 
 // masterStatusWatcher watches for master change events and updates the global upcomingMasterState along
@@ -670,7 +597,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		checkRunDuration := time.Now().Sub(checkStartTime) - time.Second*10
 
 		// make a new state for this check and fill it from the check's current status
-		checkDetails, err := getCheckState(c)
+		checkDetails, err := getCheckState(c, k)
 		if err != nil {
 			log.Errorln("Error setting check state after run:", c.Name(), "in namespace", c.CheckNamespace()+":", err)
 		}
@@ -725,7 +652,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, details health.CheckDetails) error {
 
 	// ensure the CRD resource exits
-	err := ensureStateResourceExists(checkName, checkNamespace)
+	err := ensureStateResourceExists(checkName, checkNamespace, k)
 	if err != nil {
 		return err
 	}

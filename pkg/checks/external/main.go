@@ -25,7 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
 	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
@@ -313,6 +312,11 @@ func (ext *Checker) setUUID(uuid string) error {
 		newState := khstatecrd.NewKuberhealthyState(ext.CheckName, details)
 		newState.Namespace = ext.Namespace
 		ext.log("Creating khstate", newState.Name, newState.Namespace, "because it did not exist")
+		ownerRef, err := ext.GenOwnerRef()
+		if err != nil {
+			return errors.New("Failed to getOwnerReference for khstate: " + newState.Name + ", err: " + err.Error())
+		}
+		newState.OwnerReferences = ownerRef
 		_, err = ext.KHStateClient.Create(&newState, stateCRDResource, ext.CheckNamespace())
 		if err != nil {
 			ext.log("failed to create a khstate after finding that it did not exist:", err)
@@ -1073,7 +1077,7 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	ext.addKuberhealthyLabels(p)
 
 	// Get ownerReference for the kuberhealthy pod
-	ownerRef, err := util.GetOwnerRef(ext.KubeClient, "kuberhealthy")
+	ownerRef, err := ext.GenOwnerRef()
 	if err != nil {
 		return nil, errors.New("Failed to getOwnerReference for pod: " + p.Name + ", err: " + err.Error())
 	}
@@ -1263,6 +1267,28 @@ func (ext *Checker) Shutdown() error {
 // getPodClient returns a client for Kubernetes pods
 func (ext *Checker) getPodClient() typedv1.PodInterface {
 	return ext.KubeClient.CoreV1().Pods(ext.Namespace)
+}
+
+// GenOwnerRef return the OwnerReference for objects(pod/cr) create by the khcheck checker
+func (ext *Checker) GenOwnerRef() ([]metav1.OwnerReference, error) {
+	khcheck, err := ext.getCheck()
+	if err != nil {
+		return nil, err
+	}
+
+	controller := true
+	blockOwnerDeletion := true
+
+	return []metav1.OwnerReference{
+		metav1.OwnerReference{
+			APIVersion:         CRDGroup + "/" + CRDVersion,
+			Kind:               "KuberhealthyCheck",
+			Name:               khcheck.Name,
+			UID:                khcheck.UID,
+			Controller:         &controller,
+			BlockOwnerDeletion: &blockOwnerDeletion,
+		},
+	}, nil
 }
 
 // resetInjectedContainerEnvVars resets injected environment variables

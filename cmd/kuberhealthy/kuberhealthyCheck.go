@@ -14,6 +14,8 @@ package main
 import (
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -45,4 +47,8 @@ type KuberhealthyCheck interface {
 	// When the check completes and returns, we assume it is done shutting
 	// down.
 	Shutdown() error
+	// GenOwnerRef can generate the OwnerReference for objects(pod/cr)
+	// create by the khcheck checker, and we can delete them by delete the
+	// khcheck cr.
+	GenOwnerRef() ([]metav1.OwnerReference, error)
 }
