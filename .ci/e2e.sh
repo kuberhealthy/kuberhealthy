@@ -32,7 +32,7 @@ echo "get khs \n"
 kubectl -n $NS get khs
 
 # If the operator dosen't start for some reason kill the test
-kubectl -n $NS get pods |grep NAME
+kubectl -n $NS get pods |grep $name
 if [ $? != 0 ]
 then
     echo "No operator pod found"
