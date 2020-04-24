@@ -34,14 +34,14 @@ func main() {
 	checksFailed := 0
 
 	// Make a GET request.
-	for checksRan < 9 {
+	for checksRan < 10 {
 		r, err := http.Get(checkURL)
 		checksRan = checksRan + 1
 
 		if r.StatusCode == http.StatusOK {
 			log.Println("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
-			kh.ReportSuccess()
-			os.Exit(0)
+			checksPassed = checksPassed + 1
+			continue
 		}
 
 		if err != nil {
@@ -50,9 +50,6 @@ func main() {
 			log.Println("Failed to reach URL: ", checkURL, " recieved a ", r.StatusCode)
 			continue
 		}
-		checksPassed = checksPassed + 1
-		log.Println("Debug Test")
-
 	}
 
 	// Debug logging counts
@@ -69,7 +66,7 @@ func main() {
 			os.Exit(0)
 		} else {
 			reportErr := fmt.Errorf("unable to retrieve a response from " + checkURL)
-			log.Println("Error retrieving URL: ", checksFailed, " out of 10 attempts")
+			// log.Println("Error retrieving URL: ", checksFailed, " out of 10 attempts")
 			err := kh.ReportFailure([]string{reportErr.Error()})
 			if err != nil {
 				log.Fatalln("error when reporting to kuberhealthy:", err.Error())
