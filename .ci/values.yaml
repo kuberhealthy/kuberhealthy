@@ -76,6 +76,7 @@ check:
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
+      DEBUG: "true"
     nodeSelector: {}
   dnsInternal:
     enabled: true
