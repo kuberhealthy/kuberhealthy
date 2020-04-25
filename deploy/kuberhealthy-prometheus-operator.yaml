@@ -462,11 +462,9 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.3.4
+      image: kuberhealthy/deployment-check:v1.4.0
       imagePullPolicy: IfNotPresent
       env:
-        - name: CHECK_TIME_LIMIT
-          value: 15m
         - name: CHECK_DEPLOYMENT_REPLICAS
           value: "4"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
