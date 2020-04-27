@@ -37,7 +37,8 @@ func main() {
 	checksPassed := 0
 	checksFailed := 0
 
-	// Make a GET request.
+	// This for loop makes a http GET request to a known internet address, address can be changed in deployment spec yaml
+	// and returns a http status every second.
 	for checksRan < 10 {
 		r, err := http.Get(checkURL)
 		checksRan = checksRan + 1
