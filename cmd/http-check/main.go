@@ -35,11 +35,18 @@ func main() {
 	checksPassed := 0
 	checksFailed := 0
 
-	r, err := http.Get(checkURL)
-
 	// Make a GET request.
 	for checksRan < 10 {
+		r, err := http.Get(checkURL)
 		checksRan = checksRan + 1
+
+		if err != nil {
+			checksFailed = checksFailed + 1
+			// log.Println("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
+			// log.Println("Failed to reach URL: ", checkURL, " recieved a ", r.StatusCode)
+			log.Println("Failed to reach URL: ", checkURL)
+			continue
+		}
 
 		if r.StatusCode == http.StatusOK {
 			log.Println("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
@@ -52,14 +59,6 @@ func main() {
 			checksFailed = checksFailed + 1
 			continue
 		}
-
-		if err != nil {
-			checksFailed = checksFailed + 1
-			// log.Println("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
-			log.Println("Failed to reach URL: ", checkURL, " recieved a ", r.StatusCode)
-			continue
-		}
-
 		time.Sleep(time.Second)
 	}
 
