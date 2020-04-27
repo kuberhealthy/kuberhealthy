@@ -67,7 +67,11 @@ func main() {
 		if err != nil {
 			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
 			os.Exit(0)
-		} else {
+		}
+		log.Println("Successfully reported to Kuberhealthy")
+
+		// Kuberhealthy reporting when checks passed is less than 8 out of 10 attempts
+		if checksPassed < 8 {
 			reportErr := fmt.Errorf("unable to retrieve a http.StatusOK from " + checkURL + "check failed " + strconv.Itoa(checksFailed) + " out of 10 attempts")
 			// log.Println(reportErr.Error())
 			err := kh.ReportFailure([]string{reportErr.Error()})
@@ -75,6 +79,7 @@ func main() {
 				log.Fatalln("error when reporting to kuberhealthy:", err.Error())
 				os.Exit(0)
 			}
+			log.Println("Successfully reported to Kuberhealthy of failure")
 		}
 	}
 }
