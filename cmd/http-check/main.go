@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 )
@@ -33,9 +35,10 @@ func main() {
 	checksPassed := 0
 	checksFailed := 0
 
+	r, err := http.Get(checkURL)
+
 	// Make a GET request.
 	for checksRan < 10 {
-		r, err := http.Get(checkURL)
 		checksRan = checksRan + 1
 
 		if r.StatusCode == http.StatusOK {
@@ -50,6 +53,7 @@ func main() {
 			log.Println("Failed to reach URL: ", checkURL, " recieved a ", r.StatusCode)
 			continue
 		}
+		time.Sleep(time.Second)
 	}
 
 	// Debug logging counts
@@ -61,17 +65,16 @@ func main() {
 	if checksPassed >= 8 {
 		err := kh.ReportSuccess()
 		if err != nil {
-			log.Println("error when reporting to kuberhealthy:", err.Error())
 			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
 			os.Exit(0)
 		} else {
-			reportErr := fmt.Errorf("unable to retrieve a response from " + checkURL)
-			// log.Println("Error retrieving URL: ", checksFailed, " out of 10 attempts")
+			reportErr := fmt.Errorf("unable to retrieve a http.StatusOK from " + checkURL + "check failed " + strconv.Itoa(checksFailed) + " out of 10 attempts")
+			// log.Println(reportErr.Error())
 			err := kh.ReportFailure([]string{reportErr.Error()})
 			if err != nil {
 				log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+				os.Exit(0)
 			}
-			os.Exit(0)
 		}
 	}
 }
