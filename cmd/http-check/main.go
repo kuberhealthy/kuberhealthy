@@ -21,11 +21,13 @@ func init() {
 	// Check that the URL environment variable is valid.
 	if len(checkURL) == 0 {
 		log.Fatalln("Empty URL. Please update your CHECK_URL environment variable.")
+		os.Exit(0)
 	}
 
 	// If the URL does not begin with HTTP, exit.
 	if !strings.HasPrefix(checkURL, "http") {
 		log.Fatalln("Given URL does not declare a supported protocol. (http | https)")
+		os.Exit(0)
 	}
 }
 
