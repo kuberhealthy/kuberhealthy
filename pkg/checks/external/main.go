@@ -6,13 +6,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -25,7 +26,6 @@ import (
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
-
 	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
@@ -63,6 +63,9 @@ const defaultTimeout = time.Minute * 15
 
 // constant for the error when a pod is deleted expectedly during a check run
 var ErrPodRemovedExpectedly = errors.New("pod deleted expectedly")
+
+// constant for the error when a pod is deleted before the check pod running
+var ErrPodDeletedBeforeRunning = errors.New("the khcheck check pod is deleted, waiting for start failed")
 
 // DefaultName is used when no check name is supplied
 var DefaultName = "external-check"
@@ -955,6 +958,17 @@ func (ext *Checker) waitForPodStart() chan error {
 
 			ext.log("starting pod running watcher")
 
+			pods, err := podClient.List(metav1.ListOptions{
+				LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
+			})
+			if err != nil {
+				outChan <- err
+				return
+			}
+			if pods.Size() == 0 {
+				outChan <- ErrPodDeletedBeforeRunning
+				return
+			}
 			// start watching
 			watcher, err := podClient.Watch(metav1.ListOptions{
 				LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
@@ -968,6 +982,13 @@ func (ext *Checker) waitForPodStart() chan error {
 			for e := range watcher.ResultChan() {
 
 				ext.log("got an event while waiting for pod to start running")
+
+				if e.Type == watch.Deleted {
+					ext.log("the khcheck check pod is deleted, waiting for start failed!")
+					outChan <- ErrPodDeletedBeforeRunning
+					watcher.Stop()
+					return
+				}
 
 				// try to cast the incoming object to a pod and skip the event if we cant
 				p, ok := e.Object.(*apiv1.Pod)

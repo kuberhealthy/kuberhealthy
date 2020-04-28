@@ -13,15 +13,15 @@ func pod(podName string, containerName string, restartCount int32) *v1.Pod {
 	var pod = v1.Pod{
 		ObjectMeta: v12.ObjectMeta{
 			Namespace: "test-namespace",
-			Name: podName,
+			Name:      podName,
 		},
 		Spec: v1.PodSpec{},
 		Status: v1.PodStatus{
 			Reason: "Ready",
 			ContainerStatuses: []v1.ContainerStatus{
 				{Name: containerName,
-				Ready: true,
-				RestartCount: restartCount},
+					Ready:        true,
+					RestartCount: restartCount},
 			},
 		},
 	}
@@ -45,8 +45,8 @@ func TestAddPodRestartCount(t *testing.T) {
 
 	var testCase = struct {
 		description string
-		pod v1.Pod
-		expected map[string]map[string]int32
+		pod         v1.Pod
+		expected    map[string]map[string]int32
 	}{"Pod: test-pod, container: container-name, restart count: 5",
 		*pod("test-pod", "container-name", 5),
 		expectedRestartObservations}
@@ -70,7 +70,7 @@ func TestCheckBadPodRestarts(t *testing.T) {
 
 	var testCases = []struct {
 		description string
-		pod v1.Pod
+		pod         v1.Pod
 	}{
 		{
 			"Bad pod with more than max restarts",
@@ -109,7 +109,7 @@ func TestRemoveBadPodRestarts(t *testing.T) {
 
 	var testCases = []struct {
 		description string
-		pod v1.Pod
+		pod         v1.Pod
 	}{
 		{"Remove deleted pod from BadPodRestarts", *pod("removed-bad-pod", "removed-bad-container", 3)},
 		{"Don't remove pod from BadPodRestarts", *pod("bad-test-pod", "bad-test-container", 8)},
