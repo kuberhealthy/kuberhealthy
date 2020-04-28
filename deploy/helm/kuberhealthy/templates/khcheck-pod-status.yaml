@@ -11,6 +11,7 @@ spec:
     securityContext:
       runAsUser: {{ .Values.securityContext.runAsUser }}
       fsGroup: {{ .Values.securityContext.fsGroup }}
+      {{- end}}
     containers:
       - env:
           - name: SKIP_DURATION
