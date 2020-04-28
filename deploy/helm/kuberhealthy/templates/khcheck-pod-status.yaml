@@ -30,6 +30,7 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+        {{- if .Values.securityContext.enabled }}
         securityContext:
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
           readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
