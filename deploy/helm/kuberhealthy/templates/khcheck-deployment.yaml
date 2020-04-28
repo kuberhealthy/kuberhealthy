@@ -9,6 +9,11 @@ spec:
   runInterval:  {{ .Values.check.deployment.runInterval }}
   timeout: {{ .Values.check.deployment.timeout }}
   podSpec:
+    {{- if .Values.securityContext.enabled }}
+    securityContext:
+      runAsUser: {{ .Values.securityContext.runAsUser }}
+      fsGroup: {{ .Values.securityContext.fsGroup }}
+    {{- end}}
     containers:
     - name: deployment
       image: {{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
@@ -24,6 +29,11 @@ spec:
           memory: 15Mi
         limits:
           cpu: 40m
+{{- if .Values.securityContext.enabled }}
+      securityContext:
+        allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+        readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+{{- end}}
       restartPolicy: Never
     {{- if .Values.check.deployment.nodeSelector }}
     nodeSelector:
@@ -90,4 +100,3 @@ metadata:
   name: deployment-sa
   namespace: {{ .Release.Namespace }}
 {{- end }}
-
