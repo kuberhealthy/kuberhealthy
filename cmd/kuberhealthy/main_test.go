@@ -4,8 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func init(){
+func init() {
 	// tests always run with debug logging
 	log.SetLevel(log.DebugLevel)
 }
-
