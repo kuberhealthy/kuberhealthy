@@ -21,13 +21,11 @@ func init() {
 	// Check that the URL environment variable is valid.
 	if len(checkURL) == 0 {
 		log.Fatalln("Empty URL. Please update your CHECK_URL environment variable.")
-		os.Exit(0)
 	}
 
 	// If the URL does not begin with HTTP, exit.
 	if !strings.HasPrefix(checkURL, "http") {
 		log.Fatalln("Given URL does not declare a supported protocol. (http | https)")
-		os.Exit(0)
 	}
 }
 
@@ -37,32 +35,30 @@ func main() {
 	checksPassed := 0
 	checksFailed := 0
 
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
 	// This for loop makes a http GET request to a known internet address, address can be changed in deployment spec yaml
 	// and returns a http status every second.
 	for checksRan < 10 {
+		<-ticker.C
 		r, err := http.Get(checkURL)
-		checksRan = checksRan + 1
+		checksRan++
 
 		if err != nil {
-			checksFailed = checksFailed + 1
+			checksFailed++
 			// log.Println("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
 			// log.Println("Failed to reach URL: ", checkURL, " recieved a ", r.StatusCode)
 			log.Println("Failed to reach URL: ", checkURL)
 			continue
 		}
 
-		if r.StatusCode == http.StatusOK {
-			log.Println("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
-			checksPassed = checksPassed + 1
-			continue
-		}
-
 		if r.StatusCode != http.StatusOK {
 			log.Println("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
-			checksFailed = checksFailed + 1
+			checksFailed++
 			continue
 		}
-		time.Sleep(time.Second)
+		log.Println("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
+		checksPassed++
 	}
 
 	// Debug logging counts
@@ -71,24 +67,19 @@ func main() {
 	log.Println(checksFailed, "checks failed")
 
 	// Check to see if the 10 requests passed at 80%
-	if checksPassed >= 8 {
-		err := kh.ReportSuccess()
-		if err != nil {
-			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
-			os.Exit(0)
-		}
-		log.Println("Successfully reported to Kuberhealthy")
-	}
-
-	// Kuberhealthy reporting when checks passed is less than 8 out of 10 attempts
 	if checksPassed < 8 {
 		reportErr := fmt.Errorf("unable to retrieve a http.StatusOK from " + checkURL + "check failed " + strconv.Itoa(checksFailed) + " out of 10 attempts")
 		// log.Println(reportErr.Error())
 		err := kh.ReportFailure([]string{reportErr.Error()})
 		if err != nil {
 			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
-			os.Exit(0)
 		}
 		log.Println("Successfully reported to Kuberhealthy of failure")
 	}
+
+	err := kh.ReportSuccess()
+	if err != nil {
+		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+	}
+	log.Println("Successfully reported to Kuberhealthy")
 }
