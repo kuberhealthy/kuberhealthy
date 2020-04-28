@@ -2,6 +2,8 @@ package util
 
 import (
 	"os"
+	"os/user"
+	"strconv"
 	"strings"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -42,4 +44,24 @@ func getKuberhealthyPod(client *kubernetes.Clientset, namespace, podName string)
 		return nil, err
 	}
 	return kHealthyPod, nil
+}
+
+// GetCurrentUser checks which os use that is running the app
+func GetCurrentUser(defaultUser int64) (int64, error) {
+	runAsUser := defaultUser
+
+	currentUser, err := user.Current()
+	if err != nil {
+		return 0, err
+	}
+	intCurrentUser, err := strconv.ParseInt(currentUser.Uid, 0, 64)
+	if err != nil {
+		return 0, err
+	}
+	if intCurrentUser == 0 {
+		return defaultUser, nil
+	}
+	runAsUser = intCurrentUser
+	return runAsUser, nil
+
 }
