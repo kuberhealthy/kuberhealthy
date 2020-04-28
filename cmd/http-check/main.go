@@ -46,8 +46,6 @@ func main() {
 
 		if err != nil {
 			checksFailed++
-			// log.Println("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
-			// log.Println("Failed to reach URL: ", checkURL, " recieved a ", r.StatusCode)
 			log.Println("Failed to reach URL: ", checkURL)
 			continue
 		}
@@ -61,15 +59,14 @@ func main() {
 		checksPassed++
 	}
 
-	// Debug logging counts
+	// Displays the results of 10 URL requests
 	log.Println(checksRan, "checks ran")
 	log.Println(checksPassed, "checks passed")
 	log.Println(checksFailed, "checks failed")
 
-	// Check to see if the 10 requests passed at 80%
+	// Check to see if the 10 requests passed at 80% and reports to Kuberhealthy accordingly
 	if checksPassed < 8 {
 		reportErr := fmt.Errorf("unable to retrieve a http.StatusOK from " + checkURL + "check failed " + strconv.Itoa(checksFailed) + " out of 10 attempts")
-		// log.Println(reportErr.Error())
 		err := kh.ReportFailure([]string{reportErr.Error()})
 		if err != nil {
 			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
