@@ -5,9 +5,9 @@ RUN curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh
 RUN mkdir /kuberhealthy
 
 WORKDIR /go/src/github.com/Comcast/kuberhealthy/
-ADD go.mod go.sum ./
+COPY go.* ./
 RUN go mod download
-ADD ./ .
+COPY ./ ./
 WORKDIR /go/src/github.com/Comcast/kuberhealthy/cmd/kuberhealthy
 ENV CGO_ENABLED=0
 # RUN go version
