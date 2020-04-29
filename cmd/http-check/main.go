@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -30,7 +30,7 @@ func init() {
 }
 
 func main() {
-	log.Println("Beginning check.")
+	log.Infoln("Beginning check.")
 	checksRan := 0
 	checksPassed := 0
 	checksFailed := 0
@@ -46,23 +46,23 @@ func main() {
 
 		if err != nil {
 			checksFailed++
-			log.Println("Failed to reach URL: ", checkURL)
+			log.Infoln("Failed to reach URL: ", checkURL)
 			continue
 		}
 
 		if r.StatusCode != http.StatusOK {
-			log.Println("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
+			log.Infoln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
 			checksFailed++
 			continue
 		}
-		log.Println("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
+		log.Infoln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
 		checksPassed++
 	}
 
 	// Displays the results of 10 URL requests
-	log.Println(checksRan, "checks ran")
-	log.Println(checksPassed, "checks passed")
-	log.Println(checksFailed, "checks failed")
+	log.Infoln(checksRan, "checks ran")
+	log.Infoln(checksPassed, "checks passed")
+	log.Infoln(checksFailed, "checks failed")
 
 	// Check to see if the 10 requests passed at 80% and reports to Kuberhealthy accordingly
 	if checksPassed < 8 {
@@ -71,12 +71,12 @@ func main() {
 		if err != nil {
 			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
 		}
-		log.Println("Successfully reported to Kuberhealthy of failure")
+		log.Infoln("Successfully reported to Kuberhealthy of failure")
 	}
 
 	err := kh.ReportSuccess()
 	if err != nil {
-		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+		log.Infoln("error when reporting to kuberhealthy:", err.Error())
 	}
-	log.Println("Successfully reported to Kuberhealthy")
+	log.Infoln("Successfully reported to Kuberhealthy")
 }
