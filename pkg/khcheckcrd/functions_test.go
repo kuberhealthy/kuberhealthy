@@ -56,7 +56,7 @@ func TestCreate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkDetails := NewKuberhealthyCheck(testCheckName, defaultNamespace, NewCheckConfig(time.Second,v1.PodSpec{}))
+	checkDetails := NewKuberhealthyCheck(testCheckName, defaultNamespace, NewCheckConfig(time.Second, v1.PodSpec{}))
 	result, err := client.Create(&checkDetails, resource, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
