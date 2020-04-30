@@ -65,7 +65,7 @@ func sanitizeResourceName(c string) string {
 }
 
 // ensureStateResourceExists checks for the existence of the specified resource and creates it if it does not exist
-func ensureStateResourceExists(checkName string, checkNamespace string, k *Kuberhealthy) error {
+func (k *Kuberhealthy) ensureStateResourceExists(checkName string, checkNamespace string) error {
 	name := sanitizeResourceName(checkName)
 
 	log.Debugln("Checking existence of custom resource:", name)
@@ -102,14 +102,14 @@ func ensureStateResourceExists(checkName string, checkNamespace string, k *Kuber
 
 // getCheckState retrieves the check values from the kuberhealthy khstate
 // custom resource
-func getCheckState(c KuberhealthyCheck, k *Kuberhealthy) (health.CheckDetails, error) {
+func (k *Kuberhealthy) getCheckState(c KuberhealthyCheck) (health.CheckDetails, error) {
 
 	var state = health.NewCheckDetails()
 	var err error
 	name := sanitizeResourceName(c.Name())
 
 	// make sure the CRD exists, even when checking status
-	err = ensureStateResourceExists(c.Name(), c.CheckNamespace(), k)
+	err = k.ensureStateResourceExists(c.Name(), c.CheckNamespace())
 	if err != nil {
 		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
 	}

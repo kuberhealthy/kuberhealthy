@@ -77,7 +77,7 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace s
 	if err != nil {
 		log.Errorln("Error when setting execution error on check", checkName, checkNamespace, err)
 	}
-	checkState, err := getCheckState(khc, k)
+	checkState, err := k.getCheckState(khc)
 	if err != nil {
 		log.Errorln("Error when setting execution error on check (getting check state for current UUID)", checkName, checkNamespace, err)
 	}
@@ -235,7 +235,12 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 				c <- struct{}{}
 			case watch.Deleted:
 				log.Debugln("khcheck monitor saw a deleted event")
-				go k.deleteRelatedKhstate(*khc.Object.(*khcheckcrd.KuberhealthyCheck))
+				checkObj, ok := khc.Object.(*khcheckcrd.KuberhealthyCheck)
+				if !ok {
+					log.Warningln("error watch.Deleted, the khc.Object is not *khcheckcrd.KuberhealthyCheck:", khc.Object)
+					continue
+				}
+				go k.deleteRelatedKhstate(*checkObj)
 				c <- struct{}{}
 			case watch.Error:
 				log.Debugln("khcheck monitor saw an error event")
@@ -265,7 +270,7 @@ func (k *Kuberhealthy) deleteRelatedKhstate(khCheck khcheckcrd.KuberhealthyCheck
 		if k8sError.IsNotFound(err) {
 			return
 		}
-		log.Errorln(fmt.Errorf("khState reaper: error when get the invalid khstate: %w", err))
+		log.Errorln(fmt.Errorf("khState reaper: error when fetching khstate that needs cleaned up: %w", err))
 	}
 
 	_, err = khStateClient.Delete(khState, stateCRDResource, khState.GetName(), khState.GetNamespace())
@@ -273,7 +278,7 @@ func (k *Kuberhealthy) deleteRelatedKhstate(khCheck khcheckcrd.KuberhealthyCheck
 		if k8sError.IsNotFound(err) {
 			return
 		}
-		log.Errorln(fmt.Errorf("khState reaper: error when removing invalid khstate: %w", err))
+		log.Errorln(fmt.Errorf("khState reaper: error when removing expired khstate: %w", err))
 		return
 	}
 }
@@ -619,7 +624,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		checkRunDuration := time.Now().Sub(checkStartTime) - time.Second*10
 
 		// make a new state for this check and fill it from the check's current status
-		checkDetails, err := getCheckState(c, k)
+		checkDetails, err := k.getCheckState(c)
 		if err != nil {
 			log.Errorln("Error setting check state after run:", c.Name(), "in namespace", c.CheckNamespace()+":", err)
 		}
@@ -674,7 +679,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, details health.CheckDetails) error {
 
 	// ensure the CRD resource exits
-	err := ensureStateResourceExists(checkName, checkNamespace, k)
+	err := k.ensureStateResourceExists(checkName, checkNamespace)
 	if err != nil {
 		return err
 	}
