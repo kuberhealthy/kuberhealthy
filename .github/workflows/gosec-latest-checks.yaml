@@ -15,13 +15,12 @@ jobs:
     steps:
       - name: Checkout Source 
         uses: actions/checkout@v2
-      - name: Look at where we are
-        run: |
-          pwd
-          ls -a
+      # - name: Look at where we are
+      #   run: |
+      #     pwd
+      #     ls -a
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
         with:
           entrypoint: gosec
-          args: ./..
-          # args: -exclude=G107 ./...
+          args: ./...
