@@ -20,7 +20,7 @@ jobs:
       - name: Run Gosec Security Scanner
         # run: gosec ./...
         uses: securego/gosec@master
-        with:
-          run: gosec ./... 
+        # with:
+        run: gosec ./... 
           # args: 
           #   - "./..."
