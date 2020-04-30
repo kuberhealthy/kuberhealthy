@@ -23,5 +23,5 @@ jobs:
         uses: securego/gosec@master
         with:
           entrypoint: gosec
-          args: ./.
+          args: ./..
           # args: -exclude=G107 ./...
