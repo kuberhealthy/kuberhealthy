@@ -76,7 +76,7 @@ func main() {
 
 	err := kh.ReportSuccess()
 	if err != nil {
-		log.Infoln("error when reporting to kuberhealthy:", err.Error())
+		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
 	}
 	log.Infoln("Successfully reported to Kuberhealthy")
 }
