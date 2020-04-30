@@ -13,6 +13,7 @@ package main
 
 import (
 	"errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 	"time"
 
@@ -69,7 +70,7 @@ func ensureStateResourceExists(checkName string, checkNamespace string) error {
 	log.Debugln("Checking existence of custom resource:", name)
 	state, err := khStateClient.Get(metav1.GetOptions{}, stateCRDResource, name, checkNamespace)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if k8sErrors.IsNotFound(err) {
 			log.Infoln("Custom resource not found, creating resource:", name, " - ", err)
 			initialDetails := health.NewCheckDetails()
 			initialState := khstatecrd.NewKuberhealthyState(name, initialDetails)

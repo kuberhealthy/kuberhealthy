@@ -399,7 +399,7 @@ metadata:
   name: daemonset
   namespace: kuberhealthy
 spec:
-  runInterval: 15m
+  runInterval:  15m
   timeout: 12m
   podSpec:
     containers:
@@ -426,20 +426,20 @@ metadata:
   name: deployment
   namespace: kuberhealthy
 spec:
-  runInterval: 10m
-  timeout: &deployment_check_timeout 15m
+  runInterval:  10m
+  timeout: 15m
   podSpec:
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.3.4
+      image: kuberhealthy/deployment-check:v1.4.0
       imagePullPolicy: IfNotPresent
       env:
-        - name: CHECK_TIME_LIMIT
-          value: *deployment_check_timeout
         - name: CHECK_DEPLOYMENT_REPLICAS
           value: "4"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
+        - name: CHECK_SERVICE_ACCOUNT
+          value: "default"
       resources:
         requests:
           cpu: 25m

@@ -15,9 +15,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"math"
 	"strconv"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -256,13 +256,13 @@ func createContainerConfig(imageURL string) corev1.Container {
 	// Make maps for resources.
 	// Make and define a map for requests.
 	requests := make(map[corev1.ResourceName]resource.Quantity, 0)
-	requests[corev1.ResourceCPU] = *resource.NewMilliQuantity(defaultMillicoreRequest, resource.DecimalSI)
-	requests[corev1.ResourceMemory] = *resource.NewQuantity(defaultMemoryRequest, resource.BinarySI)
+	requests[corev1.ResourceCPU] = *resource.NewMilliQuantity(int64(millicoreRequest), resource.DecimalSI)
+	requests[corev1.ResourceMemory] = *resource.NewQuantity(int64(memoryRequest), resource.BinarySI)
 
 	// Make and define a map for limits.
 	limits := make(map[corev1.ResourceName]resource.Quantity, 0)
-	limits[corev1.ResourceCPU] = *resource.NewMilliQuantity(defaultMillicoreLimit, resource.DecimalSI)
-	limits[corev1.ResourceMemory] = *resource.NewQuantity(defaultMemoryLimit, resource.BinarySI)
+	limits[corev1.ResourceCPU] = *resource.NewMilliQuantity(int64(millicoreLimit), resource.DecimalSI)
+	limits[corev1.ResourceMemory] = *resource.NewQuantity(int64(memoryLimit), resource.BinarySI)
 
 	// Make and define a resource requirement struct.
 	resources := corev1.ResourceRequirements{
@@ -609,7 +609,7 @@ func waitForDeploymentToDelete() chan bool {
 			_, err := client.AppsV1().Deployments(checkNamespace).Get(checkDeploymentName, metav1.GetOptions{})
 			if err != nil {
 				log.Debugln("error from Deployments().Get():", err.Error())
-				if strings.Contains(err.Error(), "not found") {
+				if k8sErrors.IsNotFound(err) {
 					log.Debugln("Deployment deleted.")
 					deleteChan <- true
 					return

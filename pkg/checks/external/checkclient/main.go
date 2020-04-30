@@ -86,7 +86,7 @@ func sendReport(s status.Report) error {
 	// make sure we got a 200 and consider it an error otherwise
 	if resp.StatusCode != http.StatusOK {
 		writeLog("ERROR: got a bad status code from kuberhealthy:", resp.StatusCode, resp.Status)
-		return fmt.Errorf("bad status code from kuberhealthy status reporting url: %s", resp.StatusCode, resp.Status)
+		return fmt.Errorf("bad status code from kuberhealthy status reporting url: [%d] %s ", resp.StatusCode, resp.Status)
 	}
 	writeLog("INFO: Got a good http return status code from kuberhealthy URL:", url)
 
@@ -106,4 +106,17 @@ func getKuberhealthyURL() (string, error) {
 	}
 
 	return reportingURL, nil
+}
+
+// GetDeadline fetches the KH_CHECK_RUN_DEADLINE environment variable and returns it.
+// Checks are given up to the deadline to complete their check runs.
+func GetDeadline() (string, error) {
+	unixDeadline := os.Getenv(external.KHDeadline)
+
+	if len(unixDeadline) < 1 {
+		writeLog("ERROR: kuberhealthy check deadline from environment variable", external.KHDeadline, "was blank")
+		return "", fmt.Errorf("fetched %s environment variable but it was blank", external.KHDeadline)
+	}
+
+	return unixDeadline, nil
 }
