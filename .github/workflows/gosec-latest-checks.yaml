@@ -22,5 +22,5 @@ jobs:
       - name: Run Gosec Security Scanner  
         uses: securego/gosec@master
         with:
-          entrypoint: gosec -version
-        #   args: ./...
+          # entrypoint: gosec -version
+          args: -version
