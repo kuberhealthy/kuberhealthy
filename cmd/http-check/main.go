@@ -36,7 +36,7 @@ func main() {
 	if err != nil {
 		reportErr := fmt.Errorf("error occurred performing a " + http.MethodGet + " to " + checkURL + ": " + err.Error())
 		log.Errorln(reportErr.Error())
-		reportFailureErr = kh.ReportFailure([]string{reportErr.Error()})
+		reportFailureErr := kh.ReportFailure([]string{reportErr.Error()})
 		if reportFailureErr != nil {
 			log.Fatalln("error when reporting to kuberhealthy:", reportFailureErr.Error())
 		}
