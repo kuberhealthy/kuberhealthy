@@ -41,7 +41,7 @@ Simply build your program into a container, `docker push` it to somewhere your c
 Clients outside of Go can be found in the [clients directory](../clients).
 
 #### Injected Check Pod Environment Variables
-
+The following environment variables are injected into every checker pod that Kuberhealthy runs.  When writing your checker code, you can depend on these environment variables always being available to you, even if you do not specify them in your `khcheck` spec..
 ```
 KH_REPORTING_URL: The Kuberhealthy URL to send POST requests to for check statuses.
 KH_CHECK_RUN_DEADLINE: The Kuberhealthy-calculated deadline for checks given in unix.
