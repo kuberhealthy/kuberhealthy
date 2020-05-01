@@ -976,6 +976,9 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		k.externalCheckReportHandlerLog(requestID, "Failed to unmarshal state json:", err, r.RemoteAddr)
 		return nil
 	}
+	if state.Errors == nil {
+		state.Errors = []string{}
+	}
 	log.Debugf("Check report after unmarshal: +%v\n", state)
 
 	// ensure that if ok is set to false, then an error is provided
