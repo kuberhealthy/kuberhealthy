@@ -1,9 +1,9 @@
 name: Run Gosec
 on:
-  # push: 
-  #   branches:
-  #     - master
-      # - gosec # for testing this workflow
+  push: 
+    branches:
+      - master
+      - gosec # for testing this workflow
   pull_request:
     branches:
       - master
@@ -18,4 +18,4 @@ jobs:
       - name: Download Gosec
         run: curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sudo sh -s -- -b /usr/bin latest
       - name: Run Gosec Security Scanner 
-        run: gosec -exclude=G107 -exclude-dir=cmd/kuberhealthy ./...
+        run: gosec -exclude=G107 -exclude-dir=cmd/kuberhealthy ./... #G107: Url provided to HTTP request as taint input
