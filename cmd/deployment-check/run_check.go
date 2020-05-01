@@ -234,7 +234,7 @@ func runDeploymentCheck() {
 	// Clean up!
 	cleanUpError := cleanUp(ctx)
 	if cleanUpError != nil {
-		reportErrorsToKuberhealthy([]string{err.Error()})
+		reportErrorsToKuberhealthy([]string{cleanUpError.Error()})
 	}
 	// Report to Kuberhealthy.
 	reportOKToKuberhealthy()
