@@ -214,7 +214,7 @@ func runDeploymentCheck() {
 				if cleanUpError != nil {
 					errorReport = append(errorReport, cleanUpError.Error())
 				}
-				reportErrorsToKuberhealthy([]string{err.Error()})
+
 				return
 			}
 			// Continue with the check if there is no error.
@@ -232,8 +232,10 @@ func runDeploymentCheck() {
 	}
 
 	// Clean up!
-	cleanUp(ctx)
-
+	cleanUpError := cleanUp(ctx)
+	if cleanUpError != nil {
+		reportErrorsToKuberhealthy([]string{cleanUpError.Error()})
+	}
 	// Report to Kuberhealthy.
 	reportOKToKuberhealthy()
 }
