@@ -2,11 +2,11 @@ name: Run Gosec
 on:
   push:
     branches:
-      - master
+      # - master
       - gosec # for testing this workflow
   pull_request:
     branches:
-      - master
+      # - master
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -19,8 +19,9 @@ jobs:
       #   run: |
       #     pwd
       #     ls -a
-      - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
-        with:
-          entrypoint: gosec
-          args: ./...
+      - uses: securego/gosec@master
+      - name: Run Gosec Security Scanner  
+        run: gosec --help
+        # with:
+        #   entrypoint: gosec
+        #   args: ./...
