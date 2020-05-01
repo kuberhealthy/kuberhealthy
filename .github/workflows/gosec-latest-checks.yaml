@@ -18,4 +18,6 @@ jobs:
       - name: Download Gosec
         run: curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sudo sh -s -- -b /usr/bin latest
       - name: Run Gosec Security Scanner 
-        run: gosec -exclude=G107 -exclude-dir=cmd/kuberhealthy ./... #G107: Url provided to HTTP request as taint input
+        #G107: Url provided to HTTP request as taint input
+        #G109: Potential Integer overflow made by strconv.Atoi result conversion to int16/32
+        run: gosec -exclude=G107,G109 -exclude-dir=cmd/kuberhealthy ./... 
