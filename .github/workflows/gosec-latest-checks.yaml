@@ -1,12 +1,12 @@
 name: Run Gosec
 on:
-  push:
-    branches:
-      # - master
-      - gosec # for testing this workflow
+  # push: 
+  #   branches:
+  #     - master
+      # - gosec # for testing this workflow
   pull_request:
     branches:
-      # - master
+      - master
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -15,8 +15,7 @@ jobs:
     steps:
       - name: Checkout Source 
         uses: actions/checkout@v2
-      - name: Get Gosec
-        # working-directory: ./src/github.com/${{ github.repository }}
+      - name: Download Gosec
         run: curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sudo sh -s -- -b /usr/bin latest
       - name: Run Gosec Security Scanner 
         run: gosec -exclude=G107 -exclude-dir=cmd/kuberhealthy ./...
