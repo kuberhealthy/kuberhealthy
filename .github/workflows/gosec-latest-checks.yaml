@@ -19,9 +19,8 @@ jobs:
       #   run: |
       #     pwd
       #     ls -a
-      - uses: securego/gosec@master
       - name: Run Gosec Security Scanner  
-        run: gosec --help
-        # with:
-        #   entrypoint: gosec
+        uses: securego/gosec@master
+        with:
+          entrypoint: gosec -version
         #   args: ./...
