@@ -15,15 +15,8 @@ jobs:
     steps:
       - name: Checkout Source 
         uses: actions/checkout@v2
-      # - name: Look at where we are
-      #   run: |
-      #     pwd
-      #     ls -a
       - name: Get Gosec
         # working-directory: ./src/github.com/${{ github.repository }}
         run: curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sudo sh -s -- -b /usr/bin latest
       - name: Run Gosec Security Scanner 
-        run: gosec -exclude=G107 ./...
-      #   uses: securego/gosec@master
-      #   with:
-      #     args: ./...
+        run: gosec -exclude=G107 -exclude-dir=cmd/kuberhealthy ./...
