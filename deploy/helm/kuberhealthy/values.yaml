@@ -93,7 +93,7 @@ check:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
   podRestarts:
-    enabled: false
+    enabled: true
     runInterval: 5m
     timeout: 10m
     image:
@@ -103,7 +103,7 @@ check:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
   podStatus:
-    enabled: false
+    enabled: true
     runInterval: 5m
     timeout: 15m
     image:

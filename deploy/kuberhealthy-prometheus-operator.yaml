@@ -433,6 +433,9 @@ spec:
   runInterval:  15m
   timeout: 12m
   podSpec:
+    securityContext:
+      runAsUser: 999
+      fsGroup: 999
     containers:
       - env:
           - name: POD_NAMESPACE
@@ -448,6 +451,9 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
     serviceAccountName: daemonset-khcheck
 ---
 # Source: kuberhealthy/templates/khcheck-deployment.yaml
@@ -460,6 +466,9 @@ spec:
   runInterval:  10m
   timeout: 15m
   podSpec:
+    securityContext:
+      runAsUser: 999
+      fsGroup: 999
     containers:
     - name: deployment
       image: kuberhealthy/deployment-check:v1.4.0
@@ -477,6 +486,9 @@ spec:
           memory: 15Mi
         limits:
           cpu: 40m
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
       restartPolicy: Never
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
@@ -491,6 +503,9 @@ spec:
   runInterval: 2m
   timeout: 15m
   podSpec:
+    securityContext:
+      runAsUser: 999
+      fsGroup: 999
     containers:
       - env:
           - name: CHECK_POD_TIMEOUT
@@ -504,6 +519,9 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
 ---
 # Source: kuberhealthy/templates/servicemonitor.yaml
 apiVersion: monitoring.coreos.com/v1
