@@ -40,6 +40,11 @@ func ReportSuccess() error {
 func ReportFailure(errorMessages []string) error {
 	writeLog("DEBUG: Reporting FAILURE")
 
+	// check to see if errorMessages is null and assign an empty string to report instead of null
+	if errorMessages == nil {
+		errorMessages = []string{}
+	}
+
 	// make a new report without errors
 	newReport := status.NewReport(errorMessages)
 
