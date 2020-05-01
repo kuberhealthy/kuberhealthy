@@ -2,7 +2,6 @@ name: Run Gosec
 on:
   push: 
     branches:
-      - master
       - gosec # for testing this workflow
   pull_request:
     branches:
