@@ -14,6 +14,8 @@ package main
 import (
 	"math/rand"
 	"os"
+	"os/user"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,4 +46,24 @@ func getHostname() string {
 		return defaultHostname // default if no hostname can be found
 	}
 	return strings.ToLower(host)
+}
+
+// getCurrentUser checks which os use that is running the app
+func getCurrentUser(defaultUser int64) (int64, error) {
+	runAsUser := defaultUser
+
+	currentUser, err := user.Current()
+	if err != nil {
+		return 0, err
+	}
+	intCurrentUser, err := strconv.ParseInt(currentUser.Uid, 0, 64)
+	if err != nil {
+		return 0, err
+	}
+	if intCurrentUser == 0 {
+		return defaultUser, nil
+	}
+	runAsUser = intCurrentUser
+	return runAsUser, nil
+
 }

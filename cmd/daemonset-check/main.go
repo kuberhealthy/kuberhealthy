@@ -37,7 +37,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
@@ -194,7 +193,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 
 	// Set the runAsUser
 	runAsUser := defaultUser
-	currentUser, err := util.GetCurrentUser(defaultUser)
+	currentUser, err := getCurrentUser(defaultUser)
 	if err != nil {
 		log.Infoln("Unable to get the current user id %v", err)
 	}
