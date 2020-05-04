@@ -24,7 +24,6 @@ import (
 // the khstate custom resource
 type KuberhealthyCheckClient struct {
 	restClient rest.Interface
-	ns         string
 }
 
 // Create creates a new resource for this CRD
@@ -37,6 +36,7 @@ func (c *KuberhealthyCheckClient) Create(check *KuberhealthyCheck, resource stri
 		Body(check).
 		Do().
 		Into(&result)
+
 	return &result, err
 }
 
@@ -50,6 +50,7 @@ func (c *KuberhealthyCheckClient) Delete(resource string, name string, namespace
 		Name(name).
 		Do().
 		Into(&result)
+
 	return &result, err
 }
 
@@ -65,6 +66,7 @@ func (c *KuberhealthyCheckClient) Update(check *KuberhealthyCheck, resource stri
 		Name(name).
 		Do().
 		Into(&result)
+
 	return &result, err
 }
 
@@ -79,6 +81,7 @@ func (c *KuberhealthyCheckClient) Get(opts metav1.GetOptions, resource string, n
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(&result)
+
 	return &result, err
 }
 
@@ -92,19 +95,26 @@ func (c *KuberhealthyCheckClient) List(opts metav1.ListOptions, resource string,
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(&result)
+
 	return &result, err
 }
 
 // Watch returns a watch.Interface that watches the requested clusterTestTypes.
-func (c *KuberhealthyCheckClient) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+//func (c *KuberhealthyCheckClient) Watch(opts metav1.ListOptions, resource, namespace string) (watch.Interface, error) {
+func (c *KuberhealthyCheckClient) Watch(opts metav1.ListOptions, resource string, namespace string) (watch.Interface, error) {
+
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
 	}
 	opts.Watch = true
-	return c.restClient.Get().
-		Resource("khchecks").
+
+	clientResponse, err := c.restClient.Get().
+		Resource(resource).
+		Namespace(namespace).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
 		Watch()
+
+	return clientResponse, err
 }
