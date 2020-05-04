@@ -63,5 +63,5 @@ func Client(GroupName string, GroupVersion string, kubeConfig string, namespace 
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
 
 	client, err := rest.RESTClientFor(&config)
-	return &KuberhealthyCheckClient{restClient: client, ns: namespace}, err
+	return &KuberhealthyCheckClient{restClient: client}, err
 }

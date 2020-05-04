@@ -59,5 +59,5 @@ func Client(GroupName string, GroupVersion string, kubeConfig string, namespace 
 
 	// log.Println("creating khstate rest client")
 	client, err := rest.RESTClientFor(&config)
-	return &KuberhealthyStateClient{restClient: client, ns: namespace}, err
+	return &KuberhealthyStateClient{restClient: client}, err
 }

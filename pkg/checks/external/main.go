@@ -1073,7 +1073,7 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	ext.addKuberhealthyLabels(p)
 
 	// Get ownerReference for the kuberhealthy pod
-	ownerRef, err := util.GetOwnerRef(ext.KubeClient, "kuberhealthy")
+	ownerRef, err := util.GetOwnerRef(ext.KubeClient, p.Namespace)
 	if err != nil {
 		return nil, errors.New("Failed to getOwnerReference for pod: " + p.Name + ", err: " + err.Error())
 	}
