@@ -240,7 +240,9 @@ func (k *Kuberhealthy) reapKHStateResources() error {
 	log.Infoln("khState reaper: analyzing", len(khStates.Items), "khState resources")
 
 	// any khState that does not have a matching khCheck should be deleted (ignore errors)
-	for _, khState := range khStates.Items {
+	// for _, khState := range khStates.Items {
+	for i := range khStates.Items {
+		khState := khStates.Items[i]
 		log.Debugln("khState reaper: analyzing khState", khState.GetName(), "in", khState.GetName())
 		var foundKHCheck bool
 		for _, khCheck := range khChecks.Items {
@@ -449,7 +451,9 @@ func (k *Kuberhealthy) addExternalChecks() error {
 	log.Debugln("Found", len(l.Items), "external checks to load")
 
 	// iterate on each check CRD resource and add it as a check
-	for _, r := range l.Items {
+	// for _, r := range l.Items {
+	for i := range l.Items {
+		r := l.Items[i]
 		log.Debugln("Loading check CRD:", r.Name)
 
 		log.Debugf("External check custom resource loaded: %v", r)
