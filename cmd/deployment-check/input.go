@@ -182,8 +182,9 @@ func parseInputValues() {
 	}
 	if deadline > 0 {
 		log.Infoln("Parsed check deadline time from the environment:", deadline)
-		checkTimeLimit = time.Duration((int64(deadline) - time.Now().Unix()) * 1e9) // Multiply by 1,000,000,000 because that's how many nanoseconds are in a second
+		checkTimeLimit = time.Duration((int64(deadline) - time.Now().Unix() - 5) * 1e9) // Multiply by 1,000,000,000 because that's how many nanoseconds are in a second
 	}
+	log.Infoln("Check time limit set to:", checkTimeLimit)
 
 	// Parse incoming deployment rolling-update environment variable
 	if len(rollingUpdateEnv) != 0 {
