@@ -20,7 +20,7 @@ var ReapCheckerPods map[string]v1.Pod
 var MaxPodsThreshold = 4
 var Namespace string
 
-func init(){
+func init() {
 	Namespace = os.Getenv("SINGLE_NAMESPACE")
 	if len(Namespace) == 0 {
 		log.Infoln("Single namespace not specified, running check reaper across all namespaces")

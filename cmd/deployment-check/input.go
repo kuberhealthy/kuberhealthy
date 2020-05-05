@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -115,6 +116,51 @@ func parseInputValues() {
 		log.Infoln("Parsed CHECK_DEPLOYMENT_REPLICAS:", checkDeploymentReplicas)
 	}
 
+	// Parse incoming check pod resource requests and limits
+	// Calculated in decimal SI units (15 = 15m cpu).
+	millicoreRequest = defaultMillicoreRequest
+	if len(millicoreRequestEnv) != 0 {
+		cpuRequest, err := strconv.ParseInt(millicoreRequestEnv, 10, 64)
+		if err != nil {
+			log.Fatalln("error occurred attempting to parse CHECK_POD_CPU_REQUEST:", err)
+		}
+		millicoreRequest = int(cpuRequest)
+		log.Infoln("Parsed CHECK_POD_CPU_REQUEST:", millicoreRequest)
+	}
+
+	// Calculated in decimal SI units (75 = 75m cpu).
+	millicoreLimit = defaultMillicoreLimit
+	if len(millicoreLimitEnv) != 0 {
+		cpuLimit, err := strconv.ParseInt(millicoreLimitEnv, 10, 64)
+		if err != nil {
+			log.Fatalln("error occurred attempting to parse CHECK_POD_CPU_LIMIT:", err)
+		}
+		millicoreLimit = int(cpuLimit)
+		log.Infoln("Parsed CHECK_POD_CPU_LIMIT:", millicoreLimit)
+	}
+
+	// Calculated in binary SI units (20 * 1024^2 = 20Mi memory).
+	memoryRequest = defaultMemoryRequest
+	if len(memoryRequestEnv) != 0 {
+		memRequest, err := strconv.ParseInt(memoryRequestEnv, 10, 64)
+		if err != nil {
+			log.Fatalln("error occurred attempting to parse CHECK_POD_MEM_REQUEST:", err)
+		}
+		memoryRequest = int(memRequest) * 1024 * 1024
+		log.Infoln("Parsed CHECK_POD_MEM_REQUEST:", memoryRequest)
+	}
+
+	// Calculated in binary SI units (75 * 1024^2 = 75Mi memory).
+	memoryLimit = defaultMemoryLimit
+	if len(memoryLimitEnv) != 0 {
+		memLimit, err := strconv.ParseInt(memoryLimitEnv, 10, 64)
+		if err != nil {
+			log.Fatalln("error occurred attempting to parse CHECK_POD_MEM_LIMIT:", err)
+		}
+		memoryLimit = int(memLimit) * 1024 * 1024
+		log.Infoln("Parsed CHECK_POD_MEM_LIMIT:", memoryLimit)
+	}
+
 	// Parse incoming check service account
 	checkServiceAccount = defaultCheckServieAccount
 	if len(checkServiceAccountEnv) != 0 {
@@ -124,18 +170,20 @@ func parseInputValues() {
 
 	// Set check time limit to default
 	checkTimeLimit = defaultCheckTimeLimit
-	if len(checkTimeLimitEnv) != 0 {
-		duration, err := time.ParseDuration(checkTimeLimitEnv)
-		if err != nil {
-			log.Fatalln("error occurred attempting to parse CHECK_TIME_LIMIT:", err)
-		}
-		if duration.Seconds() < 1 {
-			log.Fatalln("error occurred attempting to parse CHECK_TIME_LIMIT. Check run time in seconds is less than 1:", duration.Seconds())
-		}
-		log.Infoln("Parsed CHECK_TIME_LIMIT:", duration.Seconds())
-		checkTimeLimit = duration
+	// Get the deadline time in unix from the env var
+	unixDeadline, err := kh.GetDeadline()
+	if err != nil {
+		log.Infoln("There was an issue getting the check deadline:", err.Error())
 	}
-	log.Infoln("Check time limit set to:", checkTimeLimit)
+	// Calculate check run duration from the deadline and now
+	deadline, err := strconv.Atoi(unixDeadline)
+	if err != nil {
+		log.Fatalln("Failed to parse unix deadline from environment.")
+	}
+	if deadline > 0 {
+		log.Infoln("Parsed check deadline time from the environment:", deadline)
+		checkTimeLimit = time.Duration((int64(deadline) - time.Now().Unix()) * 1e9) // Multiply by 1,000,000,000 because that's how many nanoseconds are in a second
+	}
 
 	// Parse incoming deployment rolling-update environment variable
 	if len(rollingUpdateEnv) != 0 {

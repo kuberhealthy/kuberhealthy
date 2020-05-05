@@ -23,7 +23,7 @@ func TestCreateContainerConfig(t *testing.T) {
 
 		if len(containerConfig.ImagePullPolicy) == 0 {
 			t.Fatalf("nil image pull policy: %s", containerConfig.ImagePullPolicy)
-		}	
+		}
 
 		if len(containerConfig.Ports) == 0 {
 			t.Fatalf("no ports given for container: found %d ports\n", len(containerConfig.Ports))
@@ -51,7 +51,7 @@ func TestCreateDeploymentConfig(t *testing.T) {
 		if len(deploymentConfig.ObjectMeta.Namespace) == 0 {
 			t.Fatalf("nil deployment object meta namespace: %s\n", deploymentConfig.ObjectMeta.Namespace)
 		}
-		
+
 		reps := int32(1)
 		if *deploymentConfig.Spec.Replicas < reps {
 			t.Fatalf("deployment config was created with less than 1 replica: %d", deploymentConfig.Spec.Replicas)
