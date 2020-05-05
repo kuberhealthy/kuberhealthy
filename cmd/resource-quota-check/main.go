@@ -84,7 +84,10 @@ func main() {
 	client, err = kubeClient.Create(kubeConfigFile)
 	if err != nil {
 		errorMessage := "failed to create a kubernetes client with error: " + err.Error()
-		kh.ReportFailure([]string{errorMessage})
+		reportErr := kh.ReportFailure([]string{errorMessage})
+		if reportErr != nil {
+			log.Fatalln("error reporting failure to kuberhealthy:", reportErr.Error())
+		}
 		return
 	}
 	log.Infoln("Kubernetes client created.")
@@ -95,7 +98,10 @@ func main() {
 		r = recover()
 		if r != nil {
 			log.Infoln("Recovered panic:", r)
-			kh.ReportFailure([]string{r.(string)})
+			reportErr := kh.ReportFailure([]string{r.(string)})
+			if reportErr != nil {
+				log.Fatalln("error reporting failure to kuberhealthy:", reportErr.Error())
+			}
 		}
 	}()
 
