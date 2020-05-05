@@ -41,7 +41,6 @@ func (c *KuberhealthyStateClient) Create(state *KuberhealthyState, resource stri
 		Body(state).
 		Do().
 		Into(&result)
-
 	return &result, err
 }
 
@@ -55,7 +54,6 @@ func (c *KuberhealthyStateClient) Delete(state *KuberhealthyState, resource stri
 		Name(name).
 		Do().
 		Into(&result)
-
 	return &result, err
 }
 
@@ -71,7 +69,6 @@ func (c *KuberhealthyStateClient) Update(state *KuberhealthyState, resource stri
 		Name(name).
 		Do().
 		Into(&result)
-
 	return &result, err
 }
 
@@ -86,7 +83,6 @@ func (c *KuberhealthyStateClient) Get(opts metav1.GetOptions, resource string, n
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(&result)
-
 	return &result, err
 }
 
@@ -100,7 +96,6 @@ func (c *KuberhealthyStateClient) List(opts metav1.ListOptions, resource string,
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(&result)
-
 	return &result, err
 }
 
