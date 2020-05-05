@@ -66,7 +66,7 @@ func main() {
 
 	// Check to see if the 10 requests passed at 80% and reports to Kuberhealthy accordingly
 	if checksPassed < 8 {
-		reportErr := fmt.Errorf("unable to retrieve a http.StatusOK from " + checkURL + "check failed " + strconv.Itoa(checksFailed) + " out of 10 attempts")
+		reportErr := fmt.Errorf("unable to retrieve a valid response from " + checkURL + "check failed " + strconv.Itoa(checksFailed) + " out of 10 attempts")
 		err := kh.ReportFailure([]string{reportErr.Error()})
 		if err != nil {
 			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
