@@ -1,5 +1,5 @@
 build:
-	docker build -t jonnydawg/deployment-check:v1.4.2-timeout2 -f Dockerfile ../../
+	docker build -t kuberhealthy/deployment-check:v1.4.3 -f Dockerfile ../../
 
 push:
-	docker push jonnydawg/deployment-check:v1.4.2-timeout2
+	docker push kuberhealthy/deployment-check:v1.4.3
