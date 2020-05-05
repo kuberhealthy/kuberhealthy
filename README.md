@@ -28,15 +28,16 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 
 ## Installation
 
-**Requires Kubernetes 1.11 or above**
+**Requires Kubernetes 1.11 or above and Helm 3**
 
-Helm installations are currently out of date if used from `helm/charts/kuberhealthy` due to a slow PR process.  For now, use the flat files below.  Tracked in issue [#288](https://github.com/Comcast/kuberhealthy/issues/288).
-
-For now, install Kuberhealthy via our rendered flat files in this repository using:
-
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/kuberhealthy.yaml`
-
-To install using other flat yaml spec files, see the [deploy directory](/deploy).
+1. Create namespace "kuberhealthy" in the desired Kubernetes cluster/context:  
+	`kubectl create namespace kuberhealthy`
+2. Set your current namespace to "kuberhealthy":  
+	`kubectl config set-context --current --namespace=kuberhealthy`
+3. Add the kuberhealthy repo to Helm:  
+	`helm repo add kuberhealthy https://comcast.github.io/kuberhealthy/helm-repos`
+4. Install kuberhealthy:  
+	`helm install kuberhealthy kuberhealthy/kuberhealthy`
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer`.  This is done for security.  Options are available in the Helm chart to bypass this and deploy with `Type: LoadBalancer` directly.
 
@@ -44,14 +45,8 @@ RBAC bindings and roles are included in all configurations.
 
 Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.15.x`.
 
+More installation options, including static yaml files are available in the [/deploy](/deploy) directory.
 
-### Prometheus Alerts
-
-A `ServiceMonitor` configuration is available at [deploy/servicemonitor.yaml](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/servicemonitor.yaml).
-
-### Prometheus Grafana Dashboard
-
-A `Grafana` dashboard is available at [deploy/grafana/dashboard.json](https://raw.githubusercontent.com/Comcast/kuberhealthy/master/deploy/grafana/dashboard.json).  To install this dashboard, follow the instructions [here](http://docs.grafana.org/reference/export_import/#importing-a-dashboard).
 
 ### Why Are Synthetic Tests Important?
 

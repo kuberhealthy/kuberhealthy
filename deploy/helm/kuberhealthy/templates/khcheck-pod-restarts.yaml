@@ -5,9 +5,14 @@ kind: KuberhealthyCheck
 metadata:
   name: pod-restarts
 spec:
-  runInterval: 5m
-  timeout: 10m
+  runInterval: {{ .Values.check.podRestarts.runInterval }}
+  timeout: {{ .Values.check.podRestarts.timeout }}
   podSpec:
+    {{- if .Values.securityContext.enabled }}
+    securityContext:
+      runAsUser: {{ .Values.securityContext.runAsUser }}
+      fsGroup: {{ .Values.securityContext.fsGroup }}
+    {{- end}}
     containers:
       - env:
           - name: POD_NAMESPACE
@@ -27,6 +32,11 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+        {{- if .Values.securityContext.enabled }}
+        securityContext:
+          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+        {{- end }}
     {{- if .Values.check.podRestarts.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.podRestarts.nodeSelector | nindent 6 }}

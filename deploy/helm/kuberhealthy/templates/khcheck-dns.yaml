@@ -6,9 +6,14 @@ metadata:
   name: dns-status-internal
   namespace: {{ .Release.Namespace }}
 spec:
-  runInterval: 2m
-  timeout: 15m
+  runInterval: {{ .Values.check.dnsInternal.runInterval }}
+  timeout: {{ .Values.check.dnsInternal.timeout }}
   podSpec:
+    {{- if .Values.securityContext.enabled }}
+    securityContext:
+      runAsUser: {{ .Values.securityContext.runAsUser }}
+      fsGroup: {{ .Values.securityContext.fsGroup }}
+    {{- end}}
     containers:
       - env:
           - name: CHECK_POD_TIMEOUT
@@ -24,6 +29,11 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+        {{- if .Values.securityContext.enabled }}
+        securityContext:
+          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+        {{- end }}
     {{- if .Values.check.dnsInternal.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.dnsInternal.nodeSelector | nindent 6 }}

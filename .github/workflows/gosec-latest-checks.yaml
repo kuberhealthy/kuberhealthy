@@ -1,0 +1,22 @@
+name: Run Gosec
+on:
+  push: 
+    branches:
+      - gosec # for testing this workflow
+  pull_request:
+    branches:
+      - master
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
+    steps:
+      - name: Checkout Source 
+        uses: actions/checkout@v2
+      - name: Download Gosec
+        run: curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sudo sh -s -- -b /usr/bin latest
+      - name: Run Gosec Security Scanner 
+        #G107: Url provided to HTTP request as taint input
+        #G109: Potential Integer overflow made by strconv.Atoi result conversion to int16/32
+        run: gosec -exclude=G107,G109 ./...

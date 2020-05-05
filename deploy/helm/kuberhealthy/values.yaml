@@ -38,10 +38,15 @@ deployment:
   - /app/kuberhealthy
   # args:
 
+# When enabled equals to true, runAsUser and fsGroup will be
+# included to all khchecks as specified below.
 securityContext:
+  enabled: true # if enabled is set to false, securityContext settings will not be applied at all in checker pod custom resources
   runAsNonRoot: true
   runAsUser: 999
+  fsGroup: 999
   allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
 
 # Please remember that changing the service type to LoadBalancer
 # will expose Kuberhealthy to the internet, which could cause
@@ -58,46 +63,58 @@ service:
 check:
   daemonset:
     enabled: true
+    runInterval: 15m
+    timeout: 12m
     image:
       repository: kuberhealthy/daemonset-check
-      tag: v2.1.1
+      tag: v2.2.1
     extraEnvs:
     nodeSelector: {}
   deployment:
     enabled: true
+    runInterval: 10m
+    timeout: 15m
     image:
       repository: kuberhealthy/deployment-check
-      tag: v1.2.3
+      tag: v1.4.0
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
+      CHECK_SERVICE_ACCOUNT: "default"
     nodeSelector: {}
   dnsInternal:
     enabled: true
+    runInterval: 2m
+    timeout: 15m
     image:
       repository: kuberhealthy/dns-resolution-check
-      tag: v1.1.0
+      tag: v1.2.0
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
   podRestarts:
     enabled: false
+    runInterval: 5m
+    timeout: 10m
     image:
       repository: kuberhealthy/pod-restarts-check
-      tag: v2.1.1
+      tag: v2.2.1
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
   podStatus:
     enabled: false
+    runInterval: 5m
+    timeout: 15m
     image:
       repository: kuberhealthy/pod-status-check
-      tag: v1.1.2
+      tag: v1.2.2
     extraEnvs:
     nodeSelector: {}
 
 checkReaper:
+  enabled: true # Don't disable checkRepear, this flag exist to make e2e tests easier.
   image:
     repository: kuberhealthy/check-reaper
-    tag: v1.2.1
+    tag: v1.3.1
   nodeSelector: {}

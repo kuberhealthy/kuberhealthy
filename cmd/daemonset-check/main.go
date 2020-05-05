@@ -37,11 +37,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
 const daemonSetBaseName = "ds-check"
 const defaultDSCheckTimeout = "10m"
+const defaultUser = int64(1000)
 
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var Namespace string
@@ -146,6 +148,7 @@ func main() {
 	err = ds.Run(client)
 	if err != nil {
 		log.Errorln("Error running check:", ds.Name(), "in namespace", ds.CheckNamespace()+":", err)
+		os.Exit(1)
 	}
 	log.Debugln("Done running check:", ds.Name(), "in namespace", ds.CheckNamespace())
 }
@@ -188,9 +191,15 @@ func (dsc *Checker) generateDaemonSetSpec() {
 
 	checkRunTime := strconv.Itoa(int(CheckRunTime))
 	terminationGracePeriod := int64(1)
-	runAsUser := int64(1000)
-	log.Debug("Running daemon set as user 1000.")
-	var err error
+
+	// Set the runAsUser
+	runAsUser := defaultUser
+	currentUser, err := util.GetCurrentUser(defaultUser)
+	if err != nil {
+		log.Infoln("Unable to get the current user id %v", err)
+	}
+	log.Infoln("runAsUser will be set to %v", currentUser)
+	runAsUser = currentUser
 
 	// if a list of tolerations wasnt passed in, default to tolerating all taints
 	if len(dsc.Tolerations) == 0 {
@@ -292,7 +301,10 @@ func (dsc *Checker) Shutdown(sdDoneChan chan error) {
 	var err error
 	// if the ds is deployed, delete it
 	if dsc.DaemonSetDeployed {
-		dsc.remove()
+		err = dsc.remove()
+		if err != nil {
+			log.Infoln("Failed to remove", dsc.DaemonSetName)
+		}
 		err = dsc.waitForPodRemoval()
 	}
 
@@ -685,13 +697,22 @@ func (dsc *Checker) Run(client *kubernetes.Clientset) error {
 		log.Println("Successfully reported failure to Kuberhealthy servers")
 	case err := <-doneChan:
 		dsc.cancelFunc()
+		if err != nil {
+			log.Println("Check failed with error:", err)
+			err = checkclient.ReportFailure([]string{err.Error()})
+			if err != nil {
+				log.Println("Failed to report error to Kuberhealthy servers:", err)
+				return err
+			}
+			log.Println("Successfully reported error to Kuberhealthy servers")
+			return nil
+		}
 		err = checkclient.ReportSuccess()
 		if err != nil {
 			log.Println("Error reporting success to Kuberhealthy servers:", err)
 			return err
 		}
 		log.Println("Successfully reported success to Kuberhealthy servers")
-		return err
 	}
 
 	return nil

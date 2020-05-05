@@ -14,6 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: dockerfile sweep for best practices
+      uses: burdzwastaken/hadolint-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        HADOLINT_ACTION_DOCKERFILE_FOLDER: cmd/pod-restarts-check
+        HADOLINT_ACTION_COMMENT: false
     - name: build container
       run: docker build --file cmd/pod-restarts-check/Dockerfile --tag $IMAGE_NAME .
     - name: Log into docker hub
@@ -22,3 +28,5 @@ jobs:
       run: |
           docker tag $IMAGE_NAME kuberhealthy/$IMAGE_NAME
           docker push kuberhealthy/$IMAGE_NAME
+    - name: scan docker image for vulnerabilities
+      run: curl -s https://ci-tools.anchore.io/inline_scan-v0.6.0 | bash -s -- -p -r kuberhealthy/$IMAGE_NAME:latest

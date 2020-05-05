@@ -5,9 +5,14 @@ kind: KuberhealthyCheck
 metadata:
   name: pod-status
 spec:
-  runInterval: 5m
-  timeout: 15m
+  runInterval: {{ .Values.check.podStatus.runInterval }}
+  timeout: {{ .Values.check.podStatus.timeout }}
   podSpec:
+    {{- if .Values.securityContext.enabled }}
+    securityContext:
+      runAsUser: {{ .Values.securityContext.runAsUser }}
+      fsGroup: {{ .Values.securityContext.fsGroup }}
+    {{- end}}
     containers:
       - env:
           - name: SKIP_DURATION
@@ -27,6 +32,11 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+        {{- if .Values.securityContext.enabled }}
+        securityContext:
+          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+        {{- end }}
     {{- if .Values.check.podStatus.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.podStatus.nodeSelector | nindent 6 }}
