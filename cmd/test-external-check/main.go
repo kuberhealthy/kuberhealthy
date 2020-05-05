@@ -46,19 +46,12 @@ func init() {
 	// Set check time limit to default
 	timeLimit = time.Duration(time.Minute * 10)
 	// Get the deadline time in unix from the env var
-	unixDeadline, err := checkclient.GetDeadline()
+	timeDeadline, err := checkclient.GetDeadline()
 	if err != nil {
 		log.Println("There was an issue getting the check deadline:", err.Error())
 	}
-	// Calculate check run duration from the deadline and now
-	deadline, err := strconv.Atoi(unixDeadline)
-	if err != nil {
-		log.Fatalln("Failed to parse unix deadline from environment.")
-	}
-	if deadline > 0 {
-		log.Println("Parsed check deadline time from the environment:", deadline)
-		timeLimit = time.Duration((int64(deadline) - time.Now().Unix()) * 1e9) // Multiply by 1,000,000,000 because that's how many nanoseconds are in a second
-	}
+	timeLimit = timeDeadline.Sub(time.Now().Add(time.Second * 5))
+	log.Println("Check time limit set to:", timeLimit)
 }
 
 func main() {
