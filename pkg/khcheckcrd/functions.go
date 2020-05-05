@@ -36,7 +36,6 @@ func (c *KuberhealthyCheckClient) Create(check *KuberhealthyCheck, resource stri
 		Body(check).
 		Do().
 		Into(&result)
-
 	return &result, err
 }
 
@@ -50,7 +49,6 @@ func (c *KuberhealthyCheckClient) Delete(resource string, name string, namespace
 		Name(name).
 		Do().
 		Into(&result)
-
 	return &result, err
 }
 
@@ -66,7 +64,6 @@ func (c *KuberhealthyCheckClient) Update(check *KuberhealthyCheck, resource stri
 		Name(name).
 		Do().
 		Into(&result)
-
 	return &result, err
 }
 
@@ -81,7 +78,6 @@ func (c *KuberhealthyCheckClient) Get(opts metav1.GetOptions, resource string, n
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(&result)
-
 	return &result, err
 }
 
@@ -95,7 +91,6 @@ func (c *KuberhealthyCheckClient) List(opts metav1.ListOptions, resource string,
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(&result)
-
 	return &result, err
 }
 
