@@ -66,9 +66,21 @@ var (
 	checkServiceAccountEnv = os.Getenv("CHECK_SERVICE_ACCOUNT")
 	checkServiceAccount    string
 
+	// Deployment pod resource requests and limits.
+	millicoreRequestEnv = os.Getenv("CHECK_POD_CPU_REQUEST")
+	millicoreRequest    int
+
+	millicoreLimitEnv = os.Getenv("CHECK_POD_CPU_LIMIT")
+	millicoreLimit    int
+
+	memoryRequestEnv = os.Getenv("CHECK_POD_MEM_REQUEST")
+	memoryRequest    int
+
+	memoryLimitEnv = os.Getenv("CHECK_POD_MEM_LIMIT")
+	memoryLimit    int
+
 	// Check time limit.
-	checkTimeLimitEnv = os.Getenv("CHECK_TIME_LIMIT")
-	checkTimeLimit    time.Duration
+	checkTimeLimit time.Duration
 
 	// Boolean value if a rolling-update is requested.
 	rollingUpdateEnv = os.Getenv("CHECK_DEPLOYMENT_ROLLING_UPDATE")

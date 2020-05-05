@@ -500,7 +500,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 // StartChecks starts all checks concurrently and ensures they stay running
 func (k *Kuberhealthy) StartChecks() {
-	// wait for theor check wg to be done, just in case
+	// wait for all check wg to be done, just in case
 	k.wg.Wait()
 
 	log.Infoln("control: Reloading check configuration...")
@@ -872,7 +872,7 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 }
 
 // fetchPodByIPForDuration attempts to fetch a pod by its IP repeatedly for the supplied duration.  If the pod is found,
-// then we return it.  If the pod is not found after the duraiton, we return an error
+// then we return it.  If the pod is not found after the duration, we return an error
 func (k *Kuberhealthy) fetchPodByIPForDuration(remoteIP string, d time.Duration) (v1.Pod, error) {
 	endTime := time.Now().Add(d)
 
