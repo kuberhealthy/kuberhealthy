@@ -15,6 +15,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -24,6 +25,7 @@ import (
 
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 
@@ -34,8 +36,11 @@ import (
 )
 
 // status represents the current Kuberhealthy OK:Error state
+var cfg *Config
+var configPath = "config.yaml"
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
-var listenAddress = ":8080"
+
+// var listenAddress = ":8080"
 var podCheckNamespaces = "kube-system"
 var podNamespace = os.Getenv("POD_NAMESPACE")
 var isMaster bool                  // indicates this instance is the master and should be running checks
@@ -45,13 +50,14 @@ var lastMasterChangeTime time.Time // indicates the last time a master change wa
 var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
 // flags indicating that checks of specific types should be used
-var enableForceMaster bool // force master mode - for debugging
-var enableDebug bool       // enable debug logging
+// var enableForceMaster bool // force master mode - for debugging
+// var enableDebug bool       // enable debug logging
 // DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
 // DSTolerationOverride specifies an alternate list of taints to tolerate - see #178
 var DSTolerationOverride []string
-var logLevel = "info"
+
+// var logLevel = "info"
 
 // the hostname of this pod
 var podHostname string
@@ -71,11 +77,11 @@ const KH_CHECK_NAME_ANNOTATION_KEY = "comcast.github.io/check-name"
 var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
 
 // InfluxDB connection configuration
-var enableInflux = false
-var influxURL = ""
-var influxUsername = ""
-var influxPassword = ""
-var influxDB = "http://localhost:8086"
+// var enableInflux = false
+// var influxURL = ""
+// var influxUsername = ""
+// var influxPassword = ""
+// var influxDB = "http://localhost:8086"
 var kuberhealthy *Kuberhealthy
 
 var khStateClient *khstatecrd.KuberhealthyStateClient
@@ -95,24 +101,52 @@ const checkCRDResource = "khchecks"
 // the global kubernetes client
 var kubernetesClient *kubernetes.Clientset
 
+// configuration options
+type Config struct {
+	kubeConfigFile    string
+	listenAddress     string
+	enableForceMaster bool
+	enableDebug       bool
+	logLevel          string
+	influxUsername    string
+	influxPassword    string
+	influxURL         string
+	influxDB          string
+	enableInflux      bool
+}
+
 func init() {
+
+	cfg = &Config{}
+
+	// attempt to load config file from disk
+	err := cfg.Load(configPath)
+	if err != nil {
+		fmt.Println("WARNING: Failed to read configuration file from disk:", err)
+	}
 
 	// setup flaggy
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
-	flaggy.String(&listenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
-	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
-	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
-	flaggy.String(&logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
+	flaggy.String(&cfg.listenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
+	flaggy.Bool(&cfg.enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
+	flaggy.Bool(&cfg.enableDebug, "d", "debug", "Set to true to enable debug.")
+	flaggy.String(&cfg.logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
 	// Influx flags
-	flaggy.String(&influxUsername, "", "influxUser", "Username for the InfluxDB instance")
-	flaggy.String(&influxPassword, "", "influxPassword", "Password for the InfluxDB instance")
-	flaggy.String(&influxURL, "", "influxUrl", "Address for the InfluxDB instance")
-	flaggy.String(&influxDB, "", "influxDB", "Name of the InfluxDB database")
-	flaggy.Bool(&enableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
+	flaggy.String(&cfg.influxUsername, "", "influxUser", "Username for the InfluxDB instance")
+	flaggy.String(&cfg.influxPassword, "", "influxPassword", "Password for the InfluxDB instance")
+	flaggy.String(&cfg.influxURL, "", "influxUrl", "Address for the InfluxDB instance")
+	flaggy.String(&cfg.influxDB, "", "influxDB", "Name of the InfluxDB database")
+	flaggy.Bool(&cfg.enableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
 	flaggy.Parse()
 
-	parsedLogLevel, err := log.ParseLevel(logLevel)
+	fmt.Println("after flag parsing, this is the config struct:", cfg)
+	err = cfg.Save(configPath)
+	if err != nil {
+		fmt.Errorf("error writing configuration to disk: %w", err)
+	}
+
+	parsedLogLevel, err := log.ParseLevel(cfg.logLevel)
 	if err != nil {
 		log.Fatalln("Unable to parse log-level flag: ", err)
 	}
@@ -132,14 +166,15 @@ func init() {
 	log.Infoln("External check reporting URL set to:", externalCheckReportingURL)
 
 	// handle debug logging
-	debugEnv := os.Getenv("DEBUG")
-	if len(debugEnv) > 0 {
-		enableDebug, err = strconv.ParseBool(debugEnv)
-		if err != nil {
-			log.Warningln("Failed to parse bool for DEBUG setting:", err)
-		}
-	}
-	if enableDebug {
+	// debugEnv := os.Getenv("DEBUG")
+	// debugEnv := &cfg.enableDebug
+	// if len(debugEnv) > 0 {
+	// 	enableDebug, err = strconv.ParseBool(debugEnv)
+	// 	if err != nil {
+	// 		log.Warningln("Failed to parse bool for DEBUG setting:", err)
+	// 	}
+	// }
+	if cfg.enableDebug == true {
 		log.Infoln("Enabling debug logging")
 		log.SetLevel(log.DebugLevel)
 		masterCalculation.EnableDebug()
@@ -149,7 +184,7 @@ func init() {
 	}
 
 	// Handle force master mode
-	if enableForceMaster {
+	if cfg.enableForceMaster == true {
 		log.Infoln("Enabling forced master mode")
 		masterCalculation.DebugAlwaysMasterOn()
 	}
@@ -171,7 +206,7 @@ func main() {
 
 	// Create a new Kuberhealthy struct
 	kuberhealthy = NewKuberhealthy()
-	kuberhealthy.ListenAddr = listenAddress
+	kuberhealthy.ListenAddr = cfg.listenAddress
 
 	// create run context and start listening for shutdown interrupts
 	khRunCtx, khRunCtxCancelFunc := context.WithCancel(context.Background())
@@ -255,4 +290,24 @@ func initKubernetesClients() error {
 	khStateClient = stateClient
 
 	return nil
+}
+
+// Save savesm file to disk
+func (c *Config) Save(file string) error {
+	b, err := yaml.Marshal(c)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(file, b, 0700)
+}
+
+// Load loads file from disk
+func (c *Config) Load(file string) error {
+
+	b, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	return yaml.Unmarshal(b, c)
 }
