@@ -38,6 +38,7 @@ import (
 // status represents the current Kuberhealthy OK:Error state
 var cfg *Config
 var configPath = "config.yaml"
+
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
 // var listenAddress = ":8080"
@@ -127,7 +128,7 @@ func init() {
 
 	// setup flaggy
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
-	flaggy.String(&kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
+	flaggy.String(&cfg.kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
 	flaggy.String(&cfg.listenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
 	flaggy.Bool(&cfg.enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&cfg.enableDebug, "d", "debug", "Set to true to enable debug.")
@@ -143,7 +144,7 @@ func init() {
 	fmt.Println("after flag parsing, this is the config struct:", cfg)
 	err = cfg.Save(configPath)
 	if err != nil {
-		fmt.Errorf("error writing configuration to disk: %w", err)
+		fmt.Println("error writing configuration to disk: ", err)
 	}
 
 	parsedLogLevel, err := log.ParseLevel(cfg.logLevel)
