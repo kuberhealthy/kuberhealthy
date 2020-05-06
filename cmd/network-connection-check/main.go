@@ -152,7 +152,10 @@ func (ncc *Checker) doChecks() error {
 		log.Errorln(errorMessage)
 		return errors.New(errorMessage)
 	}
-	conn.Close()
+	err = conn.Close()
+	if err != nil {
+		return errors.New(err.Error())
+	}
 	return nil
 }
 
