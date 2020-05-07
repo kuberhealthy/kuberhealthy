@@ -15,7 +15,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -25,7 +24,6 @@ import (
 
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 
@@ -39,7 +37,7 @@ import (
 var cfg *Config
 var configPath = "config.yaml"
 
-var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+// var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
 // var listenAddress = ":8080"
 var podCheckNamespaces = "kube-system"
@@ -102,28 +100,15 @@ const checkCRDResource = "khchecks"
 // the global kubernetes client
 var kubernetesClient *kubernetes.Clientset
 
-// configuration options
-type Config struct {
-	kubeConfigFile    string
-	listenAddress     string
-	enableForceMaster bool
-	enableDebug       bool
-	logLevel          string
-	influxUsername    string
-	influxPassword    string
-	influxURL         string
-	influxDB          string
-	enableInflux      bool
-}
-
 func init() {
 
 	cfg = &Config{}
+	cfg.kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
 	// attempt to load config file from disk
 	err := cfg.Load(configPath)
 	if err != nil {
-		fmt.Println("WARNING: Failed to read configuration file from disk:", err)
+		log.Println("WARNING: Failed to read configuration file from disk:", err)
 	}
 
 	// setup flaggy
@@ -141,10 +126,10 @@ func init() {
 	flaggy.Bool(&cfg.enableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
 	flaggy.Parse()
 
-	fmt.Println("after flag parsing, this is the config struct:", cfg)
+	log.Println("after flag parsing, this is the config struct:", cfg)
 	err = cfg.Save(configPath)
 	if err != nil {
-		fmt.Println("error writing configuration to disk: ", err)
+		log.Println("error writing configuration to disk: ", err)
 	}
 
 	parsedLogLevel, err := log.ParseLevel(cfg.logLevel)
@@ -270,45 +255,25 @@ func determineCheckStateFromEnvVar(envVarName string) bool {
 func initKubernetesClients() error {
 
 	// make a new kuberhealthy client
-	kc, err := kubeClient.Create(kubeConfigFile)
+	kc, err := kubeClient.Create(cfg.kubeConfigFile)
 	if err != nil {
 		return err
 	}
 	kubernetesClient = kc
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, "")
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, cfg.kubeConfigFile, "")
 	if err != nil {
 		return err
 	}
 	khCheckClient = checkClient
 
 	// make a new crd state client
-	stateClient, err := khstatecrd.Client(stateCRDGroup, stateCRDVersion, kubeConfigFile, "")
+	stateClient, err := khstatecrd.Client(stateCRDGroup, stateCRDVersion, cfg.kubeConfigFile, "")
 	if err != nil {
 		return err
 	}
 	khStateClient = stateClient
 
 	return nil
-}
-
-// Save savesm file to disk
-func (c *Config) Save(file string) error {
-	b, err := yaml.Marshal(c)
-	if err != nil {
-		return err
-	}
-	return ioutil.WriteFile(file, b, 0700)
-}
-
-// Load loads file from disk
-func (c *Config) Load(file string) error {
-
-	b, err := ioutil.ReadFile(file)
-	if err != nil {
-		return err
-	}
-
-	return yaml.Unmarshal(b, c)
 }
