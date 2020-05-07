@@ -36,10 +36,6 @@ import (
 // status represents the current Kuberhealthy OK:Error state
 var cfg *Config
 var configPath = "config.yaml"
-
-// var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
-
-// var listenAddress = ":8080"
 var podCheckNamespaces = "kube-system"
 var podNamespace = os.Getenv("POD_NAMESPACE")
 var isMaster bool                  // indicates this instance is the master and should be running checks
@@ -49,18 +45,13 @@ var lastMasterChangeTime time.Time // indicates the last time a master change wa
 var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
 // flags indicating that checks of specific types should be used
-// var enableForceMaster bool // force master mode - for debugging
-// var enableDebug bool       // enable debug logging
-// DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
+
 // DSTolerationOverride specifies an alternate list of taints to tolerate - see #178
 var DSTolerationOverride []string
 
-// var logLevel = "info"
-
 // the hostname of this pod
 var podHostname string
-
 var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
 var enableExternalChecks = true
 
@@ -75,12 +66,6 @@ const KH_CHECK_NAME_ANNOTATION_KEY = "comcast.github.io/check-name"
 
 var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
 
-// InfluxDB connection configuration
-// var enableInflux = false
-// var influxURL = ""
-// var influxUsername = ""
-// var influxPassword = ""
-// var influxDB = "http://localhost:8086"
 var kuberhealthy *Kuberhealthy
 
 var khStateClient *khstatecrd.KuberhealthyStateClient
@@ -151,15 +136,6 @@ func init() {
 	}
 	log.Infoln("External check reporting URL set to:", externalCheckReportingURL)
 
-	// handle debug logging
-	// debugEnv := os.Getenv("DEBUG")
-	// debugEnv := &cfg.enableDebug
-	// if len(debugEnv) > 0 {
-	// 	enableDebug, err = strconv.ParseBool(debugEnv)
-	// 	if err != nil {
-	// 		log.Warningln("Failed to parse bool for DEBUG setting:", err)
-	// 	}
-	// }
 	if cfg.enableDebug == true {
 		log.Infoln("Enabling debug logging")
 		log.SetLevel(log.DebugLevel)
