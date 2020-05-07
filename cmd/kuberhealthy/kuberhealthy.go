@@ -980,6 +980,12 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	}
 	log.Debugf("Check report after unmarshal: +%v\n", state)
 
+	// if nill error is passed turn it into a slice of string
+	if state.Errors == nil {
+		log.Debugln("Saw nil error slice come through and turned into slice")
+		state.Errors = []string{}
+	}
+
 	// ensure that if ok is set to false, then an error is provided
 	if !state.OK {
 		if len(state.Errors) == 0 {
