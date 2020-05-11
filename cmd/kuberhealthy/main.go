@@ -46,7 +46,6 @@ var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes 
 
 // flags indicating that checks of specific types should be used
 var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
-
 // DSTolerationOverride specifies an alternate list of taints to tolerate - see #178
 var DSTolerationOverride []string
 

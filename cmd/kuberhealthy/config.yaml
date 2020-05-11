@@ -1,1 +1,10 @@
-{}
+kubeConfigFile:
+listenAddress: ":8080"
+enableForceMaster: true
+enableDebug: true
+logLevel: "info"
+influxUsername: ""
+influxPassword: ""
+influxURL: ""
+influxDB: "http://localhost:8086"
+enableInflux: false
