@@ -86,15 +86,18 @@ var kubernetesClient *kubernetes.Clientset
 
 func init() {
 
-	cfg = &Config{}
-	cfg.kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
-
-	// attempt to load config file from disk
-	err := cfg.Load(configPath)
-	if err != nil {
-		log.Println("WARNING: Failed to read configuration file from disk:", err)
+	cfg = &Config{
+		kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),
+		logLevel:       "info",
 	}
 
+	// attempt to load config file from disk
+	if configPath != "" {
+		err := cfg.Load(configPath)
+		if err != nil {
+			log.Println("WARNING: Failed to read configuration file from disk:", err)
+		}
+	}
 	// setup flaggy
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&cfg.kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
@@ -109,12 +112,6 @@ func init() {
 	flaggy.String(&cfg.influxDB, "", "influxDB", "Name of the InfluxDB database")
 	flaggy.Bool(&cfg.enableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
 	flaggy.Parse()
-
-	log.Println("after flag parsing, this is the config struct:", cfg)
-	err = cfg.Save(configPath)
-	if err != nil {
-		log.Println("error writing configuration to disk: ", err)
-	}
 
 	parsedLogLevel, err := log.ParseLevel(cfg.logLevel)
 	if err != nil {
