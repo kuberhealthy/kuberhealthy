@@ -34,11 +34,11 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-    name: bat-config
+    name: special-config
 data:
+  kuberhealthy.yaml: |-
     listenAddress: ":8080"
     enableForceMaster: true
-    enableDebug: true
     logLevel: "info"
     influxUsername: ""
     influxPassword: ""

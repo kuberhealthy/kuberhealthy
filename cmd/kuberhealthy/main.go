@@ -14,7 +14,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -25,7 +24,6 @@ import (
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
@@ -35,7 +33,7 @@ import (
 
 // status represents the current Kuberhealthy OK:Error state
 var cfg *Config
-var configPath = "config.yaml"
+var configPath = "/etc/config/kuberhealthy.yaml"
 var podCheckNamespaces = "kube-system"
 var podNamespace = os.Getenv("POD_NAMESPACE")
 var isMaster bool                  // indicates this instance is the master and should be running checks
@@ -91,27 +89,29 @@ func init() {
 		LogLevel:       "info",
 	}
 
-	// attempt to load config file from disk
-	if configPath != "" {
-		err := cfg.Load(configPath)
-		if err != nil {
-			log.Println("WARNING: Failed to read configuration file from disk:", err)
-		}
-	}
+	var useDebugMode bool
+
 	// setup flaggy
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
-	flaggy.String(&cfg.kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
-	flaggy.String(&cfg.ListenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
-	flaggy.Bool(&cfg.EnableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
-	flaggy.Bool(&cfg.EnableDebug, "d", "debug", "Set to true to enable debug.")
-	flaggy.String(&cfg.LogLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
-	// Influx flags
-	flaggy.String(&cfg.InfluxUsername, "", "influxUser", "Username for the InfluxDB instance")
-	flaggy.String(&cfg.InfluxPassword, "", "influxPassword", "Password for the InfluxDB instance")
-	flaggy.String(&cfg.InfluxURL, "", "influxUrl", "Address for the InfluxDB instance")
-	flaggy.String(&cfg.InfluxDB, "", "influxDB", "Name of the InfluxDB database")
-	flaggy.Bool(&cfg.EnableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
+	// flaggy.String(&cfg.kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
+	flaggy.String(&configPath, "c", "config", "(optional) absolute path to the kuberhealthy config file")
+	// flaggy.String(&cfg.ListenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
+	// flaggy.Bool(&cfg.EnableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
+	flaggy.Bool(&useDebugMode, "d", "debug", "Set to true to enable debug.")
+	// flaggy.String(&cfg.LogLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
+	// // Influx flags
+	// flaggy.String(&cfg.InfluxUsername, "", "influxUser", "Username for the InfluxDB instance")
+	// flaggy.String(&cfg.InfluxPassword, "", "influxPassword", "Password for the InfluxDB instance")
+	// flaggy.String(&cfg.InfluxURL, "", "influxUrl", "Address for the InfluxDB instance")
+	// flaggy.String(&cfg.InfluxDB, "", "influxDB", "Name of the InfluxDB database")
+	// flaggy.Bool(&cfg.EnableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
 	flaggy.Parse()
+
+	// attempt to load config file from disk
+	err := cfg.Load(configPath)
+	if err != nil {
+		log.Println("WARNING: Failed to read configuration file from disk:", err)
+	}
 
 	parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
 	if err != nil {
@@ -123,6 +123,12 @@ func init() {
 	log.SetLevel(parsedLogLevel)
 	log.Infoln("Startup Arguments:", os.Args)
 
+	// no matter what if user has specified debug leveling, use debug leveling
+	if useDebugMode {
+		log.Infoln("Setting debug output on because user specified flag")
+		log.SetLevel(log.DebugLevel)
+	}
+
 	// parse external check URL configuration
 	if len(externalCheckReportingURL) == 0 {
 		if len(podNamespace) == 0 {
@@ -131,15 +137,6 @@ func init() {
 		externalCheckReportingURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local/externalCheckStatus"
 	}
 	log.Infoln("External check reporting URL set to:", externalCheckReportingURL)
-
-	if cfg.EnableDebug == true {
-		log.Infoln("Enabling debug logging")
-		log.SetLevel(log.DebugLevel)
-		masterCalculation.EnableDebug()
-
-		// enable debug on klog for dependencies
-		klog.V(10)
-	}
 
 	// Handle force master mode
 	if cfg.EnableForceMaster == true {
