@@ -30,4 +30,18 @@ data:
           description: Kuberhealthy shows that the cluster is not healthy
 {{- end -}}
 {{- end -}}
-
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: bat-config
+data:
+    listenAddress: ":8080"
+    enableForceMaster: true
+    enableDebug: true
+    logLevel: "info"
+    influxUsername: ""
+    influxPassword: ""
+    influxURL: ""
+    influxDB: "http://localhost:8086"
+    enableInflux: false
