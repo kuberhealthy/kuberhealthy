@@ -1,10 +1,15 @@
-kubeConfigFile:
-listenAddress: ":8080"
-enableForceMaster: true
-enableDebug: true
-logLevel: "info"
-influxUsername: ""
-influxPassword: ""
-influxURL: ""
-influxDB: "http://localhost:8086"
-enableInflux: false
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: KuberhealthyConfigMap
+data:
+    kubeConfigFile:
+    listenAddress: ":8080"
+    enableForceMaster: true
+    enableDebug: true
+    logLevel: "info"
+    influxUsername: ""
+    influxPassword: ""
+    influxURL: ""
+    influxDB: "http://localhost:8086"
+    enableInflux: false
