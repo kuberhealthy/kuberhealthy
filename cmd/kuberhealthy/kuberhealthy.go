@@ -146,7 +146,7 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 	go k.stateReflector.Start()
 
 	// if influxdb is enabled, configure it
-	if cfg.enableInflux == false {
+	if cfg.EnableInflux == false {
 		k.configureInfluxForwarding()
 	}
 

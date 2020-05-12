@@ -88,7 +88,7 @@ func init() {
 
 	cfg = &Config{
 		kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),
-		logLevel:       "info",
+		LogLevel:       "info",
 	}
 
 	// attempt to load config file from disk
@@ -101,19 +101,19 @@ func init() {
 	// setup flaggy
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&cfg.kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
-	flaggy.String(&cfg.listenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
-	flaggy.Bool(&cfg.enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
-	flaggy.Bool(&cfg.enableDebug, "d", "debug", "Set to true to enable debug.")
-	flaggy.String(&cfg.logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
+	flaggy.String(&cfg.ListenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
+	flaggy.Bool(&cfg.EnableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
+	flaggy.Bool(&cfg.EnableDebug, "d", "debug", "Set to true to enable debug.")
+	flaggy.String(&cfg.LogLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
 	// Influx flags
-	flaggy.String(&cfg.influxUsername, "", "influxUser", "Username for the InfluxDB instance")
-	flaggy.String(&cfg.influxPassword, "", "influxPassword", "Password for the InfluxDB instance")
-	flaggy.String(&cfg.influxURL, "", "influxUrl", "Address for the InfluxDB instance")
-	flaggy.String(&cfg.influxDB, "", "influxDB", "Name of the InfluxDB database")
-	flaggy.Bool(&cfg.enableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
+	flaggy.String(&cfg.InfluxUsername, "", "influxUser", "Username for the InfluxDB instance")
+	flaggy.String(&cfg.InfluxPassword, "", "influxPassword", "Password for the InfluxDB instance")
+	flaggy.String(&cfg.InfluxURL, "", "influxUrl", "Address for the InfluxDB instance")
+	flaggy.String(&cfg.InfluxDB, "", "influxDB", "Name of the InfluxDB database")
+	flaggy.Bool(&cfg.EnableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
 	flaggy.Parse()
 
-	parsedLogLevel, err := log.ParseLevel(cfg.logLevel)
+	parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
 	if err != nil {
 		log.Fatalln("Unable to parse log-level flag: ", err)
 	}
@@ -132,7 +132,7 @@ func init() {
 	}
 	log.Infoln("External check reporting URL set to:", externalCheckReportingURL)
 
-	if cfg.enableDebug == true {
+	if cfg.EnableDebug == true {
 		log.Infoln("Enabling debug logging")
 		log.SetLevel(log.DebugLevel)
 		masterCalculation.EnableDebug()
@@ -142,7 +142,7 @@ func init() {
 	}
 
 	// Handle force master mode
-	if cfg.enableForceMaster == true {
+	if cfg.EnableForceMaster == true {
 		log.Infoln("Enabling forced master mode")
 		masterCalculation.DebugAlwaysMasterOn()
 	}
@@ -164,7 +164,7 @@ func main() {
 
 	// Create a new Kuberhealthy struct
 	kuberhealthy = NewKuberhealthy()
-	kuberhealthy.ListenAddr = cfg.listenAddress
+	kuberhealthy.ListenAddr = cfg.ListenAddress
 
 	// create run context and start listening for shutdown interrupts
 	khRunCtx, khRunCtxCancelFunc := context.WithCancel(context.Background())
