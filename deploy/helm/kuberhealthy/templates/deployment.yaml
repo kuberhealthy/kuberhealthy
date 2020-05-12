@@ -31,6 +31,17 @@ spec:
       automountServiceAccountToken: true
       containers:
       - image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        command: [ "/bin/sh", "-c", "ls /etc/config/" ]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+      volumes:
+       - name: config-volume
+         configMap:
+        # Provide the name of the ConfigMap containing the files you want
+        # to add to the container
+        name: special-config
+  restartPolicy: Never
         command: {{ .Values.deployment.command }}
         {{- if .Values.deployment.args }}
         args:
@@ -62,51 +73,6 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          - name: LISTEN_ADDRESS
-            valueFrom:
-              configMapKeyRef:
-                name: KuberhealthyConfigMap
-                key: listenAddress
-          - name: ENABLE_FORCE_MASTER
-            valueFrom:
-              configMapKeyRef:
-                name: KuberhealthyConfigMap
-                key: enableForceMaster
-          - name: ENABLE_DEBUG
-            valueFrom:
-              configMapKeyRef:
-                name: KuberhealthyConfigMap
-                key: enableDebug
-          - name: LOG_LEVEL
-            valueFrom:
-              configMapKeyRef:
-                name: KuberhealthyConfigMap
-                key: logLevel
-          - name: INFLUX_USERNAME
-            valueFrom:
-              configMapKeyRef:
-                name: KuberhealthyConfigMap
-                key: influxUsername
-          - name: INFLUX_PASSWORD
-            valueFrom:
-              configMapKeyRef:
-                name: KuberhealthyConfigMap
-                key: influxPassword
-          - name: INFLUX_URL
-            valueFrom:
-              configMapKeyRef:
-                name: KuberhealthyConfigMap
-                key: influxURL
-          - name: INFLUX_DB
-            valueFrom:
-              configMapKeyRef:
-                name: KuberhealthyConfigMap
-                key: influxDB
-          - name: ENABLE_INFLUX
-            valueFrom:
-              configMapKeyRef:
-                name: KuberhealthyConfigMap
-                key: enableInflux
           {{- if .Values.deployment.env.KH_EXTERNAL_REPORTING_URL }}
           - name: KH_EXTERNAL_REPORTING_URL
             value: {{ .Values.deployment.env.KH_EXTERNAL_REPORTING_URL }}
