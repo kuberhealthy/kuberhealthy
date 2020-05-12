@@ -64,6 +64,8 @@ This is a container used to test availability of external image respositories in
 
 The pod is designed to attempt a pull of the test image from the remote repository (never from local) every 10 minutes. If the image is unavavailable an error will be reported to the Kuberheakthy API.
 
+To put a copy of this image to your repository, run `docker pull kuberhealthy/test-external-check` and then `docker push my.repository/repo/test-external-check`.
+
 Below is a YAML template for enabling the image-pull-check in Kuberhealthy.
 
 Simply copy and paste the YAML specs below into a new file and apply it by using the command `kubectl apply -f your-named-khcheck.yaml`.
