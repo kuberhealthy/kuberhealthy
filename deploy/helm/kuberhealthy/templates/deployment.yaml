@@ -31,16 +31,15 @@ spec:
       automountServiceAccountToken: true
       containers:
       - image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
-        command: [ "/bin/sh", "-c", "ls /etc/config/" ]
         volumeMounts:
         - name: config-volume
-          mountPath: /etc/config
+          mountPath: /etc/config/
       volumes:
        - name: config-volume
          configMap:
         # Provide the name of the ConfigMap containing the files you want
         # to add to the container
-        name: special-config
+           name: special-config
   restartPolicy: Never
         command: {{ .Values.deployment.command }}
         {{- if .Values.deployment.args }}
