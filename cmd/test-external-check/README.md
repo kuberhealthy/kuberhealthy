@@ -30,7 +30,7 @@ spec:
     - env:
       - name: REPORT_FAILURE
         value: "false"
-      image: kuberhealthy/test-external-check:v1.1.0
+      image: kuberhealthy/test-external-check:v1.2.1
       name: main
       resources:
         requests:
@@ -51,7 +51,49 @@ See below on a example on how to set `imagePullPolicy`:
     - env:
       - name: REPORT_FAILURE
         value: "false"
-      image: kuberhealthy/test-external-check:v1.1.0
+      image: kuberhealthy/test-external-check:v1.2.1
       imagePullPolicy: Never
       name: main
 ```
+
+### image-pull-check
+
+This is a container used to test availability of external image respositories in Kuberhealthy.  Simply place the `kuberhealthy/test-external-check` image on the repository you need tested.
+
+##### Example `khcheck`
+
+The pod is designed to attempt a pull of the test image from the remote repository (never from local) every 10 minutes. If the image is unavavailable an error will be reported to the Kuberheakthy API.
+
+To put a copy of this image to your repository, run `docker pull kuberhealthy/test-external-check` and then `docker push my.repository/repo/test-external-check`.
+
+Below is a YAML template for enabling the image-pull-check in Kuberhealthy.
+
+Simply copy and paste the YAML specs below into a new file and apply it by using the command `kubectl apply -f your-named-khcheck.yaml`.
+
+```yaml
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: image-pull-check
+  namespace: default
+spec:
+  podSpec:
+    containers:
+    - env:
+      - name: REPORT_FAILURE
+        value: "false"
+      - name: REPORT_DELAY
+        value: "1s"
+      # test-external-check image must be uploaded to the repository you wish to test on, and below URL must be updated to match.
+      image: kuberhealthy/test-external-check:v1.2.1
+      imagePullPolicy: Always
+      name: main
+      resources:
+        requests:
+          cpu: 10m
+          memory: 50Mi
+  runInterval: 10m
+  timeout: 1m
+```
+You can change the default specs as needed in the above YAML to extend or shorten timeouts, run intervals, etc.
