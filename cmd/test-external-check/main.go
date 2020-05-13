@@ -53,7 +53,7 @@ func init() {
 	// Calculate check run duration from the deadline and now
 	deadline, err := strconv.Atoi(unixDeadline)
 	if err != nil {
-		log.Fatalln("Failed to parse unix deadline from environment.")
+		log.Println("Failed to parse unix deadline from environment.")
 	}
 	if deadline > 0 {
 		log.Println("Parsed check deadline time from the environment:", deadline)
