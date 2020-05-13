@@ -113,8 +113,8 @@ check:
     nodeSelector: {}
   networkConnection:
     enabled: false
-    runInterval: 5m
-    timeout: 125s
+    runInterval: 30m
+    timeout: 10m
     image:
       repository: kuberhealthy/network-connection-check
       tag: v0.1.0

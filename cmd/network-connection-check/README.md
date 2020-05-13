@@ -11,12 +11,8 @@ Each check connect to one network target. Default KHCheck configurations applied
     - Target should be unreachable: true
     - Check Name: kuberhealthy-metadata-unreachable
 
-The check runs every 30 minutes (spec.runInterval), with a check timeout set to 125 seconds (spec.timeout). 
-The spec.timeout value is also used inside the network connection check to define the timeout for the performed network connection (minus 5 seconds).
-
-```
-d := net.Dialer{LocalAddr: localAddr, Timeout: time.Duration(checkTimeout - (5000 * time.Millisecond))}
-```
+The check runs every 30 minutes (spec.runInterval), with a check timeout set to 10 minutes (spec.timeout). 
+The `CONNECTION_TIMEOUT` environment variable is used to define the timeout for the performed network connection. If `CONNECTION_TIMEOUT` isn't set, `20s` will be used as default timeout value.
 
 If the check
 does not complete within the given timeout and target should be reachable it will report a timeout error on the status page.
@@ -34,7 +30,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 30m
-  timeout: 125s
+  timeout: 10m
   podSpec:
     containers:
       - env:
