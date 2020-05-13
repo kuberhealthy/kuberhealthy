@@ -30,7 +30,7 @@ spec:
     - env:
       - name: REPORT_FAILURE
         value: "false"
-      image: kuberhealthy/test-external-check:v1.1.0
+      image: kuberhealthy/test-external-check:v1.2.1
       name: main
       resources:
         requests:
@@ -51,7 +51,7 @@ See below on a example on how to set `imagePullPolicy`:
     - env:
       - name: REPORT_FAILURE
         value: "false"
-      image: kuberhealthy/test-external-check:v1.1.0
+      image: kuberhealthy/test-external-check:v1.2.1
       imagePullPolicy: Never
       name: main
 ```
@@ -86,7 +86,7 @@ spec:
       - name: REPORT_DELAY
         value: "1s"
       # test-external-check image must be uploaded to the repository you wish to test on, and below URL must be updated to match.
-      image: kuberhealthy/test-external-check:v1.1.0
+      image: kuberhealthy/test-external-check:v1.2.1
       imagePullPolicy: Always
       name: main
       resources:
@@ -96,4 +96,4 @@ spec:
   runInterval: 10m
   timeout: 1m
 ```
-You can change the default specs as neededin the above YAML to extend or shorten timeouts, run intervals, etc.
+You can change the default specs as needed in the above YAML to extend or shorten timeouts, run intervals, etc.
