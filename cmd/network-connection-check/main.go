@@ -48,28 +48,28 @@ func init() {
 
 	var err error
 
-	// get current timestamp
-	// required to calculate the time.Duration for network connection timeouts
-	now := time.Now()
+	// Grab and verify environment variables and set them as global vars
+	CheckTimeout := os.Getenv("CONNECTION_TIMEOUT")
+	if len(CheckTimeout) == 0 {
+		CheckTimeout = "20s"
+		log.Infoln("CONNECTION_TIMEOUT environment variable has not been set. Use", CheckTimeout, "as default timeout.")
+	}
 
-	// Grab injected (by kuberhealthy) environment var
-	checkRunDeadline, _ := strconv.ParseInt(os.Getenv("KH_CHECK_RUN_DEADLINE"), 10, 64)
-
-	// convert string to time.Time
-	checkRunDeadlineDate := time.Unix(checkRunDeadline, 0)
-
-	// calculate duration for checkTimeout
-	checkTimeout = checkRunDeadlineDate.Sub(now)
+	checkTimeout, err = time.ParseDuration(CheckTimeout)
+	if err != nil {
+		log.Errorln("Error parsing timeout for check", CheckTimeout, err)
+		return
+	}
 
 	connectionTarget = os.Getenv("CONNECTION_TARGET")
 	if len(connectionTarget) == 0 {
-		log.Errorln("ERROR: The CONNECTION_TARGET environment variable has not been set.")
+		log.Errorln("CONNECTION_TARGET environment variable has not been set.")
 		return
 	}
 
 	targetUnreachable, err = strconv.ParseBool(os.Getenv("CONNECTION_TARGET_UNREACHABLE"))
 	if err != nil {
-		log.Errorln("ERROR: CONNECTION_TARGET_UNREACHABLE could not parsed.")
+		log.Infoln("CONNECTION_TARGET_UNREACHABLE could not parsed.")
 		return
 	}
 
@@ -114,7 +114,7 @@ func (ncc *Checker) Run(client *kubernetes.Clientset) error {
 
 	// wait for either a timeout or job completion
 	select {
-	case <-time.After(checkTimeout - (2000 * time.Millisecond)):
+	case <-time.After(checkTimeout + (2000 * time.Millisecond)):
 
 		// The check has timed out after its specified timeout period
 		errorMessage := "Failed to complete network connection check in time! Timeout was reached."
@@ -145,7 +145,7 @@ func (ncc *Checker) doChecks() error {
 		localAddr = &net.TCPAddr{IP: net.ParseIP(ncc.connectionTarget)}
 	}
 
-	d := net.Dialer{LocalAddr: localAddr, Timeout: time.Duration(checkTimeout - (5000 * time.Millisecond))}
+	d := net.Dialer{LocalAddr: localAddr, Timeout: time.Duration(checkTimeout)}
 	conn, err := d.Dial(network, address)
 	if err != nil {
 		errorMessage := "Network connection check determined that " + ncc.connectionTarget + " is DOWN: " + err.Error()

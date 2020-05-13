@@ -5,11 +5,11 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 30m
-  timeout: 125s
+  timeout: 10m
   podSpec:
     containers:
       - env:
-          - name: CHECK_POD_TIMEOUT
+          - name: CONNECTION_TIMEOUT
             value: "10s"
           - name: CONNECTION_TARGET
             value: "tcp://github.com:443"

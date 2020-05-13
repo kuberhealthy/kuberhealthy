@@ -5,12 +5,10 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 30m
-  timeout: 125s
+  timeout: 10m
   podSpec:
     containers:
       - env:
-          - name: CHECK_POD_TIMEOUT
-            value: "10s"
           - name: CONNECTION_TARGET
             value: "tcp://169.254.169.254:80"
           - name: CONNECTION_TARGET_UNREACHABLE
