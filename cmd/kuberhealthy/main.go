@@ -34,7 +34,7 @@ import (
 )
 
 // status represents the current Kuberhealthy OK:Error state
-var kubeConfigFile = filepath.Join(os.Getenv("KUBECONFIG"))
+var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var listenAddress = ":8080"
 var podCheckNamespaces = "kube-system"
 var podNamespace = os.Getenv("POD_NAMESPACE")

@@ -107,12 +107,10 @@ func (c *KuberhealthyStateClient) Watch(opts metav1.ListOptions, resource string
 	}
 	opts.Watch = true
 
-	clientResponse, err := c.restClient.Get().
+	return c.restClient.Get().
 		Resource(resource).
 		Namespace(namespace).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
 		Watch()
-
-	return clientResponse, err
 }
