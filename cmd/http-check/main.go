@@ -43,13 +43,13 @@ func init() {
 
 func main() {
 
-	countInt, x := strconv.Atoi(count)
-	if x != nil {
+	countInt, err := strconv.Atoi(count)
+	if err != nil {
 		log.Fatalln(x)
 	}
 
-	secondInt, y := strconv.Atoi(seconds)
-	if y != nil {
+	secondInt, err := strconv.Atoi(seconds)
+	if err != nil {
 		log.Fatalln(y)
 	}
 
