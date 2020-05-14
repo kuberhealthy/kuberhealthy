@@ -45,12 +45,12 @@ func main() {
 
 	countInt, err := strconv.Atoi(count)
 	if err != nil {
-		log.Fatalln(x)
+		log.Fatalln(err)
 	}
 
 	secondInt, err := strconv.Atoi(seconds)
 	if err != nil {
-		log.Fatalln(y)
+		log.Fatalln(err)
 	}
 
 	log.Infoln("Beginning check.")
@@ -98,7 +98,7 @@ func main() {
 		log.Infoln("Successfully reported to Kuberhealthy of failure")
 	}
 
-	err := kh.ReportSuccess()
+	err = kh.ReportSuccess()
 	if err != nil {
 		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
 	}
