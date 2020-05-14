@@ -10,11 +10,18 @@ An example check with working Dockerfile is available to use as an example [here
 
 ### Using JavaScript
 
-If you would like to write a check in JavaScript, there is a client for external checks found [here](../clients/js/).
+#### Reference Sample:
 
-There is also an [example check](../clients/js/example) in the under the same folder with a Dockerfile for reference.
+If you would like to write a check in JavaScript, there is a sample client for external checks found [here](../clients/js/).
 
-For more information on the external client for JavaScript go [here](../clients/js/README.md).
+Please see the [example check](../clients/js/example) under the same folder with a Dockerfile for reference.
+
+#### NPM:
+
+The kuberhealthy [NPM package](https://www.npmjs.com/package/kuberhealthy) is conformant with the reference sample syntax but also supports async/await as well as arbitrary host and port. 
+
+- read the docs: [kuberhealthy-client](https://github.com/gWOLF3/kuberhealthy-client)
+- get started: `npm i --save kuberhealthy`
 
 ### Using Another Language
 
