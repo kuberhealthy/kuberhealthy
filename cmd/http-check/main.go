@@ -95,7 +95,7 @@ func main() {
 		if err != nil {
 			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
 		}
-		log.Infoln("Successfully reported to Kuberhealthy of failure")
+		log.Infoln("Reported Failure to Kuberhealthy")
 		os.Exit(0)
 	}
 
