@@ -111,6 +111,16 @@ check:
       tag: v1.2.2
     extraEnvs:
     nodeSelector: {}
+  networkConnection:
+    enabled: false
+    runInterval: 30m
+    timeout: 10m
+    image:
+      repository: kuberhealthy/network-connection-check
+      tag: v0.1.0
+    extraEnvs:
+      CONNECTION_TARGET: "tcp://github.com:443"
+    nodeSelector: {}
 
 checkReaper:
   enabled: true # Don't disable checkRepear, this flag exist to make e2e tests easier.
