@@ -24,7 +24,6 @@ import (
 // the khstate custom resource
 type KuberhealthyStateClient struct {
 	restClient rest.Interface
-	ns         string
 }
 
 // ResetClient returns the rest client for easy listWatcher use
@@ -101,14 +100,16 @@ func (c *KuberhealthyStateClient) List(opts metav1.ListOptions, resource string,
 }
 
 // Watch returns a watch.Interface that watches the requested clusterTestTypes.
-func (c *KuberhealthyStateClient) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+func (c *KuberhealthyStateClient) Watch(opts metav1.ListOptions, resource string, namespace string) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
 	}
 	opts.Watch = true
+
 	return c.restClient.Get().
-		Resource("khstates").
+		Resource(resource).
+		Namespace(namespace).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
 		Watch()
