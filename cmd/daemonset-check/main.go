@@ -301,7 +301,10 @@ func (dsc *Checker) Shutdown(sdDoneChan chan error) {
 	var err error
 	// if the ds is deployed, delete it
 	if dsc.DaemonSetDeployed {
-		dsc.remove()
+		err = dsc.remove()
+		if err != nil {
+			log.Infoln("Failed to remove", dsc.DaemonSetName)
+		}
 		err = dsc.waitForPodRemoval()
 	}
 

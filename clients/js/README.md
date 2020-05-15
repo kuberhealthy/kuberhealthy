@@ -3,6 +3,13 @@
 This is a `JavaScript` client for Kuberhealthy external checks. This client exports functions for sending status
 report POST requests to Kuberhealthy. This is a `JavaScript` implementation of the `Go` client found [here](../../pkg/checks/external/checkclient/main.go). More documentation on external checks can be found [here](../../docs/EXTERNAL_CHECKS.md).
 
+#### NPM:
+
+The kuberhealthy [NPM package](https://www.npmjs.com/package/kuberhealthy) is conformant with the reference sample syntax but also supports async/await as well as arbitrary host and port. 
+
+- more info: [kuberhealthy-client](https://github.com/gWOLF3/kuberhealthy-client)
+- get started: `npm i --save kuberhealthy`
+
 ##### Usage
 
 Download the client into your JavaScript project by navigating to your project directory and downloading the client file:
