@@ -226,13 +226,13 @@ func (k *Kuberhealthy) khStateResourceReaper(ctx context.Context) {
 func (k *Kuberhealthy) reapKHStateResources() error {
 
 	// list all khStates in the cluster
-	khStates, err := khStateClient.List(metav1.ListOptions{}, stateCRDResource, "")
+	khStates, err := khStateClient.List(metav1.ListOptions{}, stateCRDResource, listenNamespace)
 	if err != nil {
 		return fmt.Errorf("khState reaper: error listing khStates for reaping: %w", err)
 	}
 
 	// list all khChecks
-	khChecks, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
+	khChecks, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, listenNamespace)
 	if err != nil {
 		return fmt.Errorf("khState reaper: error listing khChecks for khState reaping: %w", err)
 	}
@@ -279,7 +279,8 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 		time.Sleep(time.Second)
 
 		// start a watch on khcheck resources
-		watcher, err := khCheckClient.Watch(metav1.ListOptions{})
+		watcher, err := khCheckClient.Watch(metav1.ListOptions{}, checkCRDResource, listenNamespace)
+
 		if err != nil {
 			log.Errorln("error watching khcheck objects:", err)
 			continue
@@ -343,7 +344,7 @@ func (k *Kuberhealthy) monitorExternalChecks(ctx context.Context, notify chan st
 		log.Debugln("Change notification received. Scanning for external check changes...")
 
 		// fetch all khcheck resources from all namespaces
-		l, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
+		l, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, listenNamespace)
 		if err != nil {
 			log.Errorln("Error listing check configuration resources", err)
 			continue
@@ -442,7 +443,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 	log.Debugln("Fetching khcheck configurations...")
 
 	// list all checks from all namespaces
-	l, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
+	l, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, listenNamespace)
 	if err != nil {
 		return err
 	}
