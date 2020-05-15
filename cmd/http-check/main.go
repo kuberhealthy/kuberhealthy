@@ -96,6 +96,7 @@ func main() {
 			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
 		}
 		log.Infoln("Successfully reported to Kuberhealthy of failure")
+		os.Exit(0)
 	}
 
 	err = kh.ReportSuccess()
