@@ -12,6 +12,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -96,6 +97,14 @@ func parseInputValues() {
 
 	// Parse incoming namespace environment variable
 	checkNamespace = defaultCheckNamespace
+	data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		log.Warnln("Failed to open namespace file:", err.Error())
+	}
+	if len(data) != 0 {
+		log.Infoln("Found pod namespace:", string(data))
+		checkNamespace = string(data)
+	}
 	if len(checkNamespaceEnv) != 0 {
 		checkNamespace = checkNamespaceEnv
 		log.Infoln("Parsed CHECK_NAMESPACE:", checkNamespace)
@@ -171,19 +180,12 @@ func parseInputValues() {
 	// Set check time limit to default
 	checkTimeLimit = defaultCheckTimeLimit
 	// Get the deadline time in unix from the env var
-	unixDeadline, err := kh.GetDeadline()
+	timeDeadline, err := kh.GetDeadline()
 	if err != nil {
 		log.Infoln("There was an issue getting the check deadline:", err.Error())
 	}
-	// Calculate check run duration from the deadline and now
-	deadline, err := strconv.Atoi(unixDeadline)
-	if err != nil {
-		log.Fatalln("Failed to parse unix deadline from environment.")
-	}
-	if deadline > 0 {
-		log.Infoln("Parsed check deadline time from the environment:", deadline)
-		checkTimeLimit = time.Duration((int64(deadline) - time.Now().Unix()) * 1e9) // Multiply by 1,000,000,000 because that's how many nanoseconds are in a second
-	}
+	checkTimeLimit = timeDeadline.Sub(time.Now().Add(time.Second * 5))
+	log.Infoln("Check time limit set to:", checkTimeLimit)
 
 	// Parse incoming deployment rolling-update environment variable
 	if len(rollingUpdateEnv) != 0 {

@@ -7,6 +7,9 @@ spec:
   runInterval: 60m
   timeout: 15m
   podSpec:
+    securityContext:
+      runAsUser: 999
+      fsGroup: 999
     containers:
       - env:
           - name: SKIP_DURATION
@@ -22,3 +25,45 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+    serviceAccountName: pod-status-sa
+---
+# Source: kuberhealthy/templates/khcheck-pod-status.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pod-status-sa
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/khcheck-pod-status.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-status-role
+  namespace: kuberhealthy
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+---
+# Source: kuberhealthy/templates/khcheck-pod-status.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pod-status-rb
+  namespace: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kh-pod-status-role
+subjects:
+  - kind: ServiceAccount
+    name: pod-status-sa
