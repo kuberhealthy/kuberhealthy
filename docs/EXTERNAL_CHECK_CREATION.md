@@ -55,6 +55,7 @@ const report = async () => {
   } else {
     await kh.ReportFailure()
   }
+}
 
 report()
 ```
