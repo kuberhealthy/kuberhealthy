@@ -41,6 +41,7 @@ var podNamespace = os.Getenv("POD_NAMESPACE")
 var isMaster bool                  // indicates this instance is the master and should be running checks
 var upcomingMasterState bool       // the upcoming master state on next interval
 var lastMasterChangeTime time.Time // indicates the last time a master change was seen
+var listenNamespace string         // namespace to listen (watch/get) `khcheck` resources on.  If blank, all namespaces will be monitored.
 
 var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
@@ -104,6 +105,7 @@ func init() {
 	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
 	flaggy.String(&logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
+	flaggy.String(&listenNamespace, "", "listenNamespace", "Kuberhealthy will only monitor khcheck resources from this namespace, if specified.")
 	// Influx flags
 	flaggy.String(&influxUsername, "", "influxUser", "Username for the InfluxDB instance")
 	flaggy.String(&influxPassword, "", "influxPassword", "Password for the InfluxDB instance")
@@ -241,14 +243,14 @@ func initKubernetesClients() error {
 	kubernetesClient = kc
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, "")
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, listenNamespace)
 	if err != nil {
 		return err
 	}
 	khCheckClient = checkClient
 
 	// make a new crd state client
-	stateClient, err := khstatecrd.Client(stateCRDGroup, stateCRDVersion, kubeConfigFile, "")
+	stateClient, err := khstatecrd.Client(stateCRDGroup, stateCRDVersion, kubeConfigFile, listenNamespace)
 	if err != nil {
 		return err
 	}
