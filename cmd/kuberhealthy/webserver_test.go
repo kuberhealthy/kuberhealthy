@@ -13,6 +13,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -46,6 +47,9 @@ func makeTestKuberhealthy(t *testing.T) *Kuberhealthy {
 
 // TestWebServer tests the web server status page functionality
 func TestWebServer(t *testing.T) {
+
+	ctx, _ := context.WithCancel(context.Background())
+
 	if testing.Short() {
 		t.Skip()
 	}
@@ -60,7 +64,7 @@ func TestWebServer(t *testing.T) {
 	kh.AddCheck(fc)
 
 	t.Log("Starting Kuberhealthy checks")
-	go kh.Start()
+	go kh.Start(ctx)
 	// give the checker time to make CRDs
 	t.Log("Waiting for checks to run")
 	time.Sleep(time.Second * 2)
@@ -99,6 +103,8 @@ func TestWebServer(t *testing.T) {
 // TestWebServerNotOK tests the web server status when things are not OK
 func TestWebServerNotOK(t *testing.T) {
 
+	ctx, _ := context.WithCancel(context.Background())
+
 	// create a new kuberhealthy
 	kh := makeTestKuberhealthy(t)
 
@@ -110,7 +116,7 @@ func TestWebServerNotOK(t *testing.T) {
 	kh.AddCheck(fc)
 
 	// run the checker for enough time to make and update CRD entries, then stop it
-	go kh.Start()
+	go kh.Start(ctx)
 	time.Sleep(time.Second * 5)
 	kh.StopChecks()
 

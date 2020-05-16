@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/watch"
@@ -24,7 +26,6 @@ import (
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
-
 	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
@@ -62,6 +63,9 @@ const defaultTimeout = time.Minute * 15
 
 // constant for the error when a pod is deleted expectedly during a check run
 var ErrPodRemovedExpectedly = errors.New("pod deleted expectedly")
+
+// constant for the error when a pod is deleted before the check pod running
+var ErrPodDeletedBeforeRunning = errors.New("the khcheck check pod is deleted, waiting for start failed")
 
 // DefaultName is used when no check name is supplied
 var DefaultName = "external-check"
@@ -156,7 +160,7 @@ func (ext *Checker) CurrentStatus() (bool, []string) {
 	// fetch the state from the resource
 	state, err := ext.getKHState()
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if k8sErrors.IsNotFound(err) {
 			// if the resource is not found, we default to "up" so not to throw alarms before the first run completes
 			return true, []string{}
 		}
@@ -294,12 +298,12 @@ func (ext *Checker) setUUID(uuid string) error {
 	checkState, err := ext.getKHState()
 
 	// if the fetch operation had an error, but it wasn't 'not found', we return here
-	if err != nil && !strings.Contains(err.Error(), "not found") {
+	if err != nil && !k8sErrors.IsNotFound(err) {
 		return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
 	}
 
 	// if the check was not found, we create a fresh one and start there
-	if err != nil && strings.Contains(err.Error(), "not found") {
+	if err != nil && k8sErrors.IsNotFound(err) {
 		ext.log("khstate did not exist, so a default object will be created")
 		details := health.NewCheckDetails()
 		details.Namespace = ext.CheckNamespace()
@@ -346,12 +350,12 @@ func (ext *Checker) setUUID(uuid string) error {
 	// This for-loop is to verify the pod uuid is properly set with the api server before the checker pod is started.
 	tries := 0
 	for {
-		if tries >= 3 {
+		if tries >= 9 {
 			return fmt.Errorf("failed to verify uuid match %s after %d tries", checkState.Spec.CurrentUUID, tries)
 		}
 		tries++
 		ext.log("Waiting 1 second before checking " + ext.Name() + " uuid.")
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 1)
 		extCheck, err := ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.Name(), ext.CheckNamespace())
 		if err != nil {
 			ext.log("failed to get khstate while truing up check uuid:", err)
@@ -703,7 +707,7 @@ func (ext *Checker) deletePod(podName string) error {
 		GracePeriodSeconds: &gracePeriodSeconds,
 		PropagationPolicy:  &deletionPolicy,
 	})
-	if err != nil && !strings.Contains(err.Error(), "not found") {
+	if err != nil && !k8sErrors.IsNotFound(err) {
 		return err
 	}
 	return nil
@@ -738,7 +742,7 @@ func (ext *Checker) getCheckLastUpdateTime() (time.Time, error) {
 
 	// fetch the state from the resource
 	state, err := ext.getKHState()
-	if err != nil && strings.Contains(err.Error(), "not found") {
+	if err != nil && k8sErrors.IsNotFound(err) {
 		return time.Time{}, nil
 	}
 
@@ -847,7 +851,7 @@ func (ext *Checker) waitForAllPodsToClear() chan error {
 
 			// if we got a "not found" message, then we are done.  This is the happy path.
 			if err != nil {
-				if strings.Contains(err.Error(), "not found") {
+				if k8sErrors.IsNotFound(err) {
 					ext.log("all pods cleared")
 					outChan <- nil
 					return
@@ -954,6 +958,17 @@ func (ext *Checker) waitForPodStart() chan error {
 
 			ext.log("starting pod running watcher")
 
+			pods, err := podClient.List(metav1.ListOptions{
+				LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
+			})
+			if err != nil {
+				outChan <- err
+				return
+			}
+			if pods.Size() == 0 {
+				outChan <- ErrPodDeletedBeforeRunning
+				return
+			}
 			// start watching
 			watcher, err := podClient.Watch(metav1.ListOptions{
 				LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
@@ -967,6 +982,13 @@ func (ext *Checker) waitForPodStart() chan error {
 			for e := range watcher.ResultChan() {
 
 				ext.log("got an event while waiting for pod to start running")
+
+				if e.Type == watch.Deleted {
+					ext.log("the khcheck check pod is deleted, waiting for start failed!")
+					outChan <- ErrPodDeletedBeforeRunning
+					watcher.Stop()
+					return
+				}
 
 				// try to cast the incoming object to a pod and skip the event if we cant
 				p, ok := e.Object.(*apiv1.Pod)
@@ -1050,12 +1072,12 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	// enforce various labels and annotations on all checker pods created
 	ext.addKuberhealthyLabels(p)
 
-	// Get ownerRefernece for the kuberhealthy pod
-	ownerRef, err := util.GetOwnerRef(ext.KubeClient, ext.Namespace)
+	// Get ownerReference for the kuberhealthy pod
+	ownerRef, err := util.GetOwnerRef(ext.KubeClient, p.Namespace)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Failed to getOwnerReference for pod: " + p.Name + ", err: " + err.Error())
 	}
-	// Sets OwnerRefernces on all checker pods
+	// Set ownerReference on all checker pods
 	p.OwnerReferences = ownerRef
 
 	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
@@ -1167,7 +1189,7 @@ func (ext *Checker) podExists() (bool, error) {
 
 	// if the pod is "not found", then it does not exist
 	p, err := podClient.Get(ext.podName(), metav1.GetOptions{})
-	if err != nil && strings.Contains(err.Error(), "not found") {
+	if err != nil && k8sErrors.IsNotFound(err) {
 		return false, nil
 	}
 
