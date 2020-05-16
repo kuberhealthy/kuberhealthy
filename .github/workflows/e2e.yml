@@ -1,6 +1,9 @@
 name: CI
 
 on:
+  pull_request:
+    branches:
+      - master
   push:
     branches:
     - master
@@ -15,6 +18,8 @@ jobs:
       with:
         go-version: '1.13.3'
     - uses: actions/checkout@v2
+    - name: build container
+      run: docker build --file cmd/kuberhealthy/Dockerfile --tag kuberhealthy:$GITHUB_RUN_ID .
     - uses: engineerd/setup-kind@v0.3.0
       with:
           version: "v0.7.0"
@@ -26,6 +31,7 @@ jobs:
         kubectl get nodes
         echo "current-context:" $(kubectl config current-context)
         echo "environment-kubeconfig:" ${KUBECONFIG}
+        kind load docker-image kuberhealthy:$GITHUB_RUN_ID
 
     - name: "running end to end test"
       run: ./.ci/e2e.sh
