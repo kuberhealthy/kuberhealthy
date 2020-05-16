@@ -16,7 +16,8 @@ kubectl create namespace $NS
 sleep 2
 
 # Use helm to install kuberhealthy
-helm install -n $NS -f .ci/values.yaml $name deploy/helm/kuberhealthy
+# the image repository and tag must match the build that just took place
+helm install -n $NS --set global.image.repository=kuberhealthy,global.image.tag=$GITHUB_RUN_ID -f .ci/values.yaml  $name deploy/helm/kuberhealthy
 
 kubectl -n $NS get khc
 
