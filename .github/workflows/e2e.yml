@@ -31,6 +31,7 @@ jobs:
         kubectl get nodes
         echo "current-context:" $(kubectl config current-context)
         echo "environment-kubeconfig:" ${KUBECONFIG}
+        kind load docker-image kuberhealthy:$GITHUB_RUN_ID
 
     - name: "running end to end test"
       run: ./.ci/e2e.sh
