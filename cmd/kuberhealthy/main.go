@@ -85,9 +85,8 @@ var kubernetesClient *kubernetes.Clientset
 func init() {
 
 	cfg = &Config{
-		kubeConfigFile:            filepath.Join(os.Getenv("HOME"), ".kube", "config"),
-		LogLevel:                  "info",
-		ExternalCheckReportingURL: os.Getenv(KHExternalReportingURL),
+		kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),
+		LogLevel:       "info",
 	}
 
 	var useDebugMode bool
@@ -114,6 +113,13 @@ func init() {
 		log.Println("WARNING: Failed to read configuration file from disk:", err)
 	}
 
+	// set env variables into config if specified
+	externalCheckURL, err := getEnvVar(KHExternalReportingURL)
+	if err != nil {
+		cfg.ExternalCheckReportingURL = externalCheckURL
+	}
+
+	// parse and set logging level
 	parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
 	if err != nil {
 		log.Fatalln("Unable to parse log-level flag: ", err)
