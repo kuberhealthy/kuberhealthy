@@ -74,7 +74,7 @@ var DefaultName = "external-check"
 // kubeConfigFile is the default location to check for a kubernetes configuration file
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
-// namespace of Kuberhealthy pod. Used to help set ownerReference for created checker pods.
+// Namespace of Kuberhealthy pod. Used to help set ownerReference for created checker pods.
 var kuberhealthyNamespace = "kuberhealthy"
 
 // constants for using the kuberhealthy check CRD
@@ -109,7 +109,8 @@ type Checker struct {
 }
 
 func init() {
-	// Get namespace of Kuberhealthy pod. Used to set ownerReferences for created checker pods to proper Kuberhealthy instance.
+	// Get namespace of Kuberhealthy pod. Used to help set ownerReference for created checker pods to proper
+	// Kuberhealthy instance.
 	var kuberhealthyNamespaceEnv string
 	data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
