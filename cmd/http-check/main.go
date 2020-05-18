@@ -17,6 +17,7 @@ var (
 	checkURL = os.Getenv("CHECK_URL")
 	count    = os.Getenv("COUNT")
 	seconds  = os.Getenv("SECONDS")
+	passing  = os.Getenv("PASSING")
 )
 
 func init() {
@@ -53,6 +54,16 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	passingFloat, err := strconv.ParseFloat(passing, 64)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	floatCount := float64(countInt)
+	passingScore := floatCount * passingFloat
+	passInt := int(passingScore)
+	log.Println("looking for at least", passInt, "of", countInt, "checks to pass")
+
 	log.Infoln("Beginning check.")
 	checksRan := 0
 	checksPassed := 0
@@ -88,9 +99,9 @@ func main() {
 	log.Infoln(checksPassed, "checks passed")
 	log.Infoln(checksFailed, "checks failed")
 
-	// Check to see if the 10 requests passed at 80% and reports to Kuberhealthy accordingly
-	if checksPassed < 8 {
-		reportErr := fmt.Errorf("unable to retrieve a valid response from " + checkURL + "check failed " + strconv.Itoa(checksFailed) + " out of 10 attempts")
+	// Check to see if the number of requests passed at 90% and reports to Kuberhealthy accordingly
+	if checksPassed < passInt {
+		reportErr := fmt.Errorf("unable to retrieve a valid response from " + checkURL + "check failed " + strconv.Itoa(checksFailed) + " out of " + strconv.Itoa(checksRan) + " attempts")
 		err := kh.ReportFailure([]string{reportErr.Error()})
 		if err != nil {
 			log.Fatalln("error when reporting to kuberhealthy:", err.Error())

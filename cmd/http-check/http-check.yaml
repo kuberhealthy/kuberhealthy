@@ -19,6 +19,8 @@ spec:
           value: "10"
         - name: SECONDS
           value: "1"
+        - name: PASSING
+          value: ".9"
       resources:
         requests:
           cpu: 15m
