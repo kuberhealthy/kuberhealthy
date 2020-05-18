@@ -61,7 +61,7 @@ const DefaultRunInterval = time.Minute * 10
 // the key used in the annotation that holds the check's short name
 const KH_CHECK_NAME_ANNOTATION_KEY = "comcast.github.io/check-name"
 
-var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
+// var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
 
 var kuberhealthy *Kuberhealthy
 
@@ -85,8 +85,9 @@ var kubernetesClient *kubernetes.Clientset
 func init() {
 
 	cfg = &Config{
-		kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),
-		LogLevel:       "info",
+		kubeConfigFile:            filepath.Join(os.Getenv("HOME"), ".kube", "config"),
+		LogLevel:                  "info",
+		ExternalCheckReportingURL: os.Getenv(KHExternalReportingURL),
 	}
 
 	var useDebugMode bool
@@ -130,13 +131,13 @@ func init() {
 	}
 
 	// parse external check URL configuration
-	if len(externalCheckReportingURL) == 0 {
+	if len(cfg.ExternalCheckReportingURL) == 0 {
 		if len(podNamespace) == 0 {
 			log.Fatalln("KH_EXTERNAL_REPORTING_URL environment variable not set and POD_NAMESPACE environment variable was blank.  Could not determine Kuberhealthy callback URL.")
 		}
-		externalCheckReportingURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local/externalCheckStatus"
+		cfg.ExternalCheckReportingURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local/externalCheckStatus"
 	}
-	log.Infoln("External check reporting URL set to:", externalCheckReportingURL)
+	log.Infoln("External check reporting URL set to:", cfg.ExternalCheckReportingURL)
 
 	// Handle force master mode
 	if cfg.EnableForceMaster == true {
