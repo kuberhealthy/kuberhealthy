@@ -63,7 +63,7 @@ func main() {
 	floatCount := float64(countInt)
 	passingScore := floatCount * passingFloat
 	passInt := int(passingScore)
-	log.Println("looking for at least", passInt, "of", countInt, "checks to pass")
+	log.Infoln("looking for at least", passInt, "of", countInt, "checks to pass")
 
 	log.Infoln("Beginning check.")
 	checksRan := 0
