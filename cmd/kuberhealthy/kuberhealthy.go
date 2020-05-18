@@ -456,7 +456,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 		// create a new kubernetes client for this external checker
 		log.Infoln("Enabling external check:", r.Name)
-		c := external.New(kubernetesClient, &r, khCheckClient, khStateClient, externalCheckReportingURL)
+		c := external.New(kubernetesClient, &r, khCheckClient, khStateClient, cfg.ExternalCheckReportingURL)
 
 		// parse the run interval string from the custom resource and setup the run interval
 		c.RunInterval, err = time.ParseDuration(r.Spec.RunInterval)
