@@ -59,6 +59,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	// sets the passing score to compare it against checks that have been ran
 	floatCount := float64(countInt)
 	passingScore := floatCount * passingFloat
 	passInt := int(passingScore)
@@ -71,9 +72,9 @@ func main() {
 
 	ticker := time.NewTicker(time.Duration(secondInt))
 	defer ticker.Stop()
+
 	// This for loop makes a http GET request to a known internet address, address can be changed in deployment spec yaml
 	// and returns a http status every second.
-
 	for checksRan < countInt {
 		<-ticker.C
 		r, err := http.Get(checkURL)
