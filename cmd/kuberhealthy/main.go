@@ -36,7 +36,6 @@ import (
 // status represents the current Kuberhealthy OK:Error state
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var listenAddress = ":8080"
-var podCheckNamespaces = "kube-system"
 var podNamespace = os.Getenv("POD_NAMESPACE")
 var isMaster bool                  // indicates this instance is the master and should be running checks
 var upcomingMasterState bool       // the upcoming master state on next interval
@@ -48,17 +47,10 @@ var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes 
 // flags indicating that checks of specific types should be used
 var enableForceMaster bool // force master mode - for debugging
 var enableDebug bool       // enable debug logging
-// DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
-var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
-// DSTolerationOverride specifies an alternate list of taints to tolerate - see #178
-var DSTolerationOverride []string
 var logLevel = "info"
 
 // the hostname of this pod
 var podHostname string
-
-var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
-var enableExternalChecks = true
 
 // external check configs
 const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"

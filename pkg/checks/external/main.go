@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -73,6 +74,9 @@ var DefaultName = "external-check"
 // kubeConfigFile is the default location to check for a kubernetes configuration file
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
+// Namespace of Kuberhealthy pod. Used to help set ownerReference for created checker pods.
+var kuberhealthyNamespace = "kuberhealthy"
+
 // constants for using the kuberhealthy check CRD
 const CRDGroup = "comcast.github.io"
 const CRDVersion = "v1"
@@ -102,6 +106,24 @@ type Checker struct {
 	wg                       sync.WaitGroup     // used to track background workers and processes
 	hostname                 string             // hostname cache
 	checkPodName             string             // the current unique checker pod name
+}
+
+func init() {
+	// Get namespace of Kuberhealthy pod. Used to help set ownerReference for created checker pods to proper
+	// Kuberhealthy instance.
+	var kuberhealthyNamespaceEnv string
+	data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		log.Warnln("Failed to open namespace file:", err.Error())
+	}
+	if len(data) != 0 {
+		log.Infoln("Found Kuberhealthy namespace:", string(data))
+		kuberhealthyNamespaceEnv = string(data)
+	}
+	if len(kuberhealthyNamespaceEnv) != 0 {
+		kuberhealthyNamespace = kuberhealthyNamespaceEnv
+	}
+	log.Infoln("Kuberhealthy is located in the", kuberhealthyNamespace, "namespace.")
 }
 
 // New creates a new external checker
@@ -1073,7 +1095,7 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	ext.addKuberhealthyLabels(p)
 
 	// Get ownerReference for the kuberhealthy pod
-	ownerRef, err := util.GetOwnerRef(ext.KubeClient, p.Namespace)
+	ownerRef, err := util.GetOwnerRef(ext.KubeClient, kuberhealthyNamespace)
 	if err != nil {
 		return nil, errors.New("Failed to getOwnerReference for pod: " + p.Name + ", err: " + err.Error())
 	}
