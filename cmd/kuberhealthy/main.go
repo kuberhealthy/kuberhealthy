@@ -93,18 +93,8 @@ func init() {
 
 	// setup flaggy
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
-	// flaggy.String(&cfg.kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
 	flaggy.String(&configPath, "c", "config", "(optional) absolute path to the kuberhealthy config file")
-	// flaggy.String(&cfg.ListenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
-	// flaggy.Bool(&cfg.EnableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
 	flaggy.Bool(&useDebugMode, "d", "debug", "Set to true to enable debug.")
-	// flaggy.String(&cfg.LogLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
-	// // Influx flags
-	// flaggy.String(&cfg.InfluxUsername, "", "influxUser", "Username for the InfluxDB instance")
-	// flaggy.String(&cfg.InfluxPassword, "", "influxPassword", "Password for the InfluxDB instance")
-	// flaggy.String(&cfg.InfluxURL, "", "influxUrl", "Address for the InfluxDB instance")
-	// flaggy.String(&cfg.InfluxDB, "", "influxDB", "Name of the InfluxDB database")
-	// flaggy.Bool(&cfg.EnableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
 	flaggy.Parse()
 
 	// attempt to load config file from disk
