@@ -15,10 +15,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"math"
 	"strconv"
 	"time"
+
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
@@ -533,8 +534,9 @@ func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 		result := DeploymentResult{}
 
 		// Get the names of the current pods and ignore them when checking for a completed rolling-update.
-		log.Infoln("Creating a blacklist with the current pods that exist.")
-		oldPodNames := getPodNames()
+		// log.Infoln("Creating a blacklist with the current pods that exist.")
+		// oldPodNames := getPodNames()
+		// newPodStatuses := make(map[string]bool)
 
 		deployment, err := client.AppsV1().Deployments(checkNamespace).Update(deploymentConfig)
 		if err != nil {
@@ -560,9 +562,7 @@ func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 		defer watch.Stop()
 
 		log.Debugln("Watching for deployment rolling-update to complete.")
-		newPodStatuses := make(map[string]bool)
 		for {
-			// There can be 2 events here, Progressing has status "has successfully progressed." or Context timeout.
 			select {
 			case event := <-watch.ResultChan():
 				// Watch for deployment events.
@@ -574,13 +574,20 @@ func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 
 				log.Debugln("Received an event watching for deployment changes:", d.Name, "got event", event.Type)
 
-				// Look at the status conditions for the deployment object.
-				if rollingUpdateComplete(newPodStatuses, oldPodNames) {
+				if rolledPodsAreReady(d) {
 					log.Debugln("Rolling-update is assumed to be completed, sending result to channel.")
 					result.Deployment = d
 					updateChan <- result
 					return
 				}
+
+				// Look at the status conditions for the deployment object.
+				// if rollingUpdateComplete(newPodStatuses, oldPodNames) {
+				// 	log.Debugln("Rolling-update is assumed to be completed, sending result to channel.")
+				// 	result.Deployment = d
+				// 	updateChan <- result
+				// 	return
+				// }
 			case <-ctx.Done():
 				// If the context has expired, exit.
 				log.Errorln("Context expired while waiting for deployment to create.")
@@ -673,6 +680,12 @@ func rollingUpdateComplete(statuses map[string]bool, oldPodNames []string) bool 
 
 	// Only return true if ALL pods are up.
 	return count == checkDeploymentReplicas
+}
+
+// rolledPodsAreReady checks if a deployments pods have been updated and are available.
+// Returns true if all replicas are up, ready, and the deployment generation is greater than 1.
+func rolledPodsAreReady(d *v1.Deployment) bool {
+	return d.Status.Replicas == int32(checkDeploymentReplicas) && d.Status.AvailableReplicas == int32(checkDeploymentReplicas) && d.Status.ReadyReplicas == int32(checkDeploymentReplicas) && d.Status.ObservedGeneration > 1
 }
 
 // deploymentAvailable checks the status conditions of the deployment and returns a boolean.
