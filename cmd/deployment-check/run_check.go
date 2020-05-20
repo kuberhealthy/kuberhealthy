@@ -46,11 +46,11 @@ func runDeploymentCheck() {
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal.
 		log.Infoln("Canceling cleanup and shutting down from interrupt.")
-		reportErrorsToKuberhealthy([]string{"failed to perform pre-check cleanup in time"})
+		reportErrorsToKuberhealthy([]string{"failed to perform pre-check cleanup within timeout"})
 		return
 	case <-cleanupTimeout:
 		// If the clean up took too long, exit.
-		reportErrorsToKuberhealthy([]string{"failed to perform pre-check cleanup in time"})
+		reportErrorsToKuberhealthy([]string{"failed to perform pre-check cleanup within timeout"})
 		return
 	}
 
@@ -156,11 +156,11 @@ func runDeploymentCheck() {
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal, exit.
 		log.Infoln("Cancelling check and shutting down due to interrupt.")
-		reportErrorsToKuberhealthy([]string{"failed to make http request to the deployment service within timeout"})
+		reportErrorsToKuberhealthy([]string{"failed to make http request to the deployment service cluster IP at " + ipAddress + " within timeout"})
 		return
 	case <-runTimeout:
 		// If requests to the hostname endpoint for a status code of 200 took too long, exit.
-		reportErrorsToKuberhealthy([]string{"failed to make http request to the deployment service within timeout"})
+		reportErrorsToKuberhealthy([]string{"failed to make http request to the deployment service cluster IP at " + ipAddress + " within timeout"})
 		return
 	}
 
@@ -194,11 +194,11 @@ func runDeploymentCheck() {
 		case <-ctx.Done():
 			// If there is a cancellation interrupt signal.
 			log.Infoln("Cancelling check and shutting down due to interrupt.")
-			reportErrorsToKuberhealthy([]string{"failed to update deployment within timeout"})
+			reportErrorsToKuberhealthy([]string{"failed to update deployment " + deploymentResult.Deployment.Name + " within timeout"})
 			return
 		case <-runTimeout:
 			// If creating a deployment took too long, exit.
-			reportErrorsToKuberhealthy([]string{"failed to update deployment within timeout"})
+			reportErrorsToKuberhealthy([]string{"failed to update deployment " + deploymentResult.Deployment.Name + " within timeout"})
 			return
 		}
 
@@ -222,11 +222,11 @@ func runDeploymentCheck() {
 		case <-ctx.Done():
 			// If there is a cancellation interrupt signal, exit.
 			log.Infoln("Cancelling check and shutting down due to interrupt.")
-			reportErrorsToKuberhealthy([]string{"failed to make http request to the deployment service within timeout"})
+			reportErrorsToKuberhealthy([]string{"failed to make http request to the deployment service cluster IP at " + ipAddress + " within timeout"})
 			return
 		case <-runTimeout:
 			// If requests to the hostname endpoint for a status code of 200 took too long, exit.
-			reportErrorsToKuberhealthy([]string{"failed to make http request to the deployment service within timeout"})
+			reportErrorsToKuberhealthy([]string{"failed to make http request to the deployment service cluster IP at " + ipAddress + " within timeout"})
 			return
 		}
 	}
