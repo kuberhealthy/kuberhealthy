@@ -536,9 +536,9 @@ func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 		// Get the names of the current pods and ignore them when checking for a completed rolling-update.
 		// log.Infoln("Creating a blacklist with the current pods that exist.")
 		// oldPodNames := getPodNames()
+		// newPodStatuses := make(map[string]bool)
 
 		deployment, err := client.AppsV1().Deployments(checkNamespace).Update(deploymentConfig)
-		// _, err := client.AppsV1().Deployments(checkNamespace).Update(deploymentConfig)
 		if err != nil {
 			log.Infoln("Failed to update deployment in the cluster:", err)
 			result.Err = err
@@ -547,15 +547,9 @@ func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 		}
 
 		// Watch that it is up.
-		// watch, err := client.AppsV1().Deployments(checkNamespace).Watch(metav1.ListOptions{
-		// 	Watch:         true,
-		// 	FieldSelector: "metadata.name=" + deployment.Name,
-		// 	// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
-		// })
-		log.Infoln("Deployment name:", deployment.Name)
-		watch, err := client.CoreV1().ReplicationControllers(checkNamespace).Watch(metav1.ListOptions{
-			Watch: true,
-			// FieldSelector: "metadata.name=" + deployment.Name,
+		watch, err := client.AppsV1().Deployments(checkNamespace).Watch(metav1.ListOptions{
+			Watch:         true,
+			FieldSelector: "metadata.name=" + deployment.Name,
 			// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
 		})
 		if err != nil {
@@ -572,34 +566,20 @@ func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 			select {
 			case event := <-watch.ResultChan():
 				// Watch for deployment events.
-				rs, ok := event.Object.(*v1.ReplicaSet)
+				d, ok := event.Object.(*v1.Deployment)
 				if !ok { // Skip the event if it cannot be casted as a v1.Deployment.
 					log.Infoln("Got a watch event for a non-deployment object -- ignoring.")
 					continue
 				}
 
-				log.Debugln("Received an event watching for deployment changes:", rs.Name, "got event", event.Type)
+				log.Debugln("Received an event watching for deployment changes:", d.Name, "got event", event.Type)
 
-				log.Infoln("Replicas:", rs.Status)
-				log.Infoln("Available replicas:", rs.Status.AvailableReplicas)
-				log.Infoln("Ready replicas:", rs.Status.ReadyReplicas)
-				log.Infoln("Generation:", rs.Status.ObservedGeneration)
-
-				// log.Infoln("Watching for replicas to come up. Unavailable replicas:", d.Status.UnavailableReplicas)
-				// if d.Status.UnavailableReplicas == int32(0) {
-				// 	log.Debugln("Rolling-update is assumed to be completed, sending result to channel.")
-				// 	result.Deployment = d
-				// 	updateChan <- result
-				// 	return
-				// }
-
-				// log.Infoln("Watching for replicas to come up. Updated replicas:", d.Status.UpdatedReplicas)
-				// if d.Status.UpdatedReplicas == int32(checkDeploymentReplicas) {
-				// 	log.Debugln("Rolling-update is assumed to be completed, sending result to channel.")
-				// 	result.Deployment = d
-				// 	updateChan <- result
-				// 	return
-				// }
+				if rolledPodsAreReady(d) {
+					log.Debugln("Rolling-update is assumed to be completed, sending result to channel.")
+					result.Deployment = d
+					updateChan <- result
+					return
+				}
 
 				// Look at the status conditions for the deployment object.
 				// if rollingUpdateComplete(newPodStatuses, oldPodNames) {
@@ -619,54 +599,6 @@ func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 				return
 			}
 		}
-		// newPodStatuses := make(map[string]bool)
-		// for {
-		// 	// There can be 2 events here, Progressing has status "has successfully progressed." or Context timeout.
-		// 	select {
-		// 	case event := <-watch.ResultChan():
-		// 		// Watch for deployment events.
-		// 		d, ok := event.Object.(*v1.Deployment)
-		// 		if !ok { // Skip the event if it cannot be casted as a v1.Deployment.
-		// 			log.Infoln("Got a watch event for a non-deployment object -- ignoring.")
-		// 			continue
-		// 		}
-
-		// 		log.Debugln("Received an event watching for deployment changes:", d.Name, "got event", event.Type)
-
-		// 		log.Infoln("Watching for replicas to come up. Unavailable replicas:", d.Status.UnavailableReplicas)
-		// 		if d.Status.UnavailableReplicas == int32(0) {
-		// 			log.Debugln("Rolling-update is assumed to be completed, sending result to channel.")
-		// 			result.Deployment = d
-		// 			updateChan <- result
-		// 			return
-		// 		}
-
-		// 		// log.Infoln("Watching for replicas to come up. Updated replicas:", d.Status.UpdatedReplicas)
-		// 		// if d.Status.UpdatedReplicas == int32(checkDeploymentReplicas) {
-		// 		// 	log.Debugln("Rolling-update is assumed to be completed, sending result to channel.")
-		// 		// 	result.Deployment = d
-		// 		// 	updateChan <- result
-		// 		// 	return
-		// 		// }
-
-		// 		// Look at the status conditions for the deployment object.
-		// 		// if rollingUpdateComplete(newPodStatuses, oldPodNames) {
-		// 		// 	log.Debugln("Rolling-update is assumed to be completed, sending result to channel.")
-		// 		// 	result.Deployment = d
-		// 		// 	updateChan <- result
-		// 		// 	return
-		// 		// }
-		// 	case <-ctx.Done():
-		// 		// If the context has expired, exit.
-		// 		log.Errorln("Context expired while waiting for deployment to create.")
-		// 		err = cleanUp(ctx)
-		// 		if err != nil {
-		// 			result.Err = errors.New("failed to clean up properly: " + err.Error())
-		// 		}
-		// 		updateChan <- result
-		// 		return
-		// 	}
-		// }
 	}()
 
 	return updateChan
@@ -748,6 +680,12 @@ func rollingUpdateComplete(statuses map[string]bool, oldPodNames []string) bool 
 
 	// Only return true if ALL pods are up.
 	return count == checkDeploymentReplicas
+}
+
+// rolledPodsAreReady checks if a deployments pods have been updated and are available.
+// Returns true if all replicas are up, ready, and the deployment generation is greater than 1.
+func rolledPodsAreReady(d *v1.Deployment) bool {
+	return d.Status.Replicas == int32(checkDeploymentReplicas) && d.Status.AvailableReplicas == int32(checkDeploymentReplicas) && d.Status.ReadyReplicas == int32(checkDeploymentReplicas) && d.Status.ObservedGeneration > 1
 }
 
 // deploymentAvailable checks the status conditions of the deployment and returns a boolean.
