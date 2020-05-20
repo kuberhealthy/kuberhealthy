@@ -13,6 +13,7 @@ require (
 	github.com/aws/aws-sdk-go v1.25.24
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/denverdino/aliyungo v0.0.0-20191023002520-dba750c0c223 // indirect
+	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-ini/ini v1.49.0 // indirect
 	github.com/gogo/protobuf v1.3.0 // indirect
@@ -25,7 +26,6 @@ require (
 	github.com/sirupsen/logrus v1.4.0
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
-	golang.org/x/sys v0.0.0-20190904005037-43c01164e931 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
@@ -35,7 +35,7 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/kops v1.11.0
 	k8s.io/utils v0.0.0-20200318093247-d1ab8797c558 // indirect
-	sigs.k8s.io/yaml v1.2.0 // indirect
+	sigs.k8s.io/yaml v1.2.0
 )
 
 go 1.13
