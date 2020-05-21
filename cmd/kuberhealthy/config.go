@@ -11,15 +11,15 @@ import (
 // Config holds all configurable options
 type Config struct {
 	kubeConfigFile            string
-	ListenAddress             string `yaml:"listenAddress"`
-	EnableForceMaster         bool   `yaml:"enableForceMaster"`
-	LogLevel                  string `yaml:"logLevel"`
-	InfluxUsername            string `yaml:"influxUsername"`
-	InfluxPassword            string `yaml:"influxPassword"`
-	InfluxURL                 string `yaml:"influxURL"`
-	InfluxDB                  string `yaml:"influxDB"`
-	EnableInflux              bool   `yaml:"enableInflux"`
-	ExternalCheckReportingURL string `yaml:"externalCheckReportingURL"`
+	ListenAddress             string `yaml:"listenAddress,omitempty"`
+	EnableForceMaster         bool   `yaml:"enableForceMaster,omitempty"`
+	LogLevel                  string `yaml:"logLevel,omitempty"`
+	InfluxUsername            string `yaml:"influxUsername,omitempty"`
+	InfluxPassword            string `yaml:"influxPassword,omitempty"`
+	InfluxURL                 string `yaml:"influxURL,omitempty"`
+	InfluxDB                  string `yaml:"influxDB,omitempty"`
+	EnableInflux              bool   `yaml:"enableInflux,omitempty"`
+	ExternalCheckReportingURL string `yaml:"externalCheckReportingURL,omitempty"`
 }
 
 // Load loads file from disk
@@ -33,15 +33,17 @@ func (c *Config) Load(file string) error {
 	return yaml.Unmarshal(b, c)
 }
 
-// configMonitor creates a watcher and can be used to notify of change to configmap
-func configMonitor() {
+// configChangeNotifier creates a watcher and can be used to notify of change to the configmap file on disk
+func configChangeNotifier() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatalln(err)
 	}
+	notifyChan := make(chan struct{})
 	defer watcher.Close()
+	// notifyChan := make(chan struct{})
 
-	done := make(chan bool)
+	// done := make(chan bool)
 	go func() {
 		for {
 			select {
@@ -49,13 +51,14 @@ func configMonitor() {
 				if !ok {
 					return
 				}
-				log.Infoln("event:", event)
+				// log.Infoln("event:", event)
+				notifyChan <- struct{}{}
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					log.Infoln("modified file:", event.Name)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
-					return
+					log.Infoln("Failed to watch", configPath, "with error", err)
 				}
 				log.Infoln("error:", err)
 			}
@@ -66,5 +69,6 @@ func configMonitor() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	<-done
+	// <-done
+	notifyChan <- struct{}{}
 }

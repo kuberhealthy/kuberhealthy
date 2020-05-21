@@ -153,7 +153,7 @@ func init() {
 		log.Fatalln("Failed to bootstrap kubernetes clients:", err)
 	}
 
-	configMonitor()
+	configChangeNotifier()
 }
 
 func main() {
