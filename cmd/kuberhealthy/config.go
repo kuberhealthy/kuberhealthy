@@ -33,8 +33,8 @@ func (c *Config) Load(file string) error {
 	return yaml.Unmarshal(b, c)
 }
 
-// changeConfig creates a watcher and can be used to notify of change to configmap
-func changeConfig() {
+// configMonitor creates a watcher and can be used to notify of change to configmap
+func configMonitor() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatalln(err)
