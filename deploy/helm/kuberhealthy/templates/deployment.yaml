@@ -39,7 +39,7 @@ spec:
          configMap:
         # Provide the name of the ConfigMap containing the files you want
         # to add to the container
-           name: special-config
+           name: kuberhealthy
   restartPolicy: Never
         command: {{ .Values.deployment.command }}
         {{- if .Values.deployment.args }}
