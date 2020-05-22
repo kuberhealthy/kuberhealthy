@@ -612,7 +612,7 @@ func (dsc *Checker) getAllPods() ([]apiv1.Pod, error) {
 	for {
 		var podList *apiv1.PodList
 		podList, err := dsc.client.CoreV1().Pods(dsc.Namespace).List(metav1.ListOptions{
-			LabelSelector: "source=kuberhealthy",
+			LabelSelector: "source=kuberhealthy,khcheck=daemonset",
 		})
 		if err != nil {
 			log.Warningln("Unable to get all pods:", err)
@@ -646,7 +646,7 @@ func (dsc *Checker) getAllDaemonsets() ([]appsv1.DaemonSet, error) {
 		var dsList *appsv1.DaemonSetList
 		dsClient := dsc.getDaemonSetClient()
 		dsList, err = dsClient.List(metav1.ListOptions{
-			LabelSelector: "source=kuberhealthy",
+			LabelSelector: "source=kuberhealthy,khcheck=daemonset",
 		})
 		if err != nil {
 			log.Warningln("Unable to get all Daemon Sets:", err)
