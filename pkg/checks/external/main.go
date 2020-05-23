@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -111,18 +110,7 @@ type Checker struct {
 func init() {
 	// Get namespace of Kuberhealthy pod. Used to help set ownerReference for created checker pods to proper
 	// Kuberhealthy instance.
-	var kuberhealthyNamespaceEnv string
-	data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err != nil {
-		log.Warnln("Failed to open namespace file:", err.Error())
-	}
-	if len(data) != 0 {
-		log.Infoln("Found Kuberhealthy namespace:", string(data))
-		kuberhealthyNamespaceEnv = string(data)
-	}
-	if len(kuberhealthyNamespaceEnv) != 0 {
-		kuberhealthyNamespace = kuberhealthyNamespaceEnv
-	}
+	kuberhealthyNamespace = util.GetInstanceNamespace(kuberhealthyNamespace)
 	log.Infoln("Kuberhealthy is located in the", kuberhealthyNamespace, "namespace.")
 }
 
