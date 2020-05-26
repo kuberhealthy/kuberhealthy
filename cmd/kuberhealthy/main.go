@@ -161,7 +161,7 @@ func main() {
 	kuberhealthy.ListenAddr = cfg.ListenAddress
 
 	// tell Kuberhealthy to restart if configmap has been changed
-	go configChangeNotifier()
+	go configReloader(kuberhealthy)
 
 	// create run context and start listening for shutdown interrupts
 	khRunCtx, khRunCtxCancelFunc := context.WithCancel(context.Background())
@@ -245,4 +245,27 @@ func initKubernetesClients() error {
 	khStateClient = stateClient
 
 	return nil
+}
+
+// configReloader watchers for events in file and restarts kuberhealhty checks
+func configReloader(kh *Kuberhealthy) {
+	fileChangedChan, err := fileChangeNotifier(configPath)
+	if err != nil {
+		log.Errorln("configReloader: Unable to watch config for changes:", err)
+	}
+	//TODO add logic for file notification spam with for loop
+	for msg := range fileChangedChan {
+		if msg.failed {
+			log.Warningln("configReloader: Received error when watching for config to change:", msg.event, msg.path)
+			continue
+		}
+		log.Infoln("configReloader: Restarting Kuberhealthy checks because configmap changed")
+
+		// load new config and restart checks
+		err := cfg.Load(configPath)
+		if err != nil {
+			log.Errorln("configReloader: Error reloading config:", err)
+		}
+		kh.RestartChecks()
+	}
 }

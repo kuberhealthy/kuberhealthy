@@ -1,10 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/fsnotify/fsnotify"
-	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 )
 
@@ -34,45 +34,44 @@ func (c *Config) Load(file string) error {
 }
 
 // configChangeNotifier creates a watcher and can be used to notify of change to the configmap file on disk
-func configChangeNotifier() {
+func fileChangeNotifier(file string) (chan notifyChange, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Fatalln(err)
+		err = fmt.Errorf("error when opening watcher for: %s %w", file, err)
+		return make(chan notifyChange), err
 	}
-	notifyChan := make(chan notifyChange)
 	defer watcher.Close()
 
-	// done := make(chan bool)
+	notifyChan := make(chan notifyChange)
+
 	go func() {
 		for {
 			select {
 			case event, ok := <-watcher.Events:
+				notifyChan <- notifyChange{event: "event: configmap has been changed!", path: "configmap path:" + event.Name, failed: false}
 				if !ok {
 					return
 				}
-				eventChan := event.Name
-				notifyChan <- notifyChange{event: "event: configmap has been changed!", path: "configmap path:" + eventChan}
 			case err, ok := <-watcher.Errors:
+				notifyChan <- notifyChange{event: "Failed to watch file with error: " + err.Error(), failed: true, path: file}
 				if !ok {
-					notifyChan <- notifyChange{failure: "Failed to watch:" + configPath}
-					// log.Infoln("Failed to watch", configPath, "with error", err)
+					return
 				}
-				log.Infoln("error:", err)
 			}
 		}
 	}()
 
-	err = watcher.Add(configPath)
+	err = watcher.Add(file)
 	if err != nil {
-		log.Fatalln(err)
+		err = fmt.Errorf("error when adding file to watcher for: %s %w", file, err)
+		return make(chan notifyChange), err
 	}
-	// <-done
-	// notifyChan <- NotifyChange{event: "Monitoring of configmap complete"}
+	return notifyChan, nil
 }
 
 // NotifyChange struct used for channel
 type notifyChange struct {
-	event   string
-	path    string
-	failure string
+	event  string
+	path   string
+	failed bool
 }
