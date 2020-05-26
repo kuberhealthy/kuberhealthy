@@ -152,8 +152,6 @@ func init() {
 	if err != nil {
 		log.Fatalln("Failed to bootstrap kubernetes clients:", err)
 	}
-
-	configChangeNotifier()
 }
 
 func main() {
@@ -161,6 +159,9 @@ func main() {
 	// Create a new Kuberhealthy struct
 	kuberhealthy = NewKuberhealthy()
 	kuberhealthy.ListenAddr = cfg.ListenAddress
+
+	// tell Kuberhealthy to restart if configmap has been changed
+	go configChangeNotifier()
 
 	// create run context and start listening for shutdown interrupts
 	khRunCtx, khRunCtxCancelFunc := context.WithCancel(context.Background())

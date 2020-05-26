@@ -39,9 +39,8 @@ func configChangeNotifier() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	notifyChan := make(chan struct{})
+	notifyChan := make(chan notifyChange)
 	defer watcher.Close()
-	// notifyChan := make(chan struct{})
 
 	// done := make(chan bool)
 	go func() {
@@ -51,14 +50,12 @@ func configChangeNotifier() {
 				if !ok {
 					return
 				}
-				// log.Infoln("event:", event)
-				notifyChan <- struct{}{}
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Infoln("modified file:", event.Name)
-				}
+				eventChan := event.Name
+				notifyChan <- notifyChange{event: "event: configmap has been changed!", path: "configmap path:" + eventChan}
 			case err, ok := <-watcher.Errors:
 				if !ok {
-					log.Infoln("Failed to watch", configPath, "with error", err)
+					notifyChan <- notifyChange{failure: "Failed to watch:" + configPath}
+					// log.Infoln("Failed to watch", configPath, "with error", err)
 				}
 				log.Infoln("error:", err)
 			}
@@ -70,5 +67,12 @@ func configChangeNotifier() {
 		log.Fatalln(err)
 	}
 	// <-done
-	notifyChan <- struct{}{}
+	// notifyChan <- NotifyChange{event: "Monitoring of configmap complete"}
+}
+
+// NotifyChange struct used for channel
+type notifyChange struct {
+	event   string
+	path    string
+	failure string
 }
