@@ -90,20 +90,20 @@ echo "get all \n"
 kubectl get -n $NS all
 
 # Checking for Completed and Error nodes
-#kubectl -n $NS get pods |grep deployment |grep -q Completed
-#if [ $? == 0 ]
-#then
-#    echo "completed deployment logs"
-#    kubectl -n $NS logs $(kubectl get pod -n $NS -l kuberhealthy-check-name=deployment |grep Completed |tail -1 |awk '{print $1}')
-#else
-#    echo "No Completed deployment pods found"
-#fi
-#
-#kubectl -n $NS get pods |grep deployment |grep -q Error
-#if [ $? == 0 ]
-#then
-#    echo "Error deployment logs"
-#    kubectl -n $NS logs $(kubectl get pod -n $NS -l kuberhealthy-check-name=deployment |grep Error |tail -1 |awk '{print $1}')
-#else
-#    echo "No Error deployment pods found"
-#fi
+kubectl -n $NS get pods |grep deployment |grep -q Completed
+if [ $? == 0 ]
+then
+    echo "completed deployment logs"
+    kubectl -n $NS logs $(kubectl get pod -n $NS -l kuberhealthy-check-name=deployment |grep Completed |tail -1 |awk '{print $1}')
+else
+    echo "No Completed deployment pods found"
+fi
+
+kubectl -n $NS get pods |grep deployment |grep -q Error
+if [ $? == 0 ]
+then
+    echo "Error deployment logs"
+    kubectl -n $NS logs $(kubectl get pod -n $NS -l kuberhealthy-check-name=deployment |grep Error |tail -1 |awk '{print $1}')
+else
+    echo "No Error deployment pods found"
+fi
