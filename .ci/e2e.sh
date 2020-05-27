@@ -56,7 +56,7 @@ do
     cDNS=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep dns-status-internal |grep Completed |wc -l)
     cDS=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep daemonset |grep Completed |wc -l)
     cPR=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep pod-restarts |grep Completed |wc -l)
-    cPS=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep pod-state |grep Completed |wc -l)
+    cPS=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep pod-status |grep Completed |wc -l)
     failCount=$(kubectl get -n $NS khs -o yaml |grep "OK: false" |wc -l)
 
     if [ $failCount -ge 0 ]
