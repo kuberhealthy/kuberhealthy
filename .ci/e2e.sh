@@ -59,7 +59,7 @@ do
     cPS=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep pod-status |grep Completed |wc -l)
     failCount=$(kubectl get -n $NS khs -o yaml |grep "OK: false" |wc -l)
 
-    if [ $failCount -ge 0 ]
+    if [ $failCount -ge 1 ]
     then
         echo "Kuberhealthy check failed"
         exit 1
