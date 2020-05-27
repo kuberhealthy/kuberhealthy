@@ -259,13 +259,22 @@ func configReloader(kh *Kuberhealthy) {
 			log.Warningln("configReloader: Received error when watching for config to change:", msg.event, msg.path)
 			continue
 		}
-		log.Infoln("configReloader: Restarting Kuberhealthy checks because configmap changed")
 
-		// load new config and restart checks
-		err := cfg.Load(configPath)
-		if err != nil {
-			log.Errorln("configReloader: Error reloading config:", err)
+		for {
+			select {
+			case <-time.After(time.Second * 20):
+				// load new config and restart checks
+				log.Infoln("configReloader: Restarting Kuberhealthy checks because configmap changed")
+				err := cfg.Load(configPath)
+				if err != nil {
+					log.Errorln("configReloader: Error reloading config:", err)
+				}
+				kh.RestartChecks()
+
+			case secondEvent := <-fileChangedChan:
+				// we got another event, so start the select over
+				log.Infoln("configReloader: Received another change to configmap. Pausing for 20 seconds to validate if there are more requests", secondEvent)
+			}
 		}
-		kh.RestartChecks()
 	}
 }
