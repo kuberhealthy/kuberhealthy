@@ -59,12 +59,6 @@ do
     cPS=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep pod-status |grep Completed |wc -l)
     failCount=$(kubectl get -n $NS khs -o yaml |grep "OK: false" |wc -l)
 
-    if [ $failCount -ge 1 ]
-    then
-        echo "Kuberhealthy check failed"
-        exit 1
-    fi
-
     if [ $khsCount -ge 5 ] && [ $cDeploy -ge 1 ] && [ $cDS -ge 1 ] && [ $cDNS -ge 1 ] && [ $cPR -ge 1 ] && [ $cPS -ge 1 ]
     then
         echo "Kuberhealthy is working like it should and all tests passed"
@@ -76,6 +70,13 @@ do
         echo "\n"
         kubectl get -n $NS khs -o yaml
     fi
+
+    if [ $failCount -ge 1 ]
+    then
+        echo "Kuberhealthy check failed"
+        exit 1
+    fi
+
 done
 
 # Print some final output to make debuging easier.
