@@ -52,7 +52,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: pod-status-role
+  name: kh-pod-status-role
 subjects:
   - kind: ServiceAccount
     name: pod-status-sa
