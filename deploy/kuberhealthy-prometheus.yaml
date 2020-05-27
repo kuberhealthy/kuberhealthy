@@ -41,34 +41,6 @@ spec:
     matchLabels:
       app: kuberhealthy
 ---
-# Source: kuberhealthy/templates/check-reaper.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: check-reaper
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/khcheck-daemonset.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: daemonset-khcheck
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/khcheck-deployment.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: deployment-sa
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/serviceaccount.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kuberhealthy
-  namespace: kuberhealthy
----
 # Source: kuberhealthy/templates/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -98,6 +70,47 @@ data:
           severity: critical
         annotations:
           description: Kuberhealthy shows that the cluster is not healthy
+---
+# Source: kuberhealthy/templates/check-reaper.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: check-reaper
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/khcheck-daemonset.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: daemonset-khcheck
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/khcheck-deployment.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deployment-sa
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kuberhealthy
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
+  name: kuberhealthy-daemonset-khcheck
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
 ---
 # Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -167,19 +180,6 @@ rules:
     - pods/eviction
     verbs:
     - create
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
 ---
 # Source: kuberhealthy/templates/check-reaper.yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
