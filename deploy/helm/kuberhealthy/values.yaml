@@ -67,7 +67,7 @@ check:
     timeout: 12m
     image:
       repository: kuberhealthy/daemonset-check
-      tag: v2.2.1
+      tag: v2.2.2
     extraEnvs:
     nodeSelector: {}
   deployment:
@@ -76,7 +76,7 @@ check:
     timeout: 15m
     image:
       repository: kuberhealthy/deployment-check
-      tag: v1.4.0
+      tag: v1.4.4
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
@@ -123,7 +123,7 @@ check:
     nodeSelector: {}
 
 checkReaper:
-  enabled: true # Don't disable checkRepear, this flag exist to make e2e tests easier.
+  enabled: true # Don't disable checkReaper, this flag exist to make e2e tests easier.
   image:
     repository: kuberhealthy/check-reaper
     tag: v1.3.1
