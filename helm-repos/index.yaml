@@ -1,0 +1,80 @@
+apiVersion: v1
+entries:
+  kuberhealthy:
+  - apiVersion: v2
+    appVersion: 2.2.0
+    created: "2020-05-29T12:03:08.086202-07:00"
+    description: An operator for synthetic test and monitoring.  Works great with Prometheus.
+    digest: 78ee7bb03cd4d92ab0773844677d8337f717abfbc8279ab4be51d89ef2b70a2b
+    home: https://comcast.github.io/kuberhealthy/
+    icon: https://raw.githubusercontent.com/Comcast/kuberhealthy/master/images/logo-square.png
+    keywords:
+    - kuberhealthy
+    - kubernetes
+    - operator
+    - monitoring
+    - synthetic
+    - testing
+    - comcast
+    - health
+    - prometheus
+    maintainers:
+    - email: eric.greer@comcast.com
+      name: integrii
+    - email: jacob.martin@comcast.com
+      name: lolimjake
+    - email: ianhoegen@gmail.com
+      name: ihoegen
+    - email: jonathan_phan@comcast.com
+      name: jonnydawg
+    - email: joshulyne_park@comcast.com
+      name: joshulyne
+    name: kuberhealthy
+    sources:
+    - https://github.com/Comcast/kuberhealthy
+    - https://github.com/helm/charts/tree/master/stable/kuberhealthy
+    type: application
+    urls:
+    - archives/kuberhealthy-2.2.0.tgz
+    - https://comcast.github.io/kuberhealthy/helm-charts/archive/kuberhealthy-2.2.0.tgz
+    - https://github.com/Comcast/kuberhealthy/blob/master/helm-repos/archive/kuberhealthy-2.2.0.tgz?raw=true
+    version: 2.2.0
+  - apiVersion: v2
+    appVersion: 2.1.0
+    created: "2020-05-29T12:03:08.086202-07:00"
+    description: An operator for synthetic test and monitoring.  Works great with Prometheus.
+    digest: 78ee7bb03cd4d92ab0773844677d8337f717abfbc8279ab4be51d89ef2b70a2b
+    home: https://comcast.github.io/kuberhealthy/
+    icon: https://raw.githubusercontent.com/Comcast/kuberhealthy/master/images/logo-square.png
+    keywords:
+    - kuberhealthy
+    - kubernetes
+    - operator
+    - monitoring
+    - synthetic
+    - testing
+    - comcast
+    - health
+    - prometheus
+    maintainers:
+    - email: eric.greer@comcast.com
+      name: integrii
+    - email: jacob.martin@comcast.com
+      name: lolimjake
+    - email: ianhoegen@gmail.com
+      name: ihoegen
+    - email: jonathan_phan@comcast.com
+      name: jonnydawg
+    - email: joshulyne_park@comcast.com
+      name: joshulyne
+    name: kuberhealthy
+    sources:
+    - https://github.com/Comcast/kuberhealthy
+    - https://github.com/helm/charts/tree/master/stable/kuberhealthy
+    type: application
+    urls:
+    - archives/kuberhealthy-2.1.0.tgz
+    - https://comcast.github.io/kuberhealthy/helm-charts/archive/kuberhealthy-2.1.0.tgz
+    - https://github.com/Comcast/kuberhealthy/blob/master/helm-repos/archive/kuberhealthy-2.1.0.tgz?raw=true
+    version: 2.1.0
+generated: "2020-05-29T12:03:08.083223-07:00"
