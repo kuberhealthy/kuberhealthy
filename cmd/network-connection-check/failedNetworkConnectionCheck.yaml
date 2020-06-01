@@ -1,0 +1,19 @@
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: kuberhealthy-metadata-unreachable
+  namespace: kuberhealthy
+spec:
+  runInterval: 30m
+  timeout: 10m
+  podSpec:
+    containers:
+      - env:
+          - name: CONNECTION_TARGET
+            value: "tcp://169.254.169.254:80"
+          # Should we expect the connection target to fail to connect?  If so, set `CONNECTION_TARGET_UNREACHABLE` to `true`.
+          - name: CONNECTION_TARGET_UNREACHABLE
+            value: "true"
+        image: kuberhealthy/network-connection-check:v0.1.0
+        name: kuberhealthy-metadata-unreachable
+
