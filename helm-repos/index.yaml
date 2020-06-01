@@ -36,8 +36,7 @@ entries:
     type: application
     urls:
     - archives/kuberhealthy-2.2.0.tgz
-    - https://comcast.github.io/kuberhealthy/helm-charts/archive/kuberhealthy-2.2.0.tgz
-    - https://github.com/Comcast/kuberhealthy/blob/master/helm-repos/archive/kuberhealthy-2.2.0.tgz?raw=true
+    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-2.2.0.tgz
     version: 2.2.0
   - apiVersion: v2
     appVersion: 2.1.0
@@ -74,7 +73,6 @@ entries:
     type: application
     urls:
     - archives/kuberhealthy-2.1.0.tgz
-    - https://comcast.github.io/kuberhealthy/helm-charts/archive/kuberhealthy-2.1.0.tgz
-    - https://github.com/Comcast/kuberhealthy/blob/master/helm-repos/archive/kuberhealthy-2.1.0.tgz?raw=true
+    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-2.1.0.tgz
     version: 2.1.0
 generated: "2020-05-29T12:03:08.083223-07:00"
