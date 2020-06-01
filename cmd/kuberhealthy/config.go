@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 
@@ -53,6 +54,9 @@ func fileChangeNotifier(file string) (chan notifyChange, error) {
 					return
 				}
 			case err, ok := <-watcher.Errors:
+				if err == nil {
+					err = errors.New("")
+				}
 				notifyChan <- notifyChange{event: "Failed to watch file with error: " + err.Error(), failed: true, path: file}
 				if !ok {
 					return
