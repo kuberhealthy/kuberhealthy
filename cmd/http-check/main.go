@@ -44,10 +44,21 @@ func main() {
 		r, err := http.Get(checkURL)
 		checksRan++
 
+<<<<<<< HEAD
 		if err != nil {
 			checksFailed++
 			log.Infoln("Failed to reach URL: ", checkURL)
 			continue
+=======
+	// Make a GET request.
+	r, err := http.Get(checkURL)
+	if err != nil {
+		reportErr := fmt.Errorf("error occurred performing a " + http.MethodGet + " to " + checkURL + ": " + err.Error())
+		log.Errorln(reportErr.Error())
+		reportFailureErr := kh.ReportFailure([]string{reportErr.Error()})
+		if reportFailureErr != nil {
+			log.Fatalln("error when reporting to kuberhealthy:", reportFailureErr.Error())
+>>>>>>> master
 		}
 
 		if r.StatusCode != http.StatusOK {
@@ -56,6 +67,7 @@ func main() {
 			continue
 		}
 		log.Infoln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
+<<<<<<< HEAD
 		checksPassed++
 	}
 
@@ -72,6 +84,20 @@ func main() {
 			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
 		}
 		log.Infoln("Successfully reported to Kuberhealthy of failure")
+=======
+		reportSuccessErr := kh.ReportSuccess()
+		if err != nil {
+			log.Fatalln("error when reporting to kuberhealthy:", reportSuccessErr.Error())
+		}
+		os.Exit(0)
+	}
+
+	reportErr := fmt.Errorf("unable to retrieve a " + strconv.Itoa(http.StatusOK) + " from " + checkURL + " got a " + strconv.Itoa(r.StatusCode) + " instead")
+	log.Errorln(reportErr.Error())
+	reportFailureErr := kh.ReportFailure([]string{reportErr.Error()})
+	if reportFailureErr != nil {
+		log.Fatalln("error when reporting to kuberhealthy:", reportFailureErr.Error())
+>>>>>>> master
 	}
 
 	err := kh.ReportSuccess()

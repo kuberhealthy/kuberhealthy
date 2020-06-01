@@ -1,0 +1,30 @@
+{{- if .Values.check.networkConnection.enabled }}
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: network-connection-check
+  namespace: {{ .Release.Namespace }}
+spec:
+  runInterval:  {{ .Values.check.networkConnection.runInterval }}
+  timeout: {{ .Values.check.networkConnection.timeout }}
+  podSpec:
+    containers:
+    - name: deployment
+      image: {{ .Values.check.networkConnection.image.repository }}:{{ .Values.check.networkConnection.image.tag }}
+      imagePullPolicy: IfNotPresent
+      env:
+{{- range $key, $value := .Values.check.networkConnection.extraEnvs }}
+        - name: {{ $key }}
+          value: {{ $value | quote }}
+{{- end }}
+      resources:
+        requests:
+          memory: 5Mi
+      restartPolicy: Never
+    {{- if .Values.check.networkConnection.nodeSelector }}
+    nodeSelector:
+{{- toYaml .Values.check.networkConnection.nodeSelector | nindent 6 }}
+    {{- end }}
+{{- end }}
+
