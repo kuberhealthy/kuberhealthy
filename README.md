@@ -2,7 +2,6 @@
 
 An operator for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_monitoring) on [Kubernetes](https://kubernetes.io).  Write your own tests in your own container and Kuberhealthy will manage everything else.  Automatically creates and sends metrics to [Prometheus](https://prometheus.io) and [InfluxDB](https://www.influxdata.com/).  Included simple JSON status page. Supplements other solutions like [Prometheus](https://prometheus.io/) very nicely!
 
-[![Docker Repository on Quay](https://quay.io/repository/comcast/kuberhealthy/status "Kuberhealthy Docker Repository on Quay")](https://quay.io/repository/comcast/kuberhealthy)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Comcast/kuberhealthy)](https://goreportcard.com/report/github.com/Comcast/kuberhealthy)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2822/badge)](https://bestpractices.coreinfrastructure.org/projects/2822)
