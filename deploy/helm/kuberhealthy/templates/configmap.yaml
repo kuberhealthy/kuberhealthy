@@ -34,7 +34,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-    name: kuberhealthy
+  name: kuberhealthy
 data:
   kuberhealthy.yaml: |-
     listenAddress: ":8080" # The port for kuberhealthy to listen on for web requests
