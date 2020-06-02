@@ -24,7 +24,7 @@ func testSetup(clientNeeded bool) (*Checker, error) {
 	dsc, err := New()
 
 	if err != nil {
-		log.Fatalln("Unable to create daemon set checker", err)
+		log.Fatalln("Unable to create daemonset checker", err)
 	}
 
 	if clientNeeded {
