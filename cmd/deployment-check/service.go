@@ -23,7 +23,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/ fpkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	watchpkg "k8s.io/apimachinery/pkg/watch"
 )
 
