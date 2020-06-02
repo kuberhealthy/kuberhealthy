@@ -37,10 +37,10 @@ spec:
       volumes:
        - name: config-volume
          configMap:
-        # Provide the name of the ConfigMap containing the files you want
-        # to add to the container
+         # Provide the name of the ConfigMap containing the files you want
+         # to add to the container
            name: kuberhealthy
-  restartPolicy: Never
+      restartPolicy: Never
         command: {{ .Values.deployment.command }}
         {{- if .Values.deployment.args }}
         args:
