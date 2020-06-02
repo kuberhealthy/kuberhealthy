@@ -393,7 +393,7 @@ func waitForServiceToDelete() chan bool {
 			_, err := client.CoreV1().Services(checkNamespace).Get(checkServiceName, metav1.GetOptions{})
 			if err != nil {
 				log.Debugln("error from Services().Get():", err.Error())
-				if k8sErrors.IsNotFound(err) {
+				if (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 					log.Debugln("Service deleted.")
 					deleteChan <- true
 					return
