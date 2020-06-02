@@ -27,20 +27,16 @@ spec:
       labels:
         app: {{ template "kuberhealthy.name" . }}
     spec:
+      volumes:
+        - name: config-volume
+          configMap:
+            # Provide the name of the ConfigMap containing the files you want
+            # to add to the container
+            name: kuberhealthy
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
       containers:
       - image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
-        volumeMounts:
-        - name: config-volume
-          mountPath: /etc/config/
-      volumes:
-       - name: config-volume
-         configMap:
-         # Provide the name of the ConfigMap containing the files you want
-         # to add to the container
-           name: kuberhealthy
-      restartPolicy: Never
         command: {{ .Values.deployment.command }}
         {{- if .Values.deployment.args }}
         args:
@@ -63,6 +59,9 @@ spec:
             port: 8080
           timeoutSeconds: 1
         name: {{ template "kuberhealthy.name" . }}
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/config/
         env:
           - name: POD_NAME
             valueFrom:
