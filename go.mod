@@ -21,6 +21,7 @@ require (
 	github.com/gophercloud/gophercloud v0.1.0 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20190402204710-8ff2fc3824fc
 	github.com/integrii/flaggy v1.2.2
+	github.com/jivesearch/jivesearch v0.0.0-20190414235606-4acc4782d890
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/sftp v1.10.1 // indirect
 	github.com/sirupsen/logrus v1.4.0

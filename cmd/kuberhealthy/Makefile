@@ -2,7 +2,7 @@
 # TAG="2.1.0"
 
 build:
-	docker build -t kuberhealthy/kuberhealthy:v2.1.2-rc.1 -f Dockerfile ../../
+	docker build -t kuberhealthy:dev -f Dockerfile ../../
 
 push:
 	docker push kuberhealthy/kuberhealthy:v2.1.2-rc.1

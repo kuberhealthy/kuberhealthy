@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/jivesearch/jivesearch/log"
 	"sigs.k8s.io/yaml"
 )
 
@@ -49,6 +50,11 @@ func fileChangeNotifier(file string) (chan notifyChange, error) {
 		for {
 			select {
 			case event, ok := <-watcher.Events:
+				// ignore all events except writes to reduce spam
+				if event.Op != fsnotify.Write {
+					log.Debugln("event: skipped event ", event)
+					continue
+				}
 				notifyChan <- notifyChange{event: "event: configmap has been changed!", path: "configmap path:" + event.Name, failed: false}
 				if !ok {
 					return

@@ -254,7 +254,8 @@ func configReloader(kh *Kuberhealthy) {
 	if err != nil {
 		log.Errorln("configReloader: Unable to watch config for changes:", err)
 	}
-	//TODO add logic for file notification spam with for loop
+
+	// watch for config file reloads and reparse configs
 	for msg := range fileChangedChan {
 		if msg.failed {
 			log.Warningln("configReloader: Received error when watching for config to change:", msg.event, msg.path)
@@ -270,6 +271,17 @@ func configReloader(kh *Kuberhealthy) {
 				if err != nil {
 					log.Errorln("configReloader: Error reloading config:", err)
 				}
+
+				// reparse and set logging level
+				parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
+				if err != nil {
+					log.Warningln("Unable to parse log-level flag: ", err)
+				} else {
+					log.Infoln("Setting log level to:", parsedLogLevel)
+					log.SetLevel(parsedLogLevel)
+				}
+
+				// reload checks
 				kh.RestartChecks()
 
 			case secondEvent := <-fileChangedChan:
