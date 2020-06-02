@@ -17,12 +17,13 @@ import (
 	"fmt"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/ fpkg/util/intstr"
 	watchpkg "k8s.io/apimachinery/pkg/watch"
 )
 
@@ -393,7 +394,7 @@ func waitForServiceToDelete() chan bool {
 			_, err := client.CoreV1().Services(checkNamespace).Get(checkServiceName, metav1.GetOptions{})
 			if err != nil {
 				log.Debugln("error from Services().Get():", err.Error())
-				if (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
+				if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 					log.Debugln("Service deleted.")
 					deleteChan <- true
 					return
