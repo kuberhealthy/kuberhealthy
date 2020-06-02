@@ -194,7 +194,7 @@ func (dsc *Checker) overrideDSPauseContainerImage() {
 	}
 }
 
-// generateDaemonSetSpec generates a daemon set spec to deploy into the cluster
+// generateDaemonSetSpec generates a daemonset spec to deploy into the cluster
 func (dsc *Checker) generateDaemonSetSpec() {
 
 	checkRunTime := strconv.Itoa(int(CheckRunTime))
@@ -219,7 +219,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 	}
 
 	// create the DS object
-	log.Infoln("Generating daemon set kubernetes spec.")
+	log.Infoln("Generating daemonset kubernetes spec.")
 	dsc.DaemonSet = &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: dsc.DaemonSetName,
@@ -282,7 +282,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 	}
 
 	// Add our generated list of tolerations or any the user input via flag
-	log.Infoln("Deploying daemon set with tolerations: ", dsc.DaemonSet.Spec.Template.Spec.Tolerations)
+	log.Infoln("Deploying daemonset with tolerations: ", dsc.DaemonSet.Spec.Template.Spec.Tolerations)
 	dsc.DaemonSet.Spec.Template.Spec.Tolerations = append(dsc.DaemonSet.Spec.Template.Spec.Tolerations, dsc.Tolerations...)
 }
 
@@ -649,7 +649,7 @@ func (dsc *Checker) getAllDaemonsets() ([]appsv1.DaemonSet, error) {
 			LabelSelector: "source=kuberhealthy,khcheck=daemonset",
 		})
 		if err != nil {
-			log.Warningln("Unable to get all Daemon Sets:", err)
+			log.Warningln("Unable to get all daemonsets:", err)
 		}
 		cont = dsList.Continue
 
@@ -758,7 +758,7 @@ func (dsc *Checker) waitForAllDaemonsetsToClear() chan error {
 	log.Infoln("waiting for all daemonsets to clear")
 
 	// make the output channel we will return and close it whenever we are done
-	outChan := make(chan error, 2)
+	outChan := make(chan error)
 
 	go func() {
 		// watch events and return when the pod is in state running
@@ -1005,7 +1005,7 @@ func taintsAreTolerated(taints []apiv1.Taint, tolerations []apiv1.Toleration) bo
 	return true
 }
 
-// Deploy creates a daemon set
+// Deploy creates a daemonset
 func (dsc *Checker) deploy() error {
 	//Generate the spec for the DS that we are about to deploy
 	dsc.generateDaemonSetSpec()
@@ -1013,7 +1013,7 @@ func (dsc *Checker) deploy() error {
 	daemonSetClient := dsc.getDaemonSetClient()
 	_, err := daemonSetClient.Create(dsc.DaemonSet)
 	if err != nil {
-		log.Error("Failed to create daemon set:", err)
+		log.Error("Failed to create daemonset:", err)
 	}
 	dsc.DaemonSetDeployed = true
 	return err
@@ -1131,7 +1131,7 @@ func (dsc *Checker) waitForPodRemoval() error {
 
 }
 
-// getDaemonSetClient returns a daemon set client, useful for interacting with daemonsets
+// getDaemonSetClient returns a daemonset client, useful for interacting with daemonsets
 func (dsc *Checker) getDaemonSetClient() v1.DaemonSetInterface {
 	log.Debug("Creating Daemonset client.")
 	return dsc.client.AppsV1().DaemonSets(dsc.Namespace)

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 	"strconv"
 	"strings"
@@ -15,7 +14,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
 )
 
@@ -30,34 +28,23 @@ func (dsc *Checker) runDaemonsetCheck() {
 		reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + errorMessage})
 	}
 
-	// init a timeout for this whole deletion of daemonsets
-	log.Infoln("Timeout set:", checkPodTimeout.String(), "for pre-check cleanup")
-	checkPodTimeoutChan := time.After(checkPodTimeout)
-	cleanUpCtx, cleanUpCtxCancel := context.WithCancel(context.Background())
-
 	// waiting for all daemonsets to be gone...
 	log.Infoln("Waiting for all rogue daemonsets or daemonset pods to clean up")
 
 	select {
-	case err = <-waitForAllDaemonsetsToClear(cleanUpCtx):
+	case err = <-waitForAllDaemonsetsToClear():
 		if err != nil {
-			cleanUpCtxCancel() // cancel the watch context, we have timed out
-			errorMessage := "Error waiting for rogue daemonset or daemonset pods to clean up: " + err.Error()
-			log.Errorln(errorMessage)
-			reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + errorMessage})
+			ctxCancel() // cancel the watch context, we have timed out
+			log.Errorln(err)
+			reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + err.Error()})
 		}
-		log.Infoln("No rogue daemonsets or daemonset pods exist")
-	case <-cleanUpCtx.Done():
+		if err == nil {
+			log.Infoln("No rogue daemonsets or daemonset pods exist")
+		}
+	case <-ctx.Done():
 		// If there is a cancellation interrupt signal.
 		log.Infoln("Canceling cleanup and shutting down from interrupt.")
-		reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: failed to perform pre-check cleanup within timeout"})
 		return
-	case <-checkPodTimeoutChan:
-		log.Infoln("Timed out: reached time out for pre-check cleanup")
-		cleanUpCtxCancel() // cancel the watch context, we have timed out
-		errorMessage := "failed to perform pre-check cleanup within timeout: " + checkPodTimeout.String()
-		log.Errorln(errorMessage)
-		reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + errorMessage})
 	}
 
 	log.Infoln("Running daemonset check")
@@ -67,7 +54,7 @@ func (dsc *Checker) runDaemonsetCheck() {
 		log.Errorln("Error running check:", err)
 		os.Exit(1)
 	}
-	log.Debugln("Done running daemonset check")
+	log.Infoln("Done running daemonset check")
 
 }
 
@@ -98,49 +85,37 @@ func (dsc *Checker) Run(client *kubernetes.Clientset) error {
 		doneChan <- err
 	}(doneChan)
 
-	var err error
-	// wait for either a timeout or job completion
 	select {
-	case <-time.After(checkPodTimeout):
-		// The check has reached its check pod timeout.
-		ctxCancel() // cancel context
-		errorMessage := "Failed to complete checks for " + dsc.Name() + " in time!  Next run came up but check was still running."
-		//log.Errorln(dsc.Name(), errorMessage)
-		err = checkclient.ReportFailure([]string{errorMessage})
-		if err != nil {
-			log.Println("Error reporting failure to Kuberhealthy servers:", err)
-			return err
-		}
-		log.Println("Successfully reported failure to Kuberhealthy servers")
-	case <-time.After(checkTimeLimit):
-		// The check has timed out after its specified timeout period
-		dsc.cancelFunc() // cancel context
-		errorMessage := "Failed to complete checks for " + dsc.Name() + " in time!  Timeout was reached."
-		//log.Errorln(dsc.Name(), errorMessage)
-		err = checkclient.ReportFailure([]string{errorMessage})
-		if err != nil {
-			log.Println("Error reporting failure to Kuberhealthy servers:", err)
-			return err
-		}
-		log.Println("Successfully reported failure to Kuberhealthy servers")
+	//case <-time.After(checkPodTimeout):
+	//	// The check has reached its check pod timeout.
+	//	ctxCancel() // cancel context
+	//	errorMessage := "Failed to complete checks for " + dsc.Name() + " in time!  Next run came up but check was still running."
+	//	//log.Errorln(dsc.Name(), errorMessage)
+	//	err = checkclient.ReportFailure([]string{errorMessage})
+	//	if err != nil {
+	//		log.Println("Error reporting failure to Kuberhealthy servers:", err)
+	//		return err
+	//	}
+	//	log.Println("Successfully reported failure to Kuberhealthy servers")
+	//case <-time.After(checkTimeLimit):
+	//	// The check has timed out after its specified timeout period
+	//	dsc.cancelFunc() // cancel context
+	//	errorMessage := "Failed to complete checks for " + dsc.Name() + " in time!  Timeout was reached."
+	//	//log.Errorln(dsc.Name(), errorMessage)
+	//	err = checkclient.ReportFailure([]string{errorMessage})
+	//	if err != nil {
+	//		log.Println("Error reporting failure to Kuberhealthy servers:", err)
+	//		return err
+	//	}
+	//	log.Println("Successfully reported failure to Kuberhealthy servers")
 	case err := <-doneChan:
-		dsc.cancelFunc()
+		ctxCancel()
 		if err != nil {
 			log.Println("Check failed with error:", err)
-			err = checkclient.ReportFailure([]string{err.Error()})
-			if err != nil {
-				log.Println("Failed to report error to Kuberhealthy servers:", err)
-				return err
-			}
-			log.Println("Successfully reported error to Kuberhealthy servers")
-			return nil
-		}
-		err = checkclient.ReportSuccess()
-		if err != nil {
-			log.Println("Error reporting success to Kuberhealthy servers:", err)
+			reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + err.Error()})
 			return err
 		}
-		log.Println("Successfully reported success to Kuberhealthy servers")
+		reportOKToKuberhealthy()
 	}
 
 	return nil
@@ -189,12 +164,11 @@ func (dsc *Checker) doDeploy() error {
 			ctxCancel() // cancel the watch context, we have timed out
 			log.Errorln("Error waiting for pods to come online up:", err)
 		}
-		log.Infoln("No rogue daemonsets or daemonset pods exist")
 	}
 	return err
 }
 
-// Deploy creates a daemon set
+// Deploy creates a daemonset
 func (dsc *Checker) deploy() error {
 	//Generate the spec for the DS that we are about to deploy
 	dsc.generateDaemonSetSpec()
@@ -202,13 +176,13 @@ func (dsc *Checker) deploy() error {
 	daemonSetClient := getDSClient()
 	_, err := daemonSetClient.Create(dsc.DaemonSet)
 	if err != nil {
-		log.Error("Failed to create daemon set:", err)
+		log.Error("Failed to create daemonset:", err)
 	}
 	dsc.DaemonSetDeployed = true
 	return err
 }
 
-// generateDaemonSetSpec generates a daemon set spec to deploy into the cluster
+// generateDaemonSetSpec generates a daemonset spec to deploy into the cluster
 func (dsc *Checker) generateDaemonSetSpec() {
 
 	checkRunTime := strconv.Itoa(int(now.Unix()))
@@ -233,7 +207,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 	}
 
 	// create the DS object
-	log.Infoln("Generating daemon set kubernetes spec.")
+	log.Infoln("Generating daemonset kubernetes spec.")
 	dsc.DaemonSet = &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: dsc.DaemonSetName,
@@ -294,7 +268,7 @@ func (dsc *Checker) generateDaemonSetSpec() {
 	}
 
 	// Add our generated list of tolerations or any the user input via flag
-	log.Infoln("Deploying daemon set with tolerations: ", dsc.DaemonSet.Spec.Template.Spec.Tolerations)
+	log.Infoln("Deploying daemonset with tolerations: ", dsc.DaemonSet.Spec.Template.Spec.Tolerations)
 	dsc.DaemonSet.Spec.Template.Spec.Tolerations = append(dsc.DaemonSet.Spec.Template.Spec.Tolerations, dsc.Tolerations...)
 }
 
@@ -337,17 +311,22 @@ func (dsc *Checker) doRemove() error {
 		return err
 	}
 
-	// wait for daemonset to be removed
-	err = dsc.waitForDSRemoval()
-	if err != nil {
-		return err
+	select {
+	case err = <-dsc.waitForDSRemoval():
+		if err != nil {
+			ctxCancel() // cancel the watch context, we have timed out
+			log.Errorln("Error waiting for daemonset removal:", err)
+			return err
+		}
+	case err = <-dsc.waitForPodRemoval():
+		if err != nil {
+			ctxCancel() // cancel the watch context, we have timed out
+			log.Errorln("Error waiting for daemonset pods removal:", err)
+			return err
+		}
+	default:
 	}
 
-	// wait for ds pods to be deleted
-	err = dsc.waitForPodRemoval()
-	if err != nil {
-		return err
-	}
 	dsc.DaemonSetDeployed = true
 	return err
 }
@@ -358,20 +337,14 @@ func (dsc *Checker) waitForPodsToComeOnline() chan error {
 	log.Infoln("Waiting for all ds pods to come online")
 
 	// make the output channel we will return and close it whenever we are done
-	outChan := make(chan error, 2)
+	outChan := make(chan error)
 
 	// counter for DS status check below
 	var counter int
 	var nodesMissingDSPod []string
 
+	// init a timeout for this whole deletion of daemonsets
 	log.Infoln("Timeout set:", checkPodTimeout.String(), "for all daemonset pods to come online")
-	checkPodTimeoutChan := time.After(checkPodTimeout)
-
-	//select {
-	//case <-checkPodTimeoutChan:
-	//	log.Infoln("Timed out: reached time out for all daemonset pods to come online")
-	//	ctxCancel() // cancel the watch context, we have timed out
-	//	errorMessage := "Failed to see all daemonset pods come up within check pod timeout: " + checkPodTimeout.String()
 
 	go func() {
 		for {
@@ -381,8 +354,7 @@ func (dsc *Checker) waitForPodsToComeOnline() chan error {
 				log.Errorln(errorMessage)
 				outChan <- errors.New(errorMessage)
 				return
-			case <- checkPodTimeoutChan:
-				log.Infoln("")
+			case <- time.After(checkPodTimeout):
 				errorMessage := "DaemonsetChecker: Node(s) were unable to schedule daemonset pod before check pod timeout: " + formatNodes(nodesMissingDSPod)
 				log.Errorln(errorMessage)
 				outChan <- errors.New(errorMessage)
@@ -393,7 +365,7 @@ func (dsc *Checker) waitForPodsToComeOnline() chan error {
 
 			// if we need to shut down, stop waiting entirely
 			if dsc.shuttingDown {
-				errorMessage := "DaemonsetChecker: Nodes which were unable to schedule before shutdown signal was received:" + formatNodes(nodesMissingDSPod)
+				errorMessage := "DaemonsetChecker: Node(s) which were unable to schedule before shutdown signal was received:" + formatNodes(nodesMissingDSPod)
 				log.Errorln(errorMessage)
 				outChan <- errors.New(errorMessage)
 				return
@@ -743,14 +715,21 @@ func checkIfDSExists(dsName string) bool {
 }
 
 // waitForAllDaemonsetsToClear
-func waitForAllDaemonsetsToClear(ctx context.Context) chan error {
+func waitForAllDaemonsetsToClear() chan error {
+
+	// init a timeout for this whole deletion of daemonsets
+	timePassed := now.Sub(time.Now())
+	checkPodTimeout = checkPodTimeout + timePassed
+	log.Infoln("Timeout set:", checkPodTimeout.String(), "for pre-check cleanup")
 
 	// make the output channel we will return and close it whenever we are done
-	outChan := make(chan error, 2)
+	outChan := make(chan error)
 
 	go func() {
 		// watch events and return when the pod is in state running
 		for {
+
+			var dsList []appsv1.DaemonSet
 
 			// wait between requests
 			time.Sleep(time.Second * 5)
@@ -760,11 +739,19 @@ func waitForAllDaemonsetsToClear(ctx context.Context) chan error {
 			case <- ctx.Done():
 				outChan <- errors.New("Waiting for daemonset to clear was aborted by context cancellation")
 				return
+			case <- time.After(checkPodTimeout):
+				unclearedDSList := getUnClearedDSList(dsList)
+				errorMessage := "Reached check pod timeout: " + checkPodTimeout.String() + " waiting for all daemonsets to clear. " +
+					"Daemonset(s) which failed to clear: " + formatNodes(unclearedDSList)
+				log.Errorln(errorMessage)
+				outChan <- errors.New(errorMessage)
+				return
 			default:
 			}
 
 			// fetch the pod by name
-			dsList, err := getAllDaemonsets()
+			var err error
+			dsList, err = getAllDaemonsets()
 			if err != nil {
 				outChan <- err
 				return
@@ -780,3 +767,26 @@ func waitForAllDaemonsetsToClear(ctx context.Context) chan error {
 	return outChan
 }
 
+func getUnClearedDSList(daemonsetList []appsv1.DaemonSet) []string {
+
+	var unclearedDS []string
+	if len(daemonsetList) != 0 {
+		for _, ds := range daemonsetList {
+			unclearedDS = append(unclearedDS, ds.Name)
+		}
+	}
+
+	return unclearedDS
+}
+
+func getDSPodsNodeList(podList *apiv1.PodList) []string {
+
+	var nodeList []string
+	if len(podList.Items) != 0 {
+		for _, p := range podList.Items {
+			nodeList = append(nodeList, p.Spec.NodeName)
+		}
+	}
+
+	return nodeList
+}
