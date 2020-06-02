@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/jivesearch/jivesearch/log"
+	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 )
 
