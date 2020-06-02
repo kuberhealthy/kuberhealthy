@@ -1199,7 +1199,7 @@ func (ext *Checker) podExists() (bool, error) {
 
 	// if the pod is "not found", then it does not exist
 	p, err := podClient.Get(ext.podName(), metav1.GetOptions{})
-	if err != nil && k8sErrors.IsNotFound(err) {
+	if err != nil && strings.Contains(err.Error(), "not found") {
 		return false, nil
 	}
 
