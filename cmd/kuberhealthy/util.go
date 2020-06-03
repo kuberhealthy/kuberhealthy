@@ -54,10 +54,11 @@ func notifyChanLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan cha
 			select {
 			case <-time.After(maxSpeed):
 				outChan <- struct{}{}
-				return
+				break
 			case <-inChan:
 				log.Println("channel notify limiter witnessed an upstream message on inChan and is waiting an additional", maxSpeed, "before sending output")
 			}
+			return
 		}
 	}
 }
