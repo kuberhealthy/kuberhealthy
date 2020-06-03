@@ -26,6 +26,7 @@ require (
 	github.com/pkg/sftp v1.10.1 // indirect
 	github.com/sirupsen/logrus v1.4.0
 	github.com/smartystreets/goconvey v1.6.4 // indirect
+	github.com/spf13/viper v1.3.2
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect
