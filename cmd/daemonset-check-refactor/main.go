@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -32,6 +33,7 @@ var (
 	// Timeout set to ensure the cleanup of rogue daemonsets or daemonset pods after the check has finished within this timeout
 	checkPodTimeoutEnv = os.Getenv("CHECK_POD_TIMEOUT")
 	checkPodTimeout    time.Duration
+	//checkPodTimeoutChan    = time.After(checkPodTimeout)
 
 	// DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 	dsPauseContainerImageEnv = os.Getenv("PAUSE_CONTAINER_IMAGE")
@@ -139,12 +141,13 @@ func main() {
 		}
 	}()
 
+	//checkPodTimeout = time.Duration(1) * time.Second
 	// Start daemonset check.
 	runCheck()
 }
 
 
-// New creates a new daemonset checker object
+// setCheckConfigurations sets Daemonset configurations
 func setCheckConfigurations(now time.Time) {
 	hostName = getHostname()
 	daemonSetName = checkDSName + "-" + hostName + "-" + strconv.Itoa(int(now.Unix()))
@@ -197,8 +200,13 @@ func shutdown(sdDoneChan chan error) {
 
 		outChan := make(chan error, 10)
 
+		var wg sync.WaitGroup
+		wg.Add(1)
 		go func() {
+			log.Infoln("Worker: waitForPodRemoval started")
+			defer close(outChan)
 			outChan <- waitForPodRemoval()
+			wg.Wait()
 		}()
 
 		select {
