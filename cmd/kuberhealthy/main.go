@@ -252,7 +252,6 @@ func initKubernetesClients() error {
 func configReloader(kh *Kuberhealthy) {
 	fileChangedChan := fileChangeNotifier(configPath)
 	// if err != nil {
-	log.Infoln("configReloader: test", fileChangedChan)
 	// }
 
 	// watch for config file reloads and reparse configs
@@ -265,7 +264,7 @@ func configReloader(kh *Kuberhealthy) {
 			select {
 			case <-time.After(time.Second * 20):
 				// load new config and restart checks
-				log.Infoln("configReloader: Restarting Kuberhealthy checks because configmap changed", msg.event)
+				log.Infoln("configReloader: Restarting Kuberhealthy checks because configmap changed:", msg.event)
 				err := cfg.Load(configPath)
 				if err != nil {
 					log.Errorln("configReloader: Error reloading config:", err)
@@ -282,6 +281,7 @@ func configReloader(kh *Kuberhealthy) {
 
 				// reload checks
 				kh.RestartChecks()
+				log.Infoln("Kuberhealthy restarted!")
 
 			case secondEvent := <-fileChangedChan:
 				// we got another event, so start the select over
