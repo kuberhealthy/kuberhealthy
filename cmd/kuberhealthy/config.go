@@ -109,8 +109,21 @@ func fileChangeNotifier(file string) chan notifyChange {
 
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		log.Infoln("Config file changed:", e.Name)
-		notifyChan <- notifyChange{event: "event: configmap has been changed!"}
+
+		// skip events that are not the write  or create operation
+		if e.Op == 3 {
+			log.Infoln("configReloader: event skipped beacuse it was not a write or create operation, it was a:", e.Op.String())
+			return
+		}
+		if e.Op == 4 {
+			log.Infoln("configReloader: event skipped beacuse it was not a write or create operation, it was a:", e.Op.String())
+			return
+		}
+		if e.Op == 5 {
+			log.Infoln("configReloader: event skipped beacuse it was not a write or create operation, it was a:", e.Op.String())
+			return
+		}
+		notifyChan <- notifyChange{event: "Configmap changed with operation" + e.Op.String()}
 	})
 	return notifyChan
 }
