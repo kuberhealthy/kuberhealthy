@@ -34,52 +34,6 @@ func (c *Config) Load(file string) error {
 	return yaml.Unmarshal(b, c)
 }
 
-// // configChangeNotifier creates a watcher and can be used to notify of change to the configmap file on disk
-// func fileChangeNotifier(file string) (chan notifyChange, error) {
-// 	// log.Println("Debug: starting watcher of configmap")
-// 	watcher, err := fsnotify.NewWatcher()
-// 	if err != nil {
-// 		err = fmt.Errorf("error when opening watcher for: %s %w", file, err)
-// 		return make(chan notifyChange), err
-// 	}
-// 	// defer watcher.Close()
-
-// 	notifyChan := make(chan notifyChange)
-
-// 	go func() {
-// 		for {
-// 			select {
-// 			case event, ok := <-watcher.Events:
-// 				// ignore all events except writes to reduce spam
-// 				if event.Op != fsnotify.Write {
-// 					log.Debugln("event: skipped event ", event)
-// 					continue
-// 				}
-// 				notifyChan <- notifyChange{event: "event: configmap has been changed!", path: "configmap path:" + event.Name, failed: false}
-// 				if !ok {
-// 					return
-// 				}
-// 			case err, ok := <-watcher.Errors:
-// 				log.Println("error: ", err)
-// 				if err == nil {
-// 					err = errors.New("test")
-// 				}
-// 				notifyChan <- notifyChange{event: "Failed to watch file with error: " + err.Error(), failed: true, path: file}
-// 				if !ok {
-// 					return
-// 				}
-// 			}
-// 		}
-// 	}()
-
-// 	err = watcher.Add(file)
-// 	if err != nil {
-// 		err = fmt.Errorf("error when adding file to watcher for: %s %w", file, err)
-// 		return make(chan notifyChange), err
-// 	}
-// 	return notifyChan, nil
-// }
-
 // NotifyChange struct used for channel
 type notifyChange struct {
 	event  string
@@ -87,7 +41,7 @@ type notifyChange struct {
 	failed bool
 }
 
-// configmap watcher
+// configChangeNotifier creates a watcher and can be used to notify of change to the configmap file on disk
 func fileChangeNotifier(file string) chan notifyChange {
 
 	notifyChan := make(chan notifyChange)

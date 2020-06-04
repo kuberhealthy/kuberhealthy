@@ -251,14 +251,13 @@ func initKubernetesClients() error {
 // configReloader watchers for events in file and restarts kuberhealhty checks
 func configReloader(kh *Kuberhealthy) {
 	fileChangedChan := fileChangeNotifier(configPath)
-	// if err != nil {
-	// }
 
 	// watch for config file reloads and reparse configs
 	for msg := range fileChangedChan {
 		// if msg.failed {
 		// 	log.Warningln("configReloader: Received error when watching for config to change:", msg.event, msg.path)
 		// 	continue
+		// }
 
 		for {
 			select {
