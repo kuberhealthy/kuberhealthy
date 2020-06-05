@@ -19,6 +19,11 @@ import (
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
 )
 
+var daemonSetList []appsv1.DaemonSet
+var nodesMissingDSPod []string
+var podRemovalList *apiv1.PodList
+
+// runCheck runs pre-check cleanup and then the full daemonset check. If successful, reports OK to kuberhealthy.
 func runCheck() {
 
 	log.Infoln("Running pre-check cleanup. Deleting any rogue daemonsets or daemonset pods before running daemonset check.")
@@ -35,13 +40,12 @@ func runCheck() {
 		log.Errorln("Error running check:", err)
 		os.Exit(1)
 	}
-	if err == nil {
-		log.Infoln("Finished running checks, reporting OK to Kuberhealthy ")
-		reportOKToKuberhealthy()
-		log.Infoln("Done running daemonset check")
-	}
+	log.Infoln("Finished running checks, reporting OK to Kuberhealthy ")
+	reportOKToKuberhealthy()
+	log.Infoln("Done running daemonset check")
 }
 
+// cleanup triggers run check clean up and waits for all rogue daemonsets to clear
 func cleanUp() error {
 
 	log.Debugln("Allowing this clean up", checkPodTimeout, "to finish.")
@@ -79,7 +83,13 @@ func cleanUp() error {
 		}
 		log.Infoln("Successfully finished cleanup. No rogue daemonsets or daemonset pods exist")
 	case <- time.After(checkPodTimeout):
-		errorMessage := "Reached check pod timeout: " + checkPodTimeout.String() + " waiting for all daemonsets to clear."
+		var errorMessage string
+		if len(daemonSetList) > 0 {
+			unClearedDSList := getUnClearedDSList(daemonSetList)
+			errorMessage = "Reached check pod timeout: " + checkPodTimeout.String() + " waiting for all daemonsets to clear. " +
+				"Daemonset that failed to clear: " + strings.Join(unClearedDSList, ", ")
+		}
+		errorMessage = "Reached check pod timeout: " + checkPodTimeout.String() + " waiting for all daemonsets to clear."
 		log.Errorln(errorMessage)
 		reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + errorMessage})
 		return errors.New(errorMessage)
@@ -162,7 +172,12 @@ func doDeploy() error {
 		}
 		log.Infoln("Successfully deployed daemonset.")
 	case <- time.After(checkPodTimeout):
-		errorMessage := "Reached check pod timeout: " + checkPodTimeout.String() + " waiting for all pods to come online."
+		var errorMessage string
+		if len(nodesMissingDSPod) > 0 {
+			errorMessage = "Reached check pod timeout: " + checkPodTimeout.String() + " waiting for all pods to come online. " +
+				"Node(s) missing daemonset pod: " + strings.Join(nodesMissingDSPod, ", ")
+		}
+		errorMessage = "Reached check pod timeout: " + checkPodTimeout.String() + " waiting for all pods to come online."
 		log.Errorln(errorMessage)
 		reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + errorMessage})
 		return errors.New(errorMessage)
@@ -366,7 +381,13 @@ func doRemove() error {
 		}
 		log.Infoln("Successfully removed daemonset pods.")
 	case <- time.After(checkPodTimeout):
-		errorMessage := "Reached check pod timeout: " + checkPodTimeout.String() + " waiting for daemonset pods removal."
+		var errorMessage string
+		if len(podRemovalList.Items) > 0 {
+			unClearedDSPodsNodes := getDSPodsNodeList(podRemovalList)
+			errorMessage = "Reached check pod timeout: " + checkPodTimeout.String() + " waiting for daemonset pods removal. " +
+				"Node(s) failing to remove daemonset pod: " + strings.Join(unClearedDSPodsNodes, ", ")
+		}
+		errorMessage = "Reached check pod timeout: " + checkPodTimeout.String() + " waiting for daemonset pods removal."
 		log.Errorln(errorMessage)
 		reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + errorMessage})
 		return errors.New(errorMessage)
@@ -387,7 +408,6 @@ func waitForPodsToComeOnline() error {
 
 	// counter for DS status check below
 	var counter int
-	var nodesMissingDSPod []string
 
 	// init a timeout for this whole deletion of daemonsets
 	log.Infoln("Timeout set:", checkPodTimeout.String(), "for all daemonset pods to come online")
@@ -414,7 +434,8 @@ func waitForPodsToComeOnline() error {
 		// pods scheduled.
 
 		// find nodes missing pods from this daemonset
-		nodesMissingDSPod, err := getNodesMissingDSPod()
+		var err error
+		nodesMissingDSPod, err = getNodesMissingDSPod()
 		if err != nil {
 			log.Warningln("DaemonsetChecker: Error determining which node was unschedulable. Retrying.", err)
 			continue
@@ -763,8 +784,6 @@ func waitForAllDaemonsetsToClear() error {
 	// watch events and return when the pod is in state running
 	for {
 
-		var dsList []appsv1.DaemonSet
-
 		// wait between requests
 		time.Sleep(time.Second * 5)
 
@@ -777,11 +796,11 @@ func waitForAllDaemonsetsToClear() error {
 
 		// fetch the pod by name
 		var err error
-		dsList, err = getAllDaemonsets()
+		daemonSetList, err = getAllDaemonsets()
 		if err != nil {
 			return err
 		}
-		if len(dsList) == 0 {
+		if len(daemonSetList) == 0 {
 			log.Info("All daemonsets cleared")
 			return nil
 		}
@@ -837,7 +856,8 @@ func waitForPodRemoval() error {
 			return ctxErr
 		}
 
-		pods, err := listDSPods(daemonSetName)
+		var err error
+		podRemovalList, err = listDSPods(daemonSetName)
 		if err != nil {
 			return err
 		}
@@ -857,12 +877,12 @@ func waitForPodRemoval() error {
 		}
 
 		// Check all pods for any kuberhealthy test daemonset pods that still exist
-		log.Infoln("DaemonsetChecker waiting for", len(pods.Items), "pods to delete")
-		for _, p := range pods.Items {
+		log.Infoln("DaemonsetChecker waiting for", len(podRemovalList.Items), "pods to delete")
+		for _, p := range podRemovalList.Items {
 			log.Infoln("DaemonsetChecker is still removing:", p.Namespace, p.Name, "on node", p.Spec.NodeName)
 		}
 
-		if len(pods.Items) == 0 {
+		if len(podRemovalList.Items) == 0 {
 			log.Infoln("DaemonsetChecker has finished removing all daemonset pods")
 			return nil
 		}
@@ -969,16 +989,12 @@ func deletePod(podName string) error {
 	return err
 }
 
-//func getLastErrorMessages() string {
-//
-//
-//}
-
-func getUnClearedDSList(daemonsetList []appsv1.DaemonSet) []string {
+// getUnClearedDSList transforms list of daemonsets to a list of daemonset name strings. Used for error messaging.
+func getUnClearedDSList(dsList []appsv1.DaemonSet) []string {
 
 	var unclearedDS []string
-	if len(daemonsetList) != 0 {
-		for _, ds := range daemonsetList {
+	if len(dsList) != 0 {
+		for _, ds := range dsList {
 			unclearedDS = append(unclearedDS, ds.Name)
 		}
 	}
@@ -986,6 +1002,7 @@ func getUnClearedDSList(daemonsetList []appsv1.DaemonSet) []string {
 	return unclearedDS
 }
 
+// getDSPodsNodeList transforms podList to a list of pod node name strings. Used for error messaging.
 func getDSPodsNodeList(podList *apiv1.PodList) []string {
 
 	var nodeList []string
