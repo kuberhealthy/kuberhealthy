@@ -126,5 +126,5 @@ checkReaper:
   enabled: true # Don't disable checkReaper, this flag exist to make e2e tests easier.
   image:
     repository: kuberhealthy/check-reaper
-    tag: v1.3.1
+    tag: v1.4.0
   nodeSelector: {}
