@@ -53,7 +53,7 @@ func notifyChanLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan cha
 
 		notifyChannel:
 		for {
-			log.Debugln("channel notify limiter waiting to receive another inChan or notify after 10s.")
+			log.Debugln("channel notify limiter waiting to receive another inChan or notify after", maxSpeed)
 			select {
 			case <-time.After(maxSpeed):
 				log.Infoln("channel notify limiter reached", maxSpeed, ". Sending output")
@@ -62,7 +62,6 @@ func notifyChanLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan cha
 			case <-inChan:
 				log.Infoln("channel notify limiter witnessed an upstream message on inChan and is waiting an additional", maxSpeed, "before sending output")
 			}
-			return
 		}
 
 		log.Infoln("channel notify limiter finished for now. Waiting for next inChan.")
