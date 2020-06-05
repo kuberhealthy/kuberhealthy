@@ -49,17 +49,23 @@ func notifyChanLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan cha
 	// we wait for an initial inChan message and then watch for spam to stop.
 	// when inChan closes, the func exits
 	for range inChan {
-		log.Println("channel notify limiter witnessed an upstream message on inChan")
+		log.Infoln("channel notify limiter witnessed an upstream message on inChan")
+
+		notifyChannel:
 		for {
+			log.Debugln("channel notify limiter waiting to receive another inChan or notify after 10s.")
 			select {
 			case <-time.After(maxSpeed):
+				log.Infoln("channel notify limiter reached", maxSpeed, ". Sending output")
 				outChan <- struct{}{}
-				break
+				break notifyChannel
 			case <-inChan:
-				log.Println("channel notify limiter witnessed an upstream message on inChan and is waiting an additional", maxSpeed, "before sending output")
+				log.Infoln("channel notify limiter witnessed an upstream message on inChan and is waiting an additional", maxSpeed, "before sending output")
 			}
 			return
 		}
+
+		log.Infoln("channel notify limiter finished for now. Waiting for next inChan.")
 	}
 }
 
