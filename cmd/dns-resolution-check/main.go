@@ -32,6 +32,7 @@ import (
 )
 
 const maxTimeInFailure = 60 * time.Second
+const defaultCheckTimeout = 5 * time.Minute
 
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var CheckTimeout time.Duration
@@ -46,19 +47,15 @@ type Checker struct {
 
 func init() {
 
-	// Grab and verify environment variables and set them as global vars
-	checkTimeout := os.Getenv("CHECK_POD_TIMEOUT")
-	if len(checkTimeout) == 0 {
-		log.Errorln("ERROR: The CHECK_TIMEOUT environment variable has not been set.")
-		return
-	}
-
-	var err error
-	CheckTimeout, err = time.ParseDuration(checkTimeout)
+	// Set check time limit to default
+	CheckTimeout = defaultCheckTimeout
+	// Get the deadline time in unix from the env var
+	timeDeadline, err := checkclient.GetDeadline()
 	if err != nil {
-		log.Errorln("Error parsing timeout for check", checkTimeout, err)
-		return
+		log.Infoln("There was an issue getting the check deadline:", err.Error())
 	}
+	CheckTimeout = timeDeadline.Sub(time.Now().Add(time.Second * 5))
+	log.Infoln("Check time limit set to:", CheckTimeout)
 
 	Hostname = os.Getenv("HOSTNAME")
 	if len(Hostname) == 0 {
