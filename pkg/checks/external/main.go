@@ -253,38 +253,54 @@ func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck, error) {
 	return checkConfig, err
 }
 
-// cleanup cleans up any running checker pods by evicting them
+// cleanup cleans up any running, pending, or unknown checker pods by evicting them. Succeeded of Failed pods are left alone for records
+// if eviction fails, cleanup will attempt to forcefully kill the pod.
 func (ext *Checker) cleanup() {
 	ext.log("Evicting up any running pods with name", ext.podName())
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
 	// find all pods that are running still so we can evict them (not delete - for records)
 	checkLabelSelector := kuberhealthyCheckNameLabel + " = " + ext.CheckName
-	ext.log("eviction: looking for pods with the label", checkLabelSelector, "and status.phase=Running")
+	ext.log("eviction: looking for pods with the label", checkLabelSelector)
 	podList, err := podClient.List(metav1.ListOptions{
-		FieldSelector: "status.phase=Running",
 		LabelSelector: checkLabelSelector,
 	})
+
 	// if we cant list pods, just give up gracefully
 	if err != nil {
 		ext.log("error when searching for checker pods to clean up", err)
 		return
 	}
 
-	// evict all checker pods found concurrently and exit
+	// evict all checker pods not status=Failed or status=Succeeded. Check for existense of pods afterwards and if eviction failed, forcefully attempt to kill the pods
 	wg := sync.WaitGroup{}
 	for _, p := range podList.Items {
-		wg.Add(1)
-		go func() {
-			ext.evictPod(p.GetName(), p.GetNamespace())
-			wg.Done()
-		}()
+		ext.log("finding pods that are not in status.phase=Failed or status.phase=Succeeded")
+		if p.Status.Phase != apiv1.PodFailed || p.Status.Phase != apiv1.PodSucceeded {
+			wg.Add(1)
+			go func(p apiv1.Pod) {
+				ext.log("evicting pod", p.GetName())
+				err := ext.evictPod(p.GetName(), p.GetNamespace())
+				if err != nil {
+					ext.log("pod eviction failed"+":", err)
+					ext.log("checking if pod", p.GetName, "still exists")
+					podExists, podErr := util.PodNameExists(ext.KubeClient, p.GetName(), p.GetNamespace())
+					if !podExists {
+						ext.log("Pod does not exist"+":", podErr)
+					} else {
+						ext.log("forcefull killing pod", p.GetName, "in 15 seconds")
+						util.PodKill(ext.KubeClient, p.GetName(), p.GetNamespace(), 15)
+					}
+				}
+				wg.Done()
+			}(p)
+		}
 	}
 	wg.Wait()
 }
 
-// evictPod evicts a pod in a namespace and ignores errors. Uses a static 30s grace period
-func (ext *Checker) evictPod(podName string, podNamespace string) {
+// evictPod evicts a pod in a namespace and returns any errors. Uses a static 30s grace period.
+func (ext *Checker) evictPod(podName string, podNamespace string) error {
 	podClient := ext.KubeClient.CoreV1().Pods(podNamespace)
 	gracePeriodSeconds := int64(30)
 	eviction := &policyv1.Eviction{
@@ -300,6 +316,7 @@ func (ext *Checker) evictPod(podName string, podNamespace string) {
 	if err != nil {
 		ext.log("error when trying to cleanup/evict checker pod", podName, "in namespace", podNamespace+":", err)
 	}
+	return err
 }
 
 // setUUID sets the current whitelisted UUID for the checker and updates it on the server
