@@ -27,8 +27,6 @@ spec:
       - env:
           - name: POD_NAMESPACE
             value: "kube-system"
-          - name: CHECK_POD_TIMEOUT
-            value: "10m"
           - name: MAX_FAILURES_ALLOWED
             value: "10"
         image: kuberhealthy/pod-restarts-check:v2.1.1
