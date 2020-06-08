@@ -34,6 +34,7 @@ import (
 // status represents the current Kuberhealthy OK:Error state
 var cfg *Config
 var configPath = "/etc/config/kuberhealthy.yaml"
+var configPathDir = "/etc/config/"
 var podCheckNamespaces = "kube-system"
 var podNamespace = os.Getenv("POD_NAMESPACE")
 var isMaster bool                  // indicates this instance is the master and should be running checks
@@ -250,7 +251,10 @@ func initKubernetesClients() error {
 
 // configReloader watchers for events in file and restarts kuberhealhty checks
 func configReloader(kh *Kuberhealthy) {
-	fileChangedChan := fileChangeNotifier(configPath)
+
+	fsNotificationChan := watchDir(configPathDir)
+	configChangeChan := configWatchAnalyzer(fsNotificationChan)
+	smoothedReloadChan := smoothOutputchan(configChangeChan, time.Duration(time.Second*20))
 
 	// watch for config file reloads and reparse configs
 	for msg := range fileChangedChan {
