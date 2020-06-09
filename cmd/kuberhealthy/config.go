@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	log "github.com/sirupsen/logrus"
@@ -76,15 +77,20 @@ func (c *Config) Load(file string) error {
 // }
 
 type fsNotificationChan struct {
-	event string
-	path  string
-	hash  int64
+	event  string
+	path   string
+	failed bool
+	hash   int64
 }
 
 type configChangeChan struct {
 	message string
 	path    string
 	action  bool
+}
+
+type actionNeededChan struct {
+	action bool
 }
 
 func watchDir(d string) chan fsNotificationChan {
@@ -107,14 +113,14 @@ func watchDir(d string) chan fsNotificationChan {
 					return
 				}
 				h := hashCreator(event.Name)
-				watchDir <- fsNotificationChan{event: "configWatch: configmap has been changed at location" + event.Name, path: event.Name, hash: h}
+				watchDir <- fsNotificationChan{event: "configWatch: configmap has been changed at location" + event.Name, path: event.Name, failed: false, hash: h}
 
 			case err, ok := <-watcher.Errors:
 				log.Println("error: ", err)
 				if err == nil {
 					err = errors.New("Error return was null")
 				}
-				watchDir <- fsNotificationChan{event: "configWatch: failed to watch configmap directory with error: " + err.Error(), hash: 00}
+				watchDir <- fsNotificationChan{event: "configWatch: failed to watch configmap directory with error: " + err.Error(), failed: true, hash: 00}
 				if !ok {
 					return
 				}
@@ -138,14 +144,71 @@ func configWatchAnalyzer(c chan fsNotificationChan) chan configChangeChan {
 	notify := <-c
 	// Do some shit
 	go func() {
-		if currentHash == notify.hash {
-			configChange <- configChangeChan{message: notify.event, path: notify.path, action: true}
+		if notify.failed == true {
+			configChange <- configChangeChan{message: notify.event, path: notify.path, action: false}
 		}
-		configChange <- configChangeChan{message: "configmap change event did not change the file at location:" + notify.path, path: notify.path, action: false}
+		if currentHash != notify.hash {
+			configChange <- configChangeChan{message: "configmap change event did not change the file configureations at location:" + notify.path, path: notify.path, action: false}
+		}
+		configChange <- configChangeChan{message: notify.event, path: notify.path, action: true}
+		currentHash = notify.hash
+
 	}()
 	return configChange
 }
 
+func smoothedOutput(maxSpeed time.Duration, c chan configChangeChan) chan actionNeededChan {
+	msg := <-c
+	action := make(chan actionNeededChan)
+
+	log.Infoln(msg.message)
+	for range c {
+		for {
+			log.Infoln("configmap changed, waiting to receive another change or proceeding to reload checks after", maxSpeed)
+			select {
+			case <-time.After(maxSpeed):
+				log.Infoln("time limit has been reached:", maxSpeed, "requesting kuberhealthy restart")
+				action <- actionNeededChan{action: true}
+			case <-c:
+				log.Infoln("another configmap change has been detected, waiting an addition", maxSpeed, "before requesting a kuberhealthy restart")
+				action <- actionNeededChan{action: false}
+			}
+		}
+
+	}
+	return action
+}
+
+// configReloader watchers for events in file and restarts kuberhealhty checks
+func configReloader(kh *Kuberhealthy) {
+
+	fsNotificationChan := watchDir(configPathDir)
+	configChangeChan := configWatchAnalyzer(fsNotificationChan)
+	smoothedReloadChan := smoothedOutput(time.Duration(time.Second*20), configChangeChan)
+	reload := <-smoothedReloadChan
+	if reload.action {
+		err := cfg.Load(configPath)
+		if err != nil {
+			log.Errorln("configReloader: Error reloading config:", err)
+		}
+
+		// reparse and set logging level
+		parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
+		if err != nil {
+			log.Warningln("Unable to parse log-level flag: ", err)
+		} else {
+			log.Infoln("Setting log level to:", parsedLogLevel)
+			log.SetLevel(parsedLogLevel)
+		}
+
+		// reload checks
+		kh.RestartChecks()
+		log.Infoln("configReloader: Kuberhealthy restarted!")
+	}
+	log.Infoln("configReloader: XXXX")
+}
+
+// hashcreator opens up a file and creates a hash of the file
 func hashCreator(file string) int64 {
 	f, err := os.Open(file)
 	if err != nil {
