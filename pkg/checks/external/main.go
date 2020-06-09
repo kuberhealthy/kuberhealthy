@@ -253,7 +253,7 @@ func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck, error) {
 	return checkConfig, err
 }
 
-// cleanup cleans up any running, pending, or unknown checker pods by evicting them. Succeeded of Failed pods are left alone for records
+// cleanup cleans up any running, pending, or unknown checker pods by evicting them. Succeeded or Failed pods are left alone for records
 // if eviction fails, cleanup will attempt to forcefully kill the pod.
 func (ext *Checker) cleanup() {
 	ext.log("Evicting up any running pods with name", ext.podName())
