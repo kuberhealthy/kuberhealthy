@@ -12,7 +12,7 @@ prometheus:
 
 image:
   repository: kuberhealthy/kuberhealthy
-  tag: v2.1.2-rc.1
+  tag: v2.2.0
 
 resources:
   requests:
@@ -63,7 +63,7 @@ check:
     timeout: 12m
     image:
       repository: kuberhealthy/daemonset-check
-      tag: v2.2.1
+      tag: v2.2.2
     extraEnvs:
     nodeSelector: {}
   deployment:
@@ -72,7 +72,7 @@ check:
     timeout: 15m
     image:
       repository: kuberhealthy/deployment-check
-      tag: v1.3.4
+      tag: v1.4.4
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
@@ -112,5 +112,5 @@ checkReaper:
   enabled: false
   image:
     repository: kuberhealthy/check-reaper
-    tag: v1.3.1
+    tag: v1.4.0
   nodeSelector: {}
