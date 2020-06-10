@@ -65,7 +65,7 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.4.0
+      image: kuberhealthy/deployment-check:v1.4.4
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_IMAGE
