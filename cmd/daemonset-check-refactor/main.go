@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -30,11 +31,6 @@ var (
 	checkNamespaceEnv = os.Getenv("POD_NAMESPACE")
 	checkNamespace    string
 
-	// Timeout set to ensure the cleanup of rogue daemonsets or daemonset pods after the check has finished within this timeout
-	checkPodTimeoutEnv = os.Getenv("CHECK_POD_TIMEOUT")
-	checkPodTimeout    time.Duration
-	//checkPodTimeoutChan    = time.After(checkPodTimeout)
-
 	// DSPauseContainerImageOverride specifies the sleep image we will use on the daemonset checker
 	dsPauseContainerImageEnv = os.Getenv("PAUSE_CONTAINER_IMAGE")
 	dsPauseContainerImage string // specify an alternate location for the DSC pause container - see #114
@@ -54,9 +50,9 @@ var (
 	hostName string
 	tolerations []apiv1.Toleration
 	daemonSetName string
-	daemonSetDeployed bool
+	daemonsetDeployed bool
 	shuttingDown bool
-	DaemonSet *appsv1.DaemonSet
+	daemonSet *appsv1.DaemonSet
 
 	// Time object used for the check.
 	now time.Time
@@ -70,8 +66,9 @@ var (
 	cleanUpCtxCancel context.CancelFunc
 
 	// Interrupt signal channels.
-	signalChan chan os.Signal
-	doneChan   chan error
+	signalChan 			chan os.Signal
+	doneChan   			chan error
+	interruptSignal     os.Signal
 
 	// K8s client used for the check.
 	client *kubernetes.Clientset
@@ -82,18 +79,14 @@ const (
 	defaultCheckDSName = "daemonset"
 	// Default namespace daemonset check will be performed in
 	defaultCheckNamespace = "kuberhealthy"
-	// Default check pod timeout for daemonset check
-	defaultCheckPodTimeout = time.Duration(time.Minute*12)
 	// Default pause container image used for the daemonset check
 	defaultDSPauseContainerImage = "gcr.io/google-containers/pause:3.1"
 	// Default shutdown termination grace period
 	defaultShutdownGracePeriod = time.Duration(time.Minute * 1) // grace period for the check to shutdown after receiving a shutdown signal
 	// Default daemonset check time limit
 	defaultCheckTimeLimit = time.Duration(time.Minute * 15)
-
 	// Default user
 	defaultUser = int64(1000)
-
 )
 
 func init() {
@@ -127,9 +120,14 @@ func main() {
 	}
 	log.Infoln("Kubernetes client created.")
 
-
 	// Start listening to interrupts.
-	go listenForInterrupts()
+	interruptCtx, interruptCtxCancel := context.WithTimeout(context.Background(), checkTimeLimit)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		listenForInterrupts(interruptCtx, interruptCtxCancel)
+	}()
 
 	// Catch panics.
 	var r interface{}
@@ -141,9 +139,13 @@ func main() {
 		}
 	}()
 
-	//checkPodTimeout = time.Duration(1) * time.Second
-	// Start daemonset check.
+	// Run daemonset check.
 	runCheck()
+	// Check if interrupt signal was received, and if so, wait to finish shutdown before exiting.
+	if interruptSignal != nil {
+		wg.Wait()
+	}
+	log.Infoln("Done running daemonset check")
 }
 
 
@@ -153,17 +155,18 @@ func setCheckConfigurations(now time.Time) {
 	daemonSetName = checkDSName + "-" + hostName + "-" + strconv.Itoa(int(now.Unix()))
 }
 
-// listenForInterrupts watches the signal and done channels for termination.
-func listenForInterrupts() {
+// waitForShutdown watches the signal and done channels for termination.
+func listenForInterrupts(interruptCtx context.Context, interruptCtxCancel context.CancelFunc) {
 
+	interruptSignal = nil
 	// Relay incoming OS interrupt signals to the signalChan
-	signal.Notify(signalChan, os.Interrupt, os.Kill)
-	sig :=<-signalChan
+	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT)
+	interruptSignal =<-signalChan
 	log.Infoln("Received an interrupt signal from the signal channel.")
-	log.Debugln("Signal received was:", sig.String())
+	log.Debugln("Signal received was:", interruptSignal.String())
 
-	go shutdown(doneChan)
-	// wait for checks to be done shutting down before exiting
+	doneChan <- shutdown(interruptCtx, interruptCtxCancel)
+
 	select {
 	case err := <-doneChan:
 		if err != nil {
@@ -171,71 +174,71 @@ func listenForInterrupts() {
 			os.Exit(1)
 		}
 		log.Infoln("Shutdown gracefully completed!")
-		os.Exit(0)
-	case sig = <-signalChan:
-		log.Warningln("Shutdown forced from multiple interrupts!")
+	case sig := <-signalChan:
+		log.Warningln("Shutdown forced from multiple interrupts. Received signal:", sig.String())
 		os.Exit(1)
 	case <-time.After(time.Duration(shutdownGracePeriod)):
 		log.Errorln("Shutdown took too long. Shutting down forcefully!")
 		os.Exit(2)
 	}
+	os.Exit(0)
 }
 
 // Shutdown signals the DS to begin a cleanup
-func shutdown(sdDoneChan chan error) {
+func shutdown(interruptCtx context.Context, interruptCtxCancel context.CancelFunc) error {
+
+	log.Debugln("Cancelling context.")
+	ctxCancel() // Causes all functions within the check to return without error and abort. NOT an error
+	// condition; this is a response to an external shutdown signal.
+	log.Infoln("Shutting down due to interrupt.")
 	shuttingDown = true
 
 	var err error
+	outChan := make(chan error, 10)
 	// if the ds is deployed, delete it
-	if daemonSetDeployed {
+	if daemonsetDeployed {
 
 		log.Infoln("Removing daemonset due to shutdown.")
 
 		err = deleteDS(daemonSetName)
 		if err != nil {
 			log.Errorln("Failed to remove", daemonSetName)
+			return err
 		}
-
-		daemonSetDeployed = false
-
-		outChan := make(chan error, 10)
 
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {
-			log.Infoln("Worker: waitForPodRemoval started")
-			defer close(outChan)
-			outChan <- waitForPodRemoval()
+			log.Debugln("Worker: waitForPodRemoval started")
+			defer wg.Done()
+			outChan <- waitForPodRemoval(interruptCtx)
 			wg.Wait()
 		}()
 
 		select {
-
 		case err = <-outChan:
 			if err != nil {
-				ctxCancel() // cancel the watch context, we have timed out
+				interruptCtxCancel() // cancel the watch context, we have timed out
 				log.Errorln("Error waiting for daemonset pods removal:", err)
 				reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + err.Error()})
-				sdDoneChan <- err
-				return
+				return err
 			}
 			log.Infoln("Successfully removed daemonset pods.")
-		case <- time.After(checkPodTimeout):
-			errorMessage := "Reached check pod timeout: " + checkPodTimeout.String() + " waiting for daemonset and daemonset pods removal."
+		case <- time.After(checkTimeLimit):
+			errorMessage := "Reached check pod timeout: " + checkTimeLimit.String() + " waiting for daemonset and daemonset pods removal."
 			log.Errorln(errorMessage)
 			reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + errorMessage})
-			sdDoneChan <- errors.New(errorMessage)
-			return
-		case <-ctx.Done():
+			return errors.New(errorMessage)
+		case <-interruptCtx.Done():
 			// If there is a cancellation interrupt signal.
 			log.Infoln("Canceling removing daemonset and daemonset pods and shutting down from interrupt.")
-			return
-		default:
+			return err
 		}
 	}
 
+	reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: Failed to complete check due to an interrupt signal."})
 	log.Infoln("Daemonset", daemonSetName, "ready for shutdown.")
-	sdDoneChan <- err
+	return err
 }
 
 // getDSClient returns a daemonset client, useful for interacting with daemonsets

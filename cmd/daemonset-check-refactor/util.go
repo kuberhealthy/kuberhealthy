@@ -12,28 +12,13 @@
 package main
 
 import (
-	"math/rand"
 	"os"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
+	apiv1 "k8s.io/api/core/v1"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")
-
-// randString generates a random string of specified length
-func randString(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
-}
 
 // getHostname attempts to determine the hostname this program is running on
 func getHostname() string {
@@ -45,3 +30,39 @@ func getHostname() string {
 	}
 	return strings.ToLower(host)
 }
+
+// formatNodes formats string list into readable string for logging and error message purposes
+func formatNodes(nodeList []string) string {
+	if len(nodeList) > 0 {
+		return strings.Join(nodeList,", ")
+	} else {
+		return ""
+	}
+}
+
+// getUnClearedDSList transforms list of daemonsets to a list of daemonset name strings. Used for error messaging.
+func getUnClearedDSList(dsList []appsv1.DaemonSet) string {
+
+	var unclearedDS []string
+	if len(dsList) != 0 {
+		for _, ds := range dsList {
+			unclearedDS = append(unclearedDS, ds.Name)
+		}
+	}
+
+	return formatNodes(unclearedDS)
+}
+
+// getDSPodsNodeList transforms podList to a list of pod node name strings. Used for error messaging.
+func getDSPodsNodeList(podList *apiv1.PodList) string {
+
+	var nodeList []string
+	if len(podList.Items) != 0 {
+		for _, p := range podList.Items {
+			nodeList = append(nodeList, p.Spec.NodeName)
+		}
+	}
+
+	return formatNodes(nodeList)
+}
+

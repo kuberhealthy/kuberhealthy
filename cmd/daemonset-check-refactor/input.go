@@ -17,7 +17,8 @@ func parseInputValues() {
 	if err != nil {
 		log.Infoln("There was an issue getting the check deadline:", err.Error())
 	}
-	checkTimeLimit = timeDeadline.Sub(time.Now().Add(time.Second * 5))
+	// Give 60 seconds to clean up / shut down once check time limit is reached before the kh deadline
+	checkTimeLimit = timeDeadline.Sub(time.Now().Add(time.Second * 60))
 	log.Infoln("Setting check time limit to:", checkTimeLimit)
 
 	// Parse incoming namespace environment variable
@@ -27,24 +28,6 @@ func parseInputValues() {
 		log.Infoln("Parsed POD_NAMESPACE:", checkNamespace)
 	}
 	log.Infoln("Performing check in", checkNamespace, "namespace.")
-
-	// Parse incoming check pod timeout environment variable
-	checkPodTimeout = defaultCheckPodTimeout
-	if len(checkPodTimeoutEnv) != 0 {
-		duration, err := time.ParseDuration(checkPodTimeoutEnv)
-		if err != nil {
-			log.Fatalln("error parsing env variable CHECK_POD_TIMEOUT:", checkPodTimeoutEnv, err)
-		}
-		if duration.Minutes() < 1 {
-			log.Fatalln("error parsing env variable CHECK_POD_TIMEOUT. A value of less than 1 was parsed:", duration.Minutes())
-		}
-		if duration.Minutes() > checkTimeLimit.Minutes() {
-			log.Fatalln("error parsing env variable CHECK_POD_TIMEOUT. Value is greater than checkTimeLimit:", checkTimeLimit.Minutes())
-		}
-		checkPodTimeout = duration
-		log.Infoln("Parsed CHECK_POD_TIMEOUT:", checkPodTimeout)
-	}
-	log.Infoln("Setting check pod timeout to:", checkPodTimeout)
 
 	// Allow user to override the image used by the daemonset check - see #114
 	dsPauseContainerImage = defaultDSPauseContainerImage
