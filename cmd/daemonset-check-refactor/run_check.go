@@ -307,7 +307,7 @@ func remove() error {
 // waitForAllDaemonsetsToClear waits for all rogue daemonsets to be cleared
 func waitForAllDaemonsetsToClear() error {
 
-	log.Infoln("Timeout set:", checkTimeLimit.String(), "for all daemonsets to clear")
+	log.Debugln("Waiting for all daemonsets to clear")
 
 	// watch events and return when the pod is in state running
 	for {
@@ -338,7 +338,7 @@ func waitForAllDaemonsetsToClear() error {
 // waitForPodsToComeOnline blocks until all pods of the daemonset are deployed and online
 func waitForPodsToComeOnline() error {
 
-	log.Infoln("Waiting for all ds pods to come online")
+	log.Debugln("Waiting for all ds pods to come online")
 
 	// counter for DS status check below
 	var counter int
@@ -404,7 +404,8 @@ func waitForPodsToComeOnline() error {
 
 // waitForDSRemoval waits for the daemonset to be removed before returning
 func waitForDSRemoval() error {
-	log.Infoln("Timeout set:", checkTimeLimit.String(), "for daemonset removal")
+
+	log.Debugln("Waiting for ds removal")
 
 	// repeatedly fetch the DS until it goes away
 	for {
@@ -431,7 +432,8 @@ func waitForDSRemoval() error {
 
 // waitForPodRemoval waits for the daemonset to finish removing all daemonset pods
 func waitForPodRemoval(ctx context.Context) error {
-	log.Infoln("Timeout set:", checkTimeLimit.String(), "for daemonset pods removal")
+
+	log.Debugln("Waiting for ds pods removal")
 
 	// as a fix for kuberhealthy #74 we routinely ask the pods to remove.
 	// this is a workaround for a race in kubernetes that sometimes leaves
@@ -489,9 +491,9 @@ func generateDaemonSetSpec() {
 	runAsUser := defaultUser
 	currentUser, err := util.GetCurrentUser(defaultUser)
 	if err != nil {
-		log.Infoln("Unable to get the current user id %v", err)
+		log.Errorln("Unable to get the current user id %v", err)
 	}
-	log.Infoln("runAsUser will be set to %v", currentUser)
+	log.Debugln("runAsUser will be set to %v", currentUser)
 	runAsUser = currentUser
 
 	// if a list of tolerations wasnt passed in, default to tolerating all taints
@@ -581,7 +583,7 @@ func findAllUniqueTolerations(client *kubernetes.Clientset) ([]apiv1.Toleration,
 	if err != nil {
 		return uniqueTolerations, err
 	}
-	log.Infoln("Searching for unique taints on the cluster.")
+	log.Debugln("Searching for unique taints on the cluster.")
 	// this keeps track of the unique taint values
 	keys := make(map[string]bool)
 	// get a list of all taints
