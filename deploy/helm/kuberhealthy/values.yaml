@@ -98,7 +98,7 @@ check:
     timeout: 10m
     image:
       repository: kuberhealthy/pod-restarts-check
-      tag: v2.2.1
+      tag: v2.3.0
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
