@@ -103,6 +103,19 @@ metadata:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRole
 metadata:
+  name: kuberhealthy-daemonset-khcheck
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
+---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
   name: kuberhealthy
 rules:
   - apiGroups:
@@ -167,19 +180,6 @@ rules:
     - pods/eviction
     verbs:
     - create
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
 ---
 # Source: kuberhealthy/templates/check-reaper.yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -508,11 +508,9 @@ spec:
       fsGroup: 999
     containers:
       - env:
-          - name: CHECK_POD_TIMEOUT
-            value: "110s"
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.2.0
+        image: kuberhealthy/dns-resolution-check:v1.3.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:

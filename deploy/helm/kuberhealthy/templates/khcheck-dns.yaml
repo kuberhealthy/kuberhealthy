@@ -16,8 +16,6 @@ spec:
     {{- end}}
     containers:
       - env:
-          - name: CHECK_POD_TIMEOUT
-            value: "110s"
 {{- range $key, $value := .Values.check.dnsInternal.extraEnvs }}
           - name: {{ $key }}
             value: {{ $value | quote }}

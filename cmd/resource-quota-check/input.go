@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -63,18 +64,13 @@ func parseInputValues() {
 	}
 	log.Infoln("Usage threshold set to:", threshold)
 
-	// Set check time limit to default.
+	// Set check time limit to default
 	checkTimeLimit = defaultCheckTimeLimit
-	if len(checkTimeLimitEnv) != 0 {
-		duration, err := time.ParseDuration(checkTimeLimitEnv)
-		if err != nil {
-			log.Fatalln("error occurred attempting to parse CHECK_TIME_LIMIT:", err)
-		}
-		if duration.Seconds() < 1 {
-			log.Fatalln("error occurred attempting to parse CHECK_TIME_LIMIT. Check run time in seconds is less than 1:", duration.Seconds())
-		}
-		log.Infof("Parsed CHECK_TIME_LIMIT: %.0f seconds", duration.Seconds())
-		checkTimeLimit = duration
+	// Get the deadline time in unix from the env var
+	timeDeadline, err := kh.GetDeadline()
+	if err != nil {
+		log.Infoln("There was an issue getting the check deadline:", err.Error())
 	}
-	log.Infof("Check time limit set to: %.0f seconds", checkTimeLimit.Seconds())
+	checkTimeLimit = timeDeadline.Sub(time.Now().Add(time.Second * 5))
+	log.Infoln("Check time limit set to:", checkTimeLimit)
 }
