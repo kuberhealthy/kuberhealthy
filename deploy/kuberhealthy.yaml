@@ -386,7 +386,7 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: kuberhealthy/check-reaper:v1.3.1
+              image: kuberhealthy/check-reaper:v1.4.0
               imagePullPolicy: IfNotPresent
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
