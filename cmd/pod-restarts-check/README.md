@@ -20,15 +20,13 @@ metadata:
   name: pod-restarts
   namespace: kuberhealthy
 spec:
-  runInterval: 60m
-  timeout: 62m
+  runInterval: 5m
+  timeout: 10m
   podSpec:
     containers:
       - env:
           - name: POD_NAMESPACE
             value: "kube-system"
-          - name: CHECK_POD_TIMEOUT
-            value: "10m"
           - name: MAX_FAILURES_ALLOWED
             value: "10"
         image: kuberhealthy/pod-restarts-check:v2.1.1

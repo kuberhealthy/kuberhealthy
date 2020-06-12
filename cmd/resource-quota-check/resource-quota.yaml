@@ -6,19 +6,17 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 30m
-  timeout: &resource_quota_check_timeout 5m
+  timeout: 5m
   podSpec:
     containers:
     - name: resource-quota
-      image: kuberhealthy/resource-quota-check:v1.1.1
+      image: kuberhealthy/resource-quota-check:v1.2.2
       imagePullPolicy: IfNotPresent
       env:
         - name: BLACKLIST
           value: "default"
         - name: WHITELIST
           value: "kube-system,kuberhealthy"
-        - name: CHECK_TIME_LIMIT
-          value: *resource_quota_check_timeout
       resources:
         requests:
           cpu: 15m
