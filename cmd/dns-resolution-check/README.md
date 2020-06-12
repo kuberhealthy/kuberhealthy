@@ -33,7 +33,7 @@ spec:
           - name: NODE_NAME
             valueFrom:
               fieldRef: status.hostIP
-        image: kuberhealthy/dns-resolution-check:v1.4.0
+        image: kuberhealthy/dns-resolution-check:v1.3.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
