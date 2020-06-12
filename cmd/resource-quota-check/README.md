@@ -41,7 +41,7 @@ spec:
   podSpec:
     containers:
     - name: resource-quota
-      image: kuberhealthy/resource-quota-check:v1.1.1
+      image: kuberhealthy/resource-quota-check:v1.2.2
       imagePullPolicy: IfNotPresent
       env:
         - name: BLACKLIST
