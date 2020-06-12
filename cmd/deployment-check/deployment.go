@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -616,7 +617,7 @@ func waitForDeploymentToDelete() chan bool {
 			_, err := client.AppsV1().Deployments(checkNamespace).Get(checkDeploymentName, metav1.GetOptions{})
 			if err != nil {
 				log.Debugln("error from Deployments().Get():", err.Error())
-				if k8sErrors.IsNotFound(err) {
+				if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 					log.Debugln("Deployment deleted.")
 					deleteChan <- true
 					return
