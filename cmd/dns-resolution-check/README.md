@@ -28,11 +28,12 @@ spec:
   podSpec:
     containers:
       - env:
-          - name: CHECK_POD_TIMEOUT
-            value: "110s"
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.1.0
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef: status.hostIP
+        image: kuberhealthy/dns-resolution-check:v1.4.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
