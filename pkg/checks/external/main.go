@@ -266,7 +266,7 @@ func (ext *Checker) cleanup() {
 		LabelSelector: checkLabelSelector,
 	})
 
-	// if we cant list pods, just give up gracefully
+	// if we can't list pods, just give up gracefully
 	if err != nil {
 		ext.log("error when searching for checker pods to clean up", err)
 		return
@@ -1207,41 +1207,13 @@ func (ext *Checker) setNewCheckUUID() error {
 	return ext.setUUID(ext.currentCheckUUID)
 }
 
-// podExists fetches the pod for the checker from the api server
-// and returns a bool indicating if it exists or not
-func (ext *Checker) podExists() (bool, error) {
-
-	// setup a pod watching client for our current KH pod
-	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
-
-	// if the pod is "not found", then it does not exist
-	p, err := podClient.Get(ext.podName(), metav1.GetOptions{})
-	if err != nil && k8sErrors.IsNotFound(err) {
-		return false, nil
-	}
-
-	// if the pod has succeeded, it no longer exists
-	if p.Status.Phase == apiv1.PodSucceeded {
-		return false, nil
-	}
-
-	// if the pod has failed, it no longer exists
-	if p.Status.Phase == apiv1.PodFailed {
-		return false, nil
-	}
-
-	ext.log("pod", p.Name, "in", p.Namespace, "exists")
-
-	return true, nil
-}
-
 // waitForShutdown waits for the external pod to shut down
 func (ext *Checker) waitForShutdown(ctx context.Context) error {
 	// repeatedly fetch the pod until its gone or the context
 	// is canceled
 	for {
 		time.Sleep(time.Second * 5)
-		exists, err := ext.podExists()
+		exists, err := util.PodNameExists(ext.KubeClient, ext.checkPodName, ext.Namespace)
 		if err != nil {
 			ext.log("shutdown completed with error: ", err)
 			return err

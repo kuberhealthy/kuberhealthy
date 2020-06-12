@@ -48,13 +48,14 @@ spec:
 
 ### image-pull-check
 
-This is a container used to test availability of external image respositories in Kuberhealthy.  Simply place the `kuberhealthy/test-external-check` image on the repository you need tested.
-
-##### Example `khcheck`
+This container tests the availability of external image respositories using Kuberhealthy.  Simply place the `kuberhealthy/test-external-check` image on the repository you need tested.
 
 The pod is designed to attempt a pull of the test image from the remote repository (never from local) every 10 minutes. If the image is unavailable, an error will be reported to the Kuberheakthy API.
 
 To put a copy of this image to your repository, run `docker pull kuberhealthy/test-external-check` and then `docker push my.repository/repo/test-external-check`.
+
+
+##### Example `khcheck`
 
 Below is a YAML template for enabling the image-pull-check in Kuberhealthy.
 
