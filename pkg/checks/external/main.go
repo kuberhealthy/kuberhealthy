@@ -289,7 +289,10 @@ func (ext *Checker) cleanup() {
 						ext.log("Pod does not exist"+":", podErr)
 					} else {
 						ext.log("forcefull killing pod", p.GetName, "in 15 seconds")
-						util.PodKill(ext.KubeClient, p.GetName(), p.GetNamespace(), 15)
+						err := util.PodKill(ext.KubeClient, p.GetName(), p.GetNamespace(), 15)
+						if err != nil {
+							ext.log("error killing pod", p.GetName()+":", err)
+						}
 					}
 				}
 				wg.Done()
