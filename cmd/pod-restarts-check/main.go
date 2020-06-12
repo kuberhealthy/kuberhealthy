@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -188,7 +189,7 @@ func (prc *Checker) verifyBadPodRestartExists(podName string) error {
 
 	_, err := prc.client.CoreV1().Pods(prc.Namespace).Get(podName, metav1.GetOptions{})
 	if err != nil {
-		if k8sErrors.IsNotFound(err) {
+		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Infoln("Bad Pod:", podName, "no longer exists. Removing from bad pods map")
 			delete(prc.BadPods, podName)
 		} else {

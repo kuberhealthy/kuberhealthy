@@ -11,6 +11,10 @@ spec:
       - env:
           - name: HOSTNAME
             value: "google.com"
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
         image: kuberhealthy/dns-resolution-check:v1.3.0
         imagePullPolicy: IfNotPresent
         name: main
