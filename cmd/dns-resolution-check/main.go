@@ -59,10 +59,6 @@ func init() {
 	}
 	CheckTimeout = timeDeadline.Sub(time.Now().Add(time.Second * 5))
 	log.Infoln("Check time limit set to:", CheckTimeout)
-<<<<<<< HEAD
-=======
-
->>>>>>> 753b184b6eb6a6751e10aee8bce147ec451cf02c
 
 	Hostname = os.Getenv("HOSTNAME")
 	if len(Hostname) == 0 {
@@ -162,7 +158,7 @@ func checkNodeAge(client *kubernetes.Clientset) {
 		return
 	}
 
-	nodeMinAge := time.Minute*3
+	nodeMinAge := time.Minute * 3
 	sleepDuration := time.Minute
 	nodeAge := now.Sub(node.CreationTimestamp.Time)
 	// if the node the pod is on is less than 3 minutes old, wait 1 minute before running check.
