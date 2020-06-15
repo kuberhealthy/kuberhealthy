@@ -93,16 +93,14 @@ type actionNeededChan struct {
 	action bool
 }
 
-func watchDir(d string) chan fsNotificationChan {
+func watchDir(d string) (chan fsNotificationChan, error) {
 	log.Println("Debug: starting watcher of configmap")
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		err = fmt.Errorf("error when opening watcher for: %s %w", d, err)
-		return make(chan fsNotificationChan)
+		return make(chan fsNotificationChan), err
 	}
 	defer watcher.Close()
-	{
-	}
 	watchDir := make(chan fsNotificationChan)
 
 	go func() {
@@ -131,9 +129,9 @@ func watchDir(d string) chan fsNotificationChan {
 	err = watcher.Add(d)
 	if err != nil {
 		err = fmt.Errorf("error when adding file to watcher for: %s %w", d, err)
-		return make(chan fsNotificationChan)
+		return make(chan fsNotificationChan), err
 	}
-	return watchDir
+	return watchDir, nil
 }
 
 // configWatchAnalyzer watchers for events of configmap chnages and compares the known hash to the known for chnages to determine if kuberhealthy restart is required
@@ -182,7 +180,13 @@ func smoothedOutput(maxSpeed time.Duration, c chan configChangeChan) chan action
 // configReloader watchers for events in file and restarts kuberhealhty checks
 func configReloader(kh *Kuberhealthy) {
 
-	fsNotificationChan := watchDir(configPathDir)
+	fsNotificationChan, err := watchDir(configPathDir)
+	if err != nil {
+		log.Errorln("configReloader: Error watching config directory:", err)
+		log.Errorln("configReloader: configuration reloading disabled due to errors")
+		return
+	}
+
 	configChangeChan := configWatchAnalyzer(fsNotificationChan)
 	smoothedReloadChan := smoothedOutput(time.Duration(time.Second*20), configChangeChan)
 	reload := <-smoothedReloadChan
