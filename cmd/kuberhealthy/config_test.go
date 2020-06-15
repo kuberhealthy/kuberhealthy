@@ -20,7 +20,12 @@ func TestWatchDir(t *testing.T) {
 	go tempFileWriter(tempFilePath, t)
 
 	// watch for changes to come back from the watchDir command
-	notifyChan := watchDir(tempFilePath)
+	notifyChan, err := watchDir(tempFilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// watch for two changes to come from notifyChan
 	var changeCount int
 	for {
 		if changeCount >= 2 {
