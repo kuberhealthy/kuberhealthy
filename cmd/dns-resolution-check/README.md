@@ -31,7 +31,8 @@ spec:
             value: "kubernetes.default"
           - name: NODE_NAME
             valueFrom:
-              fieldRef: status.hostIP
+              fieldRef:
+                fieldPath: spec.nodeName
         image: kuberhealthy/dns-resolution-check:v1.3.0
         imagePullPolicy: IfNotPresent
         name: main
