@@ -37,6 +37,7 @@ deployment:
   command:
   - /app/kuberhealthy
   # args:
+  # priorityClassName:
 
 # When enabled equals to true, runAsUser and fsGroup will be
 # included to all khchecks as specified below.

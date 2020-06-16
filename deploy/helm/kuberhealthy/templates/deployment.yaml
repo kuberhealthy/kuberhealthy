@@ -29,6 +29,9 @@ spec:
     spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
+      {{- if .Values.deployment.priorityClassName }}
+      priorityClassName: {{ .Values.deployment.priorityClassName }}
+      {{- end}}
       containers:
       - image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
         command: {{ .Values.deployment.command }}
