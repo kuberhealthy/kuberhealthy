@@ -2,9 +2,47 @@ package main
 
 import (
 	"io/ioutil"
+	"log"
+	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/fsnotify/fsnotify"
 )
+
+func TestDefaultFsNotify(t *testing.T) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				log.Println("event:", event)
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					log.Println("modified file:", event.Name)
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Println("error:", err)
+			}
+		}
+	}()
+
+	err = watcher.Add("/tmp/real/fakefile")
+	if err != nil {
+		log.Fatal(err)
+	}
+	time.Sleep(time.Minute)
+}
 
 func TestWatchDir(t *testing.T) {
 
@@ -20,7 +58,7 @@ func TestWatchDir(t *testing.T) {
 	go tempFileWriter(tempFilePath, t)
 
 	// watch for changes to come back from the watchDir command
-	notifyChan, err := watchDir(tempFilePath)
+	notifyChan, err := watchConfig(tempFilePath, filepath.Dir(tempFilePath))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,8 +74,8 @@ func TestWatchDir(t *testing.T) {
 		case <-notifyChan:
 			changeCount++
 			t.Log("Got notifyChan message from file changing")
-		case <-time.After(time.Second):
-			t.Fatal("Did not see a notifyChan message for one second")
+		case <-time.After(time.Second * 5):
+			t.Fatal("Did not see a notifyChan message for 5 seconds")
 		}
 	}
 	t.Log("two changes seen - test successful!")

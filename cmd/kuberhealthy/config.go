@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -30,7 +31,6 @@ type Config struct {
 
 // Load loads file from disk
 func (c *Config) Load(file string) error {
-
 	b, err := ioutil.ReadFile(file)
 	if err != nil {
 		return err
@@ -38,43 +38,6 @@ func (c *Config) Load(file string) error {
 
 	return yaml.Unmarshal(b, c)
 }
-
-// NotifyChange struct used for channel
-// type notifyChange struct {
-// 	event  string
-// 	path   string
-// 	failed bool
-// }
-
-// // configChangeNotifier creates a watcher and can be used to notify of change to the configmap file on disk
-// func fileChangeNotifier(file string) chan notifyChange {
-
-// 	notifyChan := make(chan notifyChange)
-
-// 	viper.SetConfigName("kuberhealthy") // name of config file (without extension)
-// 	viper.SetConfigType("yaml")         // REQUIRED if the config file does not have the extension in the name
-// 	viper.AddConfigPath("/etc/config/") // path to look for the config file in
-// 	// viper.AddConfigPath("$HOME/.appname") // call multiple times to add many search paths
-// 	// viper.AddConfigPath(".")              // optionally look for config in the working directory
-// 	if err := viper.ReadInConfig(); err != nil {
-// 		if err != nil { // Handle errors reading the config file
-// 			log.Infoln("configmap file ERROR!")
-// 		}
-// 	}
-
-// 	// Config file found and successfully parsed
-
-// 	viper.WatchConfig()
-// 	viper.OnConfigChange(func(e fsnotify.Event) {
-
-// 		// skip events that are not the write  or create operation
-// 		if e.Op == 3 || e.Op == 4 || e.Op == 5 {
-// 			log.Infoln("configReloader: event skipped beacuse it was not a write or create operation, it was a:", e.Op.String())
-// 			return
-// 		}
-// 	})
-// 	return notifyChan
-// }
 
 type fsNotificationChan struct {
 	event  string
@@ -93,45 +56,62 @@ type actionNeededChan struct {
 	action bool
 }
 
-func watchDir(d string) (chan fsNotificationChan, error) {
+func watchConfig(locations ...string) (chan fsNotificationChan, error) {
+
 	log.Println("Debug: starting watcher of configmap")
+	watchEventsChan := make(chan fsNotificationChan, 20)
+
+	// create new watcher with fsnotify
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		err = fmt.Errorf("error when opening watcher for: %s %w", d, err)
+		err = fmt.Errorf("error when opening watcher for: %s %w", locations, err)
 		return make(chan fsNotificationChan), err
 	}
 	defer watcher.Close()
-	watchDir := make(chan fsNotificationChan)
 
+	for _, location := range locations {
+		// evaluating if file is a symblink and sets file to symlink to be watched
+		if linkedPath, err := filepath.EvalSymlinks(location); err == nil && linkedPath != location {
+			if err != nil {
+				log.Errorln(err)
+				return watchEventsChan, err
+			}
+			location = linkedPath
+		}
+
+		err = watcher.Add(location)
+		log.Debugln("configWatch: starting watch on file: ", location)
+		if err != nil {
+			err = fmt.Errorf("error when adding file to watcher for: %s %w", location, err)
+			return make(chan fsNotificationChan), err
+		}
+	}
+
+	// launch go routine to handle fsnotify events
 	go func() {
 		for {
 			select {
 			case event, ok := <-watcher.Events:
+				log.Debugln("configWatch: saw an event from fsnotify")
 				if !ok {
 					return
 				}
 				h := hashCreator(event.Name)
-				watchDir <- fsNotificationChan{event: "configWatch: configmap has been changed at location" + event.Name, path: event.Name, failed: false, hash: h}
+				watchEventsChan <- fsNotificationChan{event: "configWatch: configmap has been changed at location" + event.Name, path: event.Name, failed: false, hash: h}
 
 			case err, ok := <-watcher.Errors:
-				log.Println("error: ", err)
+				log.Warningln("configWatch: error: ", err)
 				if err == nil {
 					err = errors.New("Error return was null")
 				}
-				watchDir <- fsNotificationChan{event: "configWatch: failed to watch configmap directory with error: " + err.Error(), failed: true, hash: 00}
+				watchEventsChan <- fsNotificationChan{event: "configWatch: failed to watch configmap directory with error: " + err.Error(), failed: true, hash: 00}
 				if !ok {
 					return
 				}
 			}
 		}
 	}()
-
-	err = watcher.Add(d)
-	if err != nil {
-		err = fmt.Errorf("error when adding file to watcher for: %s %w", d, err)
-		return make(chan fsNotificationChan), err
-	}
-	return watchDir, nil
+	return watchEventsChan, nil
 }
 
 // configWatchAnalyzer watchers for events of configmap chnages and compares the known hash to the known for chnages to determine if kuberhealthy restart is required
@@ -180,7 +160,7 @@ func smoothedOutput(maxSpeed time.Duration, c chan configChangeChan) chan action
 // configReloader watchers for events in file and restarts kuberhealhty checks
 func configReloader(kh *Kuberhealthy) {
 
-	fsNotificationChan, err := watchDir(configPathDir)
+	fsNotificationChan, err := watchConfig(configPathDir)
 	if err != nil {
 		log.Errorln("configReloader: Error watching config directory:", err)
 		log.Errorln("configReloader: configuration reloading disabled due to errors")
