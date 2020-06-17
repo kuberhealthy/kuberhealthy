@@ -46,12 +46,10 @@ var (
 	checkTimeLimit time.Duration
 
 	// Daemonset check configurations
-	hostName          string
-	tolerations       []apiv1.Toleration
-	daemonSetName     string
-	daemonsetDeployed bool
-	shuttingDown      bool
-	daemonSet         *appsv1.DaemonSet
+	hostName      string
+	tolerations   []apiv1.Toleration
+	daemonSetName string
+	daemonSet     *appsv1.DaemonSet
 
 	// Time object used for the check.
 	now time.Time
@@ -139,7 +137,7 @@ func setCheckConfigurations(now time.Time) {
 }
 
 // waitForShutdown watches the signal and done channels for termination.
-func listenForInterrupts(interruptCtxCancel context.CancelFunc) {
+func listenForInterrupts(ctxCancel context.CancelFunc) {
 
 	signalChan := make(chan os.Signal, 5)
 
