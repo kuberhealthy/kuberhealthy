@@ -16,16 +16,16 @@ curl -O -L https://raw.githubusercontent.com/Comcast/kuberhealthy/master/clients
 In your project, require the file you just downloaded:
 
 ```python
-from .kh_client import *
+from kh_client import *
 ```
 
 Then you can report check status to Kuberhealthy using `report_success()` or `report_failure()`:
 
 ```python
-// Report failure. 
+# Report failure. 
 report_failure(["example failure message"])
 
-// Report success.
+# Report success.
 report_success()
 ```
 

@@ -1,4 +1,4 @@
-from .kh_client import *
+from kh_client import *
 import os
 
 fail = os.getenv("FAIL", False)
