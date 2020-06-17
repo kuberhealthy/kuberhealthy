@@ -288,7 +288,7 @@ func remove(ctx context.Context) error {
 }
 
 // waitForAllDaemonsetsToClear waits for all rogue daemonsets to be cleared
-func waitForAllDaemonsetsToClear() error {
+func waitForAllDaemonsetsToClear(ctx context.Context) error {
 
 	log.Debugln("Waiting for all daemonsets to clear")
 
@@ -296,7 +296,7 @@ func waitForAllDaemonsetsToClear() error {
 	for {
 
 		// wait between requests
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 3)
 
 		// if the context is canceled, we stop
 		select {
@@ -319,7 +319,7 @@ func waitForAllDaemonsetsToClear() error {
 }
 
 // waitForPodsToComeOnline blocks until all pods of the daemonset are deployed and online
-func waitForPodsToComeOnline() error {
+func waitForPodsToComeOnline(ctx context.Context) error {
 
 	log.Debugln("Waiting for all ds pods to come online")
 
@@ -339,13 +339,6 @@ func waitForPodsToComeOnline() error {
 		}
 
 		time.Sleep(time.Second)
-
-		// if we need to shut down, stop waiting entirely
-		if shuttingDown {
-			errorMessage := "DaemonsetChecker: Node(s) which were unable to schedule before shutdown signal was received:" + formatNodes(nodesMissingDSPod)
-			log.Errorln(errorMessage)
-			return errors.New(errorMessage)
-		}
 
 		// check the number of nodes in the cluster.  Make sure we have that many
 		// pods scheduled.
@@ -386,7 +379,7 @@ func waitForPodsToComeOnline() error {
 }
 
 // waitForDSRemoval waits for the daemonset to be removed before returning
-func waitForDSRemoval() error {
+func waitForDSRemoval(ctx context.Context) error {
 
 	log.Debugln("Waiting for ds removal")
 
