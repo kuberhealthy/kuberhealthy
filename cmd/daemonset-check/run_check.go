@@ -170,7 +170,7 @@ func remove(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("Error trying to delete daemonset: %w", err)
 		}
-		log.Infoln("Successfully removed daemonset.")
+		log.Infoln("Successfully requested daemonset removal.")
 	case <-time.After(checkTimeLimit):
 		return errors.New("Reached check pod timeout: " + checkTimeLimit.String() + " waiting for daemonset removal command to compleete.")
 	case <-ctx.Done():
@@ -213,9 +213,9 @@ func remove(ctx context.Context) error {
 		log.Infoln("Successfully removed daemonset pods.")
 	case <-time.After(checkTimeLimit):
 		unClearedDSPodsNodes := getDSPodsNodeList(podRemovalList)
-		return errors.New("Reached check pod timeout: " + checkTimeLimit.String() + " waiting for daemonset pods removal. " + "Node(s) failing to remove daemonset pod: " + unClearedDSPodsNodes)
+		return errors.New("reached check pod timeout: " + checkTimeLimit.String() + " waiting for daemonset pods removal. " + "Node(s) failing to remove daemonset pod: " + unClearedDSPodsNodes)
 	case <-ctx.Done():
-		return errors.New("ailed to complete check due to an interrupt signal. canceling removing daemonset pods and shutting down from interrupt")
+		return errors.New("failed to complete check due to an interrupt signal. canceling removing daemonset pods and shutting down from interrupt")
 	}
 
 	return nil
