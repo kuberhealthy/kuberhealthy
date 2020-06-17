@@ -58,13 +58,13 @@ type actionNeededChan struct {
 
 func watchConfig(locations ...string) (chan fsNotificationChan, error) {
 
-	log.Println("Debug: starting watcher of configmap")
+	log.Println("configWatch: starting watcher of the following locations:", locations)
 	watchEventsChan := make(chan fsNotificationChan, 20)
 
 	// create new watcher with fsnotify
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		err = fmt.Errorf("error when opening watcher for: %s %w", locations, err)
+		err = fmt.Errorf("confnigWatch: error when opening watcher for: %s %w", locations, err)
 		return make(chan fsNotificationChan), err
 	}
 	defer watcher.Close()
@@ -73,7 +73,7 @@ func watchConfig(locations ...string) (chan fsNotificationChan, error) {
 		// evaluating if file is a symblink and sets file to symlink to be watched
 		if linkedPath, err := filepath.EvalSymlinks(location); err == nil && linkedPath != location {
 			if err != nil {
-				log.Errorln(err)
+				log.Errorln("configWatch:", err)
 				return watchEventsChan, err
 			}
 			location = linkedPath
@@ -82,7 +82,7 @@ func watchConfig(locations ...string) (chan fsNotificationChan, error) {
 		err = watcher.Add(location)
 		log.Debugln("configWatch: starting watch on file: ", location)
 		if err != nil {
-			err = fmt.Errorf("error when adding file to watcher for: %s %w", location, err)
+			err = fmt.Errorf("configWatch: error when adding file to watcher for: %s %w", location, err)
 			return make(chan fsNotificationChan), err
 		}
 	}
@@ -94,6 +94,7 @@ func watchConfig(locations ...string) (chan fsNotificationChan, error) {
 			case event, ok := <-watcher.Events:
 				log.Debugln("configWatch: saw an event from fsnotify")
 				if !ok {
+					log.Debugln("configWatch: event channel closed. returning")
 					return
 				}
 				h := hashCreator(event.Name)
@@ -106,6 +107,7 @@ func watchConfig(locations ...string) (chan fsNotificationChan, error) {
 				}
 				watchEventsChan <- fsNotificationChan{event: "configWatch: failed to watch configmap directory with error: " + err.Error(), failed: true, hash: 00}
 				if !ok {
+					log.Debugln("configWatch: error channel closed. returning")
 					return
 				}
 			}
