@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -11,37 +12,78 @@ import (
 )
 
 func TestDefaultFsNotify(t *testing.T) {
+	file := "/Users/jdowni000/Documents/Testfile"
+	// check for symlinks
+	if linkedPath, err := filepath.EvalSymlinks(file); err == nil && linkedPath != file {
+		t.Log("symlink found for file")
+		if err != nil {
+			t.Log(err)
+			return
+		}
+		file = linkedPath
+	}
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer watcher.Close()
 
+	watcher2chan := make(chan fsNotificationChan, 20)
+	watcher2chan <- fsNotificationChan{event: "test"}
+
 	go func() {
 		for {
 			select {
 			case event, ok := <-watcher.Events:
 				if !ok {
-					return
+					t.Log("event ok is closing the channel")
+					break
 				}
-				log.Println("event:", event)
+				t.Log("event:", event)
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Println("modified file:", event.Name)
+					t.Log("modified file:", event.Name)
 				}
 			case err, ok := <-watcher.Errors:
-				if !ok {
+				if err == nil {
+					err = errors.New("null error passed in")
 					return
 				}
-				log.Println("error:", err)
+				t.Log(err)
+				if !ok {
+					t.Log(("error channel is closing"))
+					break
+				}
+				t.Log("error:", err)
 			}
 		}
 	}()
 
-	err = watcher.Add("/tmp/real/fakefile")
+	err = watcher.Add(file)
 	if err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(time.Minute)
+	time.Sleep(time.Second * 40)
+}
+
+func TestNewJD(t *testing.T) {
+	log.Println("test 1")
+	notifyChan, err := watchConfig2("/Users/jdowni000/Documents/Testfile")
+	if err != nil {
+		t.Fatal((err))
+	}
+	log.Println("test 2")
+	notifications := <-notifyChan
+	log.Println(notifications.event)
+	log.Println("test 3")
+	for {
+		select {
+		case <-notifyChan:
+			log.Println("Got notifyChan message from file changing")
+		case <-time.After(time.Minute * 3):
+			log.Fatal("Did not see a notifyChan message for 3 minutes")
+		}
+	}
 }
 
 func TestWatchDir(t *testing.T) {
@@ -58,7 +100,7 @@ func TestWatchDir(t *testing.T) {
 	go tempFileWriter(tempFilePath, t)
 
 	// watch for changes to come back from the watchDir command
-	notifyChan, err := watchConfig(tempFilePath, filepath.Dir(tempFilePath))
+	notifyChan, err := watchConfig(tempFilePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +116,7 @@ func TestWatchDir(t *testing.T) {
 		case <-notifyChan:
 			changeCount++
 			t.Log("Got notifyChan message from file changing")
-		case <-time.After(time.Second * 5):
+		case <-time.After(time.Minute * 5):
 			t.Fatal("Did not see a notifyChan message for 5 seconds")
 		}
 	}

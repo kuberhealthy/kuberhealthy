@@ -114,6 +114,65 @@ func watchConfig(locations ...string) (chan fsNotificationChan, error) {
 	return watchEventsChan, nil
 }
 
+func watchConfig2(file string) (chan fsNotificationChan, error) {
+	log.Println("Debug: starting watcher of configmap")
+
+	// check for symlinks
+	if linkedPath, err := filepath.EvalSymlinks(file); err == nil && linkedPath != file {
+		log.Debugln("symlink found for file")
+		if err != nil {
+			log.Errorln(err)
+			return make(chan fsNotificationChan, 20), err
+		}
+		file = linkedPath
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+
+	err = watcher.Add(file)
+	log.Debugln("configWatch: starting watch on file: ", file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	watcher2chan := make(chan fsNotificationChan, 20)
+
+	go func() {
+		for {
+			log.Debugln("I am in the go routine")
+			select {
+			case event, ok := <-watcher.Events:
+				log.Debugln("event seen in go routine at least")
+				if !ok {
+					log.Debugln("watcher events ok is shutting down")
+					return
+				}
+				watcher2chan <- fsNotificationChan{event: "configWatch2:" + event.Name}
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					log.Println("modified file:", event.Name)
+				}
+			case err, ok := <-watcher.Errors:
+				if err == nil {
+					err = errors.New("null error passed in")
+				}
+				log.Println("error being passed :", err)
+				if !ok {
+					log.Debugln("watcher error is shutting down")
+
+					return
+				}
+				watcher2chan <- fsNotificationChan{event: "configWatch2: error channel:" + err.Error()}
+			}
+		}
+	}()
+
+	return watcher2chan, nil
+}
+
 // configWatchAnalyzer watchers for events of configmap chnages and compares the known hash to the known for chnages to determine if kuberhealthy restart is required
 func configWatchAnalyzer(c chan fsNotificationChan) chan configChangeChan {
 
