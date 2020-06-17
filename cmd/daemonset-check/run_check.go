@@ -2,9 +2,8 @@ package main
 
 import (
 	"context"
-	"os"
+	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -25,37 +24,24 @@ var daemonsetList []appsv1.DaemonSet
 var nodesMissingDSPod []string
 var podRemovalList *apiv1.PodList
 
-// runCheck runs pre-check cleanup and then the full daemonset check. If successful, reports OK to kuberhealthy.
-func runCheck() {
+// runCheck runs pre-check cleanup and then the full daemonset check
+func runCheck(ctx context.Context) error {
 
 	log.Infoln("Running pre-check cleanup. Deleting any rogue daemonset or daemonset pods before running daemonSet check.")
 	err := cleanUp()
 	if err != nil {
-		log.Errorln("Error running pre-check cleanup:", err)
-		os.Exit(1)
+		return fmt.Errorf("error running pre-check cleanup: %w", err)
 	}
 
 	log.Infoln("Running daemonset check")
-
-	err = runDaemonsetCheck()
-	if err != nil {
-		// If shutdown signal is received, proceed to shutdown instead of exiting.
-		if strings.Contains(err.Error(), "Failed to complete check due to an interrupt signal") {
-			return
-		}
-		log.Errorln("Error running check:", err)
-		os.Exit(1)
-	}
-
-	log.Infoln("Finished running checks, reporting OK to Kuberhealthy ")
-	reportOKToKuberhealthy()
+	return runDaemonsetCheck(ctx)
 }
 
 // cleanUp triggers check clean up and waits for all rogue daemonsets to clear
 func cleanUp() error {
 
 	log.Debugln("Allowing this clean up", checkTimeLimit, "to finish.")
-	cleanUpCtx, cleanUpCtxCancel = context.WithTimeout(context.Background(), checkTimeLimit)
+	cleanUpCtx, cleanUpCtxCancel := context.WithTimeout(context.Background(), checkTimeLimit)
 
 	err := runCheckCleanUp()
 	if err != nil {
@@ -89,7 +75,7 @@ func cleanUp() error {
 			return err
 		}
 		log.Infoln("Successfully finished cleanup. No rogue daemonsets or daemonset pods exist")
-	case <- time.After(checkTimeLimit):
+	case <-time.After(checkTimeLimit):
 		var errorMessage string
 		if len(daemonsetList) > 0 {
 			unClearedDSList := getUnClearedDSList(daemonsetList)
@@ -127,7 +113,7 @@ func runCheckCleanUp() error {
 }
 
 // runDaemonsetCheck runs the full daemonset check. Deploy daemonset, remove daemonset, and post-check cleanup.
-func runDaemonsetCheck() error {
+func runDaemonsetCheck(ctx context.Context) error {
 
 	// Deploy Daemonset
 	err := deploy()
@@ -184,7 +170,7 @@ func deploy() error {
 			return err
 		}
 		log.Infoln("Successfully deployed daemonset.")
-	case <- time.After(checkTimeLimit):
+	case <-time.After(checkTimeLimit):
 		var errorMessage string
 		log.Debugln("nodes missing DS pods:", nodesMissingDSPod)
 		if len(nodesMissingDSPod) > 0 {
@@ -228,8 +214,8 @@ func remove() error {
 		return err
 	}
 
-	outChanDS:= make(chan error, 10)
-	outChanPods:= make(chan error, 10)
+	outChanDS := make(chan error, 10)
+	outChanPods := make(chan error, 10)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -252,7 +238,7 @@ func remove() error {
 			return err
 		}
 		log.Infoln("Successfully removed daemonset.")
-	case <- time.After(checkTimeLimit):
+	case <-time.After(checkTimeLimit):
 		errorMessage := "Reached check pod timeout: " + checkTimeLimit.String() + " waiting for daemonset removal."
 		log.Errorln(errorMessage)
 		reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + errorMessage})
@@ -282,7 +268,7 @@ func remove() error {
 			return err
 		}
 		log.Infoln("Successfully removed daemonset pods.")
-	case <- time.After(checkTimeLimit):
+	case <-time.After(checkTimeLimit):
 		var errorMessage string
 		if len(podRemovalList.Items) > 0 {
 			unClearedDSPodsNodes := getDSPodsNodeList(podRemovalList)
@@ -317,7 +303,7 @@ func waitForAllDaemonsetsToClear() error {
 
 		// if the context is canceled, we stop
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			return errors.New("Waiting for daemonset to clear was aborted by context cancellation")
 		default:
 		}
@@ -348,7 +334,7 @@ func waitForPodsToComeOnline() error {
 
 	for {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			errorMessage := "DaemonsetChecker: Node(s) which were unable to schedule before context was cancelled: " + formatNodes(nodesMissingDSPod)
 			log.Errorln(errorMessage)
 			return errors.New(errorMessage)
@@ -410,7 +396,7 @@ func waitForDSRemoval() error {
 	// repeatedly fetch the DS until it goes away
 	for {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			return errors.New("Waiting for daemonset: " + daemonSetName + " removal aborted by context cancellation.")
 		default:
 		}
@@ -431,7 +417,7 @@ func waitForDSRemoval() error {
 }
 
 // waitForPodRemoval waits for the daemonset to finish removing all daemonset pods
-func waitForPodRemoval(ctx context.Context) error {
+func waitForPodRemoval() error {
 
 	log.Debugln("Waiting for ds pods removal")
 
@@ -442,10 +428,6 @@ func waitForPodRemoval(ctx context.Context) error {
 
 	// loop until all daemonset pods are deleted
 	for {
-		// check for our context to expire to break the loop
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
 
 		var err error
 		podRemovalList, err = listDSPods(daemonSetName)
@@ -453,7 +435,7 @@ func waitForPodRemoval(ctx context.Context) error {
 			return err
 		}
 
-		log.Infoln("DaemonsetChecker using LabelSelector: app="+daemonSetName+",source=kuberhealthy,khcheck=daemonset to remove ds pods")
+		log.Infoln("DaemonsetChecker using LabelSelector: app=" + daemonSetName + ",source=kuberhealthy,khcheck=daemonset to remove ds pods")
 
 		// If the delete ticker has ticked, then issue a repeat request for pods to be deleted.
 		// See kuberhealthy issue #74
@@ -810,7 +792,6 @@ func cleanUpPods() error {
 	}
 	return nil
 }
-
 
 // getAllDaemonsets fetches all daemonsets created by the daemonset khcheck
 func getAllDaemonsets() ([]appsv1.DaemonSet, error) {
