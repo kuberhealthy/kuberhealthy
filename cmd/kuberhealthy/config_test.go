@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,16 +11,18 @@ import (
 )
 
 func TestDefaultFsNotify(t *testing.T) {
-	file := "/Users/jdowni000/Documents/Testfile"
-	// check for symlinks
-	if linkedPath, err := filepath.EvalSymlinks(file); err == nil && linkedPath != file {
-		t.Log("symlink found for file")
-		if err != nil {
-			t.Log(err)
-			return
-		}
-		file = linkedPath
-	}
+	// file := "/tmp/eric/symlink"
+	file := "/tmp/eric/"
+
+	// // check for symlinks
+	// if linkedPath, err := filepath.EvalSymlinks(file); err == nil && linkedPath != file {
+	// 	t.Log("symlink found for file")
+	// 	if err != nil {
+	// 		t.Log(err)
+	// 		return
+	// 	}
+	// 	file = linkedPath
+	// }
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -63,7 +64,7 @@ func TestDefaultFsNotify(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(time.Second * 40)
+	time.Sleep(time.Second * 20)
 }
 
 func TestNewJD(t *testing.T) {
