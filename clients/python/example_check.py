@@ -1,7 +1,7 @@
 from .kh_client import *
 import os
 
-fail = os.getenv("fail", False)
+fail = os.getenv("FAIL", False)
 
 if fail:
     print("Reporting failure.")
