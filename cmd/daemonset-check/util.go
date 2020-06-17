@@ -34,10 +34,9 @@ func getHostname() string {
 // formatNodes formats string list into readable string for logging and error message purposes
 func formatNodes(nodeList []string) string {
 	if len(nodeList) > 0 {
-		return strings.Join(nodeList,", ")
-	} else {
-		return ""
+		return strings.Join(nodeList, ", ")
 	}
+	return ""
 }
 
 // getUnClearedDSList transforms list of daemonsets to a list of daemonset name strings. Used for error messaging.
@@ -65,4 +64,3 @@ func getDSPodsNodeList(podList *apiv1.PodList) string {
 
 	return formatNodes(nodeList)
 }
-

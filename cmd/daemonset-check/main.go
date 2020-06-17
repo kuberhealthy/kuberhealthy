@@ -14,7 +14,6 @@ import (
 	v12 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	log "github.com/sirupsen/logrus"
-	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
@@ -49,7 +48,6 @@ var (
 	hostName      string
 	tolerations   []apiv1.Toleration
 	daemonSetName string
-	daemonSet     *appsv1.DaemonSet
 
 	// Time object used for the check.
 	now time.Time
@@ -88,9 +86,8 @@ func init() {
 
 func main() {
 	// Catch panics.
-	var r interface{}
 	defer func() {
-		r = recover()
+		r := recover()
 		if r != nil {
 			log.Infoln("Recovered panic:", r)
 			reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + r.(string)})
@@ -114,19 +111,26 @@ func main() {
 	// Start listening to interrupts.
 	go listenForInterrupts(ctxCancel)
 
-	// Run daemonset check.
+	// Run daemonset check and report errors
 	err = runCheck(ctx)
 	log.Infoln("Done running daemonset check")
 	if err != nil {
 		err := checkclient.ReportFailure([]string{err.Error()})
 		if err != nil {
-			log.Fatalln("Was unable to report error to Kuberhealthy")
+			log.Errorln("Was unable to report error to Kuberhealthy")
 		}
-		return
+	} else {
+		err = checkclient.ReportSuccess()
+		if err != nil {
+			log.Errorln("Was unable to report success to Kuberhealthy")
+		}
 	}
-	err = checkclient.ReportSuccess()
+
+	// always try a cleanup before fully exiting
+	log.Infoln("Running final check cleanup before shutting down")
+	err = runCheckCleanUp()
 	if err != nil {
-		log.Fatalln("Was unable to report success to Kuberhealthy")
+		log.Fatalln("Was unable to clean up daemonsets and pods before exiting")
 	}
 }
 
@@ -139,19 +143,22 @@ func setCheckConfigurations(now time.Time) {
 // waitForShutdown watches the signal and done channels for termination.
 func listenForInterrupts(ctxCancel context.CancelFunc) {
 
-	signalChan := make(chan os.Signal, 5)
-
 	// Relay incoming OS interrupt signals to the signalChan
+	signalChan := make(chan os.Signal, 5)
 	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT)
 
 	// watch for interrupts on signalChan
 	<-signalChan
 	ctxCancel() // Causes all functions within the check to return without error and abort. NOT an error
 
+	// make a new context for our shutdown timeout
+	shutdownCtx, shutdownCtxCancel := context.WithTimeout(context.Background(), shutdownGracePeriod)
+	defer shutdownCtxCancel()
+
 	// start a shutdown in the background
 	shutdownCompleteChan := make(chan error)
 	go func() {
-		shutdownCompleteChan <- shutdown()
+		shutdownCompleteChan <- shutdown(shutdownCtx)
 	}()
 
 	// watch for timeout or shutdown to complete
@@ -171,30 +178,24 @@ func listenForInterrupts(ctxCancel context.CancelFunc) {
 }
 
 // Shutdown signals the DS to begin a cleanup
-func shutdown() error {
+func shutdown(ctx context.Context) error {
 
 	// condition; this is a response to an external shutdown signal.
 	log.Infoln("Shutting down... ")
 
-	// if the ds is deployed, delete it
-	if daemonsetDeployed {
-
-		log.Infoln("Removing daemonset due to shutdown.")
-		err := deleteDS(daemonSetName)
-		if err != nil {
-			log.Errorln("Failed to remove", daemonSetName)
-		}
-
-		// wait for pod removal
-		err = waitForPodRemoval()
-		if err != nil {
-			log.Errorln("error when waiting for daemonset pods to be removed for daemonset", daemonSetName)
-		}
-
-		log.Infoln("Daemonset", daemonSetName, "ready for shutdown.")
+	log.Infoln("Removing daemonset due to shutdown.")
+	err := runCheckCleanUp()
+	if err != nil {
+		log.Errorln("error when cleaning up daemonset and pods", daemonSetName, err)
 	}
 
-	return nil
+	// wait for pod removal
+	err = waitForPodRemoval(ctx)
+	if err != nil {
+		log.Errorln("error when waiting for daemonset pods to be removed for daemonset", daemonSetName, err)
+	}
+
+	return err
 }
 
 // getDSClient returns a daemonset client, useful for interacting with daemonsets
