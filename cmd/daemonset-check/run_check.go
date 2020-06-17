@@ -113,61 +113,56 @@ func runCheckCleanUp() error {
 }
 
 // runDaemonsetCheck runs the full daemonset check. Deploy daemonset, remove daemonset, and post-check cleanup.
-func runDaemonsetCheck(ctx context.Context) error {
+func runDaemonsetCheck(ctx context.Context) []error {
 
 	// Deploy Daemonset
-	err := deploy()
+	err := deploy(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Clean up the Daemonset. Does not return until removed completely or an error occurs
-	err = remove()
+	err = remove(ctx)
 	if err != nil {
-		return err
+		return []error{err}
 	}
 
 	log.Infoln("Running post-check cleanup. Deleting any rogue daemonsets or daemonset pods after finishing check.")
-	go cleanUp()
-
-	return err
+	return []error{cleanUp(ctx)}
 }
 
 // deploy runs doDeploy and checks for any errors during the deployment. If there are errors, remove is immediately
 // called to clean up the deployment. Waits for all daemonset pods to come up.
-func deploy() error {
+func deploy(ctx context.Context) []error {
 	log.Infoln("Deploying daemonset.")
+	var errorList []error
 
-	daemonsetDeployed = true
-	err := doDeploy()
+	// do the deployment and try to clean up if it fails
+	err := doDeploy(ctx)
 	if err != nil {
-		log.Error("Something went wrong with daemonset deployment, cleaning things up...", err)
-		err2 := remove()
-		if err2 != nil {
-			log.Error("Something went wrong when cleaning up the daemonset after the daemonset deployment. Error:", err2)
+		errorList = append(errorList, fmt.Errorf("something went wrong with daemonset deployment: %w", err))
+
+		// try a pod cleanup
+		cleanupErr := cleanUp(ctx)
+		if cleanupErr != nil {
+			errorList = append(errorList, fmt.Errorf("something went wrong with pod cleanup: %w", cleanupErr))
 		}
-		return err
+		return errorList
 	}
 
-	outChan := make(chan error, 10)
-
-	var wg sync.WaitGroup
-	wg.Add(1)
+	// wait for pods to come online
+	doneChan := make(chan error, 1)
 	go func() {
 		log.Debugln("Worker: waitForPodsToComeOnline started")
-		defer wg.Done()
-		defer close(outChan)
-		outChan <- waitForPodsToComeOnline()
-		wg.Wait()
+		doneChan <- waitForPodsToComeOnline()
 	}()
 
+	// watch for either the pods to come online, the check timeout to pass, or the context to be revoked
 	select {
-	case err = <-outChan:
+	case err = <-doneChan:
 		if err != nil {
-			ctxCancel() // cancel the watch context, we have timed out
 			log.Errorln("Error waiting for pods to come online up:", err)
-			reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + err.Error()})
-			return err
+			return []error{err}
 		}
 		log.Infoln("Successfully deployed daemonset.")
 	case <-time.After(checkTimeLimit):
@@ -181,14 +176,14 @@ func deploy() error {
 		}
 		log.Errorln(errorMessage)
 		reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + errorMessage})
-		return errors.New(errorMessage)
+		return []error{errors.New(errorMessage)}
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal.
 		errorMessage := "Failed to complete check due to an interrupt signal. Canceling deploying daemonset and shutting down from interrupt."
 		log.Errorln(errorMessage)
-		return errors.New(errorMessage)
+		return []error{errors.New(errorMessage)}
 	}
-	return err
+	return nil
 }
 
 // doDeploy creates a daemonset
@@ -201,47 +196,56 @@ func doDeploy() error {
 	if err != nil {
 		log.Error("Failed to create daemonset:", err)
 	}
-	daemonsetDeployed = true
 	return err
 }
 
 // remove removes the created daemonset for this check from the cluster. Waits for daemonset and daemonset pods to clear
-func remove() error {
+func remove(ctx context.Context) error {
+	doneChan := make(chan error, 1)
+
 	log.Infoln("Removing daemonset.")
 
-	err := deleteDS(daemonSetName)
-	if err != nil {
-		return err
+	// start the DS delete in the background
+	go func() {
+		doneChan <- deleteDS(daemonSetName)
+	}()
+
+	// wait for the delete DS call to finish, the timeout to happen, or the context to cancel
+	select {
+	case err := <-doneChan:
+		if err != nil {
+			log.Errorln("Error during daemonset removal:", err)
+			return err
+		}
+		log.Infoln("Successfully removed daemonset.")
+	case <-time.After(checkTimeLimit):
+		errorMessage := "Reached check pod timeout: " + checkTimeLimit.String() + " waiting for daemonset removal command to compleete."
+		log.Errorln(errorMessage)
+		return errors.New(errorMessage)
+	case <-ctx.Done():
+		// If there is a cancellation interrupt signal.
+		errorMessage := "Failed to complete check due to shutdown signal. Canceling daemonset removal and shutting down from interrupt."
+		log.Errorln(errorMessage)
+		return errors.New(errorMessage)
 	}
-
-	outChanDS := make(chan error, 10)
-	outChanPods := make(chan error, 10)
-
-	var wg sync.WaitGroup
-	wg.Add(2)
 
 	// Wait for daemonset to be removed
 	go func() {
 		log.Debugln("Worker: waitForDSRemoval started")
-		defer wg.Done()
-		defer close(outChanDS)
-		outChanDS <- waitForDSRemoval()
-		wg.Wait()
+		doneChan <- waitForDSRemoval()
 	}()
 
+	// wait for either the DS to be removed, the timeout to occur, or a context cancellation
 	select {
-	case err = <-outChanDS:
+	case err := <-doneChan:
 		if err != nil {
-			ctxCancel() // cancel the watch context, we have timed out
 			log.Errorln("Error waiting for daemonset removal:", err)
-			reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + err.Error()})
 			return err
 		}
 		log.Infoln("Successfully removed daemonset.")
 	case <-time.After(checkTimeLimit):
 		errorMessage := "Reached check pod timeout: " + checkTimeLimit.String() + " waiting for daemonset removal."
 		log.Errorln(errorMessage)
-		reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + errorMessage})
 		return errors.New(errorMessage)
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal.
@@ -253,18 +257,14 @@ func remove() error {
 	// Wait for all daemonsets pods to be removed
 	go func() {
 		log.Debugln("Worker: waitForPodRemoval started")
-		defer wg.Done()
-		defer close(outChanPods)
-		outChanPods <- waitForPodRemoval(ctx)
-		wg.Wait()
+		doneChan <- waitForPodRemoval(ctx)
 	}()
 
+	// wait for all pods to be removed, a timeout, or the context to revoke
 	select {
-	case err = <-outChanPods:
+	case err := <-doneChan:
 		if err != nil {
-			ctxCancel() // cancel the watch context, we have timed out
 			log.Errorln("Error waiting for daemonset pods removal:", err)
-			reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + err.Error()})
 			return err
 		}
 		log.Infoln("Successfully removed daemonset pods.")
@@ -277,17 +277,14 @@ func remove() error {
 		} else {
 			errorMessage = "Reached check pod timeout: " + checkTimeLimit.String() + " waiting for daemonset pods removal."
 		}
-		log.Errorln(errorMessage)
-		reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + errorMessage})
 		return errors.New(errorMessage)
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal.
 		errorMessage := "Failed to complete check due to an interrupt signal. Canceling removing daemonset pods and shutting down from interrupt."
-		log.Errorln(errorMessage)
 		return errors.New(errorMessage)
 	}
 
-	return err
+	return nil
 }
 
 // waitForAllDaemonsetsToClear waits for all rogue daemonsets to be cleared
