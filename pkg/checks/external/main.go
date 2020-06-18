@@ -279,16 +279,11 @@ func (ext *Checker) cleanup() {
 		if p.Status.Phase != apiv1.PodFailed || p.Status.Phase != apiv1.PodSucceeded {
 			wg.Add(1)
 			go func(p apiv1.Pod) {
-				ext.log("evicting pod", p.GetName())
+				ext.log("evicting pod", p.GetName(), "from namespace", p.GetNamespace())
 				err := ext.evictPod(p.GetName(), p.GetNamespace())
 				if err != nil {
-					ext.log("pod eviction failed"+":", err)
-					ext.log("checking if pod", p.GetName, "still exists")
-					podExists, podErr := util.PodNameExists(ext.KubeClient, p.GetName(), p.GetNamespace())
-					if !podExists {
-						ext.log("Pod does not exist"+":", podErr)
-					} else {
-						ext.log("forcefull killing pod", p.GetName, "in 15 seconds")
+					podExists, _ := util.PodNameExists(ext.KubeClient, p.GetName(), p.GetNamespace())
+					if podExists == true {
 						err := util.PodKill(ext.KubeClient, p.GetName(), p.GetNamespace(), 15)
 						if err != nil {
 							ext.log("error killing pod", p.GetName()+":", err)
