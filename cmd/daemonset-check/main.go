@@ -109,28 +109,56 @@ func main() {
 	log.Infoln("Kubernetes client created.")
 
 	// Start listening to interrupts.
-	go listenForInterrupts(ctxCancel)
+	signalChan := make(chan os.Signal, 5)
+	go listenForInterrupts(ctxCancel, signalChan)
 
-	// Run daemonset check and report errors
-	err = runCheck(ctx)
-	log.Infoln("Done running daemonset check")
-	if err != nil {
-		err := checkclient.ReportFailure([]string{err.Error()})
+	// run check in background and wait for completion
+	runCheckDoneChan := make(chan error, 1)
+	go func() {
+		// Run daemonset check and report errors
+		log.Infoln("Done running daemonset check")
+		runCheckDoneChan <- runCheck(ctx)
+	}()
+
+	// watch for either the check to complete or the OS to get a shutdown signal
+	select {
+	case err = <-runCheckDoneChan:
 		if err != nil {
-			log.Errorln("Was unable to report error to Kuberhealthy")
+			err = checkclient.ReportFailure([]string{err.Error()})
+			if err != nil {
+				log.Errorln("Was unable to report error to Kuberhealthy")
+			}
+		} else {
+			err = checkclient.ReportSuccess()
+			if err != nil {
+				log.Errorln("Was unable to report success to Kuberhealthy")
+			}
 		}
-	} else {
-		err = checkclient.ReportSuccess()
-		if err != nil {
-			log.Errorln("Was unable to report success to Kuberhealthy")
-		}
+	case <-signalChan:
+		ctxCancel() // Causes all functions within the check to return without error and abort. NOT an error
 	}
 
-	// always try a cleanup before fully exiting
-	log.Infoln("Running final check cleanup before shutting down")
-	err = runCheckCleanUp()
-	if err != nil {
-		log.Fatalln("Was unable to clean up daemonsets and pods before exiting")
+	// at the end of the check run, we run a clean up for everything that may be left behind
+	log.Infoln("Running post-check cleanup")
+	shutdownCtx, shutdownCtxCancel := context.WithTimeout(context.Background(), shutdownGracePeriod)
+	defer shutdownCtxCancel()
+
+	// start a background cleanup
+	cleanupDoneChan := make(chan error)
+	go func() {
+		cleanupDoneChan <- cleanUp(shutdownCtx)
+	}()
+
+	// wait for either the cleanup to complete or the shutdown grace period to expire
+	select {
+	case err := <-cleanupDoneChan:
+		if err != nil {
+			log.Errorln("shutdown completed with error:", err)
+			return
+		}
+		log.Infoln("shutdown completed without error")
+	case <-time.After(time.Duration(shutdownGracePeriod)):
+		log.Errorln("Shutdown took too long. Shutting down forcefully!")
 	}
 }
 
@@ -141,61 +169,14 @@ func setCheckConfigurations(now time.Time) {
 }
 
 // waitForShutdown watches the signal and done channels for termination.
-func listenForInterrupts(ctxCancel context.CancelFunc) {
+func listenForInterrupts(ctxCancel context.CancelFunc, signalChan chan os.Signal) {
 
 	// Relay incoming OS interrupt signals to the signalChan
-	signalChan := make(chan os.Signal, 5)
 	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT)
 
 	// watch for interrupts on signalChan
 	<-signalChan
-	ctxCancel() // Causes all functions within the check to return without error and abort. NOT an error
-
-	// make a new context for our shutdown timeout
-	shutdownCtx, shutdownCtxCancel := context.WithTimeout(context.Background(), shutdownGracePeriod)
-	defer shutdownCtxCancel()
-
-	// start a shutdown in the background
-	shutdownCompleteChan := make(chan error)
-	go func() {
-		shutdownCompleteChan <- shutdown(shutdownCtx)
-	}()
-
-	// watch for timeout or shutdown to complete
-	select {
-	case err := <-shutdownCompleteChan:
-		if err != nil {
-			log.Infoln("shutdown completed with error:", err)
-			os.Exit(1)
-		}
-		log.Infoln("shutdown completed without error")
-		os.Exit(0)
-	case <-time.After(time.Duration(shutdownGracePeriod)):
-		log.Errorln("Shutdown took too long. Shutting down forcefully!")
-		os.Exit(2)
-	}
 	os.Exit(0)
-}
-
-// Shutdown signals the DS to begin a cleanup
-func shutdown(ctx context.Context) error {
-
-	// condition; this is a response to an external shutdown signal.
-	log.Infoln("Shutting down... ")
-
-	log.Infoln("Removing daemonset due to shutdown.")
-	err := runCheckCleanUp()
-	if err != nil {
-		log.Errorln("error when cleaning up daemonset and pods", daemonSetName, err)
-	}
-
-	// wait for pod removal
-	err = waitForPodRemoval(ctx)
-	if err != nil {
-		log.Errorln("error when waiting for daemonset pods to be removed for daemonset", daemonSetName, err)
-	}
-
-	return err
 }
 
 // getDSClient returns a daemonset client, useful for interacting with daemonsets
