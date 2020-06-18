@@ -29,7 +29,7 @@ func runCheck(ctx context.Context) error {
 	log.Infoln("Running daemonset check")
 	err := runDaemonsetCheck(ctx)
 	if err != nil {
-		return fmt.Errorf("error running pre-check cleanup: %w", err)
+		return fmt.Errorf("error running daemonset check: %s", err)
 	}
 	return nil
 }
@@ -59,9 +59,9 @@ func deploy(ctx context.Context) error {
 	log.Infoln("Deploying daemonset.")
 
 	// do the deployment and try to clean up if it fails
-	err := doDeploy(ctx)
+	err := doDeploy()
 	if err != nil {
-		return fmt.Errorf("something went wrong with daemonset deployment: %w", err)
+		return fmt.Errorf("error deploying daemonset: %s", err)
 	}
 
 	// wait for pods to come online
@@ -75,7 +75,7 @@ func deploy(ctx context.Context) error {
 	select {
 	case err = <-doneChan:
 		if err != nil {
-			return fmt.Errorf("Error waiting for pods to come online up: %w", err)
+			return fmt.Errorf("error waiting for pods to come online: %s", err)
 		}
 		log.Infoln("Successfully deployed daemonset.")
 	case <-time.After(checkTimeLimit):
@@ -89,7 +89,7 @@ func deploy(ctx context.Context) error {
 }
 
 // doDeploy creates a daemonset
-func doDeploy(ctx context.Context) error {
+func doDeploy() error {
 	//Generate the spec for the DS that we are about to deploy
 	daemonSetSpec := generateDaemonSetSpec()
 
@@ -101,10 +101,9 @@ func doDeploy(ctx context.Context) error {
 
 // remove removes the created daemonset for this check from the cluster. Waits for daemonset and daemonset pods to clear
 func remove(ctx context.Context) error {
-	doneChan := make(chan error, 1)
-
 	log.Infoln("Removing daemonset.")
 
+	doneChan := make(chan error, 1)
 	// start the DS delete in the background
 	go func() {
 		doneChan <- deleteDS(daemonSetName)
@@ -114,7 +113,7 @@ func remove(ctx context.Context) error {
 	select {
 	case err := <-doneChan:
 		if err != nil {
-			return fmt.Errorf("Error trying to delete daemonset: %w", err)
+			return fmt.Errorf("error trying to delete daemonset: %s", err)
 		}
 		log.Infoln("Successfully requested daemonset removal.")
 	case <-time.After(checkTimeLimit):
@@ -134,7 +133,7 @@ func remove(ctx context.Context) error {
 	select {
 	case err := <-doneChan:
 		if err != nil {
-			return fmt.Errorf("Error waiting for daemonset removal: %w", err)
+			return fmt.Errorf("error waiting for daemonset removal: %s", err)
 		}
 		log.Infoln("Successfully removed daemonset.")
 	case <-time.After(checkTimeLimit):
@@ -154,7 +153,7 @@ func remove(ctx context.Context) error {
 	select {
 	case err := <-doneChan:
 		if err != nil {
-			return fmt.Errorf("Error waiting for daemonset pods removal: %w", err)
+			return fmt.Errorf("error waiting for daemonset pods removal: %s", err)
 		}
 		log.Infoln("Successfully removed daemonset pods.")
 	case <-time.After(checkTimeLimit):

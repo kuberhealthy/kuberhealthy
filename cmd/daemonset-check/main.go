@@ -16,7 +16,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
@@ -110,13 +109,12 @@ func main() {
 
 	// Start listening to interrupts.
 	signalChan := make(chan os.Signal, 5)
-	go listenForInterrupts(ctxCancel, signalChan)
+	go listenForInterrupts(signalChan)
 
 	// run check in background and wait for completion
 	runCheckDoneChan := make(chan error, 1)
 	go func() {
 		// Run daemonset check and report errors
-		log.Infoln("Done running daemonset check")
 		runCheckDoneChan <- runCheck(ctx)
 	}()
 
@@ -124,16 +122,11 @@ func main() {
 	select {
 	case err = <-runCheckDoneChan:
 		if err != nil {
-			err = checkclient.ReportFailure([]string{err.Error()})
-			if err != nil {
-				log.Errorln("Was unable to report error to Kuberhealthy")
-			}
+			reportErrorsToKuberhealthy([]string{err.Error()})
 		} else {
-			err = checkclient.ReportSuccess()
-			if err != nil {
-				log.Errorln("Was unable to report success to Kuberhealthy")
-			}
+			reportOKToKuberhealthy()
 		}
+		log.Infoln("Done running daemonset check")
 	case <-signalChan:
 		ctxCancel() // Causes all functions within the check to return without error and abort. NOT an error
 	}
@@ -169,7 +162,7 @@ func setCheckConfigurations(now time.Time) {
 }
 
 // waitForShutdown watches the signal and done channels for termination.
-func listenForInterrupts(ctxCancel context.CancelFunc, signalChan chan os.Signal) {
+func listenForInterrupts(signalChan chan os.Signal) {
 
 	// Relay incoming OS interrupt signals to the signalChan
 	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT)
