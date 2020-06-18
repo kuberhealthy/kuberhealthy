@@ -117,60 +117,50 @@ func watchConfig(locations ...string) (chan fsNotificationChan, error) {
 }
 
 func watchConfig2(file string) (chan fsNotificationChan, error) {
-	log.Println("Debug: starting watcher of configmap")
 
-	// check for symlinks
-	if linkedPath, err := filepath.EvalSymlinks(file); err == nil && linkedPath != file {
-		log.Debugln("symlink found for file")
-		if err != nil {
-			log.Errorln(err)
-			return make(chan fsNotificationChan, 20), err
-		}
-		file = linkedPath
-	}
-
+	// create a new watcher
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer watcher.Close()
 
-	err = watcher.Add(file)
-	log.Debugln("configWatch: starting watch on file: ", file)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	// create channel to pass event information into
 	watcher2chan := make(chan fsNotificationChan, 20)
 
 	go func() {
+		log.Infoln("configReloader: watching path", file)
 		for {
-			log.Debugln("I am in the go routine")
 			select {
+
 			case event, ok := <-watcher.Events:
-				log.Debugln("event seen in go routine at least")
 				if !ok {
-					log.Debugln("watcher events ok is shutting down")
-					return
+					log.Infoln("configReloader: event ok is closing the channel, configmap change will not be detected!")
+					break
 				}
-				watcher2chan <- fsNotificationChan{event: "configWatch2:" + event.Name}
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Println("modified file:", event.Name)
-				}
+				log.Debugln("configReloader: event: configmap has been changed at location", event)
+				watcher2chan <- fsNotificationChan{event: event.Name, failed: false, hash: 00}
+
 			case err, ok := <-watcher.Errors:
 				if err == nil {
-					err = errors.New("null error passed in")
-				}
-				log.Println("error being passed :", err)
-				if !ok {
-					log.Debugln("watcher error is shutting down")
-
+					err = errors.New("configReloader: null error passed in")
 					return
 				}
-				watcher2chan <- fsNotificationChan{event: "configWatch2: error channel:" + err.Error()}
+				log.Errorln(err)
+				if !ok {
+					log.Debugln(("configReloader: error channel is closing"))
+					break
+				}
+				log.Infoln("configReloader: error:", err)
 			}
 		}
 	}()
+
+	// watch the config file for events
+	err = watcher.Add(file)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return watcher2chan, nil
 }
@@ -221,7 +211,9 @@ func smoothedOutput(maxSpeed time.Duration, c chan configChangeChan) chan action
 // configReloader watchers for events in file and restarts kuberhealhty checks
 func configReloader(kh *Kuberhealthy) {
 
-	fsNotificationChan, err := watchConfig(configPathDir)
+	log.Infoln("configReloader: begin monitoring of configmap change events")
+
+	fsNotificationChan, err := watchConfig2(configPathDir)
 	if err != nil {
 		log.Errorln("configReloader: Error watching config directory:", err)
 		log.Errorln("configReloader: configuration reloading disabled due to errors")
