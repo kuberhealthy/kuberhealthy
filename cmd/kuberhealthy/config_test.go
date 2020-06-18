@@ -12,7 +12,7 @@ import (
 
 func TestDefaultFsNotify(t *testing.T) {
 	// file := "/tmp/eric/symlink"
-	file := "/tmp/eric/"
+	file := "/Users/jdowni000/Documents"
 
 	// // check for symlinks
 	// if linkedPath, err := filepath.EvalSymlinks(file); err == nil && linkedPath != file {
@@ -69,7 +69,7 @@ func TestDefaultFsNotify(t *testing.T) {
 
 func TestNewJD(t *testing.T) {
 	log.Println("test 1")
-	notifyChan, err := watchConfig2("/Users/jdowni000/Documents/Testfile")
+	notifyChan, err := watchConfig2("/Users/jdowni000/Documents/")
 	if err != nil {
 		t.Fatal((err))
 	}
@@ -80,7 +80,7 @@ func TestNewJD(t *testing.T) {
 	for {
 		select {
 		case <-notifyChan:
-			log.Println("Got notifyChan message from file changing")
+			log.Println("Got notifyChan message from file changing", notifications.event)
 		case <-time.After(time.Minute * 3):
 			log.Fatal("Did not see a notifyChan message for 3 minutes")
 		}
