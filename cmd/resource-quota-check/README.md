@@ -24,7 +24,6 @@ This check follows the list of actions in order during the run of the check:
   - `BLACKLIST`: Blacklist of namespaces to look at (default for BLACKLIST=`default`)
   - `WHITELIST`: Whitelist of namespaces to look at. (default for whitelist=`kube-system,kuberhealthy`)
   - `THRESHOLD`: Percentage or threshold for usage that should determine whether or not an error should be created. Expects a `float` value. (default=`0.9`)
-  - `CHECK_TIME_LIMIT`: Amount of time the check will allow itself before timing out.
   - `DEBUG`: Turns on debug logging. (default=`false`)
 
 #### Example KuberhealthyCheck Spec
@@ -38,19 +37,17 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 1h
-  timeout: &resource_quota_check_timeout 2m
+  timeout: 2m
   podSpec:
     containers:
     - name: resource-quota
-      image: kuberhealthy/resource-quota-check:v1.1.1
+      image: kuberhealthy/resource-quota-check:v1.2.2
       imagePullPolicy: IfNotPresent
       env:
         - name: BLACKLIST
           value: "default"
         - name: WHITELIST
           value: "kube-system,kuberhealthy"
-        - name: CHECK_TIME_LIMIT
-          value: *resource_quota_check_timeout
       resources:
         requests:
           cpu: 15m
