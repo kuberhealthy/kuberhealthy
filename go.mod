@@ -27,6 +27,7 @@ require (
 	golang.org/x/sys v0.0.0-20190904005037-43c01164e931 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect
+	gopkg.in/matryer/try.v1 v1.0.0-20150601225556-312d2599e12e // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api v0.0.0-20190819141258-3544db3b9e44
 	k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d
