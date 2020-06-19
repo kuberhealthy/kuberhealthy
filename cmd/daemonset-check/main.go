@@ -122,12 +122,14 @@ func main() {
 	select {
 	case err = <-runCheckDoneChan:
 		if err != nil {
-			reportErrorsToKuberhealthy([]string{err.Error()})
+			reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + err.Error()})
 		} else {
 			reportOKToKuberhealthy()
 		}
 		log.Infoln("Done running daemonset check")
 	case <-signalChan:
+		log.Infoln("Received shutdown signal. Canceling context and proceeding directly to cleanup.")
+		reportOKToKuberhealthy()
 		ctxCancel() // Causes all functions within the check to return without error and abort. NOT an error
 	}
 
