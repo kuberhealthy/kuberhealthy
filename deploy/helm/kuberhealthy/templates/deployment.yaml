@@ -27,6 +27,12 @@ spec:
       labels:
         app: {{ template "kuberhealthy.name" . }}
     spec:
+      volumes:
+        - name: config-volume
+          configMap:
+            # Provide the name of the ConfigMap containing the files you want
+            # to add to the container
+            name: kuberhealthy
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
       {{- if .Values.deployment.priorityClassName }}
@@ -56,6 +62,9 @@ spec:
             port: 8080
           timeoutSeconds: 1
         name: {{ template "kuberhealthy.name" . }}
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/config/
         env:
           - name: POD_NAME
             valueFrom:
@@ -93,4 +102,3 @@ spec:
         key: node-role.kubernetes.io/master
         operator: Exists
 {{- end -}}
-
