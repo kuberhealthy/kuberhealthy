@@ -28,7 +28,7 @@ func runCheck(ctx context.Context) error {
 	log.Infoln("Running daemonset check")
 	err := runDaemonsetCheck(ctx)
 	if err != nil {
-		return fmt.Errorf("error running daemonset check: %s", err)
+		return err
 	}
 	return nil
 }
@@ -115,7 +115,7 @@ func remove(dsName string, ctx context.Context) error {
 		}
 		log.Infoln("Successfully requested daemonset removal.")
 	case <-time.After(checkTimeLimit):
-		return errors.New("Reached check pod timeout: " + checkTimeLimit.String() + " waiting for daemonset removal command to compleete.")
+		return errors.New("Reached check pod timeout: " + checkTimeLimit.String() + " waiting for daemonset removal command to complete.")
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal.
 		return errors.New("failed to complete check due to shutdown signal. canceling daemonset removal and shutting down from interrupt")
