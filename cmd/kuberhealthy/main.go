@@ -34,6 +34,7 @@ import (
 // status represents the current Kuberhealthy OK:Error state
 var cfg *Config
 var configPath = "/etc/config/kuberhealthy.yaml"
+
 var configPathDir = "/etc/config/"
 var podCheckNamespaces = "kube-system"
 var podNamespace = os.Getenv("POD_NAMESPACE")
@@ -44,29 +45,21 @@ var listenNamespace string         // namespace to listen (watch/get) `khcheck` 
 
 var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
-// flags indicating that checks of specific types should be used
-var DSPauseContainerImageOverride string // specify an alternate location for the DSC pause container - see #114
-// DSTolerationOverride specifies an alternate list of taints to tolerate - see #178
-var DSTolerationOverride []string
-
 // the hostname of this pod
 var podHostname string
 var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
 var enableExternalChecks = true
 
-// external check configs
+// KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
 const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"
 
-// default run interval set by kuberhealthy
+// DefaultRunInterval is the default run interval for checks set by kuberhealthy
 const DefaultRunInterval = time.Minute * 10
 
-// the key used in the annotation that holds the check's short name
-const KH_CHECK_NAME_ANNOTATION_KEY = "comcast.github.io/check-name"
+// KHCheckNameAnnotationKey is the key used in the annotation that holds the check's short name
+const KHCheckNameAnnotationKey = "comcast.github.io/check-name"
 
 // var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
-
-var kuberhealthy *Kuberhealthy
-
 var khStateClient *khstatecrd.KuberhealthyStateClient
 
 // constants for using the kuberhealthy status CRD
@@ -159,13 +152,13 @@ func init() {
 func main() {
 
 	// Create a new Kuberhealthy struct
-	kuberhealthy = NewKuberhealthy()
+	kuberhealthy := NewKuberhealthy()
 	kuberhealthy.ListenAddr = cfg.ListenAddress
 
 	// create run context and start listening for shutdown interrupts
 	khRunCtx, khRunCtxCancelFunc := context.WithCancel(context.Background())
 	kuberhealthy.shutdownCtxFunc = khRunCtxCancelFunc // load the KH struct with a func to shutdown its control system
-	go listenForInterrupts()
+	go listenForInterrupts(kuberhealthy)
 
 	// tell Kuberhealthy to restart if configmap has been changed
 	go configReloader(kuberhealthy)
@@ -180,7 +173,7 @@ func main() {
 }
 
 // listenForInterrupts watches for termination signals and acts on them
-func listenForInterrupts() {
+func listenForInterrupts(k *Kuberhealthy) {
 	// shutdown signal handling
 	sigChan := make(chan os.Signal, 1)
 
@@ -192,7 +185,7 @@ func listenForInterrupts() {
 
 	// wait for check to fully shutdown before exiting
 	doneChan := make(chan struct{})
-	go kuberhealthy.Shutdown(doneChan)
+	go k.Shutdown(doneChan)
 
 	// wait for checks to be done shutting down before exiting
 	select {

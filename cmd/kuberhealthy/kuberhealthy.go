@@ -151,7 +151,7 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 	}
 
 	// Start the web server and restart it if it crashes
-	go kuberhealthy.StartWebServer()
+	go k.StartWebServer()
 
 	// find all the external checks from the khcheckcrd resources on the cluster and keep them in sync.
 	// use rate limiting to avoid reconfiguration spam
@@ -808,7 +808,7 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	}
 
 	// set the pod namespace and name from the returned metadata
-	podCheckName = pod.Annotations[KH_CHECK_NAME_ANNOTATION_KEY]
+	podCheckName = pod.Annotations[KHCheckNameAnnotationKey]
 	if len(podCheckName) == 0 {
 		return reportInfo, errors.New("error finding check name annotation on calling pod with ip: " + ip)
 	}
@@ -1165,7 +1165,7 @@ func (k *Kuberhealthy) configureChecks() {
 	k.Checks = []KuberhealthyCheck{}
 
 	// check external check configurations
-	err := kuberhealthy.addExternalChecks()
+	err := k.addExternalChecks()
 	if err != nil {
 		log.Errorln("control: ERROR loading external checks:", err)
 	}
@@ -1198,5 +1198,5 @@ func (k *Kuberhealthy) configureInfluxForwarding() {
 	if err != nil {
 		log.Fatalln("Error setting up influx client:", err)
 	}
-	kuberhealthy.MetricForwarder = metricClient
+	k.MetricForwarder = metricClient
 }

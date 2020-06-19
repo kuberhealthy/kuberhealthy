@@ -1,16 +1,11 @@
 package main
 
 import (
-	"crypto/md5"
-	"errors"
-	"fmt"
-	"io"
+	"context"
 	"io/ioutil"
-	"os"
-	"path/filepath"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
+	"github.com/codingsince1985/checksum"
 	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 )
@@ -39,194 +34,139 @@ func (c *Config) Load(file string) error {
 	return yaml.Unmarshal(b, c)
 }
 
-type fsNotificationChan struct {
-	event  string
-	path   string
-	failed bool
-	hash   int64
-}
+// watchConfig watches the target file (not directory) and notfies the supplied channel with the new md5sum
+// when the content changes.  The interval supplied will be how often the file is polled.  To stop the
+// watcher, close the supplied channel.
+func watchConfig(ctx context.Context, filePath string, interval time.Duration) (chan string, error) {
 
-type configChangeChan struct {
-	message string
-	path    string
-	action  bool
-}
+	log.Infoln("watchConfig: Watching", filePath, "for changes")
+	c := make(chan string)
 
-type actionNeededChan struct {
-	action bool
-}
-
-func watchConfig(locations ...string) (chan fsNotificationChan, error) {
-
-	log.Println("configWatch: starting watcher of the following locations:", locations)
-	watchEventsChan := make(chan fsNotificationChan, 20)
-
-	// create new watcher with fsnotify
-	watcher, err := fsnotify.NewWatcher()
+	md5sum, err := hashCreator(filePath)
 	if err != nil {
-		err = fmt.Errorf("confnigWatch: error when opening watcher for: %s %w", locations, err)
-		return make(chan fsNotificationChan), err
+		return c, err
 	}
-	defer watcher.Close()
+	log.Infoln("watchConfig: initial hash for", filePath, "is", md5sum)
 
-	for _, location := range locations {
-		// evaluating if file is a symblink and sets file to symlink to be watched
-		if linkedPath, err := filepath.EvalSymlinks(location); err == nil && linkedPath != location {
+	// start watching for changes until the context ends
+	go func() {
+		// make a new ticker
+		log.Debugln("watchConfig: starting a ticker with an interval of", interval)
+		ticker := time.NewTicker(interval)
+
+		// watch the ticker and survey the file
+		for range ticker.C {
+			// log.Debugln("watchConfig: starting a tick")
+			// check if context is still valid and break the loop if it isnt
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				close(c)
+				log.Debugln("watchConfig: context closed. shutting down output")
+				return
+			default:
+				// do nothing
+			}
+
+			// claculate md5sum differences
+			newMD5Sum, err := hashCreator(filePath)
 			if err != nil {
-				log.Errorln("configWatch:", err)
-				return watchEventsChan, err
+				log.Errorln("Error when calculating hash of:", filePath, err)
 			}
-			location = linkedPath
-		}
-
-		err = watcher.Add(location)
-		log.Debugln("configWatch: starting watch on file: ", location)
-		if err != nil {
-			err = fmt.Errorf("configWatch: error when adding file to watcher for: %s %w", location, err)
-			return make(chan fsNotificationChan), err
-		}
-	}
-
-	// launch go routine to handle fsnotify events
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				log.Debugln("configWatch: saw an event from fsnotify")
-				if !ok {
-					log.Debugln("configWatch: event channel closed. returning")
-					return
-				}
-				h := hashCreator(event.Name)
-				watchEventsChan <- fsNotificationChan{event: "configWatch: configmap has been changed at location" + event.Name, path: event.Name, failed: false, hash: h}
-
-			case err, ok := <-watcher.Errors:
-				log.Warningln("configWatch: error: ", err)
-				if err == nil {
-					err = errors.New("Error return was null")
-				}
-				watchEventsChan <- fsNotificationChan{event: "configWatch: failed to watch configmap directory with error: " + err.Error(), failed: true, hash: 00}
-				if !ok {
-					log.Debugln("configWatch: error channel closed. returning")
-					return
-				}
+			if newMD5Sum != md5sum {
+				md5sum = newMD5Sum
+				log.Debugln("watchConfig: sending file change notification")
+				c <- md5sum
+				log.Debugln("watchConfig: done sending file change notification")
 			}
 		}
+		log.Debugln("watchConfig: shutting down")
 	}()
-	return watchEventsChan, nil
+
+	return c, nil
 }
 
-func watchConfig2(file string) (chan fsNotificationChan, error) {
-
-	// create a new watcher
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer watcher.Close()
-
-	// create channel to pass event information into
-	watcher2chan := make(chan fsNotificationChan, 20)
-
-	go func() {
-		log.Infoln("configReloader: watching path", file)
+// configChangeLimiter takes in a channel and a maximum notification speed.  The returned channel will be notified at most
+// once every specified maximum notification speed.  If the supplied channel gets no messages, then nothing will be
+// sent to the returned channel.
+func configChangeLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan chan struct{}) {
+	for range inChan {
+		var messageSent bool
 		for {
-			select {
-
-			case event, ok := <-watcher.Events:
-				if !ok {
-					log.Infoln("configReloader: event ok is closing the channel, configmap change will not be detected!")
-					break
-				}
-				log.Debugln("configReloader: event: configmap has been changed at location", event)
-				watcher2chan <- fsNotificationChan{event: event.Name, failed: false, hash: 00}
-
-			case err, ok := <-watcher.Errors:
-				if err == nil {
-					err = errors.New("configReloader: null error passed in")
-					return
-				}
-				log.Errorln(err)
-				if !ok {
-					log.Debugln(("configReloader: error channel is closing"))
-					break
-				}
-				log.Infoln("configReloader: error:", err)
+			// end loop when message has been sent
+			if messageSent {
+				log.Debugln("configChangeLimiter: change notification message sent. waiting for new change")
+				break
 			}
-		}
-	}()
 
-	// watch the config file for events
-	err = watcher.Add(file)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return watcher2chan, nil
-}
-
-// configWatchAnalyzer watchers for events of configmap chnages and compares the known hash to the known for chnages to determine if kuberhealthy restart is required
-func configWatchAnalyzer(c chan fsNotificationChan) chan configChangeChan {
-
-	configChange := make(chan configChangeChan)
-	currentHash := hashCreator(configPath)
-	notify := <-c
-	// Do some shit
-	go func() {
-		if notify.failed == true {
-			configChange <- configChangeChan{message: notify.event, path: notify.path, action: false}
-		}
-		if currentHash != notify.hash {
-			configChange <- configChangeChan{message: "configmap change event did not change the file configureations at location:" + notify.path, path: notify.path, action: false}
-		}
-		configChange <- configChangeChan{message: notify.event, path: notify.path, action: true}
-		currentHash = notify.hash
-
-	}()
-	return configChange
-}
-
-func smoothedOutput(maxSpeed time.Duration, c chan configChangeChan) chan actionNeededChan {
-	msg := <-c
-	action := make(chan actionNeededChan)
-
-	log.Infoln(msg.message)
-	for range c {
-		for {
-			log.Infoln("configmap changed, waiting to receive another change or proceeding to reload checks after", maxSpeed)
+			log.Infoln("configChangeLimiter: file changed, waiting for", maxSpeed, "before sending a change notification")
 			select {
 			case <-time.After(maxSpeed):
-				log.Infoln("time limit has been reached:", maxSpeed, "requesting kuberhealthy restart")
-				action <- actionNeededChan{action: true}
-			case <-c:
-				log.Infoln("another configmap change has been detected, waiting an addition", maxSpeed, "before requesting a kuberhealthy restart")
-				action <- actionNeededChan{action: false}
+				log.Infoln("configChangeLimiter: time limit has been reached:", maxSpeed, "sending message to outChan")
+				outChan <- struct{}{}
+				messageSent = true
+			case <-inChan:
+				log.Debugln("configChangeLimiter: another file change has been detected")
 			}
 		}
-
 	}
-	return action
+	close(outChan)
+}
+
+// startConfigReloadMonitoring watches the target filepath for changes and smooths the output so
+// that multiple signals do not come too rapidly.  Call the returned CancelFunc to shutdown
+// all the background routines safely.
+func startConfigReloadMonitoring(filePath string) (chan struct{}, context.CancelFunc, error) {
+	return startConfigReloadMonitoringWithSmoothing(filePath, time.Second*2, time.Second*6)
+}
+
+func startConfigReloadMonitoringWithSmoothing(filePath string, scrapeInterval time.Duration, maxNotificationSpeed time.Duration) (chan struct{}, context.CancelFunc, error) {
+
+	// make channels needed for limiter and spawn limiter in background
+	inChan := make(chan struct{})
+	outChan := make(chan struct{})
+
+	log.Infoln("configReloader: begin monitoring of configmap change events")
+
+	// create a context to represent this configReloader instance
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
+	// begin watching the configuration file for changes in the background
+	fsNotificationChan, err := watchConfig(ctx, filePath, scrapeInterval)
+	if err != nil {
+		return outChan, cancelFunc, err
+	}
+
+	go func() {
+		for fileHash := range fsNotificationChan {
+			log.Debugln("configReloader: configuration file hash has changed to:", fileHash)
+			inChan <- struct{}{}
+		}
+		close(inChan)
+		log.Debugln("configReloader: shutting down")
+	}()
+	go configChangeLimiter(time.Duration(maxNotificationSpeed), inChan, outChan)
+
+	return outChan, cancelFunc, nil
 }
 
 // configReloader watchers for events in file and restarts kuberhealhty checks
 func configReloader(kh *Kuberhealthy) {
 
-	log.Infoln("configReloader: begin monitoring of configmap change events")
-
-	fsNotificationChan, err := watchConfig2(configPathDir)
+	outChan, cancelFunc, err := startConfigReloadMonitoring(configPath)
 	if err != nil {
-		log.Errorln("configReloader: Error watching config directory:", err)
+		log.Errorln("configReloader: Error watching configuration file for changes:", err)
 		log.Errorln("configReloader: configuration reloading disabled due to errors")
 		return
 	}
+	defer cancelFunc()
 
-	configChangeChan := configWatchAnalyzer(fsNotificationChan)
-	smoothedReloadChan := smoothedOutput(time.Duration(time.Second*20), configChangeChan)
-	reload := <-smoothedReloadChan
-	if reload.action {
+	// when outChan gets events, reload configuration and checks
+	for range outChan {
 		err := cfg.Load(configPath)
 		if err != nil {
 			log.Errorln("configReloader: Error reloading config:", err)
+			continue
 		}
 
 		// reparse and set logging level
@@ -242,23 +182,10 @@ func configReloader(kh *Kuberhealthy) {
 		kh.RestartChecks()
 		log.Infoln("configReloader: Kuberhealthy restarted!")
 	}
-	log.Infoln("configReloader: XXXX")
+	log.Infoln("configReloader: shutting down because no more signals are coming from outChan")
 }
 
 // hashcreator opens up a file and creates a hash of the file
-func hashCreator(file string) int64 {
-	f, err := os.Open(file)
-	if err != nil {
-		log.Infoln(err)
-	}
-	defer f.Close()
-
-	//Open a new hash interface to write to
-	hash := md5.New()
-
-	h, err := io.Copy(hash, f)
-	if err != nil {
-		log.Infoln(err)
-	}
-	return h
+func hashCreator(file string) (string, error) {
+	return checksum.MD5sum(file)
 }

@@ -11,6 +11,7 @@ require (
 	github.com/Pallinder/go-randomdata v1.1.0
 	github.com/aws/aws-sdk-go v1.25.24
 	github.com/blang/semver v3.5.1+incompatible // indirect
+	github.com/codingsince1985/checksum v1.1.0
 	github.com/denverdino/aliyungo v0.0.0-20191023002520-dba750c0c223 // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
