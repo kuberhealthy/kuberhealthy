@@ -19,7 +19,6 @@ import (
 
 // Globals for revealing daemonsets that fail to be removed or
 // nodes with daemonset pods that fail to come up or be removed
-var daemonsetList []appsv1.DaemonSet
 var nodesMissingDSPod []string
 var podRemovalList *apiv1.PodList
 
@@ -46,7 +45,7 @@ func runDaemonsetCheck(ctx context.Context) error {
 
 	// remove the daemonset and block until completed
 	log.Infoln("Running daemonset removal...")
-	err = remove(ctx)
+	err = remove(daemonSetName, ctx)
 	if err != nil {
 		return err
 	}
@@ -94,19 +93,18 @@ func doDeploy() error {
 	daemonSetSpec := generateDaemonSetSpec()
 
 	//Generate DS client and create the set with the template we just generated
-	daemonSetClient := getDSClient()
-	_, err := daemonSetClient.Create(daemonSetSpec)
+	_, err := getDSClient().Create(daemonSetSpec)
 	return err
 }
 
 // remove removes the created daemonset for this check from the cluster. Waits for daemonset and daemonset pods to clear
-func remove(ctx context.Context) error {
+func remove(dsName string, ctx context.Context) error {
 	log.Infoln("Removing daemonset.")
 
 	doneChan := make(chan error, 1)
 	// start the DS delete in the background
 	go func() {
-		doneChan <- deleteDS(daemonSetName)
+		doneChan <- deleteDS(dsName)
 	}()
 
 	// wait for the DS delete call to finish, the timeout to happen, or the context to cancel
@@ -164,37 +162,6 @@ func remove(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// waitForAllDaemonsetsToClear waits for all rogue daemonsets to be cleared
-func waitForAllDaemonsetsToClear(ctx context.Context) error {
-
-	log.Debugln("Waiting for all daemonsets to clear")
-
-	// watch events and return when the pod is in state running
-	for {
-
-		// wait between requests
-		time.Sleep(time.Second * 3)
-
-		// if the context is canceled, we stop
-		select {
-		case <-ctx.Done():
-			return errors.New("Waiting for daemonset to clear was aborted by context cancellation")
-		default:
-		}
-
-		// fetch the pod by name
-		var err error
-		daemonsetList, err = getAllDaemonsets()
-		if err != nil {
-			return err
-		}
-		if len(daemonsetList) == 0 {
-			log.Info("All daemonsets cleared")
-			return nil
-		}
-	}
 }
 
 // waitForPodsToComeOnline blocks until all pods of the daemonset are deployed and online
@@ -356,6 +323,12 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 		}
 	}
 
+	// Add daemonset check pod ownerReference
+	ownerRef, err := util.GetOwnerRef(client, checkNamespace)
+	if err != nil {
+		log.Errorln("Error getting ownerReference:", err)
+	}
+
 	// create the DS object
 	log.Infoln("Generating daemonset kubernetes spec.")
 	daemonSet := &appsv1.DaemonSet{
@@ -368,6 +341,7 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 				"creatingInstance": hostName,
 				"checkRunTime":     checkRunTime,
 			},
+			OwnerReferences: ownerRef,
 		},
 		Spec: appsv1.DaemonSetSpec{
 			MinReadySeconds: 2,
@@ -393,6 +367,7 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 					Annotations: map[string]string{
 						"cluster-autoscaler.kubernetes.io/safe-to-evict": "true",
 					},
+					OwnerReferences: ownerRef,
 				},
 				Spec: apiv1.PodSpec{
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
@@ -462,15 +437,13 @@ func getNodesMissingDSPod() ([]string, error) {
 	var nodesMissingDSPods []string
 
 	// get a list of all the nodes in the cluster
-	nodeClient := getNodeClient()
-	nodes, err := nodeClient.List(metav1.ListOptions{})
+	nodes, err := getNodeClient().List(metav1.ListOptions{})
 	if err != nil {
 		return nodesMissingDSPods, err
 	}
 
 	// get a list of DS pods
-	podClient := getPodClient()
-	pods, err := podClient.List(metav1.ListOptions{
+	pods, err := getPodClient().List(metav1.ListOptions{
 		LabelSelector: "app=" + daemonSetName + ",source=kuberhealthy,khcheck=daemonset",
 	})
 	if err != nil {
@@ -541,96 +514,6 @@ func taintsAreTolerated(taints []apiv1.Taint, tolerations []apiv1.Toleration) bo
 	return true
 }
 
-// getAllPods fetches all pods in the namespace, for all instances of kuberhealthy
-// based on a source=kuberhealthy label.
-func getAllPods() ([]apiv1.Pod, error) {
-
-	var allPods []apiv1.Pod
-	var cont string
-
-	// fetch the pod objects created by kuberhealthy
-	for {
-		var podList *apiv1.PodList
-		podClient := getPodClient()
-		podList, err := podClient.List(metav1.ListOptions{
-			LabelSelector: "source=kuberhealthy,khcheck=daemonset",
-		})
-		if err != nil {
-			log.Warningln("Unable to get all pods:", err)
-		}
-		cont = podList.Continue
-
-		// pick the items out and add them to our end results
-		for _, p := range podList.Items {
-			allPods = append(allPods, p)
-		}
-
-		// while continue is set, keep fetching items
-		if len(cont) == 0 {
-			break
-		}
-	}
-
-	return allPods, nil
-}
-
-// getAllDaemonsets fetches all daemonsets created by the daemonset khcheck
-func getAllDaemonsets() ([]appsv1.DaemonSet, error) {
-
-	var allDS []appsv1.DaemonSet
-	var cont string
-	var err error
-
-	// fetch the ds objects created by kuberhealthy
-	for {
-		var dsList *appsv1.DaemonSetList
-		dsClient := getDSClient()
-		dsList, err = dsClient.List(metav1.ListOptions{
-			LabelSelector: "source=kuberhealthy,khcheck=daemonset",
-		})
-		if err != nil {
-			errorMessage := "Error getting all daemonsets: " + err.Error()
-			log.Errorln(errorMessage)
-			return allDS, errors.New(errorMessage)
-		}
-		cont = dsList.Continue
-
-		// pick the items out and add them to our end results
-		for _, ds := range dsList.Items {
-			allDS = append(allDS, ds)
-		}
-
-		// while continue is set, keep fetching items
-		if len(cont) == 0 {
-			break
-		}
-	}
-
-	return allDS, nil
-}
-
-// checkIfPodExists fetches a specific kuberhealthy pod by name to ensure
-// it exists.
-func checkIfPodExists(podName string) bool {
-	podClient := getPodClient()
-	_, err := podClient.Get(podName, metav1.GetOptions{})
-	if err != nil {
-		return false
-	}
-	return true
-}
-
-// checkIfDSExists fetches a specific kuberhealthy ds by name to ensure
-// it exists.
-func checkIfDSExists(dsName string) bool {
-	dsClient := getDSClient()
-	_, err := dsClient.Get(dsName, metav1.GetOptions{})
-	if err != nil {
-		return false
-	}
-	return true
-}
-
 // deleteDS deletes specified daemonset from its checkNamespace.
 // Delete daemonset first, then proceed to delete all daemonset pods.
 func deleteDS(dsName string) error {
@@ -645,8 +528,7 @@ func deleteDS(dsName string) error {
 	log.Infoln("There are", len(pods.Items), "daemonset pods to remove")
 
 	// Delete daemonset
-	dsClient := getDSClient()
-	err = dsClient.Delete(dsName, &metav1.DeleteOptions{})
+	err = getDSClient().Delete(dsName, &metav1.DeleteOptions{})
 	if err != nil {
 		errorMessage := "Failed to delete daemonset: " + dsName + err.Error()
 		log.Errorln(errorMessage)
@@ -663,25 +545,15 @@ func deleteDS(dsName string) error {
 	return nil
 }
 
-// deletePod deletes a pod with the specified name
-func deletePod(podName string) error {
-	podClient := getPodClient()
-	propagationForeground := metav1.DeletePropagationForeground
-	options := &metav1.DeleteOptions{PropagationPolicy: &propagationForeground}
-	err := podClient.Delete(podName, options)
-	return err
-}
-
 // fetchDS fetches the ds for the checker from the api server
 // and returns a bool indicating if it exists or not
 func fetchDS(dsName string) (bool, error) {
-	dsClient := getDSClient()
 	var firstQuery bool
 	var more string
 	// pagination
 	for firstQuery || len(more) > 0 {
 		firstQuery = false
-		dsList, err := dsClient.List(metav1.ListOptions{
+		dsList, err := getDSClient().List(metav1.ListOptions{
 			Continue: more,
 		})
 		if err != nil {
@@ -706,10 +578,9 @@ func fetchDS(dsName string) (bool, error) {
 
 // listDSPods lists all daemonset pods
 func listDSPods(dsName string) (*apiv1.PodList, error) {
-	podClient := getPodClient()
 	var podList *apiv1.PodList
 	var err error
-	podList, err = podClient.List(metav1.ListOptions{
+	podList, err = getPodClient().List(metav1.ListOptions{
 		LabelSelector: "app=" + dsName + ",source=kuberhealthy,khcheck=daemonset",
 	})
 	if err != nil {
@@ -722,8 +593,7 @@ func listDSPods(dsName string) (*apiv1.PodList, error) {
 
 // deleteDSPods issues a delete on all daemonset pods
 func deleteDSPods(dsName string) error {
-	podClient := getPodClient()
-	err := podClient.DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
+	err := getPodClient().DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
 		LabelSelector: "app=" + dsName + ",source=kuberhealthy,khcheck=daemonset",
 	})
 	if err != nil {

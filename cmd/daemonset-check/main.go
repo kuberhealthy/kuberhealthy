@@ -146,10 +146,10 @@ func main() {
 	select {
 	case err := <-cleanupDoneChan:
 		if err != nil {
-			log.Errorln("shutdown completed with error:", err)
+			log.Errorln("Cleanup completed with error:", err)
 			return
 		}
-		log.Infoln("shutdown completed without error")
+		log.Infoln("Cleanup completed without error")
 	case <-time.After(time.Duration(shutdownGracePeriod)):
 		log.Errorln("Shutdown took too long. Shutting down forcefully!")
 	}
