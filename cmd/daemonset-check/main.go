@@ -126,7 +126,8 @@ func main() {
 		log.Infoln("Done running daemonset check")
 	case <-signalChan:
 		log.Infoln("Received shutdown signal. Canceling context and proceeding directly to cleanup.")
-		reportOKToKuberhealthy()
+		reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + "Received shutdown signal. Canceling context " +
+			"and proceeding directly to cleanup."})
 		ctxCancel() // Causes all functions within the check to return without error and abort. NOT an error
 	}
 
