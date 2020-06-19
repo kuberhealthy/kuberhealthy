@@ -1,141 +1,87 @@
 package main
 
 import (
-	"errors"
 	"io/ioutil"
-	"log"
+	"os"
 	"testing"
 	"time"
-
-	"github.com/fsnotify/fsnotify"
 )
 
-func TestDefaultFsNotify(t *testing.T) {
-	// file := "/tmp/eric/symlink"
-	file := "/Users/jdowni000/Documents"
+// TestConfigReloadNotifications tests the notification of files changing with
+// limiting on output duration.
+// x = file write
+// y = expected notification time
+//       x     x            y
+// |           |            |
+// 0s         1s           2s
+func TestConfigReloadNotificatons(t *testing.T) {
 
-	// // check for symlinks
-	// if linkedPath, err := filepath.EvalSymlinks(file); err == nil && linkedPath != file {
-	// 	t.Log("symlink found for file")
-	// 	if err != nil {
-	// 		t.Log(err)
-	// 		return
-	// 	}
-	// 	file = linkedPath
-	// }
+	// make temp file and write changes in the background
+	tempDirectory := os.TempDir()
+	testFile := tempDirectory + "testFile"
+	go tempFileWriter(testFile, t)
 
-	watcher, err := fsnotify.NewWatcher()
+	// write an initial blank file so the config monitor finds something without error
+	err := ioutil.WriteFile(testFile, []byte("this is the second test file"), 0775)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal("Failed to write initial file to disk:", err)
 	}
-	defer watcher.Close()
 
-	watcher2chan := make(chan fsNotificationChan, 20)
-	watcher2chan <- fsNotificationChan{event: "test"}
-
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					t.Log("event ok is closing the channel")
-					break
-				}
-				t.Log("event:", event)
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					t.Log("modified file:", event.Name)
-				}
-			case err, ok := <-watcher.Errors:
-				if err == nil {
-					err = errors.New("null error passed in")
-					return
-				}
-				t.Log(err)
-				if !ok {
-					t.Log(("error channel is closing"))
-					break
-				}
-				t.Log("error:", err)
-			}
-		}
-	}()
-
-	err = watcher.Add(file)
-	if err != nil {
-		log.Fatal(err)
-	}
-	time.Sleep(time.Second * 20)
-}
-
-func TestNewJD(t *testing.T) {
-	log.Println("test 1")
-	notifyChan, err := watchConfig2("/Users/jdowni000/Documents/")
-	if err != nil {
-		t.Fatal((err))
-	}
-	log.Println("test 2")
-	notifications := <-notifyChan
-	log.Println(notifications.event)
-	log.Println("test 3")
-	for {
-		select {
-		case <-notifyChan:
-			log.Println("Got notifyChan message from file changing", notifications.event)
-		case <-time.After(time.Minute * 3):
-			log.Fatal("Did not see a notifyChan message for 3 minutes")
-		}
-	}
-}
-
-func TestWatchDir(t *testing.T) {
-
-	// create a temp directory to watch
-	tempFilePath, err := ioutil.TempDir("", "kuberhealthy*")
-	if err != nil {
-		t.Fatal("Failed to create temp file at", tempFilePath, "with error:", err)
-	}
-	t.Log("created temp directory at", tempFilePath)
-
-	// start a process that will write files into the temp directory on a delay
-	t.Log("starting tempFileWriter background routine")
-	go tempFileWriter(tempFilePath, t)
-
-	// watch for changes to come back from the watchDir command
-	notifyChan, err := watchConfig(tempFilePath)
+	// begin watching for changes
+	t.Log("using test file:", testFile)
+	outChan, cancelFunc, err := startConfigReloadMonitoringWithSmoothing(testFile, time.Second*1, time.Second*2)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer cancelFunc()
 
-	// watch for two changes to come from notifyChan
-	var changeCount int
+	// watch for expected results
+	expectedNotifications := 2
+	foundNotifications := 0
+	startTime := time.Now()
+	quickestRunTime := time.Second * 15
+	quickestPossibleFinishTime := startTime.Add(quickestRunTime)
+	maxRunTime := time.Second * 25
+	timeout := time.After(maxRunTime)
 	for {
-		if changeCount >= 2 {
+		if foundNotifications == expectedNotifications {
+			if time.Now().Before(quickestPossibleFinishTime) {
+				t.Fatal("Tests ran too quickly! Duration was:", time.Now().Sub(startTime))
+			}
 			break
 		}
-		t.Log("watching for notifications from notifyChan")
 		select {
-		case <-notifyChan:
-			changeCount++
-			t.Log("Got notifyChan message from file changing")
-		case <-time.After(time.Minute * 5):
-			t.Fatal("Did not see a notifyChan message for 5 seconds")
+		case <-outChan:
+			foundNotifications++
+			t.Log("Got file change notification!", foundNotifications, "/", expectedNotifications)
+		case <-timeout:
+			t.Fatal("Did not get expected notificaitons in time.")
 		}
 	}
-	t.Log("two changes seen - test successful!")
 }
 
-func tempFileWriter(tempDirectory string, t *testing.T) {
-	time.Sleep(time.Second / 2)
-	err := ioutil.WriteFile(tempDirectory+"/writeOne.txt", []byte("this is the first test file"), 0775)
-	if err != nil {
-		t.Log("Failed to write temp file:", err)
-	}
-	t.Log("Wrote first file to temp location:", tempDirectory)
+// tempFileWriter writes files to the specified testFile on a schedule to test config file reloading
+func tempFileWriter(testFile string, t *testing.T) {
 
-	time.Sleep(time.Second / 2)
-	err = ioutil.WriteFile(tempDirectory+"/writeTwo.txt", []byte("this is the second test file"), 0775)
-	if err != nil {
-		t.Log("Failed to write second temp file:", err)
+	// write changes for 4 seconds every second
+	for i := 0; i < 4; i++ {
+		err := ioutil.WriteFile(testFile, []byte("this is the test file"+time.Now().String()), 0775)
+		if err != nil {
+			t.Fatal("Failed to write temp file content:", err)
+		}
+		t.Log("Wrote content to location:", testFile)
+		time.Sleep(time.Second)
 	}
-	t.Log("Wrote second file to temp location:", tempDirectory)
+
+	time.Sleep(time.Second * 10)
+
+	// write changes for 4 seconds every second
+	for i := 0; i < 4; i++ {
+		err := ioutil.WriteFile(testFile, []byte("this is the test file"+time.Now().String()), 0775)
+		if err != nil {
+			t.Fatal("Failed to write temp file content:", err)
+		}
+		t.Log("Wrote content to location:", testFile)
+		time.Sleep(time.Second)
+	}
 }
