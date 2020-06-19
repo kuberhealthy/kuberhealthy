@@ -16,7 +16,6 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 )
 
@@ -37,19 +36,6 @@ func formatNodes(nodeList []string) string {
 		return strings.Join(nodeList, ", ")
 	}
 	return ""
-}
-
-// getUnClearedDSList transforms list of daemonsets to a list of daemonset name strings. Used for error messaging.
-func getUnClearedDSList(dsList []appsv1.DaemonSet) string {
-
-	var unclearedDS []string
-	if len(dsList) != 0 {
-		for _, ds := range dsList {
-			unclearedDS = append(unclearedDS, ds.Name)
-		}
-	}
-
-	return formatNodes(unclearedDS)
 }
 
 // getDSPodsNodeList transforms podList to a list of pod node name strings. Used for error messaging.
