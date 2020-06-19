@@ -284,12 +284,18 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 			continue
 		}
 
-		// watch for context expiration and close watcher if it happens
-		go func(ctx context.Context, watcher watch.Interface) {
-			<-ctx.Done()
-			watcher.Stop()
-			log.Debugln("khcheck monitor watch stopping due to context cancellation")
-		}(ctx, watcher)
+		// watch for the watcher context to end, or the parent context.  If the parent context ends, we close the watcher.
+		// if the watcher context ends, we shut down this go routine to prevent a leak as it restarts
+		watcherCtx, watcherCtxCancel := context.WithCancel(context.Background())
+		go func(watchCtx context.Context, ctx context.Context, watcher watch.Interface) {
+			select {
+			case <-watchCtx.Done():
+				break
+			case <-ctx.Done():
+				watcher.Stop()
+			}
+			log.Debugln("khcheck change monitor watch stopping")
+		}(watcherCtx, ctx, watcher)
 
 		// loop over results and return them to the calling channel until we hit an error, then close and restart
 		for khc := range watcher.ResultChan() {
@@ -313,8 +319,9 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 			}
 		}
 
-		// if the context has expired, don't start the watch again. just exit
-		watcher.Stop() // TODO - does calling stop twice crash this?  I am assuming not.
+		// if the watcher breaks, shutdown the parent context monitor go routine
+		watcherCtxCancel()
+
 		select {
 		case <-ctx.Done():
 			log.Debugln("khcheck monitor closing due to context cancellation")
@@ -545,12 +552,19 @@ func (k *Kuberhealthy) masterStatusWatcher(ctx context.Context) {
 			continue
 		}
 
-		// watch for context expiration and close watcher if it happens
-		go func(ctx context.Context, watcher watch.Interface) {
-			<-ctx.Done()
-			watcher.Stop()
-			log.Debugln("master status monitor watch stopping due to context cancellation")
-		}(ctx, watcher)
+		// watch for the parent context to expire as well as this watch context. if the parent context expires,
+		// then we stop the watcher.  if the watcher context expires, we terminate the go routine to prevent a
+		// goroutine leak
+		watcherCtx, watcherCtxCancel := context.WithCancel(context.Background())
+		go func(watchCtx context.Context, ctx context.Context, watcher watch.Interface) {
+			select {
+			case <-watchCtx.Done():
+				break
+			case <-ctx.Done():
+				watcher.Stop()
+			}
+			log.Debugln("master status monitor watch stopping")
+		}(watcherCtx, ctx, watcher)
 
 		// on each update from the watch, we re-check our master status.
 		for range watcher.ResultChan() {
@@ -570,7 +584,8 @@ func (k *Kuberhealthy) masterStatusWatcher(ctx context.Context) {
 			lastMasterChangeTime = time.Now()
 		}
 
-		watcher.Stop() // TODO - does calling stop twice crash this?  I am assuming not.
+		// cancel the watcher by revoking its context
+		watcherCtxCancel()
 
 		// if the context has expired, then shut down the master status watcher entirely
 		select {
