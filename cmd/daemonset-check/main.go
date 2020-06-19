@@ -9,12 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"k8s.io/client-go/kubernetes"
-	v1 "k8s.io/client-go/kubernetes/typed/apps/v1"
-	v12 "k8s.io/client-go/kubernetes/typed/core/v1"
-
 	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
@@ -172,24 +169,6 @@ func listenForInterrupts(signalChan chan os.Signal) {
 	// watch for interrupts on signalChan
 	<-signalChan
 	os.Exit(0)
-}
-
-// getDSClient returns a daemonset client, useful for interacting with daemonsets
-func getDSClient() v1.DaemonSetInterface {
-	log.Debug("Creating Daemonset client.")
-	return client.AppsV1().DaemonSets(checkNamespace)
-}
-
-// getPodClient returns a pod client, useful for interacting with pods
-func getPodClient() v12.PodInterface {
-	log.Debug("Creating Pod client.")
-	return client.CoreV1().Pods(checkNamespace)
-}
-
-// getNodeClient returns a node client, useful for interacting with nodes
-func getNodeClient() v12.NodeInterface {
-	log.Debug("Creating Node client.")
-	return client.CoreV1().Nodes()
 }
 
 // reportErrorsToKuberhealthy reports the specified errors for this check run.

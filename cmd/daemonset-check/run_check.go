@@ -93,7 +93,7 @@ func doDeploy() error {
 	daemonSetSpec := generateDaemonSetSpec()
 
 	//Generate DS client and create the set with the template we just generated
-	_, err := getDSClient().Create(daemonSetSpec)
+	err := createDaemonset(daemonSetSpec)
 	return err
 }
 
@@ -264,9 +264,11 @@ func waitForPodRemoval(ctx context.Context) error {
 	for {
 
 		var err error
-		podRemovalList, err = listDSPods(daemonSetName)
+		podRemovalList, err = listPods()
 		if err != nil {
-			return err
+			errorMessage := "Failed to list daemonset: " + daemonSetName + " pods: " + err.Error()
+			log.Errorln(errorMessage)
+			return errors.New(errorMessage)
 		}
 
 		log.Infoln("DaemonsetChecker using LabelSelector: app=" + daemonSetName + ",source=kuberhealthy,khcheck=daemonset to remove ds pods")
@@ -276,9 +278,11 @@ func waitForPodRemoval(ctx context.Context) error {
 		select {
 		case <-deleteTicker.C:
 			log.Infoln("DaemonsetChecker re-issuing a pod delete command for daemonset checkers.")
-			err = deleteDSPods(daemonSetName)
+			err := deletePods(daemonSetName)
 			if err != nil {
-				return err
+				errorMessage := "Failed to delete daemonset " + daemonSetName + " pods: " + err.Error()
+				log.Errorln(errorMessage)
+				return errors.New(errorMessage)
 			}
 		case <-ctx.Done():
 			return errors.New("timed out when waiting for pod removal")
@@ -437,17 +441,19 @@ func getNodesMissingDSPod() ([]string, error) {
 	var nodesMissingDSPods []string
 
 	// get a list of all the nodes in the cluster
-	nodes, err := getNodeClient().List(metav1.ListOptions{})
+	nodes, err := listNodes()
 	if err != nil {
-		return nodesMissingDSPods, err
+		errorMessage := "Failed to list nodes: " + err.Error()
+		log.Errorln(errorMessage)
+		return nodesMissingDSPods, errors.New(errorMessage)
 	}
 
 	// get a list of DS pods
-	pods, err := getPodClient().List(metav1.ListOptions{
-		LabelSelector: "app=" + daemonSetName + ",source=kuberhealthy,khcheck=daemonset",
-	})
+	pods, err := listPods()
 	if err != nil {
-		return nodesMissingDSPods, err
+		errorMessage := "Failed to list daemonset: " + daemonSetName + " pods: " + err.Error()
+		log.Errorln(errorMessage)
+		return nodesMissingDSPods, errors.New(errorMessage)
 	}
 
 	// populate a node status map. default status is "false", meaning there is
@@ -521,14 +527,16 @@ func deleteDS(dsName string) error {
 	log.Infoln("DaemonsetChecker deleting daemonset:", dsName)
 
 	// Confirm the count of ds pods we are removing before issuing a delete
-	pods, err := listDSPods(dsName)
+	pods, err := listPods()
 	if err != nil {
-		return err
+		errorMessage := "Failed to list daemonset: " + daemonSetName + " pods: " + err.Error()
+		log.Errorln(errorMessage)
+		return errors.New(errorMessage)
 	}
 	log.Infoln("There are", len(pods.Items), "daemonset pods to remove")
 
 	// Delete daemonset
-	err = getDSClient().Delete(dsName, &metav1.DeleteOptions{})
+	err = deleteDaemonset(dsName)
 	if err != nil {
 		errorMessage := "Failed to delete daemonset: " + dsName + err.Error()
 		log.Errorln(errorMessage)
@@ -537,9 +545,11 @@ func deleteDS(dsName string) error {
 
 	// Issue a delete to every pod. removing the DS alone does not ensure all pods are removed
 	log.Infoln("DaemonsetChecker removing daemonset. Proceeding to remove daemonset pods")
-	err = deleteDSPods(dsName)
+	err = deletePods(dsName)
 	if err != nil {
-		return err
+		errorMessage := "Failed to delete daemonset " + dsName + " pods: " + err.Error()
+		log.Errorln(errorMessage)
+		return errors.New(errorMessage)
 	}
 
 	return nil
@@ -553,13 +563,10 @@ func fetchDS(dsName string) (bool, error) {
 	// pagination
 	for firstQuery || len(more) > 0 {
 		firstQuery = false
-		dsList, err := getDSClient().List(metav1.ListOptions{
-			Continue: more,
-		})
+		dsList, err := listDaemonsets(more)
 		if err != nil {
-			errorMessage := "Failed to fetch daemonset: " + err.Error()
-			log.Errorln(errorMessage)
-			return false, errors.New(errorMessage)
+			log.Errorln(err.Error())
+			return false, err
 		}
 		more = dsList.Continue
 
@@ -574,32 +581,4 @@ func fetchDS(dsName string) (bool, error) {
 
 	// daemonset does not exist, return false
 	return false, nil
-}
-
-// listDSPods lists all daemonset pods
-func listDSPods(dsName string) (*apiv1.PodList, error) {
-	var podList *apiv1.PodList
-	var err error
-	podList, err = getPodClient().List(metav1.ListOptions{
-		LabelSelector: "app=" + dsName + ",source=kuberhealthy,khcheck=daemonset",
-	})
-	if err != nil {
-		errorMessage := "Failed to list daemonset: " + dsName + " pods: " + err.Error()
-		log.Errorln(errorMessage)
-		return podList, errors.New(errorMessage)
-	}
-	return podList, err
-}
-
-// deleteDSPods issues a delete on all daemonset pods
-func deleteDSPods(dsName string) error {
-	err := getPodClient().DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
-		LabelSelector: "app=" + dsName + ",source=kuberhealthy,khcheck=daemonset",
-	})
-	if err != nil {
-		errorMessage := "Failed to delete daemonset " + dsName + " pods: " + err.Error()
-		log.Errorln(errorMessage)
-		return errors.New(errorMessage)
-	}
-	return err
 }
