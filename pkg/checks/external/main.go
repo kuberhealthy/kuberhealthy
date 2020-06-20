@@ -402,6 +402,11 @@ func (ext *Checker) watchForCheckerPodShutdown(shutdownEventNotifyC chan struct{
 	defer func() {
 		if watcher != nil {
 			watcher.Stop()
+			// Empty the resultChan after stopping.
+			// Otherwise it can happen that the  StreamWatcher is blocked when it tries
+			// to put an Event in the result channel. This happens when no consumer exists
+			// anymore to empty the ResultChan after calling Stop().
+			for range watcher.ResultChan() {}
 		}
 	}()
 
