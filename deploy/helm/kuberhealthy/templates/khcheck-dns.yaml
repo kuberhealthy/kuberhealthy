@@ -16,6 +16,10 @@ spec:
     {{- end}}
     containers:
       - env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
 {{- range $key, $value := .Values.check.dnsInternal.extraEnvs }}
           - name: {{ $key }}
             value: {{ $value | quote }}
