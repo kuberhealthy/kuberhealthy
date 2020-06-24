@@ -282,13 +282,7 @@ func (ext *Checker) cleanup() {
 				ext.log("evicting pod", p.GetName(), "from namespace", p.GetNamespace())
 				err := ext.evictPod(p.GetName(), p.GetNamespace())
 				if err != nil {
-					podExists, _ := util.PodNameExists(ext.KubeClient, p.GetName(), p.GetNamespace())
-					if podExists == true {
-						err := util.PodKill(ext.KubeClient, p.GetName(), p.GetNamespace(), 15)
-						if err != nil {
-							ext.log("error killing pod", p.GetName()+":", err)
-						}
-					}
+					ext.log("error killing pod", p.GetName()+":", err)
 				}
 				wg.Done()
 			}(p)
@@ -297,7 +291,8 @@ func (ext *Checker) cleanup() {
 	wg.Wait()
 }
 
-// evictPod evicts a pod in a namespace and returns any errors. Uses a static 30s grace period.
+// evictPod evicts a pod in a namespace. If eviction fails, it will check if the pod still exists and if so, attempt to kill and then return any errors.
+// Uses a static 30s grace period.
 func (ext *Checker) evictPod(podName string, podNamespace string) error {
 	podClient := ext.KubeClient.CoreV1().Pods(podNamespace)
 	eviction := &policyv1.Eviction{
@@ -309,6 +304,14 @@ func (ext *Checker) evictPod(podName string, podNamespace string) error {
 	err := podClient.Evict(eviction)
 	if err != nil {
 		ext.log("error when trying to cleanup/evict checker pod", podName, "in namespace", podNamespace+":", err)
+		podExists, _ := util.PodNameExists(ext.KubeClient, podName, podNamespace)
+		if podExists == true {
+			err := util.PodKill(ext.KubeClient, podName, podNamespace, 30)
+			if err != nil {
+				ext.log("error killing pod", podName+":", err)
+			}
+
+		}
 	}
 	return err
 }
