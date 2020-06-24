@@ -279,12 +279,12 @@ func (ext *Checker) cleanup() {
 		if p.Status.Phase != apiv1.PodFailed || p.Status.Phase != apiv1.PodSucceeded {
 			wg.Add(1)
 			go func(p apiv1.Pod) {
+				defer wg.Done()
 				ext.log("evicting pod", p.GetName(), "from namespace", p.GetNamespace())
 				err := ext.evictPod(p.GetName(), p.GetNamespace())
 				if err != nil {
 					ext.log("error killing pod", p.GetName()+":", err)
 				}
-				wg.Done()
 			}(p)
 		}
 	}
