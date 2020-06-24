@@ -1,0 +1,14 @@
+name: Update Helm Repo Files
+on:
+  push:
+    paths:
+      - 'deploy/helm/kuberhealhty/**'
+    branches:
+      - master
+
+
+
+#cd ./deploy/helm/kuberhealthy
+#helm lint ./deploy/helm/kuberhealthy
+#helm package ./deploy/helm/kuberhealthy
+#helm repoo index --url https://comcast.github.io/kuberhealthy
