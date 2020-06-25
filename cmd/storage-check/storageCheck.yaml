@@ -1,0 +1,95 @@
+# https://github.com/Comcast/kuberhealthy/blob/master/cmd/storage-check/README.md
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: storage-check
+  namespace: kuberhealthy
+spec:
+  runInterval: 5m
+  timeout: 10m
+  podSpec:
+    securityContext:
+      runAsUser: 999
+      fsGroup: 999
+    containers:
+      - env:
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: CHECK_POD_TIMEOUT
+            value: "10m"
+          - name: MAX_FAILURES_ALLOWED
+            value: "10"
+        image: chrishirsch/kuberhealthy-storage-check:v0.0.1
+        imagePullPolicy: Always
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+    restartPolicy: Never
+    serviceAccountName: storage-sa
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: storage-sa
+  namespace: kuberhealthy
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: storage-role
+  namespace: kuberhealthy
+rules:
+  - apiGroups:
+      - "apps"
+    resources:
+      - deployments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - persistentvolumeclaims
+      - jobs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+---
+# Source: kuberhealthy/templates/khcheck-pod-restarts.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: storage-rb
+  namespace: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: storage-role
+subjects:
+  - kind: ServiceAccount
+    name: storage-sa
