@@ -61,6 +61,9 @@ const kuberhealthyCheckNameLabel = "kuberhealthy-check-name"
 // defaultTimeout is the default time a pod is allowed to run when this checker is created
 const defaultTimeout = time.Minute * 15
 
+// defaultShutdownGracePeriod is the default time a pod is given to shutdown gracefully
+const defaultShutdownGracePeriod = time.Minute
+
 // constant for the error when a pod is deleted expectedly during a check run
 var ErrPodRemovedExpectedly = errors.New("pod deleted expectedly")
 
@@ -276,7 +279,8 @@ func (ext *Checker) cleanup() {
 	wg := sync.WaitGroup{}
 	for _, p := range podList.Items {
 		ext.log("finding pods that are not in status.phase=Failed or status.phase=Succeeded")
-		if p.Status.Phase != apiv1.PodFailed || p.Status.Phase != apiv1.PodSucceeded {
+		ext.log("pod:", p.Name, "is in status:", p.Status.Phase)
+		if p.Status.Phase == apiv1.PodPending || p.Status.Phase == apiv1.PodUnknown || p.Status.Phase == apiv1.PodRunning {
 			wg.Add(1)
 			go func(p apiv1.Pod) {
 				defer wg.Done()
@@ -1238,21 +1242,33 @@ func (ext *Checker) Shutdown() error {
 		ext.shutdownCTXFunc()
 	}
 
+	doneChan := make(chan error, 1)
+
 	// make a context to track pod removal and cleanup
 	ctx, _ := context.WithTimeout(context.Background(), ext.Timeout())
 
-	// make sure the pod is gone before we shutdown
-	err := ext.waitForShutdown(ctx)
-	if err != nil {
-		ext.log("Error waiting for pod removal during shutdown:", err)
-		return err
+	go func() {
+		log.Debugln("Waiting for pod", ext.podName(), "to shutdown")
+		doneChan <- ext.waitForShutdown(ctx)
+		ext.log("Waiting for background workers to cleanup...")
+	}()
+
+	select {
+		case err := <-doneChan:
+			if err != nil {
+				ext.log("Error waiting for pod removal during shutdown:", err)
+				return err
+			}
+			ext.log("Check using pod" + ext.podName() + "successfully shutdown.")
+		case <-time.After(defaultShutdownGracePeriod):
+			ext.log("Reached timeout:", defaultShutdownGracePeriod, "trying to shutdown pod:", ext.podName(), "Killing pod forcefully.")
+			err := util.PodKill(ext.KubeClient, ext.podName(), ext.Namespace, 0)
+			if err != nil {
+				ext.log("Error force killing pod:", ext.podName(), "Error:", err)
+				return err
+			}
+			ext.log("Check using pod" + ext.podName() + "killed forcefully.")
 	}
-
-	// wait for all background checkers and workers to finish before the check is fully "shutdown"
-	ext.log("Waiting for background workers to cleanup...")
-	ext.wg.Wait()
-
-	ext.log("Check using pod" + ext.podName() + " successfully shutdown.")
 	return nil
 }
 
