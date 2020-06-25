@@ -52,19 +52,19 @@ func notifyChanLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan cha
 		log.Infoln("channel notify limiter witnessed an upstream message on inChan")
 
 		// Label for following for-select loop
-		notifyChannel:
-			for {
-				log.Debugln("channel notify limiter waiting to receive another inChan or notify after", maxSpeed)
-				select {
-				case <-time.After(maxSpeed):
-					log.Debugln("channel notify limiter reached", maxSpeed, ". Sending output")
-					outChan <- struct{}{}
-					// break out of the for-select loop and go through next inChan loop iteration if any.
-					break notifyChannel
-				case <-inChan:
-					log.Debugln("channel notify limiter witnessed an upstream message on inChan and is waiting an additional", maxSpeed, "before sending output")
-				}
+	notifyChannel:
+		for {
+			log.Debugln("channel notify limiter waiting to receive another inChan or notify after", maxSpeed)
+			select {
+			case <-time.After(maxSpeed):
+				log.Debugln("channel notify limiter reached", maxSpeed, ". Sending output")
+				outChan <- struct{}{}
+				// break out of the for-select loop and go through next inChan loop iteration if any.
+				break notifyChannel
+			case <-inChan:
+				log.Debugln("channel notify limiter witnessed an upstream message on inChan and is waiting an additional", maxSpeed, "before sending output")
 			}
+		}
 
 		log.Debugln("channel notify limiter finished going through notifications")
 	}
