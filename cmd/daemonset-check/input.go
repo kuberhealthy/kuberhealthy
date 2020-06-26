@@ -17,6 +17,9 @@ func parseInputValues() {
 	if err != nil {
 		log.Infoln("There was an issue getting the check deadline:", err.Error())
 	}
+	checkTimeout = timeDeadline.Sub(time.Now().Add(time.Second * 5))
+	log.Infoln("Check time out set to:", checkTimeout)
+
 	// Give 60 seconds to clean up / shut down once check time limit is reached before the kh deadline
 	checkTimeLimit = timeDeadline.Sub(time.Now().Add(time.Second * 60))
 	log.Infoln("Setting check time limit to:", checkTimeLimit)

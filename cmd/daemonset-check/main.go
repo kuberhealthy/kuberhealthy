@@ -39,6 +39,7 @@ var (
 
 	// Check time limit from injected env variable KH_CHECK_RUN_DEADLINE
 	checkTimeLimit time.Duration
+	checkTimeout   time.Duration
 
 	// Daemonset check configurations
 	hostName      string
@@ -92,7 +93,7 @@ func main() {
 
 	// create a context for our check to operate on that represents the timelimit the check has
 	log.Debugln("Allowing this check", checkTimeLimit, "to finish.")
-	ctx, ctxCancel := context.WithTimeout(context.Background(), checkTimeLimit)
+	ctx, ctxCancel := context.WithTimeout(context.Background(), checkTimeout)
 
 	// Create a kubernetes client.
 	var err error
