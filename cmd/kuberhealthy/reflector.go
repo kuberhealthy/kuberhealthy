@@ -23,7 +23,7 @@ type StateReflector struct {
 	store            cache.Store
 }
 
-// NewReflector creates a new StateReflector for watching the state of khstate resources on the server
+// NewStateReflector creates a new StateReflector for watching the state of khstate resources on the server
 func NewStateReflector() *StateReflector {
 	sr := StateReflector{}
 	sr.reflectorSigChan = make(chan struct{})

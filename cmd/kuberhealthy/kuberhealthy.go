@@ -146,12 +146,12 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 	go k.stateReflector.Start()
 
 	// if influxdb is enabled, configure it
-	if enableInflux {
+	if cfg.EnableInflux == true {
 		k.configureInfluxForwarding()
 	}
 
 	// Start the web server and restart it if it crashes
-	go kuberhealthy.StartWebServer()
+	go k.StartWebServer()
 
 	// find all the external checks from the khcheckcrd resources on the cluster and keep them in sync.
 	// use rate limiting to avoid reconfiguration spam
@@ -226,13 +226,13 @@ func (k *Kuberhealthy) khStateResourceReaper(ctx context.Context) {
 func (k *Kuberhealthy) reapKHStateResources() error {
 
 	// list all khStates in the cluster
-	khStates, err := khStateClient.List(metav1.ListOptions{}, stateCRDResource, listenNamespace)
+	khStates, err := khStateClient.List(metav1.ListOptions{}, stateCRDResource, "")
 	if err != nil {
 		return fmt.Errorf("khState reaper: error listing khStates for reaping: %w", err)
 	}
 
 	// list all khChecks
-	khChecks, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, listenNamespace)
+	khChecks, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
 	if err != nil {
 		return fmt.Errorf("khState reaper: error listing khChecks for khState reaping: %w", err)
 	}
@@ -240,8 +240,7 @@ func (k *Kuberhealthy) reapKHStateResources() error {
 	log.Infoln("khState reaper: analyzing", len(khStates.Items), "khState resources")
 
 	// any khState that does not have a matching khCheck should be deleted (ignore errors)
-	for i := range khStates.Items {
-		khState := khStates.Items[i]
+	for _, khState := range khStates.Items {
 		log.Debugln("khState reaper: analyzing khState", khState.GetName(), "in", khState.GetName())
 		var foundKHCheck bool
 		for _, khCheck := range khChecks.Items {
@@ -280,18 +279,23 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 
 		// start a watch on khcheck resources
 		watcher, err := khCheckClient.Watch(metav1.ListOptions{}, checkCRDResource, listenNamespace)
-
 		if err != nil {
 			log.Errorln("error watching khcheck objects:", err)
 			continue
 		}
 
-		// watch for context expiration and close watcher if it happens
-		go func(ctx context.Context, watcher watch.Interface) {
-			<-ctx.Done()
-			watcher.Stop()
-			log.Debugln("khcheck monitor watch stopping due to context cancellation")
-		}(ctx, watcher)
+		// watch for the watcher context to end, or the parent context.  If the parent context ends, we close the watcher.
+		// if the watcher context ends, we shut down this go routine to prevent a leak as it restarts
+		watcherCtx, watcherCtxCancel := context.WithCancel(context.Background())
+		go func(watchCtx context.Context, ctx context.Context, watcher watch.Interface) {
+			select {
+			case <-watchCtx.Done():
+				break
+			case <-ctx.Done():
+				watcher.Stop()
+			}
+			log.Debugln("khcheck change monitor watch stopping")
+		}(watcherCtx, ctx, watcher)
 
 		// loop over results and return them to the calling channel until we hit an error, then close and restart
 		for khc := range watcher.ResultChan() {
@@ -315,8 +319,9 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 			}
 		}
 
-		// if the context has expired, don't start the watch again. just exit
-		watcher.Stop() // TODO - does calling stop twice crash this?  I am assuming not.
+		// if the watcher breaks, shutdown the parent context monitor go routine
+		watcherCtxCancel()
+
 		select {
 		case <-ctx.Done():
 			log.Debugln("khcheck monitor closing due to context cancellation")
@@ -344,7 +349,7 @@ func (k *Kuberhealthy) monitorExternalChecks(ctx context.Context, notify chan st
 		log.Debugln("Change notification received. Scanning for external check changes...")
 
 		// fetch all khcheck resources from all namespaces
-		l, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, listenNamespace)
+		l, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
 		if err != nil {
 			log.Errorln("Error listing check configuration resources", err)
 			continue
@@ -443,7 +448,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 	log.Debugln("Fetching khcheck configurations...")
 
 	// list all checks from all namespaces
-	l, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, listenNamespace)
+	l, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
 	if err != nil {
 		return err
 	}
@@ -451,15 +456,14 @@ func (k *Kuberhealthy) addExternalChecks() error {
 	log.Debugln("Found", len(l.Items), "external checks to load")
 
 	// iterate on each check CRD resource and add it as a check
-	for i := range l.Items {
-		r := l.Items[i]
+	for _, r := range l.Items {
 		log.Debugln("Loading check CRD:", r.Name)
 
 		log.Debugf("External check custom resource loaded: %v", r)
 
 		// create a new kubernetes client for this external checker
 		log.Infoln("Enabling external check:", r.Name)
-		c := external.New(kubernetesClient, &r, khCheckClient, khStateClient, externalCheckReportingURL)
+		c := external.New(kubernetesClient, &r, khCheckClient, khStateClient, cfg.ExternalCheckReportingURL)
 
 		// parse the run interval string from the custom resource and setup the run interval
 		c.RunInterval, err = time.ParseDuration(r.Spec.RunInterval)
@@ -548,12 +552,19 @@ func (k *Kuberhealthy) masterStatusWatcher(ctx context.Context) {
 			continue
 		}
 
-		// watch for context expiration and close watcher if it happens
-		go func(ctx context.Context, watcher watch.Interface) {
-			<-ctx.Done()
-			watcher.Stop()
-			log.Debugln("master status monitor watch stopping due to context cancellation")
-		}(ctx, watcher)
+		// watch for the parent context to expire as well as this watch context. if the parent context expires,
+		// then we stop the watcher.  if the watcher context expires, we terminate the go routine to prevent a
+		// goroutine leak
+		watcherCtx, watcherCtxCancel := context.WithCancel(context.Background())
+		go func(watchCtx context.Context, ctx context.Context, watcher watch.Interface) {
+			select {
+			case <-watchCtx.Done():
+				break
+			case <-ctx.Done():
+				watcher.Stop()
+			}
+			log.Debugln("master status monitor watch stopping")
+		}(watcherCtx, ctx, watcher)
 
 		// on each update from the watch, we re-check our master status.
 		for range watcher.ResultChan() {
@@ -573,7 +584,8 @@ func (k *Kuberhealthy) masterStatusWatcher(ctx context.Context) {
 			lastMasterChangeTime = time.Now()
 		}
 
-		watcher.Stop() // TODO - does calling stop twice crash this?  I am assuming not.
+		// cancel the watcher by revoking its context
+		watcherCtxCancel()
 
 		// if the context has expired, then shut down the master status watcher entirely
 		select {
@@ -811,7 +823,7 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	}
 
 	// set the pod namespace and name from the returned metadata
-	podCheckName = pod.Annotations[KH_CHECK_NAME_ANNOTATION_KEY]
+	podCheckName = pod.Annotations[KHCheckNameAnnotationKey]
 	if len(podCheckName) == 0 {
 		return reportInfo, errors.New("error finding check name annotation on calling pod with ip: " + ip)
 	}
@@ -980,12 +992,6 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		return nil
 	}
 	log.Debugf("Check report after unmarshal: +%v\n", state)
-
-	// if nill error is passed turn it into a slice of string
-	if state.Errors == nil {
-		log.Debugln("Saw nil error slice come through and turned into slice")
-		state.Errors = []string{}
-	}
 
 	// ensure that if ok is set to false, then an error is provided
 	if !state.OK {
@@ -1174,7 +1180,7 @@ func (k *Kuberhealthy) configureChecks() {
 	k.Checks = []KuberhealthyCheck{}
 
 	// check external check configurations
-	err := kuberhealthy.addExternalChecks()
+	err := k.addExternalChecks()
 	if err != nil {
 		log.Errorln("control: ERROR loading external checks:", err)
 	}
@@ -1207,5 +1213,5 @@ func (k *Kuberhealthy) configureInfluxForwarding() {
 	if err != nil {
 		log.Fatalln("Error setting up influx client:", err)
 	}
-	kuberhealthy.MetricForwarder = metricClient
+	k.MetricForwarder = metricClient
 }

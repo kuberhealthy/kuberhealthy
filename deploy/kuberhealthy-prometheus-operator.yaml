@@ -69,7 +69,21 @@ data:
         labels:
           severity: critical
         annotations:
-          description: Kuberhealthy shows that the cluster is not healthy
+          description: Kuberhealthy shows that the cluster is not healthy---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kuberhealthy
+data:
+  kuberhealthy.yaml: |-
+    listenAddress: ":8080" # The port for kuberhealthy to listen on for web requests
+    enableForceMaster: false # Set to true to enable local testing, forced master mode
+    logLevel: "debug" # Log level to be used
+    influxUsername: "" # Username for the InfluxDB instance
+    influxPassword: "" # Password for the InfluxDB instance
+    influxURL: "" # Address for the InfluxDB instance
+    influxDB: "http://localhost:8086" # Name of the InfluxDB database
+    enableInflux: false # Set to true to enable metric forwarding to Infux DB
 ---
 # Source: kuberhealthy/templates/check-reaper.yaml
 apiVersion: v1
@@ -98,6 +112,19 @@ kind: ServiceAccount
 metadata:
   name: kuberhealthy
   namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
+  name: kuberhealthy-daemonset-khcheck
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
 ---
 # Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -167,19 +194,6 @@ rules:
     - pods/eviction
     verbs:
     - create
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
 ---
 # Source: kuberhealthy/templates/check-reaper.yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -357,6 +371,12 @@ spec:
       labels:
         app: kuberhealthy
     spec:
+      volumes:
+        - name: config-volume
+          configMap:
+            # Provide the name of the ConfigMap containing the files you want
+            # to add to the container
+            name: kuberhealthy
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
       containers:
@@ -379,6 +399,9 @@ spec:
             port: 8080
           timeoutSeconds: 1
         name: kuberhealthy
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/config/
         env:
           - name: POD_NAME
             valueFrom:
@@ -417,7 +440,7 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: kuberhealthy/check-reaper:v1.3.1
+              image: kuberhealthy/check-reaper:v1.4.0
               imagePullPolicy: IfNotPresent
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
@@ -508,11 +531,13 @@ spec:
       fsGroup: 999
     containers:
       - env:
-          - name: CHECK_POD_TIMEOUT
-            value: "110s"
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.2.0
+        image: kuberhealthy/dns-resolution-check:v1.3.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
