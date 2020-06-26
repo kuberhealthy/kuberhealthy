@@ -1209,15 +1209,17 @@ func (ext *Checker) setNewCheckUUID() error {
 }
 
 // waitForShutdown waits for the external pod to shut down
-func (ext *Checker) waitForShutdown(ctx context.Context) error {
+func (ext *Checker) waitForShutdown(ctx context.Context) chan error {
 	// repeatedly fetch the pod until its gone or the context
 	// is canceled
+	doneChan := make(chan error, 1)
 	for {
 		time.Sleep(time.Second * 5)
 		exists, err := util.PodNameExists(ext.KubeClient, ext.checkPodName, ext.Namespace)
 		if err != nil {
 			ext.log("shutdown completed with error: ", err)
-			return err
+			doneChan <- err
+			return doneChan
 		}
 		if !exists {
 			ext.log("shutdown completed")
@@ -1227,7 +1229,8 @@ func (ext *Checker) waitForShutdown(ctx context.Context) error {
 		// see if the context has expired yet and give up if so
 		select {
 		case <-ctx.Done():
-			return errors.New("timed out when waiting for pod to shutdown")
+			doneChan <- errors.New("timed out when waiting for pod to shutdown")
+			return doneChan
 		default:
 		}
 	}
@@ -1242,19 +1245,13 @@ func (ext *Checker) Shutdown() error {
 		ext.shutdownCTXFunc()
 	}
 
-	doneChan := make(chan error, 1)
-
 	// make a context to track pod removal and cleanup
 	ctx, _ := context.WithTimeout(context.Background(), ext.Timeout())
 
-	go func() {
-		log.Debugln("Waiting for pod", ext.podName(), "to shutdown")
-		doneChan <- ext.waitForShutdown(ctx)
-		ext.log("Waiting for background workers to cleanup...")
-	}()
+	log.Debugln("Waiting for pod", ext.podName(), "to shutdown")
 
 	select {
-		case err := <-doneChan:
+		case err := <- ext.waitForShutdown(ctx):
 			if err != nil {
 				ext.log("Error waiting for pod removal during shutdown:", err)
 				return err
