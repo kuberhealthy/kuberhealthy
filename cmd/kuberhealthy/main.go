@@ -14,7 +14,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -25,7 +24,6 @@ import (
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
@@ -34,8 +32,11 @@ import (
 )
 
 // status represents the current Kuberhealthy OK:Error state
-var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
-var listenAddress = ":8080"
+var cfg *Config
+var configPath = "/etc/config/kuberhealthy.yaml"
+
+var configPathDir = "/etc/config/"
+var podCheckNamespaces = "kube-system"
 var podNamespace = os.Getenv("POD_NAMESPACE")
 var isMaster bool                  // indicates this instance is the master and should be running checks
 var upcomingMasterState bool       // the upcoming master state on next interval
@@ -44,33 +45,21 @@ var listenNamespace string         // namespace to listen (watch/get) `khcheck` 
 
 var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
-// flags indicating that checks of specific types should be used
-var enableForceMaster bool // force master mode - for debugging
-var enableDebug bool       // enable debug logging
-var logLevel = "info"
-
 // the hostname of this pod
 var podHostname string
+var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
+var enableExternalChecks = true
 
-// external check configs
+// KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
 const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"
 
-// default run interval set by kuberhealthy
+// DefaultRunInterval is the default run interval for checks set by kuberhealthy
 const DefaultRunInterval = time.Minute * 10
 
-// the key used in the annotation that holds the check's short name
-const KH_CHECK_NAME_ANNOTATION_KEY = "comcast.github.io/check-name"
+// KHCheckNameAnnotationKey is the key used in the annotation that holds the check's short name
+const KHCheckNameAnnotationKey = "comcast.github.io/check-name"
 
-var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
-
-// InfluxDB connection configuration
-var enableInflux = false
-var influxURL = ""
-var influxUsername = ""
-var influxPassword = ""
-var influxDB = "http://localhost:8086"
-var kuberhealthy *Kuberhealthy
-
+// var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
 var khStateClient *khstatecrd.KuberhealthyStateClient
 
 // constants for using the kuberhealthy status CRD
@@ -90,23 +79,33 @@ var kubernetesClient *kubernetes.Clientset
 
 func init() {
 
+	cfg = &Config{
+		kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),
+		LogLevel:       "info",
+	}
+
+	var useDebugMode bool
+
 	// setup flaggy
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
-	flaggy.String(&kubeConfigFile, "", "kubecfg", "(optional) absolute path to the kubeconfig file")
-	flaggy.String(&listenAddress, "l", "listenAddress", "The port for kuberhealthy to listen on for web requests")
-	flaggy.Bool(&enableForceMaster, "", "forceMaster", "Set to true to enable local testing, forced master mode.")
-	flaggy.Bool(&enableDebug, "d", "debug", "Set to true to enable debug.")
-	flaggy.String(&logLevel, "", "log-level", fmt.Sprintf("Log level to be used one of [%s].", getAllLogLevel()))
-	flaggy.String(&listenNamespace, "", "listenNamespace", "Kuberhealthy will only monitor khcheck resources from this namespace, if specified.")
-	// Influx flags
-	flaggy.String(&influxUsername, "", "influxUser", "Username for the InfluxDB instance")
-	flaggy.String(&influxPassword, "", "influxPassword", "Password for the InfluxDB instance")
-	flaggy.String(&influxURL, "", "influxUrl", "Address for the InfluxDB instance")
-	flaggy.String(&influxDB, "", "influxDB", "Name of the InfluxDB database")
-	flaggy.Bool(&enableInflux, "", "enableInflux", "Set to true to enable metric forwarding to Influx DB.")
+	flaggy.String(&configPath, "c", "config", "(optional) absolute path to the kuberhealthy config file")
+	flaggy.Bool(&useDebugMode, "d", "debug", "Set to true to enable debug.")
 	flaggy.Parse()
 
-	parsedLogLevel, err := log.ParseLevel(logLevel)
+	// attempt to load config file from disk
+	err := cfg.Load(configPath)
+	if err != nil {
+		log.Println("WARNING: Failed to read configuration file from disk:", err)
+	}
+
+	// set env variables into config if specified
+	externalCheckURL, err := getEnvVar(KHExternalReportingURL)
+	if err != nil {
+		cfg.ExternalCheckReportingURL = externalCheckURL
+	}
+
+	// parse and set logging level
+	parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
 	if err != nil {
 		log.Fatalln("Unable to parse log-level flag: ", err)
 	}
@@ -116,34 +115,23 @@ func init() {
 	log.SetLevel(parsedLogLevel)
 	log.Infoln("Startup Arguments:", os.Args)
 
+	// no matter what if user has specified debug leveling, use debug leveling
+	if useDebugMode {
+		log.Infoln("Setting debug output on because user specified flag")
+		log.SetLevel(log.DebugLevel)
+	}
+
 	// parse external check URL configuration
-	if len(externalCheckReportingURL) == 0 {
+	if len(cfg.ExternalCheckReportingURL) == 0 {
 		if len(podNamespace) == 0 {
 			log.Fatalln("KH_EXTERNAL_REPORTING_URL environment variable not set and POD_NAMESPACE environment variable was blank.  Could not determine Kuberhealthy callback URL.")
 		}
-		externalCheckReportingURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local/externalCheckStatus"
+		cfg.ExternalCheckReportingURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local/externalCheckStatus"
 	}
-	log.Infoln("External check reporting URL set to:", externalCheckReportingURL)
-
-	// handle debug logging
-	debugEnv := os.Getenv("DEBUG")
-	if len(debugEnv) > 0 {
-		enableDebug, err = strconv.ParseBool(debugEnv)
-		if err != nil {
-			log.Warningln("Failed to parse bool for DEBUG setting:", err)
-		}
-	}
-	if enableDebug {
-		log.Infoln("Enabling debug logging")
-		log.SetLevel(log.DebugLevel)
-		masterCalculation.EnableDebug()
-
-		// enable debug on klog for dependencies
-		klog.V(10)
-	}
+	log.Infoln("External check reporting URL set to:", cfg.ExternalCheckReportingURL)
 
 	// Handle force master mode
-	if enableForceMaster {
+	if cfg.EnableForceMaster == true {
 		log.Infoln("Enabling forced master mode")
 		masterCalculation.DebugAlwaysMasterOn()
 	}
@@ -164,13 +152,16 @@ func init() {
 func main() {
 
 	// Create a new Kuberhealthy struct
-	kuberhealthy = NewKuberhealthy()
-	kuberhealthy.ListenAddr = listenAddress
+	kuberhealthy := NewKuberhealthy()
+	kuberhealthy.ListenAddr = cfg.ListenAddress
 
 	// create run context and start listening for shutdown interrupts
 	khRunCtx, khRunCtxCancelFunc := context.WithCancel(context.Background())
 	kuberhealthy.shutdownCtxFunc = khRunCtxCancelFunc // load the KH struct with a func to shutdown its control system
-	go listenForInterrupts()
+	go listenForInterrupts(kuberhealthy)
+
+	// tell Kuberhealthy to restart if configmap has been changed
+	go configReloader(kuberhealthy)
 
 	// tell Kuberhealthy to start all checks and master change monitoring
 	kuberhealthy.Start(khRunCtx)
@@ -182,7 +173,7 @@ func main() {
 }
 
 // listenForInterrupts watches for termination signals and acts on them
-func listenForInterrupts() {
+func listenForInterrupts(k *Kuberhealthy) {
 	// shutdown signal handling
 	sigChan := make(chan os.Signal, 1)
 
@@ -194,7 +185,7 @@ func listenForInterrupts() {
 
 	// wait for check to fully shutdown before exiting
 	doneChan := make(chan struct{})
-	go kuberhealthy.Shutdown(doneChan)
+	go k.Shutdown(doneChan)
 
 	// wait for checks to be done shutting down before exiting
 	select {
@@ -228,21 +219,21 @@ func determineCheckStateFromEnvVar(envVarName string) bool {
 func initKubernetesClients() error {
 
 	// make a new kuberhealthy client
-	kc, err := kubeClient.Create(kubeConfigFile)
+	kc, err := kubeClient.Create(cfg.kubeConfigFile)
 	if err != nil {
 		return err
 	}
 	kubernetesClient = kc
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, kubeConfigFile, listenNamespace)
+	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, cfg.kubeConfigFile, "")
 	if err != nil {
 		return err
 	}
 	khCheckClient = checkClient
 
 	// make a new crd state client
-	stateClient, err := khstatecrd.Client(stateCRDGroup, stateCRDVersion, kubeConfigFile, listenNamespace)
+	stateClient, err := khstatecrd.Client(stateCRDGroup, stateCRDVersion, cfg.kubeConfigFile, "")
 	if err != nil {
 		return err
 	}
