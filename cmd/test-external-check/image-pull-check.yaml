@@ -1,0 +1,24 @@
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: image-pull-check
+  namespace: kuberhealthy
+spec:
+  podSpec:
+    containers:
+    - env:
+      - name: REPORT_FAILURE
+        value: "false"
+      - name: REPORT_DELAY
+        value: "1s"
+      # test-external-check image must be uploaded to the repository you wish to test on, and below URL must be updated to match.
+      image: kuberhealthy/test-external-check:v1.3.1
+      imagePullPolicy: Always
+      name: main
+      resources:
+        requests:
+          cpu: 10m
+          memory: 50Mi
+  runInterval: 10m
+  timeout: 1m
