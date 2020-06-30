@@ -128,9 +128,10 @@ func main() {
 		}
 		log.Infoln("Done running daemonset check")
 	case <-signalChan:
-		log.Infoln("Received shutdown signal. Canceling context and proceeding directly to cleanup.")
-		reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + "Received shutdown signal. Canceling context " +
-			"and proceeding directly to cleanup."})
+		// TO DO: figure out better way to report shutdown signals. Do we report "error" or "ok" to kuberhealthy when
+		// a shutdown signal is received? For now, report OK and wait for the next run. 
+		reportOKToKuberhealthy()
+		log.Errorln("Received shutdown signal. Canceling context and proceeding directly to cleanup.")
 		ctxCancel() // Causes all functions within the check to return without error and abort. NOT an error
 	}
 
