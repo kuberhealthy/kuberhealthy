@@ -13,6 +13,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1/pod"
 )
 
+// WaitForKuberhealthyEndpoint first checks the node's age to make sure it's not less than three minutes old. If so, it
+// checks if the kuberhealthy endpoint (KH_REPORTING_URL) can be hit, determining whether or not the proper netfilter
+// rules have been set up on the node in order to hit the kuberhealthy service.
 func WaitForKuberhealthyEndpoint(client *kubernetes.Clientset, namespace string, kuberhealthyEndpoint string) {
 
 	khPod, err := getKHPod(client, namespace)
@@ -45,26 +48,7 @@ func WaitForKuberhealthyEndpoint(client *kubernetes.Clientset, namespace string,
 	}
 }
 
-// waitForKuberhealthyEndpointReady hits the kuberhealthy endpoint every 3 seconds to see if the node is ready to reach
-// the endpoint.
-func waitForKuberhealthyEndpointReady(kuberhealthyEndpoint string) chan struct{} {
-
-	doneChan := make(chan struct{}, 1)
-
-	for {
-		_, err := net.LookupHost(kuberhealthyEndpoint)
-		if err == nil {
-			log.Infoln(kuberhealthyEndpoint, "is ready.")
-			doneChan <- struct{}{}
-			return doneChan
-		} else {
-			log.Infoln(kuberhealthyEndpoint, "is not ready yet: " + err.Error())
-		}
-		time.Sleep(time.Second * 3)
-	}
-}
-
-// WaitForKubeProxy checks the node's age to make sure it's not less than three minutes old. If so, it sleep for
+// WaitForKubeProxy first checks the node's age to make sure it's not less than three minutes old. If so, it sleep for
 // one minute and checks if kube proxy is ready and running on the node before running the check.
 func WaitForKubeProxy(client *kubernetes.Clientset, namespace string) {
 
@@ -151,6 +135,25 @@ func checkNodeNew(client *kubernetes.Clientset, khPod *corev1.Pod, nodeMinAge ti
 	}
 
 	return newNode, nil
+}
+
+// waitForKuberhealthyEndpointReady hits the kuberhealthy endpoint every 3 seconds to see if the node is ready to reach
+// the endpoint.
+func waitForKuberhealthyEndpointReady(kuberhealthyEndpoint string) chan struct{} {
+
+	doneChan := make(chan struct{}, 1)
+
+	for {
+		_, err := net.LookupHost(kuberhealthyEndpoint)
+		if err == nil {
+			log.Infoln(kuberhealthyEndpoint, "is ready.")
+			doneChan <- struct{}{}
+			return doneChan
+		} else {
+			log.Infoln(kuberhealthyEndpoint, "is not ready yet: " + err.Error())
+		}
+		time.Sleep(time.Second * 3)
+	}
 }
 
 // waitForKubeProxyReady fetches the kube proxy pod every 5 seconds until it's ready and running.
