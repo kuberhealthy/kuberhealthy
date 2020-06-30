@@ -21,6 +21,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	// required for oidc kubectl testing
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
@@ -32,10 +33,13 @@ import (
 )
 
 const maxTimeInFailure = 60 * time.Second
+const defaultCheckTimeout = 5 * time.Minute
 
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var CheckTimeout time.Duration
 var Hostname string
+var NodeName string
+var now time.Time
 
 // Checker validates that DNS is functioning correctly
 type Checker struct {
@@ -46,25 +50,30 @@ type Checker struct {
 
 func init() {
 
-	// Grab and verify environment variables and set them as global vars
-	checkTimeout := os.Getenv("CHECK_POD_TIMEOUT")
-	if len(checkTimeout) == 0 {
-		log.Errorln("ERROR: The CHECK_TIMEOUT environment variable has not been set.")
-		return
-	}
-
-	var err error
-	CheckTimeout, err = time.ParseDuration(checkTimeout)
+	// Set check time limit to default
+	CheckTimeout = defaultCheckTimeout
+	// Get the deadline time in unix from the env var
+	timeDeadline, err := checkclient.GetDeadline()
 	if err != nil {
-		log.Errorln("Error parsing timeout for check", checkTimeout, err)
-		return
+		log.Infoln("There was an issue getting the check deadline:", err.Error())
 	}
+	CheckTimeout = timeDeadline.Sub(time.Now().Add(time.Second * 5))
+	log.Infoln("Check time limit set to:", CheckTimeout)
 
 	Hostname = os.Getenv("HOSTNAME")
 	if len(Hostname) == 0 {
 		log.Errorln("ERROR: The ENDPOINT environment variable has not been set.")
 		return
 	}
+
+	NodeName = os.Getenv("NODE_NAME")
+	if len(Hostname) == 0 {
+		log.Errorln("ERROR: Failed to retrieve NODE_NAME environment variable.")
+		return
+	}
+	log.Infoln("Check pod is running on node:", NodeName)
+
+	now = time.Now()
 }
 
 func main() {
@@ -74,6 +83,10 @@ func main() {
 	}
 
 	dc := New()
+
+	// Check node age before running check. DNS resolution check runs often, and very quickly. If the node is new, we
+	// want to sleep for a minute to give the node extra time to be fully ready for the check run.
+	checkNodeAge(client)
 
 	err = dc.Run(client)
 	if err != nil {
@@ -133,6 +146,29 @@ func (dc *Checker) doChecks() error {
 	}
 	log.Infoln("DNS Status check determined that", dc.Hostname, "was OK.")
 	return nil
+}
+
+// checkNodeAge checks the node's age to make sure its not less than three minutes old. If so, sleep for one minute
+// before running check
+func checkNodeAge(client *kubernetes.Clientset) {
+
+	node, err := client.CoreV1().Nodes().Get(NodeName, v1.GetOptions{})
+	if err != nil {
+		log.Errorln("Failed to get node:", NodeName, err)
+		return
+	}
+
+	nodeMinAge := time.Minute * 3
+	sleepDuration := time.Minute
+	nodeAge := now.Sub(node.CreationTimestamp.Time)
+	// if the node the pod is on is less than 3 minutes old, wait 1 minute before running check.
+	log.Infoln("Check running on node: ", node.Name, "with node age:", nodeAge)
+	if nodeAge < nodeMinAge {
+		log.Infoln("Node is than", nodeMinAge, "old. Sleeping for", sleepDuration, "before running check")
+		time.Sleep(sleepDuration)
+		return
+	}
+	return
 }
 
 // reportKHSuccess reports success to Kuberhealthy servers and verifies the report successfully went through

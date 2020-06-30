@@ -73,6 +73,9 @@ var DefaultName = "external-check"
 // kubeConfigFile is the default location to check for a kubernetes configuration file
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
+// Namespace of Kuberhealthy pod. Used to help set ownerReference for created checker pods.
+var kuberhealthyNamespace = "kuberhealthy"
+
 // constants for using the kuberhealthy check CRD
 const CRDGroup = "comcast.github.io"
 const CRDVersion = "v1"
@@ -102,6 +105,13 @@ type Checker struct {
 	wg                       sync.WaitGroup     // used to track background workers and processes
 	hostname                 string             // hostname cache
 	checkPodName             string             // the current unique checker pod name
+}
+
+func init() {
+	// Get namespace of Kuberhealthy pod. Used to help set ownerReference for created checker pods to proper
+	// Kuberhealthy instance.
+	kuberhealthyNamespace = util.GetInstanceNamespace(kuberhealthyNamespace)
+	log.Infoln("Kuberhealthy is located in the", kuberhealthyNamespace, "namespace.")
 }
 
 // New creates a new external checker
@@ -160,7 +170,7 @@ func (ext *Checker) CurrentStatus() (bool, []string) {
 	// fetch the state from the resource
 	state, err := ext.getKHState()
 	if err != nil {
-		if k8sErrors.IsNotFound(err) {
+		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			// if the resource is not found, we default to "up" so not to throw alarms before the first run completes
 			return true, []string{}
 		}
@@ -273,17 +283,13 @@ func (ext *Checker) cleanup() {
 	wg.Wait()
 }
 
-// evictPod evicts a pod in a namespace and ignores errors. Uses a static 30s grace period
+// evictPod evicts a pod in a namespace and ignores errors.
 func (ext *Checker) evictPod(podName string, podNamespace string) {
 	podClient := ext.KubeClient.CoreV1().Pods(podNamespace)
-	gracePeriodSeconds := int64(30)
 	eviction := &policyv1.Eviction{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
 			Namespace: podNamespace,
-		},
-		DeleteOptions: &metav1.DeleteOptions{
-			GracePeriodSeconds: &gracePeriodSeconds,
 		},
 	}
 	err := podClient.Evict(eviction)
@@ -298,12 +304,12 @@ func (ext *Checker) setUUID(uuid string) error {
 	checkState, err := ext.getKHState()
 
 	// if the fetch operation had an error, but it wasn't 'not found', we return here
-	if err != nil && !k8sErrors.IsNotFound(err) {
+	if err != nil && !(k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
 	}
 
 	// if the check was not found, we create a fresh one and start there
-	if err != nil && k8sErrors.IsNotFound(err) {
+	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		ext.log("khstate did not exist, so a default object will be created")
 		details := health.NewCheckDetails()
 		details.Namespace = ext.CheckNamespace()
@@ -707,7 +713,7 @@ func (ext *Checker) deletePod(podName string) error {
 		GracePeriodSeconds: &gracePeriodSeconds,
 		PropagationPolicy:  &deletionPolicy,
 	})
-	if err != nil && !k8sErrors.IsNotFound(err) {
+	if err != nil && !(k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		return err
 	}
 	return nil
@@ -742,7 +748,7 @@ func (ext *Checker) getCheckLastUpdateTime() (time.Time, error) {
 
 	// fetch the state from the resource
 	state, err := ext.getKHState()
-	if err != nil && k8sErrors.IsNotFound(err) {
+	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		return time.Time{}, nil
 	}
 
@@ -851,7 +857,7 @@ func (ext *Checker) waitForAllPodsToClear() chan error {
 
 			// if we got a "not found" message, then we are done.  This is the happy path.
 			if err != nil {
-				if k8sErrors.IsNotFound(err) {
+				if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 					ext.log("all pods cleared")
 					outChan <- nil
 					return
@@ -1073,7 +1079,7 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	ext.addKuberhealthyLabels(p)
 
 	// Get ownerReference for the kuberhealthy pod
-	ownerRef, err := util.GetOwnerRef(ext.KubeClient, "kuberhealthy")
+	ownerRef, err := util.GetOwnerRef(ext.KubeClient, kuberhealthyNamespace)
 	if err != nil {
 		return nil, errors.New("Failed to getOwnerReference for pod: " + p.Name + ", err: " + err.Error())
 	}
@@ -1189,7 +1195,8 @@ func (ext *Checker) podExists() (bool, error) {
 
 	// if the pod is "not found", then it does not exist
 	p, err := podClient.Get(ext.podName(), metav1.GetOptions{})
-	if err != nil && k8sErrors.IsNotFound(err) {
+	// Check both k8sErrors and Error string message for not found
+	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		return false, nil
 	}
 

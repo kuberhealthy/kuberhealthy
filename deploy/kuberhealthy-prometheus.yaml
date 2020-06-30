@@ -41,34 +41,6 @@ spec:
     matchLabels:
       app: kuberhealthy
 ---
-# Source: kuberhealthy/templates/check-reaper.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: check-reaper
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/khcheck-daemonset.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: daemonset-khcheck
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/khcheck-deployment.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: deployment-sa
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/serviceaccount.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: kuberhealthy
-  namespace: kuberhealthy
----
 # Source: kuberhealthy/templates/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -97,7 +69,49 @@ data:
         labels:
           severity: critical
         annotations:
-          description: Kuberhealthy shows that the cluster is not healthy
+          description: Kuberhealthy shows that the cluster is not healthy---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kuberhealthy
+data:
+  kuberhealthy.yaml: |-
+    listenAddress: ":8080" # The port for kuberhealthy to listen on for web requests
+    enableForceMaster: false # Set to true to enable local testing, forced master mode
+    logLevel: "debug" # Log level to be used
+    influxUsername: "" # Username for the InfluxDB instance
+    influxPassword: "" # Password for the InfluxDB instance
+    influxURL: "" # Address for the InfluxDB instance
+    influxDB: "http://localhost:8086" # Name of the InfluxDB database
+    enableInflux: false # Set to true to enable metric forwarding to Infux DB
+---
+# Source: kuberhealthy/templates/check-reaper.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: check-reaper
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/khcheck-daemonset.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: daemonset-khcheck
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/khcheck-deployment.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deployment-sa
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kuberhealthy
+  namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -360,10 +374,16 @@ spec:
       labels:
         app: kuberhealthy
     spec:
+      volumes:
+        - name: config-volume
+          configMap:
+            # Provide the name of the ConfigMap containing the files you want
+            # to add to the container
+            name: kuberhealthy
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
       containers:
-      - image: kuberhealthy/kuberhealthy:v2.1.0
+      - image: kuberhealthy/kuberhealthy:v2.2.0
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
@@ -382,6 +402,9 @@ spec:
             port: 8080
           timeoutSeconds: 1
         name: kuberhealthy
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/config/
         env:
           - name: POD_NAME
             valueFrom:
@@ -420,7 +443,7 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: kuberhealthy/check-reaper:v1.3.1
+              image: kuberhealthy/check-reaper:v1.4.0
               imagePullPolicy: IfNotPresent
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
@@ -447,7 +470,7 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-        image: kuberhealthy/daemonset-check:v2.2.1
+        image: kuberhealthy/daemonset-check:v2.2.2
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -474,7 +497,7 @@ spec:
       fsGroup: 999
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.4.0
+      image: kuberhealthy/deployment-check:v1.4.4
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
@@ -511,11 +534,13 @@ spec:
       fsGroup: 999
     containers:
       - env:
-          - name: CHECK_POD_TIMEOUT
-            value: "110s"
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.2.0
+        image: kuberhealthy/dns-resolution-check:v1.3.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:

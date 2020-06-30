@@ -13,5 +13,6 @@ Here is a list of external checks you can apply to your kubernetes cluster once 
 | [KIAM Check](../cmd/kiam-check/README.md) | Checks that KIAM Servers and Agents are able to provide credentials | [kiam-check.yaml](../cmd/kiam-check/kiam-check.yaml) | @jonnydawg |
 | [HTTP Content Check](../cmd/http-content-check/README.md) | Checks for specific string in body of URL | [http-content-check.yaml](../cmd/http-content-check/http-content-check.yaml) | @jdowni000 |
 | [Resource Quota Check](../cmd/resource-quota-check/README.md) | Checks if resource quotas (CPU & memory) are available | [resource-quota.yaml](../cmd/resource-quota-check/resource-quota.yaml) | @jonnydawg |
+| [Network Connection Check](../cmd/network-connection-check/README.md) | Checks if a network connection (tcp or udp) could be done to a remote target | [successedNetworkConnectionCheck.yaml](../cmd/successedNetworkConnectionCheck.yaml) [failedNetworkConnectionCheck.yaml](../cmd/network-connection-check/failedNetworkConnectionCheck.yaml) | @bavarianbidi |
 
 If you have a check you would like to share with the community, please open a PR to this file!

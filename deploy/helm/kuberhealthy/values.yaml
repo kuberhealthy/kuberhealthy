@@ -12,7 +12,7 @@ prometheus:
 
 image:
   repository: kuberhealthy/kuberhealthy
-  tag: v2.1.0
+  tag: v2.2.0
 
 resources:
   requests:
@@ -37,6 +37,7 @@ deployment:
   command:
   - /app/kuberhealthy
   # args:
+  # priorityClassName:
 
 # When enabled equals to true, runAsUser and fsGroup will be
 # included to all khchecks as specified below.
@@ -67,7 +68,7 @@ check:
     timeout: 12m
     image:
       repository: kuberhealthy/daemonset-check
-      tag: v2.2.1
+      tag: v2.2.2
     extraEnvs:
     nodeSelector: {}
   deployment:
@@ -76,7 +77,7 @@ check:
     timeout: 15m
     image:
       repository: kuberhealthy/deployment-check
-      tag: v1.4.0
+      tag: v1.4.4
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
@@ -88,7 +89,7 @@ check:
     timeout: 15m
     image:
       repository: kuberhealthy/dns-resolution-check
-      tag: v1.2.0
+      tag: v1.3.0
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
@@ -98,7 +99,7 @@ check:
     timeout: 10m
     image:
       repository: kuberhealthy/pod-restarts-check
-      tag: v2.2.1
+      tag: v2.3.0
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
@@ -111,10 +112,20 @@ check:
       tag: v1.2.2
     extraEnvs:
     nodeSelector: {}
+  networkConnection:
+    enabled: false
+    runInterval: 30m
+    timeout: 10m
+    image:
+      repository: kuberhealthy/network-connection-check
+      tag: v0.1.0
+    extraEnvs:
+      CONNECTION_TARGET: "tcp://github.com:443"
+    nodeSelector: {}
 
 checkReaper:
-  enabled: true # Don't disable checkRepear, this flag exist to make e2e tests easier.
+  enabled: true # Don't disable checkReaper, this flag exist to make e2e tests easier.
   image:
     repository: kuberhealthy/check-reaper
-    tag: v1.3.1
+    tag: v1.4.0
   nodeSelector: {}

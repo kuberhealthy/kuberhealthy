@@ -1,6 +1,7 @@
 package util
 
 import (
+	"io/ioutil"
 	"os"
 	"os/user"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -64,4 +66,26 @@ func GetCurrentUser(defaultUser int64) (int64, error) {
 	runAsUser = intCurrentUser
 	return runAsUser, nil
 
+}
+
+func GetInstanceNamespace(defaultNamespace string) string {
+
+	instanceNamespace := defaultNamespace
+	var instanceNamespaceEnv string
+
+	data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		log.Warnln("Failed to open namespace file:", err.Error())
+	}
+	if len(data) != 0 {
+		instanceNamespaceEnv = string(data)
+	}
+	if len(instanceNamespaceEnv) != 0 {
+		log.Infoln("Found instance namespace:", string(data))
+		instanceNamespace = instanceNamespaceEnv
+	} else {
+		log.Infoln("Did not find instance namespace. Using default namespace:", defaultNamespace)
+	}
+
+	return instanceNamespace
 }
