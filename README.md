@@ -123,6 +123,10 @@ Kuberhealthy scales horizontally in order to be fault tolerant.  By default, two
 
 The state of checks is centralized as [custom resource](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) records.  This allows Kuberhealthy to always serve the same result, no matter which node in the pool you hit.  The current master running checks is calculated by all nodes in the deployment by simply querying the Kubernetes API for 'Ready' Kuberhealthy pods of the correct label, and sorting them alphabetically by name.  The node that comes first is master.  These two strategies together enable Kuberhealthy to maintain state and scale horizontally without deploying an additional backing database.
 
+### Synthetic KPIs with Kuberhealthy
+
+Using Kuberhealthy with prometheus can help capture useful synthetic KPIs. Check out the [K8s KPIs with Kuberhealthy](docs/K8s-KPIs-with-Kuberhealthy.md) doc to learn more on how to install Kuberhealthy and collect cluster KPIs.  
+
 ### Security Considerations
 
 By default, Kuberhealthy exposes an insecure (non-HTTPS) JSON status endpoint without authentication. You should never expose this endpoint to the public internet. Exposing Kuberhealthy's status page to the public internet could result in private cluster information being exposed to the public internet when errors occur and are displayed on the page.
