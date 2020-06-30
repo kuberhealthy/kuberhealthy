@@ -2,6 +2,7 @@ package nodeCheck
 
 import (
 	"errors"
+	"net"
 	"os"
 	"time"
 
@@ -11,6 +12,57 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/api/v1/pod"
 )
+
+func WaitForKuberhealthyEndpoint(client *kubernetes.Clientset, namespace string, kuberhealthyEndpoint string) {
+
+	khPod, err := getKHPod(client, namespace)
+	if err != nil {
+		// Just log the error and return since this check will not work if there's an error getting the podName
+		log.Errorln("Error getting kuberhealthy pod:", err)
+		return
+	}
+
+	log.Infoln("Pod is on node:", khPod.Spec.NodeName)
+
+	nodeMinAge := time.Minute * 3
+	nodeNew, err := checkNodeNew(client, khPod, nodeMinAge)
+	if err != nil {
+		// Just log the error and return since this check will not work if there's an error getting the node
+		log.Errorln("Error checking if node is new:", khPod.Spec.NodeName, err)
+		return
+	}
+
+	if nodeNew {
+		log.Infoln("Node is less than", nodeMinAge, "old. Checking if the kuberhealthy endpoint is ready.")
+		select {
+		case <-waitForKuberhealthyEndpointReady(kuberhealthyEndpoint):
+			log.Infoln("Kuberhealthy endpoint:", kuberhealthyEndpoint, "is ready. Proceeding to run check.")
+			return
+		case <-time.After(time.Minute):
+			log.Errorln("Time out checking if kuberhealthy endpoint:", kuberhealthyEndpoint, "is ready. " +
+				"Check may or may not complete successfully.")
+		}
+	}
+}
+
+// waitForKuberhealthyEndpointReady hits the kuberhealthy endpoint every 3 seconds to see if the node is ready to reach
+// the endpoint.
+func waitForKuberhealthyEndpointReady(kuberhealthyEndpoint string) chan struct{} {
+
+	doneChan := make(chan struct{}, 1)
+
+	for {
+		_, err := net.LookupHost(kuberhealthyEndpoint)
+		if err == nil {
+			log.Infoln(kuberhealthyEndpoint, "is ready.")
+			doneChan <- struct{}{}
+			return doneChan
+		} else {
+			log.Infoln(kuberhealthyEndpoint, "is not ready yet: " + err.Error())
+		}
+		time.Sleep(time.Second * 3)
+	}
+}
 
 // WaitForKubeProxy checks the node's age to make sure it's not less than three minutes old. If so, it sleep for
 // one minute and checks if kube proxy is ready and running on the node before running the check.
@@ -25,7 +77,6 @@ func WaitForKubeProxy(client *kubernetes.Clientset, namespace string) {
 	log.Infoln("Pod is on node:", khPod.Spec.NodeName)
 
 	nodeMinAge := time.Minute * 3
-	sleepDuration := time.Minute
 	nodeNew, err := checkNodeNew(client, khPod, nodeMinAge)
 	if err != nil {
 		// Just log the error and return since this check will not work if there's an error getting the node
@@ -34,6 +85,7 @@ func WaitForKubeProxy(client *kubernetes.Clientset, namespace string) {
 	}
 
 	if nodeNew {
+		sleepDuration := time.Minute
 		log.Infoln("Node is less than", nodeMinAge, "old. Sleeping for", sleepDuration)
 		time.Sleep(sleepDuration)
 
