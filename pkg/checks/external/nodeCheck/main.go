@@ -16,45 +16,31 @@ import (
 // one minute and checks if kube proxy is ready and running on the node before running the check.
 func WaitForKubeProxy(client *kubernetes.Clientset, namespace string) {
 
-	now := time.Now()
-
-	podName, err := os.Hostname()
+	khPod, err := getKHPod(client, namespace)
 	if err != nil {
 		// Just log the error and return since this check will not work if there's an error getting the podName
-		log.Errorln("Error getting hostname:", err)
+		log.Errorln("Error getting kuberhealthy pod:", err)
 		return
 	}
-
-	log.Infoln("Getting pod:", podName, "in order to get its node information")
-	khPod, err := client.CoreV1().Pods(namespace).Get(podName, v1.GetOptions{})
-	if err != nil {
-		// Just log the error and return since this check will not work if there's an error getting the pod
-		log.Errorln("Error getting pod:", err)
-		return
-	}
-
 	log.Infoln("Pod is on node:", khPod.Spec.NodeName)
-
-	node, err := client.CoreV1().Nodes().Get(khPod.Spec.NodeName, v1.GetOptions{})
-	if err != nil {
-		// Just log the error and return since this check will not work if there's an error getting the node
-		log.Errorln("Failed to get node:", khPod.Spec.NodeName, err)
-		return
-	}
 
 	nodeMinAge := time.Minute * 3
 	sleepDuration := time.Minute
-	nodeAge := now.Sub(node.CreationTimestamp.Time)
-	// if the node the pod is on is less than 3 minutes old, wait 1 minute before running check.
-	log.Infoln("Check running on node: ", node.Name, "with node age:", nodeAge)
-	if nodeAge < nodeMinAge {
-		log.Infoln("Node is than", nodeMinAge, "old. Sleeping for", sleepDuration)
+	nodeNew, err := checkNodeNew(client, khPod, nodeMinAge)
+	if err != nil {
+		// Just log the error and return since this check will not work if there's an error getting the node
+		log.Errorln("Error checking if node is new:", khPod.Spec.NodeName, err)
+		return
+	}
+
+	if nodeNew {
+		log.Infoln("Node is less than", nodeMinAge, "old. Sleeping for", sleepDuration)
 		time.Sleep(sleepDuration)
 
 		log.Infoln("Checking if kube-proxy is running and ready.")
 
 		select {
-		case err := <- waitForKubeProxyReady(client, node.Name):
+		case err := <- waitForKubeProxyReady(client, khPod.Spec.NodeName):
 			if err != nil {
 				// Just log the error.
 				log.Errorln(err)
@@ -68,6 +54,51 @@ func WaitForKubeProxy(client *kubernetes.Clientset, namespace string) {
 			"Check may or may not complete successfully.")
 		}
 	}
+}
+
+// getKHPod gets the kuberhealthy pod currently running. The pod is needed to get the pod's node information.
+func getKHPod(client *kubernetes.Clientset, namespace string) (*corev1.Pod, error) {
+
+	var khPod *corev1.Pod
+	podName, err := os.Hostname()
+	if err != nil {
+		// Just log the error and return since this check will not work if there's an error getting the podName
+		log.Errorln("Error getting hostname:", err)
+		return khPod, err
+	}
+
+	log.Infoln("Getting pod:", podName, "in order to get its node information")
+	khPod, err = client.CoreV1().Pods(namespace).Get(podName, v1.GetOptions{})
+	if err != nil {
+		// Just log the error and return since this check will not work if there's an error getting the pod
+		log.Errorln("Error getting pod:", err)
+		return khPod, err
+	}
+	return khPod, err
+}
+
+// checkIfNodeIsNew checks the age of the node the kuberhealthy check pod is on to determine if its "new" or not.
+func checkNodeNew(client *kubernetes.Clientset, khPod *corev1.Pod, nodeMinAge time.Duration) (bool, error) {
+
+	var newNode bool
+	node, err := client.CoreV1().Nodes().Get(khPod.Spec.NodeName, v1.GetOptions{})
+	if err != nil {
+		// Just log the error and return since this check will not work if there's an error getting the node
+		log.Errorln("Failed to get node:", khPod.Spec.NodeName, err)
+		return newNode, err
+	}
+
+	// get current age of the node
+	nodeAge := time.Now().Sub(node.CreationTimestamp.Time)
+	// if the node the pod is on is less than 3 minutes old, wait 1 minute before running check.
+	log.Infoln("Check running on node: ", node.Name, "with node age:", nodeAge)
+
+	if nodeAge < nodeMinAge {
+		newNode = true
+		return newNode, nil
+	}
+
+	return newNode, nil
 }
 
 // waitForKubeProxyReady fetches the kube proxy pod every 5 seconds until it's ready and running.
