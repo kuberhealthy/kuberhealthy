@@ -37,9 +37,9 @@ var (
 	checkDSNameEnv = os.Getenv("CHECK_DAEMONSET_NAME")
 	checkDSName    string
 
-	// Check time limit from injected env variable KH_CHECK_RUN_DEADLINE
-	checkTimeLimit time.Duration
-	checkTimeout   time.Duration
+	// Check deadline from injected env variable KH_CHECK_RUN_DEADLINE
+	khDeadline     time.Time
+	checkDeadline  time.Time
 
 	// Daemonset check configurations
 	hostName      string
@@ -62,23 +62,22 @@ const (
 	defaultDSPauseContainerImage = "gcr.io/google-containers/pause:3.1"
 	// Default shutdown termination grace period
 	defaultShutdownGracePeriod = time.Duration(time.Minute * 1) // grace period for the check to shutdown after receiving a shutdown signal
-	// Default daemonset check time limit
-	defaultCheckTimeLimit = time.Duration(time.Minute * 15)
+	// Default daemonset check deadline
+	defaultCheckDeadline = time.Duration(time.Minute*15)
 	// Default user
 	defaultUser = int64(1000)
 )
 
 func init() {
+	// Create a timestamp reference for the daemonset;
+	// also to reference against daemonsets that should be cleaned up.
+	now = time.Now()
 
 	// Parse all incoming input environment variables and crash if an error occurs
 	// during parsing process.
 	parseInputValues()
 
-	// Create a timestamp reference for the daemonset;
-	// also to reference against daemonsets that should be cleaned up.
-	now = time.Now()
 	setCheckConfigurations(now)
-
 }
 
 func main() {
@@ -92,8 +91,11 @@ func main() {
 	}()
 
 	// create a context for our check to operate on that represents the timelimit the check has
-	log.Debugln("Allowing this check", checkTimeLimit, "to finish.")
-	ctx, ctxCancel := context.WithTimeout(context.Background(), checkTimeout)
+	log.Debugln("Allowing this check until", checkDeadline, "to finish.")
+	// Set ctx and ctxChancel using khDeadline. If timeout is set to checkDeadline, ctxCancel will happen first before
+	// any of the timeouts are given the chance to report their timeout errors.
+	log.Debugln("Setting check ctx cancel with timeout", khDeadline.Sub(now))
+	ctx, ctxCancel := context.WithTimeout(context.Background(), khDeadline.Sub(now))
 
 	// Create a kubernetes client.
 	var err error
