@@ -1,11 +1,11 @@
 package main
 
 import (
+	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
-
+	log "github.com/sirupsen/logrus"
 )
 
 // parseInputValues parses and sets global vars from env variables and other inputs
@@ -37,6 +37,18 @@ func parseInputValues() {
 	}
 	log.Infoln("Setting DS pause container image to:", dsPauseContainerImage)
 
+	// Parse incoming deployment node selectors
+	if len(dsNodeSelectorsEnv) != 0 {
+		splitEnvVars := strings.Split(dsNodeSelectorsEnv, ",")
+		for _, splitEnvVarKeyValuePair := range splitEnvVars {
+			parsedEnvVarKeyValuePair := strings.Split(splitEnvVarKeyValuePair, "=")
+			if _, ok := dsNodeSelectors[parsedEnvVarKeyValuePair[0]]; !ok {
+				dsNodeSelectors[parsedEnvVarKeyValuePair[0]] = parsedEnvVarKeyValuePair[1]
+			}
+		}
+		log.Infoln("Parsed NODE_SELECTOR:", dsNodeSelectors)
+	}
+
 	// Parse incoming custom shutdown grace period seconds
 	shutdownGracePeriod = defaultShutdownGracePeriod
 	if len(shutdownGracePeriodEnv) != 0 {
@@ -61,4 +73,3 @@ func parseInputValues() {
 	log.Infoln("Setting check daemonset name to:", checkDSName)
 
 }
-

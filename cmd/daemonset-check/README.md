@@ -9,10 +9,10 @@ The check runs every 15 minutes (spec.runInterval), with a check timeout set to 
 does not complete within the given timeout it will report a timeout error on the status page.
 
 Containers are deployed with their resource requirements set to 0 cores and 0 memory and use the pause container from
-Google (gcr.io/google_containers/pause:0.8.0), which is likely already cached on your nodes. The
-node-role.kubernetes.io/master NoSchedule taint is tolerated by daemonset testing pods. The pause container is already
-used by kubelet to do various tasks and should be cached at all times. If a failure occurs anywhere in the daemonset
-deployment or tear down, an error is shown on the status page describing the issue.
+Google (gcr.io/google_containers/pause:0.8.0), which is likely already cached on your nodes. The pause container is already used by kubelet to do various tasks and should be cached at all times. The node-role.kubernetes.io/master 
+NoSchedule taint is tolerated by daemonset testing pods. The Daemonset Check respects node selectors via the 
+`NODE_SELECTOR` environment variable to assign these daemonsets to specified nodes. If a failure occurs anywhere in
+the daemonset deployment or tear down, an error is shown on the status page describing the issue.
 
 #### Daemonset Check Kube Spec:
 
