@@ -333,6 +333,12 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 		log.Errorln("Error getting ownerReference:", err)
 	}
 
+	// Check for given node selector values.
+	// Set the map to the default of nil (<none>) if there are no selectors given.
+	if len(dsNodeSelectors) == 0 {
+		dsNodeSelectors = nil
+	}
+
 	// create the DS object
 	log.Infoln("Generating daemonset kubernetes spec.")
 	daemonSet := &appsv1.DaemonSet{
@@ -391,6 +397,7 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 							},
 						},
 					},
+					NodeSelector: dsNodeSelectors,
 				},
 			},
 		},
