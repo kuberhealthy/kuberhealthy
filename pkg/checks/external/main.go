@@ -618,7 +618,7 @@ func (ext *Checker) RunOnce() error {
 		return ext.newError("failed to see pod running within timeout")
 	case err := <-podDeletedChan: // pod removed unexpectedly
 		if err != nil {
-			ext.log("error from pod shutdown watcher when when watching for checker pod to start:", err.Error)
+			ext.log("error from pod shutdown watcher when watching for checker pod to start:", err.Error)
 		}
 		ext.log("pod removed unexpectedly while waiting for pod to start running")
 		return ErrPodRemovedExpectedly
