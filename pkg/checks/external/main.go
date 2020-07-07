@@ -646,7 +646,7 @@ func (ext *Checker) RunOnce() error {
 		return ext.newError(errorMessage)
 	case err := <-podDeletedChan: // pod was removed
 		if err != nil {
-			ext.log("error from pod shutdown watcher when when watching for checker pod to report results:", err.Error)
+			ext.log("error from pod shutdown watcher when watching for checker pod to report results:", err.Error)
 		}
 		ext.log("pod removed unexpectedly while waiting for pod to report results")
 		return ErrPodRemovedExpectedly
