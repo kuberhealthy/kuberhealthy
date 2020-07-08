@@ -70,6 +70,8 @@ func deploy(ctx context.Context) error {
 		doneChan <- waitForPodsToComeOnline(ctx)
 	}()
 
+	// set daemonset deploy deadline
+	deadlineChan := time.After(checkDeadline.Sub(now))
 	// watch for either the pods to come online, the check timeout to pass, or the context to be revoked
 	select {
 	case err = <-doneChan:
@@ -77,7 +79,7 @@ func deploy(ctx context.Context) error {
 			return fmt.Errorf("error waiting for pods to come online: %s", err)
 		}
 		log.Infoln("Successfully deployed daemonset.")
-	case <- time.After(checkDeadline.Sub(now)):
+	case <-deadlineChan:
 		log.Debugln("nodes missing DS pods:", nodesMissingDSPod)
 		return errors.New("Reached check pod timeout: " + checkDeadline.Sub(now).String() + " waiting for all pods to come online. " +
 			"Node(s) missing daemonset pod: " + formatNodes(nodesMissingDSPod))
@@ -107,6 +109,8 @@ func remove(dsName string, ctx context.Context) error {
 		doneChan <- deleteDS(dsName)
 	}()
 
+	// set daemonset remove deadline
+	deadlineChan := time.After(checkDeadline.Sub(now))
 	// wait for the DS delete call to finish, the timeout to happen, or the context to cancel
 	select {
 	case err := <-doneChan:
@@ -114,7 +118,7 @@ func remove(dsName string, ctx context.Context) error {
 			return fmt.Errorf("error trying to delete daemonset: %s", err)
 		}
 		log.Infoln("Successfully requested daemonset removal.")
-	case <-time.After(checkDeadline.Sub(now)):
+	case <-deadlineChan:
 		return errors.New("Reached check pod timeout: " + checkDeadline.Sub(now).String() + " waiting for daemonset removal command to complete.")
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal.
@@ -134,7 +138,7 @@ func remove(dsName string, ctx context.Context) error {
 			return fmt.Errorf("error waiting for daemonset removal: %s", err)
 		}
 		log.Infoln("Successfully removed daemonset.")
-	case <-time.After(checkDeadline.Sub(now)):
+	case <-deadlineChan:
 		return errors.New("Reached check pod timeout: " + checkDeadline.Sub(now).String() + " waiting for daemonset removal.")
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal.
@@ -154,7 +158,7 @@ func remove(dsName string, ctx context.Context) error {
 			return fmt.Errorf("error waiting for daemonset pods removal: %s", err)
 		}
 		log.Infoln("Successfully removed daemonset pods.")
-	case <-time.After(checkDeadline.Sub(now)):
+	case <-deadlineChan:
 		unClearedDSPodsNodes := getDSPodsNodeList(podRemovalList)
 		return errors.New("reached check pod timeout: " + checkDeadline.Sub(now).String() + " waiting for daemonset pods removal. " + "Node(s) failing to remove daemonset pod: " + unClearedDSPodsNodes)
 	case <-ctx.Done():
