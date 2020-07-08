@@ -31,7 +31,7 @@ var (
 
 	// Node selectors for the daemonset check
 	dsNodeSelectorsEnv = os.Getenv("NODE_SELECTOR")
-	dsNodeSelectors    = make(map[string]string, 0)
+	dsNodeSelectors    = make(map[string]string)
 
 	// Minutes allowed for the shutdown process to complete
 	shutdownGracePeriodEnv = os.Getenv("SHUTDOWN_GRACE_PERIOD")

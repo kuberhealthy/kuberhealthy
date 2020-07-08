@@ -42,6 +42,10 @@ func parseInputValues() {
 		splitEnvVars := strings.Split(dsNodeSelectorsEnv, ",")
 		for _, splitEnvVarKeyValuePair := range splitEnvVars {
 			parsedEnvVarKeyValuePair := strings.Split(splitEnvVarKeyValuePair, "=")
+			if len(parsedEnvVarKeyValuePair) != 2 {
+				log.Warnln("Unable to parse key value pair:", splitEnvVarKeyValuePair)
+				continue
+			}
 			if _, ok := dsNodeSelectors[parsedEnvVarKeyValuePair[0]]; !ok {
 				dsNodeSelectors[parsedEnvVarKeyValuePair[0]] = parsedEnvVarKeyValuePair[1]
 			}
