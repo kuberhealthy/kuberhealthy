@@ -438,7 +438,6 @@ func (ext *Checker) waitForDeletedEvent(w watch.Interface) chan error {
 	ext.log("starting pod shutdown watcher")
 
 	// watch events for a removal and read until the watcher empties entirely, but only notify once
-	var haveNotified bool
 	var err error
 	outChan := make(chan error, 2)
 
@@ -455,10 +454,8 @@ func (ext *Checker) waitForDeletedEvent(w watch.Interface) chan error {
 				}
 				ext.log("checker pod shutdown monitor saw a modified event. the pod changed to ", p.Status.Phase)
 			case watch.Deleted: // we saw a deleted event, so notify upstream, but only once
-				if !haveNotified {
-					outChan <- nil
-					haveNotified = true
-				}
+				outChan <- nil
+				return
 			case watch.Error:
 				ext.log("khcheck monitor saw an error event")
 				o, ok := e.Object.(*metav1.Status)
@@ -469,6 +466,7 @@ func (ext *Checker) waitForDeletedEvent(w watch.Interface) chan error {
 					err = errors.New("unidentified error when watching for pod to be deleted")
 				}
 				outChan <- err
+				return
 			default:
 				ext.log("pod removal monitor saw an irrelevant event type and ignored it:", e.Type)
 			}
