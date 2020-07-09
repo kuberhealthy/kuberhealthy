@@ -6,9 +6,7 @@ Daemonset Check. The Daemonset Check deploys a Daemonset, and waits for all the 
 state, then terminates them and ensures all pod terminations were successful.
 
 The check runs every 15 minutes (spec.runInterval), with a check timeout set to 12 minutes (spec.timeout). If the check
-does not complete within the given timeout it will report a timeout error on the status page. The check takes in a
-CHECK_POD_TIMEOUT environment variable that ensures the clean up of rogue daemonsets or daemonset pods after the check
-has finished within this timeout.
+does not complete within the given timeout it will report a timeout error on the status page.
 
 Containers are deployed with their resource requirements set to 0 cores and 0 memory and use the pause container from
 Google (gcr.io/google_containers/pause:0.8.0), which is likely already cached on your nodes. The
@@ -38,11 +36,7 @@ spec:
       - env:
           - name: POD_NAMESPACE
             value: "kuberhealthy"
-          - name: CHECK_POD_TIMEOUT
-            # Make sure this value is less than the Kuberhealthy check timeout.
-            # Default is set to 10m (10 minutes).
-            value: "10m"
-        image: kuberhealthy/daemonset-check:v2.2.2
+        image: kuberhealthy/daemonset-check:v3.0.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -50,6 +44,15 @@ spec:
             cpu: 10m
             memory: 50Mi
 ```
+
+#### Daemonset Check Env Vars:
+
+| Env Var | Default |
+| :--- | :--- |
+|POD_NAMESPACE|"kuberhealthy"|
+|PAUSE_CONTAINER_IMAGE|"gcr.io/google-containers/pause:3.1"|
+|SHUTDOWN_GRACE_PERIOD|1m|
+|CHECK_DAEMONSET_NAME|"daemonset"|
 
 #### Daemonset Check Diagram
 

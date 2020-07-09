@@ -10,6 +10,8 @@ github.com/aws/aws-sdk-go v1.25.24 h1:E8b33GQlfNuMumepuWhpSX+Mw71cEQK1BQaKzVBl3j
 github.com/aws/aws-sdk-go v1.25.24/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/blang/semver v3.5.1+incompatible h1:cQNTCjp13qL8KC3Nbxr/y2Bqb63oX6wdnnjpJbkM4JQ=
 github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
+github.com/cenkalti/backoff v2.2.1+incompatible h1:tNowT99t7UNflLxfYYSlKYsBpXdEet03Pg2g16Swow4=
+github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/codingsince1985/checksum v1.1.0 h1:hYebixS4t5k2hnG6mFVMVqMiGCVC8Dw0ywCXFpYpjmQ=
 github.com/codingsince1985/checksum v1.1.0/go.mod h1:oOS5kmF4DPKaeMAT7CCXcvakSB7s08Om5FdZTwV/CEk=
