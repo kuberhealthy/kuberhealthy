@@ -569,9 +569,6 @@ func (ext *Checker) RunOnce() error {
 		return err
 	}
 
-	// always run a cleanup when done
-	defer ext.cleanup()
-
 	// waiting until all checker pods are gone...
 	ext.log("Waiting for all existing pods to clean up")
 	select {
