@@ -11,15 +11,32 @@ import (
 // parseInputValues parses and sets global vars from env variables and other inputs
 func parseInputValues() {
 
-	// Use injected pod variable KH_CHECK_RUN_DEADLINE to set check time limit
-	checkTimeLimit = defaultCheckTimeLimit
-	timeDeadline, err := kh.GetDeadline()
+	// Parse incoming custom shutdown grace period seconds
+	shutdownGracePeriod = defaultShutdownGracePeriod
+	if len(shutdownGracePeriodEnv) != 0 {
+		duration, err := time.ParseDuration(shutdownGracePeriodEnv)
+		if err != nil {
+			log.Fatalln("error occurred attempting to parse SHUTDOWN_GRACE_PERIOD:", err)
+		}
+		if duration.Minutes() < 1 {
+			log.Fatalln("error occurred attempting to parse SHUTDOWN_GRACE_PERIOD. A value less than 1 was parsed:", duration.Minutes())
+		}
+		shutdownGracePeriod = duration
+		log.Infoln("Parsed SHUTDOWN_GRACE_PERIOD:", shutdownGracePeriod)
+	}
+	log.Infoln("Setting shutdown grace period to:", shutdownGracePeriod)
+
+	// Use injected pod variable KH_CHECK_RUN_DEADLINE to set check timeout
+	checkDeadline = now.Add(defaultCheckDeadline)
+	var err error
+	khDeadline, err = kh.GetDeadline()
 	if err != nil {
 		log.Infoln("There was an issue getting the check deadline:", err.Error())
 	}
-	// Give 60 seconds to clean up / shut down once check time limit is reached before the kh deadline
-	checkTimeLimit = timeDeadline.Sub(time.Now().Add(time.Second * 60))
-	log.Infoln("Setting check time limit to:", checkTimeLimit)
+
+	// Give check just until the shutdownGracePeriod to finish before it hits the kh deadline
+	checkDeadline = khDeadline.Add(-shutdownGracePeriod)
+	log.Infoln("Check deadline in", checkDeadline.Sub(now))
 
 	// Parse incoming namespace environment variable
 	checkNamespace = defaultCheckNamespace
@@ -37,20 +54,6 @@ func parseInputValues() {
 	}
 	log.Infoln("Setting DS pause container image to:", dsPauseContainerImage)
 
-	// Parse incoming custom shutdown grace period seconds
-	shutdownGracePeriod = defaultShutdownGracePeriod
-	if len(shutdownGracePeriodEnv) != 0 {
-		duration, err := time.ParseDuration(shutdownGracePeriodEnv)
-		if err != nil {
-			log.Fatalln("error occurred attempting to parse SHUTDOWN_GRACE_PERIOD:", err)
-		}
-		if duration.Minutes() < 1 {
-			log.Fatalln("error occurred attempting to parse SHUTDOWN_GRACE_PERIOD. A value less than 1 was parsed:", duration.Minutes())
-		}
-		shutdownGracePeriod = duration
-		log.Infoln("Parsed SHUTDOWN_GRACE_PERIOD:", shutdownGracePeriod)
-	}
-	log.Infoln("Setting shutdown grace period to:", shutdownGracePeriod)
 
 	// Parse incoming check daemonset name
 	checkDSName = defaultCheckDSName
