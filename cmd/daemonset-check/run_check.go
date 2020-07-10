@@ -337,6 +337,12 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 		log.Errorln("Error getting ownerReference:", err)
 	}
 
+	// Check for given node selector values.
+	// Set the map to the default of nil (<none>) if there are no selectors given.
+	if len(dsNodeSelectors) == 0 {
+		dsNodeSelectors = nil
+	}
+
 	// create the DS object
 	log.Infoln("Generating daemonset kubernetes spec.")
 	daemonSet := &appsv1.DaemonSet{
@@ -395,6 +401,7 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 							},
 						},
 					},
+					NodeSelector: dsNodeSelectors,
 				},
 			},
 		},
@@ -465,7 +472,7 @@ func getNodesMissingDSPod() ([]string, error) {
 	// our list of dsc.Tolerations
 	nodeStatuses := make(map[string]bool)
 	for _, n := range nodes.Items {
-		if taintsAreTolerated(n.Spec.Taints, tolerations) {
+		if taintsAreTolerated(n.Spec.Taints, tolerations) && nodeLabelsMatch(n.Labels, dsNodeSelectors) {
 			nodeStatuses[n.Name] = false
 		}
 	}
@@ -522,6 +529,27 @@ func taintsAreTolerated(taints []apiv1.Taint, tolerations []apiv1.Toleration) bo
 	}
 	// if all taints have a matching toleration, return true
 	return true
+}
+
+// nodeLabelsMatch iterates through labels on a node and checks for matches
+// with given node selectors
+func nodeLabelsMatch(labels, nodeSelectors map[string]string) bool {
+	labelsMatch := true // assume that the node selectors match node labels
+	// look at given node selector keys and values
+	for selectorKey, selectorValue := range nodeSelectors {
+		// check if the node has a similar label key
+		labelValue, ok := labels[selectorKey]
+		// if there is no matching key, continue to the next node selector
+		if !ok {
+			continue
+		}
+		// if there is a matching key, the label's value should match the node selector's value
+		// otherwise, this node does not match
+		if labelValue != selectorValue {
+			labelsMatch = false
+		}
+	}
+	return labelsMatch
 }
 
 // deleteDS deletes specified daemonset from its checkNamespace.

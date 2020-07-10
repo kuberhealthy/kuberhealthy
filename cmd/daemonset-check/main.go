@@ -29,6 +29,10 @@ var (
 	dsPauseContainerImageEnv = os.Getenv("PAUSE_CONTAINER_IMAGE")
 	dsPauseContainerImage    string // specify an alternate location for the DSC pause container - see #114
 
+	// Node selectors for the daemonset check
+	dsNodeSelectorsEnv = os.Getenv("NODE_SELECTOR")
+	dsNodeSelectors    = make(map[string]string)
+
 	// Minutes allowed for the shutdown process to complete
 	shutdownGracePeriodEnv = os.Getenv("SHUTDOWN_GRACE_PERIOD")
 	shutdownGracePeriod    time.Duration
