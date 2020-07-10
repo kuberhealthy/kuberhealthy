@@ -83,11 +83,18 @@ func createDeploymentConfig(image string) *v1.Deployment {
 	container = createContainerConfig(checkImage)
 	containers = append(containers, container)
 
+	// Check for given node selector values.
+	// Set the map to the default of nil (<none>) if there are no selectors given.
+	if len(checkDeploymentNodeSelectors) == 0 {
+		checkDeploymentNodeSelectors = nil
+	}
+
 	graceSeconds := int64(1)
 
 	// Make and define a pod spec with containers.
 	podSpec := corev1.PodSpec{
 		Containers:                    containers,
+		NodeSelector:                  checkDeploymentNodeSelectors,
 		RestartPolicy:                 corev1.RestartPolicyAlways,
 		TerminationGracePeriodSeconds: &graceSeconds,
 		ServiceAccountName:            checkServiceAccount,

@@ -1,11 +1,11 @@
 package main
 
 import (
+	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
-
+	log "github.com/sirupsen/logrus"
 )
 
 // parseInputValues parses and sets global vars from env variables and other inputs
@@ -54,7 +54,6 @@ func parseInputValues() {
 	}
 	log.Infoln("Setting DS pause container image to:", dsPauseContainerImage)
 
-
 	// Parse incoming check daemonset name
 	checkDSName = defaultCheckDSName
 	if len(checkDSNameEnv) != 0 {
@@ -63,5 +62,19 @@ func parseInputValues() {
 	}
 	log.Infoln("Setting check daemonset name to:", checkDSName)
 
+  // Parse incoming deployment node selectors
+	if len(dsNodeSelectorsEnv) != 0 {
+		splitEnvVars := strings.Split(dsNodeSelectorsEnv, ",")
+		for _, splitEnvVarKeyValuePair := range splitEnvVars {
+			parsedEnvVarKeyValuePair := strings.Split(splitEnvVarKeyValuePair, "=")
+			if len(parsedEnvVarKeyValuePair) != 2 {
+				log.Warnln("Unable to parse key value pair:", splitEnvVarKeyValuePair)
+				continue
+			}
+			if _, ok := dsNodeSelectors[parsedEnvVarKeyValuePair[0]]; !ok {
+				dsNodeSelectors[parsedEnvVarKeyValuePair[0]] = parsedEnvVarKeyValuePair[1]
+			}
+		}
+		log.Infoln("Parsed NODE_SELECTOR:", dsNodeSelectors)
+	}
 }
-
