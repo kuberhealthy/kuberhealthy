@@ -10,9 +10,7 @@ does not complete within the given timeout it will report a timeout error on the
 
 Containers are deployed with their resource requirements set to 0 cores and 0 memory and use the pause container from
 Google (gcr.io/google_containers/pause:0.8.0), which is likely already cached on your nodes. The pause container is already used by kubelet to do various tasks and should be cached at all times. The node-role.kubernetes.io/master 
-NoSchedule taint is tolerated by daemonset testing pods. The Daemonset Check respects node selectors via the 
-`NODE_SELECTOR` environment variable to assign these daemonsets to specified nodes. If a failure occurs anywhere in
-the daemonset deployment or tear down, an error is shown on the status page describing the issue.
+NoSchedule taint is tolerated by daemonset testing pods. The Daemonset Check respects a comma separated list of `key=value` node selectors with the `NODE_SELECTOR` environment variable. If a failure occurs anywhere in the daemonset deployment or tear down, an error is shown on the status page describing the issue.
 
 #### Daemonset Check Kube Spec:
 
@@ -36,7 +34,9 @@ spec:
       - env:
           - name: POD_NAMESPACE
             value: "kuberhealthy"
-        image: kuberhealthy/daemonset-check:v3.0.0
+          - name: NODE_SELECTOR # Schedules daemonsets only to nodes with this label
+            value: "kubernetes.io/os=linux"
+        image: kuberhealthy/daemonset-check:v3.1.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -53,6 +53,7 @@ spec:
 |PAUSE_CONTAINER_IMAGE|"gcr.io/google-containers/pause:3.1"|
 |SHUTDOWN_GRACE_PERIOD|1m|
 |CHECK_DAEMONSET_NAME|"daemonset"|
+|NODE_SELECTOR|`<none>`|
 
 #### Daemonset Check Diagram
 
