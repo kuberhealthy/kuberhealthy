@@ -2,7 +2,7 @@
 
 Configmap is monitored and checks will reload in the event the file has changed automatically.
 
-Location of the file is mounted in `/etc/config'
+Location of the file are mounted at `/etc/config'
 
 Sample configmap with configurable values
 
