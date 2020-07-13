@@ -1,6 +1,7 @@
 package nodeCheck
 
 import (
+	"context"
 	"errors"
 	"net"
 	"os"
@@ -10,47 +11,66 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/kubernetes/pkg/api/v1/pod"
+
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
 )
 
-// WaitForKuberhealthyEndpoint first checks the node's age to make sure it's not less than three minutes old. If so, it
-// checks if the kuberhealthy endpoint (KH_REPORTING_URL) can be hit, determining whether or not the proper netfilter
-// rules have been set up on the node in order to hit the kuberhealthy service.
-func WaitForKuberhealthyEndpoint(client *kubernetes.Clientset, namespace string, kuberhealthyEndpoint string) {
+// WaitForKuberhealthy waits for the the kuberhealthy endpoint (KH_REPORTING_URL) to be contactable by the checker pod
+// on a given node
+func WaitForKuberhealthy(ctx context.Context) {
 
-	khPod, err := getKHPod(client, namespace)
-	if err != nil {
-		// Just log the error and return since this check will not work if there's an error getting the podName
-		log.Errorln("Error getting kuberhealthy pod:", err)
+	kuberhealthyEndpoint := os.Getenv(external.KHReportingURL)
+
+	// check the length of the reporting url to make sure we pulled one properly
+	if len(kuberhealthyEndpoint) < 1 {
+		// Just log the error and return since this check will not work if there's an error getting the kuberhealthyEndpoint
+		log.Errorln("Error getting kuberhealthy reporting URL from environment variable", external.KHReportingURL, "was blank")
 		return
 	}
 
-	log.Infoln("Pod is on node:", khPod.Spec.NodeName)
-
-	nodeMinAge := time.Minute * 3
-	nodeNew, err := checkNodeNew(client, khPod, nodeMinAge)
-	if err != nil {
-		// Just log the error and return since this check will not work if there's an error getting the node
-		log.Errorln("Error checking if node is new:", khPod.Spec.NodeName, err)
+	log.Infoln("Checking if the kuberhealthy endpoint:", kuberhealthyEndpoint, "is ready.")
+	select {
+	case <-waitForKuberhealthyEndpointReady(kuberhealthyEndpoint):
+		log.Infoln("Kuberhealthy endpoint:", kuberhealthyEndpoint, "is ready. Proceeding to run check.")
 		return
-	}
-
-	if nodeNew {
-		log.Infoln("Node is less than", nodeMinAge, "old. Checking if the kuberhealthy endpoint is ready.")
-		select {
-		case <-waitForKuberhealthyEndpointReady(kuberhealthyEndpoint):
-			log.Infoln("Kuberhealthy endpoint:", kuberhealthyEndpoint, "is ready. Proceeding to run check.")
-			return
-		case <-time.After(time.Minute):
-			log.Errorln("Time out checking if kuberhealthy endpoint:", kuberhealthyEndpoint, "is ready. " +
-				"Check may or may not complete successfully.")
-		}
+	case <-time.After(time.Minute):
+		log.Errorln("Timed out checking if kuberhealthy endpoint:", kuberhealthyEndpoint, "is ready. " +
+			"Check may or may not complete successfully.")
+	case <-ctx.Done():
+		log.Errorln("Context cancelled waiting for Kuberhealthy endpoint to be ready.")
 	}
 }
 
-// WaitForKubeProxy first checks the node's age to make sure it's not less than three minutes old. If so, it sleep for
-// one minute and checks if kube proxy is ready and running on the node before running the check.
-func WaitForKubeProxy(client *kubernetes.Clientset, namespace string) {
+// WaitForKubeProxy waits for kube proxy to be ready and running on the node before running the check. Assumes that the
+// kube-proxy pod follows the naming convention: "kube-proxy-{nodeName}"
+func WaitForKubeProxy(client *kubernetes.Clientset, namespace string, ctx context.Context) {
+
+	khPod, err := getKHPod(client, namespace)
+	if err != nil {
+		// Just log the error and return since this check will not work if there's an error getting the podName
+		log.Errorln("Error getting kuberhealthy pod:", err)
+		return
+	}
+	log.Infoln("Pod is on node:", khPod.Spec.NodeName)
+	log.Infoln("Checking if kube-proxy is running and ready on this node:", khPod.Spec.NodeName)
+	select {
+	case err := <- waitForKubeProxyReady(client, khPod.Spec.NodeName):
+		if err != nil {
+			// Just log the error.
+			log.Errorln(err)
+		}
+		log.Infoln("Kube proxy is ready. Proceeding to run check.")
+	case <- time.After(time.Duration(time.Minute)):
+		// Just log the error.
+		log.Errorln("Timed out checking if kube proxy is ready. Check node:", khPod.Spec.NodeName,
+		"Check may or may not complete successfully.")
+	case <-ctx.Done():
+		log.Errorln("Context cancelled waiting for kube proxy to be ready and running")
+	}
+}
+
+// WaitForNodeAge checks the node's age to see if its less than the minimum node age. If so, sleeps for a given sleep duration.
+func WaitForNodeAge(client *kubernetes.Clientset, namespace string, minNodeAge time.Duration, sleepDuration time.Duration, ctx context.Context) {
 
 	khPod, err := getKHPod(client, namespace)
 	if err != nil {
@@ -60,8 +80,7 @@ func WaitForKubeProxy(client *kubernetes.Clientset, namespace string) {
 	}
 	log.Infoln("Pod is on node:", khPod.Spec.NodeName)
 
-	nodeMinAge := time.Minute * 3
-	nodeNew, err := checkNodeNew(client, khPod, nodeMinAge)
+	nodeNew, err := checkNodeNew(client, khPod, minNodeAge)
 	if err != nil {
 		// Just log the error and return since this check will not work if there's an error getting the node
 		log.Errorln("Error checking if node is new:", khPod.Spec.NodeName, err)
@@ -69,25 +88,13 @@ func WaitForKubeProxy(client *kubernetes.Clientset, namespace string) {
 	}
 
 	if nodeNew {
-		sleepDuration := time.Minute
-		log.Infoln("Node is less than", nodeMinAge, "old. Sleeping for", sleepDuration)
-		time.Sleep(sleepDuration)
-
-		log.Infoln("Checking if kube-proxy is running and ready.")
-
+		log.Infoln("Node is less than", minNodeAge, "old. Sleeping for", sleepDuration)
 		select {
-		case err := <- waitForKubeProxyReady(client, khPod.Spec.NodeName):
-			if err != nil {
-				// Just log the error.
-				log.Errorln(err)
-			}
-			log.Infoln("Kube proxy is ready. Proceeding to run check.")
-		case <- time.After(time.Duration(time.Minute)):
-			// Just log the error.
-			// TO DO: figure out how to address this. Should the check to skip this run and pass up an error instead?
-			// If kube-proxy isn't ready and running, there's definitely something wrong with the new node coming up.
-			log.Errorln("Timed out checking if kube proxy is ready. Check node:", khPod.Spec.NodeName,
-			"Check may or may not complete successfully.")
+		case <- ctx.Done():
+			log.Errorln("Context cancelled while sleeping for:", sleepDuration)
+		default:
+			time.Sleep(sleepDuration)
+			log.Infoln("Done sleeping. Proceeding to run check")
 		}
 	}
 }
@@ -114,7 +121,7 @@ func getKHPod(client *kubernetes.Clientset, namespace string) (*corev1.Pod, erro
 }
 
 // checkIfNodeIsNew checks the age of the node the kuberhealthy check pod is on to determine if its "new" or not.
-func checkNodeNew(client *kubernetes.Clientset, khPod *corev1.Pod, nodeMinAge time.Duration) (bool, error) {
+func checkNodeNew(client *kubernetes.Clientset, khPod *corev1.Pod, minNodeAge time.Duration) (bool, error) {
 
 	var newNode bool
 	node, err := client.CoreV1().Nodes().Get(khPod.Spec.NodeName, v1.GetOptions{})
@@ -129,7 +136,7 @@ func checkNodeNew(client *kubernetes.Clientset, khPod *corev1.Pod, nodeMinAge ti
 	// if the node the pod is on is less than 3 minutes old, wait 1 minute before running check.
 	log.Infoln("Check running on node: ", node.Name, "with node age:", nodeAge)
 
-	if nodeAge < nodeMinAge {
+	if nodeAge < minNodeAge {
 		newNode = true
 		return newNode, nil
 	}
@@ -150,7 +157,7 @@ func waitForKuberhealthyEndpointReady(kuberhealthyEndpoint string) chan struct{}
 			doneChan <- struct{}{}
 			return doneChan
 		} else {
-			log.Infoln(kuberhealthyEndpoint, "is not ready yet: " + err.Error())
+			log.Infoln(kuberhealthyEndpoint, "is not ready yet..." + err.Error())
 		}
 		time.Sleep(time.Second * 3)
 	}
@@ -184,20 +191,28 @@ func checkKubeProxyPod(client *kubernetes.Clientset, podName string) (bool, erro
 
 	var kubeProxyReady bool
 
-	kubeProxyPod, err := client.CoreV1().Pods("kube-system").Get(podName, v1.GetOptions{})
+	kubeProxyPod, err := client.CoreV1().Pods("").Get(podName, v1.GetOptions{})
 	if err != nil {
 		errorMessage := "Failed to get kube-proxy pod: " + podName + ". Error: " + err.Error()
 		log.Errorln(errorMessage)
 		return kubeProxyReady, errors.New(errorMessage)
 	}
 
-	if kubeProxyPod.Status.Phase == corev1.PodRunning && pod.IsPodReady(kubeProxyPod) {
+	var podReady = true
+	for _, cs := range kubeProxyPod.Status.Conditions {
+		if cs.Type != corev1.PodReady {
+			podReady = false
+			break
+		}
+	}
+
+	if kubeProxyPod.Status.Phase == corev1.PodRunning && podReady {
 		log.Infoln(kubeProxyPod.Name, "is in status running and ready.")
 		kubeProxyReady = true
 		return kubeProxyReady, nil
 	}
 
 	log.Infoln(kubeProxyPod.Name, "is in status:", kubeProxyPod.Status.Phase, "and ready: ",
-		pod.IsPodReady(kubeProxyPod))
+		podReady)
 	return kubeProxyReady, nil
 }
