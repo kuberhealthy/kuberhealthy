@@ -62,6 +62,10 @@ var (
 	checkDeploymentReplicasEnv = os.Getenv("CHECK_DEPLOYMENT_REPLICAS")
 	checkDeploymentReplicas    int
 
+	// Node selectors for the deployment check
+	checkDeploymentNodeSelectorsEnv = os.Getenv("NODE_SELECTOR")
+	checkDeploymentNodeSelectors    = make(map[string]string)
+
 	// ServiceAccount that will deploy the test deployment [default = default]
 	checkServiceAccountEnv = os.Getenv("CHECK_SERVICE_ACCOUNT")
 	checkServiceAccount    string
@@ -88,7 +92,7 @@ var (
 
 	// Additional container environment variables if a custom image is used for the deployment.
 	additionalEnvVarsEnv = os.Getenv("ADDITIONAL_ENV_VARS")
-	additionalEnvVars    = make(map[string]string, 0)
+	additionalEnvVars    = make(map[string]string)
 
 	// Seconds allowed for the shutdown process to complete.
 	shutdownGracePeriodEnv = os.Getenv("SHUTDOWN_GRACE_PERIOD")
