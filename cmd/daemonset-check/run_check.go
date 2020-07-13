@@ -70,6 +70,8 @@ func deploy(ctx context.Context) error {
 		doneChan <- waitForPodsToComeOnline(ctx)
 	}()
 
+	// set daemonset deploy deadline
+	deadlineChan := time.After(checkDeadline.Sub(now))
 	// watch for either the pods to come online, the check timeout to pass, or the context to be revoked
 	select {
 	case err = <-doneChan:
@@ -77,9 +79,9 @@ func deploy(ctx context.Context) error {
 			return fmt.Errorf("error waiting for pods to come online: %s", err)
 		}
 		log.Infoln("Successfully deployed daemonset.")
-	case <-time.After(checkTimeLimit):
+	case <-deadlineChan:
 		log.Debugln("nodes missing DS pods:", nodesMissingDSPod)
-		return errors.New("Reached check pod timeout: " + checkTimeLimit.String() + " waiting for all pods to come online. " +
+		return errors.New("Reached check pod timeout: " + checkDeadline.Sub(now).String() + " waiting for all pods to come online. " +
 			"Node(s) missing daemonset pod: " + formatNodes(nodesMissingDSPod))
 	case <-ctx.Done():
 		return errors.New("failed to complete check due to an interrupt signal. canceling deploying daemonset and shutting down from interrupt")
@@ -107,6 +109,8 @@ func remove(dsName string, ctx context.Context) error {
 		doneChan <- deleteDS(dsName)
 	}()
 
+	// set daemonset remove deadline
+	deadlineChan := time.After(checkDeadline.Sub(now))
 	// wait for the DS delete call to finish, the timeout to happen, or the context to cancel
 	select {
 	case err := <-doneChan:
@@ -114,8 +118,8 @@ func remove(dsName string, ctx context.Context) error {
 			return fmt.Errorf("error trying to delete daemonset: %s", err)
 		}
 		log.Infoln("Successfully requested daemonset removal.")
-	case <-time.After(checkTimeLimit):
-		return errors.New("Reached check pod timeout: " + checkTimeLimit.String() + " waiting for daemonset removal command to complete.")
+	case <-deadlineChan:
+		return errors.New("Reached check pod timeout: " + checkDeadline.Sub(now).String() + " waiting for daemonset removal command to complete.")
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal.
 		return errors.New("failed to complete check due to shutdown signal. canceling daemonset removal and shutting down from interrupt")
@@ -134,8 +138,8 @@ func remove(dsName string, ctx context.Context) error {
 			return fmt.Errorf("error waiting for daemonset removal: %s", err)
 		}
 		log.Infoln("Successfully removed daemonset.")
-	case <-time.After(checkTimeLimit):
-		return errors.New("Reached check pod timeout: " + checkTimeLimit.String() + " waiting for daemonset removal.")
+	case <-deadlineChan:
+		return errors.New("Reached check pod timeout: " + checkDeadline.Sub(now).String() + " waiting for daemonset removal.")
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal.
 		return errors.New("failed to complete check due to an interrupt signal. canceling removing daemonset and shutting down from interrupt")
@@ -154,9 +158,9 @@ func remove(dsName string, ctx context.Context) error {
 			return fmt.Errorf("error waiting for daemonset pods removal: %s", err)
 		}
 		log.Infoln("Successfully removed daemonset pods.")
-	case <-time.After(checkTimeLimit):
+	case <-deadlineChan:
 		unClearedDSPodsNodes := getDSPodsNodeList(podRemovalList)
-		return errors.New("reached check pod timeout: " + checkTimeLimit.String() + " waiting for daemonset pods removal. " + "Node(s) failing to remove daemonset pod: " + unClearedDSPodsNodes)
+		return errors.New("reached check pod timeout: " + checkDeadline.Sub(now).String() + " waiting for daemonset pods removal. " + "Node(s) failing to remove daemonset pod: " + unClearedDSPodsNodes)
 	case <-ctx.Done():
 		return errors.New("failed to complete check due to an interrupt signal. canceling removing daemonset pods and shutting down from interrupt")
 	}
@@ -173,7 +177,7 @@ func waitForPodsToComeOnline(ctx context.Context) error {
 	var counter int
 
 	// init a timeout for this whole deletion of daemonsets
-	log.Infoln("Timeout set:", checkTimeLimit.String(), "for all daemonset pods to come online")
+	log.Infoln("Timeout set:", checkDeadline.Sub(now).String(), "for all daemonset pods to come online")
 
 	for {
 		select {
@@ -333,6 +337,12 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 		log.Errorln("Error getting ownerReference:", err)
 	}
 
+	// Check for given node selector values.
+	// Set the map to the default of nil (<none>) if there are no selectors given.
+	if len(dsNodeSelectors) == 0 {
+		dsNodeSelectors = nil
+	}
+
 	// create the DS object
 	log.Infoln("Generating daemonset kubernetes spec.")
 	daemonSet := &appsv1.DaemonSet{
@@ -391,6 +401,7 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 							},
 						},
 					},
+					NodeSelector: dsNodeSelectors,
 				},
 			},
 		},
@@ -461,7 +472,7 @@ func getNodesMissingDSPod() ([]string, error) {
 	// our list of dsc.Tolerations
 	nodeStatuses := make(map[string]bool)
 	for _, n := range nodes.Items {
-		if taintsAreTolerated(n.Spec.Taints, tolerations) {
+		if taintsAreTolerated(n.Spec.Taints, tolerations) && nodeLabelsMatch(n.Labels, dsNodeSelectors) {
 			nodeStatuses[n.Name] = false
 		}
 	}
@@ -518,6 +529,27 @@ func taintsAreTolerated(taints []apiv1.Taint, tolerations []apiv1.Toleration) bo
 	}
 	// if all taints have a matching toleration, return true
 	return true
+}
+
+// nodeLabelsMatch iterates through labels on a node and checks for matches
+// with given node selectors
+func nodeLabelsMatch(labels, nodeSelectors map[string]string) bool {
+	labelsMatch := true // assume that the node selectors match node labels
+	// look at given node selector keys and values
+	for selectorKey, selectorValue := range nodeSelectors {
+		// check if the node has a similar label key
+		labelValue, ok := labels[selectorKey]
+		// if there is no matching key, continue to the next node selector
+		if !ok {
+			continue
+		}
+		// if there is a matching key, the label's value should match the node selector's value
+		// otherwise, this node does not match
+		if labelValue != selectorValue {
+			labelsMatch = false
+		}
+	}
+	return labelsMatch
 }
 
 // deleteDS deletes specified daemonset from its checkNamespace.
