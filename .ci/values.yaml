@@ -63,7 +63,7 @@ check:
     timeout: 12m
     image:
       repository: kuberhealthy/daemonset-check
-      tag: v2.2.2
+      tag: v3.1.0
     extraEnvs:
     nodeSelector: {}
   deployment:
@@ -72,7 +72,7 @@ check:
     timeout: 15m
     image:
       repository: kuberhealthy/deployment-check
-      tag: v1.4.4
+      tag: v1.5.0
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
