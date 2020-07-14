@@ -23,22 +23,26 @@ var (
 func init() {
 	// Check that the URL environment variable is valid.
 	if len(checkURL) == 0 {
-		log.Fatalln("Empty URL. Please update your CHECK_URL environment variable.")
+		log.Errorln("Empty URL. Please update your CHECK_URL environment variable.")
+		os.Exit(0)
 	}
 
 	// Check that the COUNT environment variable is valid.
 	if len(count) == 0 {
-		log.Fatalln("Empty count value. Please update your COUNT environemnt variable.")
+		log.Errorln("Empty count value. Please update your COUNT environemnt variable.")
+		os.Exit(0)
 	}
 
 	// Check that the SECONDS environment variable is valid.
 	if len(seconds) == 0 {
-		log.Fatalln("Empty seconds value. Please update your SECONDS environemnt variable.")
+		log.Errorln("Empty seconds value. Please update your SECONDS environemnt variable.")
+		os.Exit(0)
 	}
 
 	// If the URL does not begin with HTTP, exit.
 	if !strings.HasPrefix(checkURL, "http") {
-		log.Fatalln("Given URL does not declare a supported protocol. (http | https)")
+		log.Errorln("Given URL does not declare a supported protocol. (http | https)")
+		os.Exit(0)
 	}
 }
 
@@ -82,16 +86,16 @@ func main() {
 
 		if err != nil {
 			checksFailed++
-			log.Infoln("Failed to reach URL: ", checkURL)
+			log.Errorln("Failed to reach URL: ", checkURL)
 			continue
 		}
 
 		if r.StatusCode != http.StatusOK {
-			log.Infoln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
+			log.Errorln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
 			checksFailed++
 			continue
 		}
-		log.Infoln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
+		log.Errorln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
 		checksPassed++
 	}
 
