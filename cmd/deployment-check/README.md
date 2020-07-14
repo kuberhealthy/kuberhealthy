@@ -45,6 +45,7 @@ __IF ROLLING-UPDATE OPTION IS ENABLED__
   - `CHECK_POD_CPU_LIMIT`: Check pod deployment CPU limit value. Calculated in decimal SI units `(75 = 75m cpu)`.
   - `CHECK_POD_MEM_REQUEST`: Check pod deployment memory request value. Calculated in binary SI units `(20 * 1024^2 = 20Mi memory)`.
   - `CHECK_POD_MEM_LIMIT`: Check pod deployment memory limit value. Calculated in binary SI units `(75 * 1024^2 = 75Mi memory)`.
+  - `NODE_SELECTOR`: Comma separated list of `key=value` node selector values for the deployment check. By default, there are no selectors.
   - `ADDITIONAL_ENV_VARS`: Comma separated list of `key=value` variables passed into the pod's containers.
   - `SHUTDOWN_GRACE_PERIOD`: Amount of time in seconds the shutdown will allow itself to clean up after an interrupt signal (default=`30s`).
   - `DEBUG`: Verbose debug logging.

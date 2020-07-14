@@ -40,11 +40,9 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer`.  This is done for security.  Options are available in the Helm chart to bypass this and deploy with `Type: LoadBalancer` directly.
 
-RBAC bindings and roles are included in all configurations.
-
 Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.15.x`.
 
-More installation options, including static yaml files are available in the [/deploy](/deploy) directory.
+More installation options, including static yaml files are available in the [/deploy](/deploy) directory.  To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/Comcast/kuberhealthy/blob/config-readme/docs/CONFIGURATION.md).
 
 
 ### Why Are Synthetic Tests Important?
@@ -122,6 +120,10 @@ Kuberhealthy scales horizontally in order to be fault tolerant.  By default, two
 ##### Centralized Check State State
 
 The state of checks is centralized as [custom resource](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) records.  This allows Kuberhealthy to always serve the same result, no matter which node in the pool you hit.  The current master running checks is calculated by all nodes in the deployment by simply querying the Kubernetes API for 'Ready' Kuberhealthy pods of the correct label, and sorting them alphabetically by name.  The node that comes first is master.  These two strategies together enable Kuberhealthy to maintain state and scale horizontally without deploying an additional backing database.
+
+### Synthetic KPIs with Kuberhealthy
+
+Using Kuberhealthy with prometheus can help capture useful synthetic KPIs. Check out the [K8s KPIs with Kuberhealthy](docs/K8s-KPIs-with-Kuberhealthy.md) doc to learn more on how to install Kuberhealthy and collect cluster KPIs.  
 
 ### Security Considerations
 
