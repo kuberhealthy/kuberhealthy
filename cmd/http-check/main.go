@@ -17,38 +17,42 @@ var (
 	checkURL = os.Getenv("CHECK_URL")
 	count    = os.Getenv("COUNT")
 	seconds  = os.Getenv("SECONDS")
-	passing  = os.Getenv("PASSING")
+	passing  = os.Getenv("PASSING_PERCENT")
 )
 
 func init() {
 	// Check that the URL environment variable is valid.
 	if len(checkURL) == 0 {
 		log.Errorln("Empty URL. Please update your CHECK_URL environment variable.")
+		kh.ReportFailure([]string{"CHECK_URL environment variable not set."})
 		os.Exit(0)
 	}
 
 	// Check that the COUNT environment variable is valid.
 	if len(count) == 0 {
 		log.Errorln("Empty count value. Please update your COUNT environemnt variable.")
+		kh.ReportFailure([]string{"COUNT environment variable not set."})
 		os.Exit(0)
 	}
 
 	// Check that the SECONDS environment variable is valid.
 	if len(seconds) == 0 {
 		log.Errorln("Empty seconds value. Please update your SECONDS environemnt variable.")
+		kh.ReportFailure([]string{"SECONDS environment variable not set."})
 		os.Exit(0)
 	}
 
 	// If the URL does not begin with HTTP, exit.
 	if !strings.HasPrefix(checkURL, "http") {
 		log.Errorln("Given URL does not declare a supported protocol. (http | https)")
+		kh.ReportFailure([]string{"Given URL does not declare a supported protocol. (http | https)"})
 		os.Exit(0)
 	}
 }
 
 func main() {
 
-	countInt, err := strconv.Atoi(count)
+	countInt64, err := strconv.ParseInt(count, 10, 0)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -58,16 +62,19 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	passingFloat, err := strconv.ParseFloat(passing, 64)
+	passingInt, err := strconv.ParseInt(passing, 10, 0)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
+	passingPercentage := passingInt / 100
+
+	countInt := int(countInt64)
+
 	// sets the passing score to compare it against checks that have been ran
-	floatCount := float64(countInt)
-	passingScore := floatCount * passingFloat
+	passingScore := passingPercentage * countInt64
 	passInt := int(passingScore)
-	log.Infoln("Looking for at least", passInt, "of", countInt, "checks to pass")
+	log.Infoln("Looking for at least", passing, "percent of", count, "checks to pass")
 
 	log.Infoln("Beginning check.")
 	checksRan := 0
@@ -104,7 +111,7 @@ func main() {
 	log.Infoln(checksPassed, "checks passed")
 	log.Infoln(checksFailed, "checks failed")
 
-	// Check to see if the number of requests passed at 90% and reports to Kuberhealthy accordingly
+	// Check to see if the number of requests passed at passingPercent and reports to Kuberhealthy accordingly
 	if checksPassed < passInt {
 		reportErr := fmt.Errorf("unable to retrieve a valid response from " + checkURL + "check failed " + strconv.Itoa(checksFailed) + " out of " + strconv.Itoa(checksRan) + " attempts")
 		err := kh.ReportFailure([]string{reportErr.Error()})

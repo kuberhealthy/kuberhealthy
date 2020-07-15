@@ -18,8 +18,8 @@ spec:
             value: "10"
           - name: SECONDS
             value: "1"
-          - name: PASSING
-            value: ".9"
+          - name: PASSING_PERCENT
+            value: "90"
         resources:
           requests:
             cpu: 15m
