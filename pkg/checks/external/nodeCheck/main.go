@@ -66,8 +66,9 @@ func WaitForKubeProxy(client *kubernetes.Clientset, namespace string, ctx contex
 	return nil
 }
 
-// WaitForNodeAge checks the node's age to see if its less than the minimum node age. If so, sleeps for a given sleep duration.
-func WaitForNodeAge(client *kubernetes.Clientset, namespace string, minNodeAge time.Duration, sleepDuration time.Duration, ctx context.Context) error {
+// WaitForNodeAge checks the node's age to see if its less than the minimum node age. If so, sleeps until the node
+// reaches the minimum node age.
+func WaitForNodeAge(client *kubernetes.Clientset, namespace string, minNodeAge time.Duration, ctx context.Context) error {
 
 	khPod, err := getKHPod(client, namespace)
 	if err != nil {
@@ -75,20 +76,24 @@ func WaitForNodeAge(client *kubernetes.Clientset, namespace string, minNodeAge t
 	}
 	log.Debugln("Pod is on node:", khPod.Spec.NodeName)
 
-	nodeNew, err := checkNodeNew(client, khPod, minNodeAge)
+	node, err := client.CoreV1().Nodes().Get(khPod.Spec.NodeName, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
+	// get current age of the node
+	nodeAge := time.Now().Sub(node.CreationTimestamp.Time)
+	log.Debugln("Check running on node: ", node.Name, "with node age:", nodeAge)
+	if nodeAge < minNodeAge {
+		return nil
+	}
 
-	if nodeNew {
-		log.Debugln("Node is less than", minNodeAge, "old. Sleeping for", sleepDuration)
-		select {
-		case <- ctx.Done():
-			return errors.New("context cancelled while sleeping for: " + sleepDuration.String())
-		default:
-			time.Sleep(sleepDuration)
-			log.Debugln("Done sleeping. Proceeding to run check")
-		}
+	select {
+	case <- ctx.Done():
+		return errors.New("context cancelled waiting for node to reach minNodeAge")
+	default:
+		sleepDuration := minNodeAge - nodeAge
+		log.Debugln("Node is new. Sleeping for:", sleepDuration, "until node reaches minNodeAge:", minNodeAge)
+		time.Sleep(sleepDuration)
 	}
 	return nil
 }
@@ -108,28 +113,6 @@ func getKHPod(client *kubernetes.Clientset, namespace string) (*corev1.Pod, erro
 		return khPod, err
 	}
 	return khPod, err
-}
-
-// checkIfNodeIsNew checks the age of the node the kuberhealthy check pod is on to determine if its "new" or not.
-func checkNodeNew(client *kubernetes.Clientset, khPod *corev1.Pod, minNodeAge time.Duration) (bool, error) {
-
-	var newNode bool
-	node, err := client.CoreV1().Nodes().Get(khPod.Spec.NodeName, v1.GetOptions{})
-	if err != nil {
-		return newNode, err
-	}
-
-	// get current age of the node
-	nodeAge := time.Now().Sub(node.CreationTimestamp.Time)
-	// if the node the pod is on is less than 3 minutes old, wait 1 minute before running check.
-	log.Debugln("Check running on node: ", node.Name, "with node age:", nodeAge)
-
-	if nodeAge < minNodeAge {
-		newNode = true
-		return newNode, nil
-	}
-
-	return newNode, nil
 }
 
 // waitForKuberhealthyEndpointReady hits the kuberhealthy endpoint every 3 seconds to see if the node is ready to reach
