@@ -24,28 +24,40 @@ func init() {
 	// Check that the URL environment variable is valid.
 	if len(checkURL) == 0 {
 		log.Errorln("Empty URL. Please update your CHECK_URL environment variable.")
-		kh.ReportFailure([]string{"CHECK_URL environment variable not set."})
+		err := kh.ReportFailure([]string{"CHECK_URL environment variable not set."})
+		if err != nil {
+			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+		}
 		os.Exit(0)
 	}
 
 	// Check that the COUNT environment variable is valid.
 	if len(count) == 0 {
 		log.Errorln("Empty count value. Please update your COUNT environemnt variable.")
-		kh.ReportFailure([]string{"COUNT environment variable not set."})
+		err := kh.ReportFailure([]string{"COUNT environment variable not set."})
+		if err != nil {
+			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+		}
 		os.Exit(0)
 	}
 
 	// Check that the SECONDS environment variable is valid.
 	if len(seconds) == 0 {
 		log.Errorln("Empty seconds value. Please update your SECONDS environemnt variable.")
-		kh.ReportFailure([]string{"SECONDS environment variable not set."})
+		err := kh.ReportFailure([]string{"SECONDS environment variable not set."})
+		if err != nil {
+			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+		}
 		os.Exit(0)
 	}
 
 	// If the URL does not begin with HTTP, exit.
 	if !strings.HasPrefix(checkURL, "http") {
 		log.Errorln("Given URL does not declare a supported protocol. (http | https)")
-		kh.ReportFailure([]string{"Given URL does not declare a supported protocol. (http | https)"})
+		err := kh.ReportFailure([]string{"Given URL does not declare a supported protocol. (http | https)"})
+		if err != nil {
+			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+		}
 		os.Exit(0)
 	}
 }
