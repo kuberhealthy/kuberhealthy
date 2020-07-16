@@ -24,7 +24,7 @@ func init() {
 	// Check that the URL environment variable is valid.
 	if len(checkURL) == 0 {
 		err := fmt.Errorf("empty CHECK_URL specified. Please update your CHECK_URL environment variable")
-		ReportFailureAndPanic(err)
+		ReportFailureAndExit(err)
 	}
 
 	// Check that the COUNT environment variable is valid.
@@ -40,7 +40,7 @@ func init() {
 	// If the URL does not begin with HTTP, exit.
 	if !strings.HasPrefix(checkURL, "http") {
 		err := fmt.Errorf("given URL does not declare a supported protocol. (http | https)")
-		ReportFailureAndPanic(err)
+		ReportFailureAndExit(err)
 	}
 }
 
@@ -49,19 +49,19 @@ func main() {
 	countInt, err := strconv.Atoi(count)
 	if err != nil {
 		err = fmt.Errorf("Error converting COUNT to int: " + err.Error())
-		ReportFailureAndPanic(err)
+		ReportFailureAndExit(err)
 	}
 
 	secondInt, err := strconv.Atoi(seconds)
 	if err != nil {
 		err = fmt.Errorf("Error converting SECONDS to int: " + err.Error())
-		ReportFailureAndPanic(err)
+		ReportFailureAndExit(err)
 	}
 
 	passingInt, err := strconv.Atoi(passing)
 	if err != nil {
 		err = fmt.Errorf("Error converting PASSING_PERCENT to int: " + err.Error())
-		ReportFailureAndPanic(err)
+		ReportFailureAndExit(err)
 	}
 
 	// if the passing count is empty, then default to 1
@@ -114,7 +114,7 @@ func main() {
 	// Check to see if the number of requests passed at passingPercent and reports to Kuberhealthy accordingly
 	if checksPassed < passInt {
 		reportErr := fmt.Errorf("unable to retrieve a valid response from " + checkURL + "check failed " + strconv.Itoa(checksFailed) + " out of " + strconv.Itoa(checksRan) + " attempts")
-		ReportFailureAndPanic(reportErr)
+		ReportFailureAndExit(reportErr)
 	}
 
 	err = kh.ReportSuccess()
@@ -124,8 +124,9 @@ func main() {
 	log.Infoln("Successfully reported to Kuberhealthy")
 }
 
-// ReportFailureAndPanic logs and reports an error to kuberhealthy and then fatals the program
-func ReportFailureAndPanic(err error) {
+// ReportFailureAndExit logs and reports an error to kuberhealthy and then exits the program.
+// If a error occurs when reporting to kuberhealthy, the program fatals.
+func ReportFailureAndExit(err error) {
 	log.Errorln(err)
 	err2 := kh.ReportFailure([]string{err.Error()})
 	if err2 != nil {
