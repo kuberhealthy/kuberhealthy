@@ -109,7 +109,7 @@ func main() {
 		checksPassed++
 
 		// if we have a ticker, we wait for it to tick before checking again
-		if ticker.C != nil {
+		if ticker != nil && ticker.C != nil {
 			<-ticker.C
 		}
 	}
