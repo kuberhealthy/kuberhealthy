@@ -66,7 +66,7 @@ func main() {
 
 	// if the passing count is empty, then default to 1
 	if passingInt == 0 {
-		passingInt = 1
+		passingInt = 100
 	}
 	passingPercentage := passingInt / 100
 
