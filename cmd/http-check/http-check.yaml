@@ -15,11 +15,11 @@ spec:
           - name: CHECK_URL
             value: "http://google.com"
           - name: COUNT
-            value: "10"
+            value: "1"
           - name: SECONDS
             value: "1"
           - name: PASSING_PERCENT
-            value: "90"
+            value: "100"
         resources:
           requests:
             cpu: 15m

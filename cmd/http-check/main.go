@@ -32,8 +32,8 @@ func init() {
 	}
 
 	// Check that the COUNT environment variable is valid.
-	if len(count) == 0 {
-		log.Errorln("Empty count value. Please update your COUNT environemnt variable.")
+	if count == "0" || len(count) == 0 {
+		log.Errorln("Invalid count value. Please update your COUNT environemnt variable to a positive non 0.")
 		err := kh.ReportFailure([]string{"COUNT environment variable not set."})
 		if err != nil {
 			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
@@ -42,8 +42,8 @@ func init() {
 	}
 
 	// Check that the SECONDS environment variable is valid.
-	if len(seconds) == 0 {
-		log.Errorln("Empty seconds value. Please update your SECONDS environemnt variable.")
+	if seconds == "0" || len(seconds) == 0 {
+		log.Errorln("Invalid seconds value. Please update your SECONDS environemnt variable to a positive non 0.")
 		err := kh.ReportFailure([]string{"SECONDS environment variable not set."})
 		if err != nil {
 			log.Fatalln("error when reporting to kuberhealthy:", err.Error())
