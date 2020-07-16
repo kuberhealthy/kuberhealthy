@@ -81,13 +81,16 @@ func main() {
 	checksPassed := 0
 	checksFailed := 0
 
-	ticker := time.NewTicker(time.Duration(secondInt))
-	defer ticker.Stop()
+	// if we have a pause, start a ticker
+	var ticker *time.Ticker
+	if secondInt > 0 {
+		ticker = time.NewTicker(time.Duration(secondInt * time.Now().Second()))
+		defer ticker.Stop()
+	}
 
 	// This for loop makes a http GET request to a known internet address, address can be changed in deployment spec yaml
 	// and returns a http status every second.
 	for checksRan < countInt {
-		<-ticker.C
 		r, err := http.Get(checkURL)
 		checksRan++
 
@@ -104,6 +107,11 @@ func main() {
 		}
 		log.Errorln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
 		checksPassed++
+
+		// if we have a ticker, we wait for it to tick before checking again
+		if ticker.C != nil {
+			<-ticker.C
+		}
 	}
 
 	// Displays the results of 10 URL requests
