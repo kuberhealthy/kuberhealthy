@@ -84,7 +84,7 @@ func main() {
 	// if we have a pause, start a ticker
 	var ticker *time.Ticker
 	if secondInt > 0 {
-		ticker = time.NewTicker(time.Duration(secondInt * time.Now().Second()))
+		ticker = time.NewTicker(time.Duration(secondInt) * time.Second)
 		defer ticker.Stop()
 	}
 
