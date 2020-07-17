@@ -2,22 +2,47 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 
+	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/api/admission/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func (wh *webhook) validate(review *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	log.Infoln("Received a validation request for", review.Request.Name, khchecks, "from", review.Request.Namespace, "namespace.", "Request:", review.Request.UID+".")
 	if review.Kind != khchecks {
-		log.Errorln("Skipping validation request for", review.Request.UID, "because it is not a khcheck.")
-		return nil
+		err := errors.New("Skipping validation request for " + string(review.Request.UID) + " because it is not a khcheck.")
+		log.Errorln(err.Error())
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: err.Error(),
+			},
+		}
 	}
 
-	var KuberhealthyCheck khc
+	var khc khcheckcrd.KuberhealthyCheck
 	err := json.Unmarshal(review.Request.Object.Raw, &khc)
 	if err != nil {
-		log.Errorln("Failed to unmarshal khcheck:", err.Error())
-		return nil
+		err := errors.New("Failed to unmarshal khcheck: " + err.Error())
+		log.Errorln(err.Error())
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: err.Error(),
+			},
+		}
+	}
+
+	allowed := true
+	result := &metav1.Status{}
+	if khc.Spec.PodSpec.Containers == nil || len(khc.Spec.PodSpec.Containers) == 0 {
+		allowed = false
+		result.Reason = "Kuberhealthy check spec.podSpec.containers is not an array or list of containers."
+	}
+
+	return &v1beta1.AdmissionResponse{
+		Allowed: allowed,
+		Result:  result,
 	}
 }

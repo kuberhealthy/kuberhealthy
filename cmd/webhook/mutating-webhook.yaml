@@ -6,17 +6,17 @@ metadata:
     app: kuberhealthy
 webhooks:
   - name: kuberhealthychecks.comcast.com
+    matchPolicy: Equivalent
     clientConfig:
       service:
         name: kuberhealthy-admission-webhook
         namespace: kuberhealthy
         path: "/mutate"
-      caBundle: ${CA_BUNDLE}
     rules:
-      - operations: ["CREATE"]
+      - operations: ["CREATE", "UPDATE"]
         apiGroups: ["comcast.github.io"]
         apiVersions: ["v1"]
-        resources: ["khchecks","khstates"]
-    namespaceSelector:
-      matchLabels:
-        kuberhealthy-admission-webhook: enabled
+        resources: ["khchecks"]
+    # namespaceSelector:
+    #   matchLabels:
+    #     kuberhealthy-admission-webhook: enabled

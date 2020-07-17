@@ -15,7 +15,7 @@ import (
 
 var (
 	// Webhook server
-	wh Webhook
+	wh webhook
 
 	// Environment boolean for using the validating webhook handler.
 	// By default, enable validation.
@@ -26,10 +26,6 @@ var (
 	// By default, enable mutation.
 	mutateEnv = os.Getenv("MUTATE")
 	mutate    = true
-
-	// Port / address the server listens on.
-	portEnv = os.Getenv("PORT")
-	port    string
 
 	// TLS cert and key pair.
 	tlsPair tls.Certificate
@@ -67,11 +63,11 @@ const (
 	validatePath = "/validate"
 
 	// Default server port.
-	defaultPort = "443"
+	defaultPort = ":443"
 
 	// Default cert and key locations.
-	defaultCertPath = "/etc/webhook/certs/cert.pem"
-	defaultKeyPath  = "/etc/webhook/certs/key.pem"
+	defaultCertPath = "/etc/certs/webhook/cert.pem"
+	defaultKeyPath  = "/etc/certs/webhook/key.pem"
 )
 
 func init() {
@@ -79,35 +75,49 @@ func init() {
 
 	parseInputValues()
 
+	signalChan = make(chan os.Signal)
+
 	log.Debugln("Loading TLS certificate and key pair.")
-	tlsPair = loadTLS(certPath, keyPath)
+	tlsPair = loadTLS(keyPath, certPath)
 	wh = webhook{}
 	ctx = context.Background()
 }
 
 func main() {
+	// Catch panics.
+	var r interface{}
+	defer func() {
+		r = recover()
+		if r != nil {
+			log.Infoln("Recovered panic:", r)
+		}
+	}()
+
 	// Create a request multiplexer for the webhook server.
 	log.Debugln("Creating request multiplexer for kuberhealthy's dynamic admission controller.")
 	mux := http.NewServeMux()
 	// Turn on mutation if enabled.
 	if mutate {
+		log.Infoln("Mutation enabled.")
 		mux.HandleFunc(mutatePath, wh.serve)
 	}
 	// Turn on validation if enabled.
 	if validate {
+		log.Infoln("Validation enabled.")
 		mux.HandleFunc(validatePath, wh.serve)
 	}
 	wh.server = &http.Server{
-		Addr:      port,
+		Addr:      defaultPort,
 		TLSConfig: &tls.Config{Certificates: []tls.Certificate{tlsPair}},
+		Handler:   mux,
 	}
-	wh.server.Handler = mux
 
 	// Start the server.
-	go listenForInterrupts(ctx)
 	log.Infoln("Starting webhook server.")
 	go startServer(&wh)
 	log.Infoln("Webhook server started.")
+
+	listenForInterrupts(ctx)
 }
 
 // listenForInterrupts watches the signal and done channels for termination.

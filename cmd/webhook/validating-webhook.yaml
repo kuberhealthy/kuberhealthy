@@ -3,20 +3,20 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: kuberhealthy-validating-webhook
   labels:
-    app: kuberhealthy
+    app: kuberhealthy-admission-webhook
 webhooks:
   - name: kuberhealthychecks.comcast.com
+    matchPolicy: Equivalent
     clientConfig:
       service:
         name: kuberhealthy-admission-webhook
         namespace: kuberhealthy
         path: "/validate"
-      caBundle: ${CA_BUNDLE}
     rules:
-      - operations: ["CREATE"]
+      - operations: ["CREATE", "UPDATE"]
         apiGroups: ["comcast.github.io"]
         apiVersions: ["v1"]
-        resources: ["khchecks","khstates"]
-    namespaceSelector:
-      matchLabels:
-        kuberhealthy-admission-webhook: enabled
+        resources: ["khchecks"]
+    # namespaceSelector:
+    #   matchLabels:
+    #     kuberhealthy-admission-webhook: enabled

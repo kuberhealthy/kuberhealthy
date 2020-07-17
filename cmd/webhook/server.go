@@ -22,7 +22,7 @@ type webhook struct {
 
 func startServer(wh *webhook) {
 	for {
-		log.Infoln("Starting web server. Listening to port " + port + ".")
+		log.Infoln("Starting web server. Listening to port " + wh.server.Addr + ".")
 		err := wh.server.ListenAndServeTLS("", "")
 		if err != nil {
 			log.Errorln("Failed to start web server:", err.Error())
@@ -57,7 +57,7 @@ func (wh *webhook) serve(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errorln("Unable to decode request body:", err.Error())
 	}
-	log.Debugln("Decoded request for api version:", version)
+	log.Debugln("Decoded request", review.Request.UID, "on api version:", version)
 	switch r.URL.Path {
 	case mutatePath:
 		log.Infoln("Mutating request", review.Request.UID+".")

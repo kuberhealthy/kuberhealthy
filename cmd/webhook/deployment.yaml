@@ -1,0 +1,88 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuberhealthy-admission-webhook
+  labels:
+    app: kuberhealthy-admission-webhook
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kuberhealthy-admission-webhook
+  template:
+    metadata:
+      labels:
+        app: kuberhealthy-admission-webhook
+    spec:
+      containers:
+        - name: admission-webhook
+          image: jonnydawg/admission-webhook:v0.0.10
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 443
+            protocol: TCP
+          resources:
+            requests:
+              cpu: 1
+              memory: 256Mi
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/certs/webhook/
+              readOnly: true
+          env:
+            - name: "MUTATE"
+              value: "false" 
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: kuberhealthy-webhook-secrets
+--- 
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuberhealthy-admission-webhook-svc
+  labels:
+    app: kuberhealthy-admission-webhook
+spec:
+  ports:
+  - port: 443
+    targetPort: 443
+  selector:
+    app: kuberhealthy-admission-webhook
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kuberhealthy-admission-webhook-sa
+  labels:
+    app: kuberhealthy-admission-webhook
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kuberhealthy-admission-webhook-cr
+  labels:
+    app: kuberhealthy-admission-webhook
+rules:
+- apiGroups:
+  - comcast.github.io
+  resources:
+  - "khchecks"
+  verbs:
+  - "*"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kuberhealthy-admission-webhook-crb 
+  labels:
+    app: kuberhealthy-admission-webhook
+subjects:
+- kind: ServiceAccount
+  name: kuberhealthy-admission-webhook-sa
+  namespace: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kuberhealthy-admission-webhook-cr
