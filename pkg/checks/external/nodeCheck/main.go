@@ -47,7 +47,7 @@ func WaitForKuberhealthy(ctx context.Context) error {
 
 // WaitForKubeProxy waits for kube proxy to be ready and running on the node before running the check. Assumes that the
 // kube-proxy pod follows the naming convention: "kube-proxy-{nodeName}"
-func WaitForKubeProxy(client *kubernetes.Clientset, namespace string, ctx context.Context) error {
+func WaitForKubeProxy(ctx context.Context, client *kubernetes.Clientset, namespace string) error {
 
 	khPod, err := getKHPod(client, namespace)
 	if err != nil {
@@ -68,7 +68,7 @@ func WaitForKubeProxy(client *kubernetes.Clientset, namespace string, ctx contex
 
 // WaitForNodeAge checks the node's age to see if its less than the minimum node age. If so, sleeps until the node
 // reaches the minimum node age.
-func WaitForNodeAge(client *kubernetes.Clientset, namespace string, minNodeAge time.Duration, ctx context.Context) error {
+func WaitForNodeAge(ctx context.Context, client *kubernetes.Clientset, namespace string, minNodeAge time.Duration) error {
 
 	khPod, err := getKHPod(client, namespace)
 	if err != nil {
@@ -83,7 +83,7 @@ func WaitForNodeAge(client *kubernetes.Clientset, namespace string, minNodeAge t
 	// get current age of the node
 	nodeAge := time.Now().Sub(node.CreationTimestamp.Time)
 	log.Debugln("Check running on node: ", node.Name, "with node age:", nodeAge)
-	if nodeAge < minNodeAge {
+	if nodeAge <= minNodeAge {
 		return nil
 	}
 
