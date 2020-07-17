@@ -1,0 +1,22 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatatingWebhookConfiguration
+metadata:
+  name: kuberhealthy-mutating-webhook
+  labels:
+    app: kuberhealthy
+webhooks:
+  - name: kuberhealthychecks.comcast.com
+    clientConfig:
+      service:
+        name: kuberhealthy-admission-webhook
+        namespace: kuberhealthy
+        path: "/mutate"
+      caBundle: ${CA_BUNDLE}
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: ["comcast.github.io"]
+        apiVersions: ["v1"]
+        resources: ["khchecks","khstates"]
+    namespaceSelector:
+      matchLabels:
+        kuberhealthy-admission-webhook: enabled
