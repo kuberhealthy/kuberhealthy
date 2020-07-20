@@ -9,9 +9,11 @@ webhooks:
     matchPolicy: Equivalent
     clientConfig:
       service:
-        name: kuberhealthy-admission-webhook
+        name: kuberhealthy-admission-webhook-svc
         namespace: kuberhealthy
         path: "/mutate"
+      caBundle: ${CA_BUNDLE}
+    sideEffects: NoneOnDryRun
     rules:
       - operations: ["CREATE", "UPDATE"]
         apiGroups: ["comcast.github.io"]

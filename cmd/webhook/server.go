@@ -31,6 +31,15 @@ func startServer(wh *webhook) {
 }
 
 func (wh *webhook) serve(w http.ResponseWriter, r *http.Request) {
+	log.Infoln("Handling dynamic admission request from", r.UserAgent()+".")
+
+	contentType := r.Header.Get(httpHeaderContentType)
+	if contentType != httpHeaderContentTypeApplicationJSON {
+		log.Errorln("Failed to process request body from", r.UserAgent(), "because request content type was not", httpHeaderContentTypeApplicationJSON)
+		http.Error(w, "Failed to process request body from "+r.UserAgent()+" because request content type was not "+httpHeaderContentTypeApplicationJSON, http.StatusBadRequest)
+		return
+	}
+
 	requestBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Errorln("Unable to read request body from", r.UserAgent()+":", err.Error())
@@ -42,14 +51,7 @@ func (wh *webhook) serve(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Received an empty request body.", http.StatusBadRequest)
 		return
 	}
-	log.Infoln("Handling dynamic admission request from", r.UserAgent()+". ("+strconv.Itoa(len(requestBody))+" bytes).")
-
-	contentType := r.Header.Get(httpHeaderContentType)
-	if contentType != httpHeaderContentTypeApplicationJSON {
-		log.Errorln("Failed to process request body from", r.UserAgent(), "because request content type was not", httpHeaderContentTypeApplicationJSON)
-		http.Error(w, "Failed to process request body from "+r.UserAgent()+" because request content type was not "+httpHeaderContentTypeApplicationJSON, http.StatusBadRequest)
-		return
-	}
+	log.Infoln("Handling " + strconv.Itoa(len(requestBody)) + " bytes.")
 
 	admResp := &v1beta1.AdmissionResponse{}
 	review := &v1beta1.AdmissionReview{}
