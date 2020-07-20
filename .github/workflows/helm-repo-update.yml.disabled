@@ -2,8 +2,6 @@ name: Update Helm Repo Files
 on:
   release:
     types: released
-#    paths:
-#      -
     branches:
       - master
 
@@ -21,7 +19,6 @@ jobs:
         #kustomize: 3.4.0
         #helm: 2.16.1
         helmv3: 3.0.0
-#    - name: Package and Index
       command: | 
         cd ./deploy/helm/kuberhealthy
         helm lint ./
