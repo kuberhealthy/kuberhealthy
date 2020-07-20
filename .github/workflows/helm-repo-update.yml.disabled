@@ -22,10 +22,9 @@ jobs:
       command: | 
         cd ./deploy/helm/kuberhealthy
         helm lint ./
-        if [ "$?" -ne "0" ]
-        then
-        echo "Linting reports error"
-        exit 1
+        if [ "$?" -ne "0" ]; then
+          echo "Linting reports error"
+          exit 1
         fi
         helm package ./ -d ../../../helm-repos/archives
         helm repo index ./ --merge index.yaml --url https://comcast.github.io/kuberhealthy
