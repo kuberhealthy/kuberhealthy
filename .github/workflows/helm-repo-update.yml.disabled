@@ -28,7 +28,7 @@ jobs:
         fi
         helm package ./ -d ../../../helm-repos/archives
         cd ../../../helm-repos/archives
-        helm repo index ./ --merge index.yaml --url https://comcast.github.io/kuberhealthy
+        helm repo index ./ --merge index.yaml --url https://comcast.github.io/kuberhealthy/helm-repos
 #
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v2.4.4
