@@ -1,11 +1,5 @@
 module github.com/Comcast/kuberhealthy/v2
 
-replace github.com/go-resty/resty => gopkg.in/resty.v1 v1.10.0
-
-replace google.golang.org/cloud => cloud.google.com/go v0.37.0
-
-replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.3.0
-
 require (
 	cloud.google.com/go v0.38.0 // indirect
 	github.com/Pallinder/go-randomdata v1.1.0
@@ -40,6 +34,12 @@ require (
 	k8s.io/kops v1.11.0
 	k8s.io/utils v0.0.0-20200318093247-d1ab8797c558 // indirect
 	sigs.k8s.io/yaml v1.2.0
+)
+
+replace (
+	github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.3.0
+	github.com/go-resty/resty => gopkg.in/resty.v1 v1.10.0
+	google.golang.org/cloud => cloud.google.com/go v0.37.0
 )
 
 go 1.13
