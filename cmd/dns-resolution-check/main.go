@@ -35,10 +35,18 @@ import (
 const maxTimeInFailure = 60 * time.Second
 const defaultCheckTimeout = 5 * time.Minute
 
+// KubeConfigFile is a variable containing file path of Kubernetes config files
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+
+// CheckTimeout is a variable for how long code should run before it should retry
 var CheckTimeout time.Duration
+
+// Hostname is a variable for container/pod name
 var Hostname string
+
+// NodeName is a variable for the node where the container/pod is created
 var NodeName string
+
 var now time.Time
 
 // Checker validates that DNS is functioning correctly

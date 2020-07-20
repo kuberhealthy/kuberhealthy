@@ -47,6 +47,9 @@ func loadTestPodSpecFile(path string) (*khcheckcrd.KuberhealthyCheck, error) {
 
 	log.Debugln("Decoding this YAML:", string(b))
 	j, err := yaml.YAMLToJSON(b)
+	if err != nil {
+		return &podSpec, err
+	}
 
 	// unmarshal the pod into the pod struct and return
 	err = json.Unmarshal(j, &podSpec)

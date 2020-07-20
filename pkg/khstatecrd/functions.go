@@ -26,7 +26,7 @@ type KuberhealthyStateClient struct {
 	restClient rest.Interface
 }
 
-// ResetClient returns the rest client for easy listWatcher use
+// RestClient returns the rest client for easy listWatcher use
 func (c *KuberhealthyStateClient) RestClient() rest.Interface {
 	return c.restClient
 }

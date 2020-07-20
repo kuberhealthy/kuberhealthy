@@ -51,8 +51,6 @@ func getKuberhealthyPod(client *kubernetes.Clientset, namespace, podName string)
 
 // GetCurrentUser checks which os use that is running the app
 func GetCurrentUser(defaultUser int64) (int64, error) {
-	runAsUser := defaultUser
-
 	currentUser, err := user.Current()
 	if err != nil {
 		return 0, err
@@ -64,14 +62,15 @@ func GetCurrentUser(defaultUser int64) (int64, error) {
 	if intCurrentUser == 0 {
 		return defaultUser, nil
 	}
-	runAsUser = intCurrentUser
-	return runAsUser, nil
+	return intCurrentUser, nil
 
 }
 
 func GetInstanceNamespace(defaultNamespace string) string {
 
 	instanceNamespace := defaultNamespace
+
+	// instanceNamespaceEnv is a variable for storing namespace instance information
 	var instanceNamespaceEnv string
 
 	data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
