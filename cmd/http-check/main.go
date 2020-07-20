@@ -64,7 +64,7 @@ func main() {
 		ReportFailureAndExit(err)
 	}
 
-	// if the passing count is empty, then default to 1
+	// if the passing count is empty, then default to 100%
 	if passingInt == 0 {
 		passingInt = 100
 	}
