@@ -1,0 +1,54 @@
+# Publish the latest version of master to gh-pages branch
+#
+name: Update gh-pages branch
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ./Helm-Repos/kuberhealthy.**.tgz
+#
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps
+    - name: Checkout
+    - uses: actions/Checkout@v2.0.0
+#
+- name: Create Pull Request
+      uses: peter-evans/create-pull-request@v2.4.4
+      with:
+        # GITHUB_TOKEN or a repo scoped PAT
+        token: ${{ secrets.GITHUB_TOKEN }}
+        # Relative path under $GITHUB_WORKSPACE to the repository.
+        #path: # optional
+        # The message to use when committing changes.
+        commit-message: "Merge master branch with gh-pages branch"
+        # The committer name and email address.
+        #author: "GitHub Automatic Template Render Job"
+        # The author name and email address.
+        committer: "Github Actions <action@github.com>"
+        # The title of the pull request.
+        title: "Merge master with gh-pages"
+        # The body of the pull request.
+        body: "An automatic PR to merge master into gh-pages."
+        # A comma separated list of labels.
+        #labels: # optional
+        # A comma separated list of assignees (GitHub usernames).
+        #assignees: # optional
+        # A comma separated list of reviewers (GitHub usernames) to request a review from.
+        #reviewers: # optional
+        # A comma separated list of GitHub teams to request a review from.
+        #team-reviewers: # optional
+        # The number of the milestone to associate this pull request with.
+        #milestone: # optional
+        # The name of the project for which a card should be created.
+        #project: # optional
+        # The name of the project column under which a card should be created.
+        #project-column: # optional
+        # The pull request branch name.
+        branch: master
+        # The pull request base branch.
+        base: gh-pages
+        # The branch suffix type.
+        #branch-suffix: # optional
