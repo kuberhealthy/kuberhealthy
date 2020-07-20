@@ -15,9 +15,16 @@ import (
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
+// kubeConfigFile is a variable containing file path of Kubernetes config files
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+
+// ReapCheckerPods is a variable mapping all reaper pods
 var ReapCheckerPods map[string]v1.Pod
+
+// MaxPodsThreshold is a variable limiting how many reaper pods can exist in a cluster
 var MaxPodsThreshold = 4
+
+// Namespace is a variable to allow code to target all namespaces or a single namespace
 var Namespace string
 
 func init() {
@@ -135,7 +142,7 @@ func deleteFilteredCheckerPods(client *kubernetes.Clientset, reapCheckerPods map
 			}
 
 			// Delete if there are more than 5 checker pods with the same name in status Succeeded that were created more recently
-			if  v.Status.Phase == v1.PodSucceeded && successOldCount > MaxPodsThreshold && successCount > MaxPodsThreshold {
+			if v.Status.Phase == v1.PodSucceeded && successOldCount > MaxPodsThreshold && successCount > MaxPodsThreshold {
 				log.Infoln("Found more than 5 checker pods with the same name in status `Succeeded` that were created more recently. Deleting pod:", k)
 
 				err = deletePod(client, v)
