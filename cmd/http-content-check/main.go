@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -8,31 +9,31 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
+	"k8s.io/client-go/kubernetes"
+
 	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 )
 
-// TargetURL retrieves URL that will be used to search for string in response body
-var TargetURL = os.Getenv("TARGET_URL")
+var (
+	// TargetURL retrieves URL that will be used to search for string in response body
+	TargetURL = os.Getenv("TARGET_URL")
 
-// TargetString is the string that will be searched for in the server response body
-var TargetString = os.Getenv("TARGET_STRING")
+	// TargetString is the string that will be searched for in the server response body
+	TargetString = os.Getenv("TARGET_STRING")
 
-// TimeoutDur is user requested timeout duration for specified URL
-var TimeoutDur = os.Getenv("TIMEOUT_DURATION")
+	// TimeoutDur is user requested timeout duration for specified URL
+	TimeoutDur = os.Getenv("TIMEOUT_DURATION")
 
-// reportErrorAndStop reports to kuberhealthy of error and exits program when called
-func reportErrorAndStop(s string) {
-	log.Println("attempting to report error to kuberhealthy:", s)
-	err := checkclient.ReportFailure([]string{s})
-	if err != nil {
-		log.Println("failed to report to kuberhealthy servers:", err)
-		os.Exit(1)
-	}
-	log.Println("successfully reported error to kuberhealthy servers")
-	os.Exit(0)
-}
+	// the global kubernetes client
+	kubernetesClient *kubernetes.Clientset
+)
 
-func main() {
+func init() {
+	// set debug mode for nodeCheck pkg
+	nodeCheck.EnableDebugOutput()
+
 	// check to make sure URL is provided
 	if TargetURL == "" {
 		reportErrorAndStop("No URL provided in YAML")
@@ -41,6 +42,24 @@ func main() {
 	//check to make sure string is provided
 	if TargetString == "" {
 		reportErrorAndStop("No string provided in YAML")
+	}
+}
+
+func main() {
+
+	kubernetesClient, err := kubeClient.Create("")
+	if err != nil {
+		reportErrorAndStop("Error creating kubeClient with error" + err.Error())
+	}
+
+	err = nodeCheck.WaitForKuberhealthy(context.TODO())
+	if err != nil {
+		reportErrorAndStop("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
+	}
+
+	err = nodeCheck.WaitForKubeProxy(context.TODO(), kubernetesClient, "kube-system")
+	if err != nil {
+		reportErrorAndStop("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
 	}
 
 	// attempt to fetch URL content and fail if we cannot
@@ -60,8 +79,7 @@ func main() {
 		log.Println("failed to report success", err)
 		os.Exit(1)
 	}
-	log.Println("successfully reported to kuberhealthy servers")
-
+	log.Println("Successfully reported to Kuberhealthy")
 }
 
 // getURLContent retrieves bytes and error from URL
@@ -93,4 +111,16 @@ func findStringInContent(b []byte, s string) bool {
 		return true
 	}
 	return false
+}
+
+// reportErrorAndStop reports to kuberhealthy of error and exits program when called
+func reportErrorAndStop(s string) {
+	log.Println("attempting to report error to kuberhealthy:", s)
+	err := checkclient.ReportFailure([]string{s})
+	if err != nil {
+		log.Println("failed to report to kuberhealthy servers:", err)
+		os.Exit(1)
+	}
+	log.Println("Successfully reported to Kuberhealthy")
+	os.Exit(0)
 }
