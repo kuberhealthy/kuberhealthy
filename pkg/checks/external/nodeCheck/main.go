@@ -3,7 +3,7 @@ package nodeCheck
 import (
 	"context"
 	"errors"
-	"net"
+	"net/http"
 	"os"
 	"time"
 
@@ -128,7 +128,8 @@ func waitForKuberhealthyEndpointReady(kuberhealthyEndpoint string, ctx context.C
 			return doneChan
 		default:
 		}
-		_, err := net.LookupHost(kuberhealthyEndpoint)
+
+		_, err := http.NewRequest("GET", kuberhealthyEndpoint, nil)
 		if err == nil {
 			log.Debugln(kuberhealthyEndpoint, "is ready.")
 			return doneChan
