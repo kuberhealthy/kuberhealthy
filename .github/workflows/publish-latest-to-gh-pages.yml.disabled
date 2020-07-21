@@ -6,7 +6,7 @@ on:
     branches:
       - master
     paths:
-      - ./Helm-Repos/kuberhealthy.**.tgz
+      - ./helm-repos/index.yaml
 #
 jobs:
   build:
