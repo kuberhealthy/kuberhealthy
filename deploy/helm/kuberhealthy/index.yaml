@@ -3,7 +3,7 @@ entries:
   kuberhealthy:
   - apiVersion: v2
     appVersion: 2.2.0
-    created: "2020-06-12T15:31:18.295498-07:00"
+    created: "2020-07-20T23:51:08.909624Z"
     description: An operator for synthetic test and monitoring.  Works great with
       Prometheus.
     digest: 0a57ed0ecc85ee985af3118ebb2cc586e41393f1333a8e4b189dcaddf0fb0a44
@@ -36,6 +36,6 @@ entries:
     - https://github.com/helm/charts/tree/master/stable/kuberhealthy
     type: application
     urls:
-    - kuberhealthy-2.2.0.tgz
+    - https://comcast.github.io/kuberhealthy/kuberhealthy-2.2.0.tgz
     version: 2.2.0
-generated: "2020-06-12T15:31:18.294274-07:00"
+generated: "2020-07-20T23:51:08.907604Z"
