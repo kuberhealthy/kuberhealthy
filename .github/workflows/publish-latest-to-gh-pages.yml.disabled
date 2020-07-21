@@ -16,40 +16,9 @@ jobs:
     - name: Checkout
     - uses: actions/Checkout@v2.0.0
 #
-- name: Create Pull Request
-      uses: peter-evans/create-pull-request@v2.4.4
+    - name: Deploy 🚀
+      uses: JamesIves/github-pages-deploy-action@3.5.7
       with:
-        # GITHUB_TOKEN or a repo scoped PAT
-        token: ${{ secrets.GITHUB_TOKEN }}
-        # Relative path under $GITHUB_WORKSPACE to the repository.
-        #path: # optional
-        # The message to use when committing changes.
-        commit-message: "Merge master branch with gh-pages branch"
-        # The committer name and email address.
-        #author: "GitHub Automatic Template Render Job"
-        # The author name and email address.
-        committer: "Github Actions <action@github.com>"
-        # The title of the pull request.
-        title: "Merge master with gh-pages"
-        # The body of the pull request.
-        body: "An automatic PR to merge master into gh-pages."
-        # A comma separated list of labels.
-        #labels: # optional
-        # A comma separated list of assignees (GitHub usernames).
-        #assignees: # optional
-        # A comma separated list of reviewers (GitHub usernames) to request a review from.
-        #reviewers: # optional
-        # A comma separated list of GitHub teams to request a review from.
-        #team-reviewers: # optional
-        # The number of the milestone to associate this pull request with.
-        #milestone: # optional
-        # The name of the project for which a card should be created.
-        #project: # optional
-        # The name of the project column under which a card should be created.
-        #project-column: # optional
-        # The pull request branch name.
-        branch: master
-        # The pull request base branch.
-        base: gh-pages
-        # The branch suffix type.
-        #branch-suffix: # optional
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        BRANCH: gh-pages # The branch the action should deploy to.
+        FOLDER: / # The folder the action should deploy.
