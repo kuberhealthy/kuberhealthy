@@ -100,7 +100,7 @@ func doDeploy() error {
 }
 
 // remove removes the created daemonset for this check from the cluster. Waits for daemonset and daemonset pods to clear
-func remove(ctx context.Context, dsName string) error {
+func remove(dsName string, ctx context.Context) error {
 	log.Infoln("Removing daemonset.")
 
 	doneChan := make(chan error, 1)
