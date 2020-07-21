@@ -1,9 +1,8 @@
 name: Update Helm Repo Files
 on:
-  release:
-    types: released
-    branches:
-      - master
+  create:
+    tags:
+      - v*
 
 jobs:
   build:
