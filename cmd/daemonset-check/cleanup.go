@@ -12,7 +12,7 @@ import (
 // cleanUp triggers check clean up and waits for all rogue daemonsets to clear
 func cleanUp(ctx context.Context) error {
 
-	log.Debugln("Allowing clean up", checkTimeLimit, "to finish.")
+	log.Debugln("Allowing clean up", shutdownGracePeriod, "to finish.")
 
 	// Clean up daemonsets and daemonset pods
 	// deleteDS not only issues a delete on the rogue daemonset but also on the rogue daemonset pods
