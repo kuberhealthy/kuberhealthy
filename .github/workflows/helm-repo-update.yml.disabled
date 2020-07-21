@@ -1,9 +1,8 @@
 name: Update Helm Repo Files
 on:
-  release:
-    types: released
-    branches:
-      - master
+  create:
+    tags:
+      - v*
 
 jobs:
   build:
@@ -26,9 +25,9 @@ jobs:
           echo "Linting reports error"
           exit 1
         fi
-        helm package ./ -d ../../../helm-repos/archives
-        helm repo index ./ --merge index.yaml --url https://comcast.github.io/kuberhealthy
-        cp ./index.yaml ../../../helm-repos/
+        helm package --app-version ${GITHUB_REF##*/} --version $GITHUB_RUN_ID -d ../../../helm-repos/archives ./ 
+        cd ../../../helm-repos/archives
+        helm repo index ./ --merge index.yaml --url https://comcast.github.io/kuberhealthy/helm-repos
 #
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v2.4.4
