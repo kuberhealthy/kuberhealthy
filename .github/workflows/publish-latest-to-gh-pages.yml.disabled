@@ -7,6 +7,7 @@ on:
       - master
     paths:
       - ./helm-repos/index.yaml
+      - ./README.md
 #
 jobs:
   build:
