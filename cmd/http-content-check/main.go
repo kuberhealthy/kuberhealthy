@@ -70,14 +70,19 @@ func main() {
 
 	// attempt to fetch URL content and fail if we cannot
 	userURLstring, err := getURLContent(TargetURL)
+	log.Infoln("Attempting to fetch content from: " + TargetURL)
 	if err != nil {
 		reportErrorAndStop(err.Error())
 	}
+
+	log.Infoln("Parsing content for string " + TargetString)
 
 	// if we cannot find the content string the test has failed
 	if !findStringInContent(userURLstring, TargetString) {
 		reportErrorAndStop("could not find string in content")
 	}
+
+	log.Infoln("Success! Found " + TargetString + " in " + TargetURL)
 
 	// if nothing has failed the test is succesfull
 	err = checkclient.ReportSuccess()
