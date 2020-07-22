@@ -62,7 +62,7 @@ func main() {
 		reportErrorAndStop("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
 	}
 
-	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kube-system")
+	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy")
 	if err != nil {
 		reportErrorAndStop("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
 	}
