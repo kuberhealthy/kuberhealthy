@@ -47,17 +47,22 @@ func init() {
 
 func main() {
 
+	checkTimeLimit := time.Minute * 1
+	ctx, ctxCancel := context.WithTimeout(context.Background(), checkTimeLimit)
+
 	kubernetesClient, err := kubeClient.Create("")
 	if err != nil {
+		ctxCancel()
 		reportErrorAndStop("Error creating kubeClient with error" + err.Error())
 	}
 
-	err = nodeCheck.WaitForKuberhealthy(context.TODO())
+	err = nodeCheck.WaitForKuberhealthy(ctx)
 	if err != nil {
+		ctxCancel()
 		reportErrorAndStop("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
 	}
 
-	err = nodeCheck.WaitForKubeProxy(context.TODO(), kubernetesClient, "kube-system")
+	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kube-system")
 	if err != nil {
 		reportErrorAndStop("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
 	}
