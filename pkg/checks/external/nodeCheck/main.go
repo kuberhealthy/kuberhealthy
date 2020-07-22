@@ -181,7 +181,7 @@ func checkKubeProxyPod(client *kubernetes.Clientset, podName string, kubeProxyNa
 
 	var podReady = true
 	for _, cs := range kubeProxyPod.Status.Conditions {
-		if cs.Type != corev1.PodReady {
+		if cs.Status != "True" {
 			podReady = false
 			break
 		}
