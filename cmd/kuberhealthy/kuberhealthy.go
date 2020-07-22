@@ -465,7 +465,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 	khChecks, err := listUnstructuredKHChecks()
 	if err != nil {
-		log.Errorln("error listing unstructured khChecks: %w", err)
+		return err
 	}
 
 	log.Debugln("Found", len(khChecks.Items), "external checks to load")
