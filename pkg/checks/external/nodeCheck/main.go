@@ -132,6 +132,7 @@ func waitForKuberhealthyEndpointReady(kuberhealthyEndpoint string, ctx context.C
 		_, err := http.NewRequest("GET", kuberhealthyEndpoint, nil)
 		if err == nil {
 			log.Debugln(kuberhealthyEndpoint, "is ready.")
+			doneChan <- nil
 			return doneChan
 		} else {
 			log.Debugln(kuberhealthyEndpoint, "is not ready yet..." + err.Error())
@@ -161,6 +162,7 @@ func waitForKubeProxyReady(client *kubernetes.Clientset, nodeName string, ctx co
 
 		if kubeProxyReady {
 			log.Debugln("Kube proxy: ", kubeProxyName, "is running and ready!")
+			doneChan <- nil
 			return doneChan
 		}
 		time.Sleep(time.Second * 5)
