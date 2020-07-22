@@ -1,12 +1,12 @@
-# IMAGE="kuberhealthy/kuberhealthy"
-# TAG="2.1.0"
+IMAGE="kuberhealthy/kuberhealthy"
+TAG="v2.2.2"
 
 build:
-	docker build -t kuberhealthy/kuberhealthy:2.1.0 -f Dockerfile ../../
-
+	docker build -t ${IMAGE}:${TAG} -f Dockerfile ../../
+build-dev:
+	docker build -t kuberhealthy:dev -f Dockerfile ../../
 push:
-	docker push kuberhealthy/kuberhealthy:2.1.0
-
+	docker push ${IMAGE}:${TAG}
 test:
 	POD_NAME="kuberhealthy-test" go test -run TestWebServer -v -args -- --debug --forceMaster
 run:

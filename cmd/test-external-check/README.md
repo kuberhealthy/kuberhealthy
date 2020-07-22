@@ -1,38 +1,22 @@
 ### test-external-check
 
-This is a container for use in testing external checks on Kuberhealthy.  This container simply runs and either reports a pass or fail depending on the `REPORT_FAILURE` environment variable in its spec.
-
-##### 2.0.0 alpha setup
-
-The version 2.0.0 alpha for Kubernetes image is: `quay.io/comcast/kuberhealthy:2.0.0alpha`.  
-
-You will need to run this image of kuberhealthy in your cluster before external checks are available to you.
-
-You will also need to define the following CRD for Kuberhealthy 2 to use.
-
-```
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: khchecks.comcast.github.io
-spec:
-  group: comcast.github.io
-  version: v1
-  scope: Namespaced
-  names:
-    plural: khchecks
-    singular: khcheck
-    kind: KuberhealthyCheck
-    shortNames:
-      - khc
-```
+This is a container used to test external checks in Kuberhealthy. This container simply runs, waits for a set interval of seconds and then either reports a success or failure depending on the `REPORT_FAILURE` environment variable set in the pod spec.  
 
 
-##### Example Check
+##### Environment Variables
 
-An example checker pod for testing the external check functionality.  Waits a few seconds and reports success every time.  Logs any Kuberhealthy API communication failures.
+`REPORT_FAILURE` can be set to `"true"` to cause the check to report a failure instead of success.
+`REPORT_DELAY` can be set to a duration of time (5s or 3h for example) to configure how long the check waits before reporting back to Kuberhealthy.  By default this is set to 5s.
 
-The spec for enabling this check in Kuberhealthy looks like this:
+
+##### Example `khcheck`
+
+The pod is also design to log any errors it encounters when communicating to the Kuberhealthy API.
+
+Below is a YAML template for enabling the test-external-check in Kuberhealthy.
+
+Simply copy and paste the YAML specs below into a new file and apply it by using the command `kubectl apply -f your-named-khcheck.yaml`.
+
 
 ```yaml
 apiVersion: comcast.github.io/v1
@@ -52,6 +36,8 @@ spec:
     - env:
       - name: REPORT_FAILURE
         value: "false"
+      - name: REPORT_DELAY
+        value: "10s"
       image: kuberhealthy/test-external-check:v1.1.0
       name: main
       resources:
@@ -60,6 +46,46 @@ spec:
           memory: 50Mi
 ```
 
-Apply this check in your cluster (normally for testing) by running `kubectl apply -f khcheck.yaml`.
+### image-pull-check
 
-**Pro tip: by setting the `imagePullPolicy` to `Never` on your check's spec or on the kuberhealthy deoplyment in your test environment, the Docker Kubernetes cluster will pull the image from your local docker host instead of the web.  This enables rapid development when doing local builds.**
+This container tests the availability of external image respositories using Kuberhealthy.  Simply place the `kuberhealthy/test-external-check` image on the repository you need tested.
+
+The pod is designed to attempt a pull of the test image from the remote repository (never from local) every 10 minutes. If the image is unavailable, an error will be reported to the Kuberheakthy API.
+
+To put a copy of this image to your repository, run `docker pull kuberhealthy/test-external-check` and then `docker push my.repository/repo/test-external-check`.
+
+
+##### Example `khcheck`
+
+Below is a YAML template for enabling the image-pull-check in Kuberhealthy.
+
+Simply copy and paste the YAML specs below into a new file and apply it by using the command `kubectl apply -f your-named-khcheck.yaml`.
+
+```yaml
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: image-pull-check
+  namespace: default
+spec:
+  podSpec:
+    containers:
+    - env:
+      - name: REPORT_FAILURE
+        value: "false"
+      - name: REPORT_DELAY
+        value: "1s"
+      # test-external-check image must be uploaded to the repository you wish to test on, and below URL must be updated to match.
+      image: kuberhealthy/test-external-check:v1.2.1
+      imagePullPolicy: Always
+      name: main
+      resources:
+        requests:
+          cpu: 10m
+          memory: 50Mi
+  runInterval: 10m
+  timeout: 1m
+```
+
+You can change the default specs as needed in the above YAML to extend or shorten timeouts, run intervals, etc.

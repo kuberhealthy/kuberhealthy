@@ -5,17 +5,20 @@ kind: KuberhealthyCheck
 metadata:
   name: pod-restarts
 spec:
-  runInterval: 5m
-  timeout: 10m
+  runInterval: {{ .Values.check.podRestarts.runInterval }}
+  timeout: {{ .Values.check.podRestarts.timeout }}
   podSpec:
+    {{- if .Values.securityContext.enabled }}
+    securityContext:
+      runAsUser: {{ .Values.securityContext.runAsUser }}
+      fsGroup: {{ .Values.securityContext.fsGroup }}
+    {{- end}}
     containers:
       - env:
           - name: POD_NAMESPACE
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          - name: CHECK_POD_TIMEOUT
-            value: "10m"
 {{- range $key, $value := .Values.check.podRestarts.extraEnvs }}
           - name: {{ $key }}
             value: {{ $value | quote }}
@@ -27,9 +30,51 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+        {{- if .Values.securityContext.enabled }}
+        securityContext:
+          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+        {{- end }}
     {{- if .Values.check.podRestarts.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.podRestarts.nodeSelector | nindent 6 }}
     {{- end }}
     restartPolicy: Never
+    serviceAccountName: pod-restart-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pod-restart-rb
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pod-restart-role
+subjects:
+  - kind: ServiceAccount
+    name: pod-restart-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-restart-role
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pod-restart-sa
+  namespace: {{ .Release.Namespace }}
 {{- end }}

@@ -40,50 +40,33 @@ func getAllLogLevel() string {
 }
 
 // notifyChanLimiter takes in a chan used for notifications and smooths it out to at most
-// one single notification every 10 seconds.  This will continuously empty whatever the inChan
-// channel fed to it is.  Useful for controlling noisy upstream channel spam. Also smooths notifications
-// out so that an outChan signal is only sent after inChan has been quiet for a full duration of
-// the specified maxSpeed.  Never stops running and does not expect upstream channels from closing
+// one single notification every specified duration.  This will continuously empty whatever the inChan
+// channel fed to it is.  Useful for controlling noisy upstream channel spam. This smooths notifications
+// out so that outChan is only notified after inChan has been quiet for a full duration of
+// the specified maxSpeed.  Stops running when inChan closes
 func notifyChanLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan chan struct{}) {
 
-	ticker := time.NewTicker(maxSpeed)
-	defer ticker.Stop()
-	var mostRecentChangeTime time.Time
-	var changePending bool
+	// we wait for an initial inChan message and then watch for spam to stop.
+	// when inChan closes, the func exits
+	for range inChan {
+		log.Infoln("channel notify limiter witnessed an upstream message on inChan")
 
-	// on every tick, we read all incoming messages and notify if we found any
-	for range ticker.C {
-		var doneReading bool // indicates that the for loop should break because the input chan is drained
-
-		// read all incoming stuff from inChan until the channel is empty
+		// Label for following for-select loop
+	notifyChannel:
 		for {
-			if doneReading {
-				break
-			}
+			log.Debugln("channel notify limiter waiting to receive another inChan or notify after", maxSpeed)
 			select {
+			case <-time.After(maxSpeed):
+				log.Debugln("channel notify limiter reached", maxSpeed, ". Sending output")
+				outChan <- struct{}{}
+				// break out of the for-select loop and go through next inChan loop iteration if any.
+				break notifyChannel
 			case <-inChan:
-				log.Println("channel notify limiter witnessed an upstream message on inChan")
-				changePending = true
-				mostRecentChangeTime = time.Now()
-			default:
-				doneReading = true
+				log.Debugln("channel notify limiter witnessed an upstream message on inChan and is waiting an additional", maxSpeed, "before sending output")
 			}
 		}
 
-		// if a change is pending for outChan, be sure that its been enough time since a change was seen and
-		// send the outChan message
-		if changePending {
-			// if a change has come in within the last tick, then skip this run
-			if time.Now().Sub(mostRecentChangeTime) < maxSpeed {
-				log.Println("channel notify limiter waiting for changes to calm...")
-				continue
-			}
-
-			// if it has been sufficient time since the last inChan message, send a mesage out outChan
-			log.Println("channel notify limiter sending a message on outChan")
-			outChan <- struct{}{}
-			changePending = false
-		}
+		log.Debugln("channel notify limiter finished going through notifications")
 	}
 }
 

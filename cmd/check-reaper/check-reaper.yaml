@@ -11,7 +11,7 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: kuberhealthy/check-reaper:v1.2.1
+              image: kuberhealthy/check-reaper:v1.4.0
               imagePullPolicy: IfNotPresent
 #              env:
 #                - name: SINGLE_NAMESPACE

@@ -146,12 +146,12 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 	go k.stateReflector.Start()
 
 	// if influxdb is enabled, configure it
-	if enableInflux {
+	if cfg.EnableInflux == true {
 		k.configureInfluxForwarding()
 	}
 
 	// Start the web server and restart it if it crashes
-	go kuberhealthy.StartWebServer()
+	go k.StartWebServer()
 
 	// find all the external checks from the khcheckcrd resources on the cluster and keep them in sync.
 	// use rate limiting to avoid reconfiguration spam
@@ -278,18 +278,24 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 		time.Sleep(time.Second)
 
 		// start a watch on khcheck resources
-		watcher, err := khCheckClient.Watch(metav1.ListOptions{})
+		watcher, err := khCheckClient.Watch(metav1.ListOptions{}, checkCRDResource, listenNamespace)
 		if err != nil {
 			log.Errorln("error watching khcheck objects:", err)
 			continue
 		}
 
-		// watch for context expiration and close watcher if it happens
-		go func(ctx context.Context, watcher watch.Interface) {
-			<-ctx.Done()
-			watcher.Stop()
-			log.Debugln("khcheck monitor watch stopping due to context cancellation")
-		}(ctx, watcher)
+		// watch for the watcher context to end, or the parent context.  If the parent context ends, we close the watcher.
+		// if the watcher context ends, we shut down this go routine to prevent a leak as it restarts
+		watcherCtx, watcherCtxCancel := context.WithCancel(context.Background())
+		go func(watchCtx context.Context, ctx context.Context, watcher watch.Interface) {
+			select {
+			case <-watchCtx.Done():
+				break
+			case <-ctx.Done():
+				watcher.Stop()
+			}
+			log.Debugln("khcheck change monitor watch stopping")
+		}(watcherCtx, ctx, watcher)
 
 		// loop over results and return them to the calling channel until we hit an error, then close and restart
 		for khc := range watcher.ResultChan() {
@@ -313,8 +319,9 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 			}
 		}
 
-		// if the context has expired, don't start the watch again. just exit
-		watcher.Stop() // TODO - does calling stop twice crash this?  I am assuming not.
+		// if the watcher breaks, shutdown the parent context monitor go routine
+		watcherCtxCancel()
+
 		select {
 		case <-ctx.Done():
 			log.Debugln("khcheck monitor closing due to context cancellation")
@@ -456,7 +463,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 		// create a new kubernetes client for this external checker
 		log.Infoln("Enabling external check:", r.Name)
-		c := external.New(kubernetesClient, &r, khCheckClient, khStateClient, externalCheckReportingURL)
+		c := external.New(kubernetesClient, &r, khCheckClient, khStateClient, cfg.ExternalCheckReportingURL)
 
 		// parse the run interval string from the custom resource and setup the run interval
 		c.RunInterval, err = time.ParseDuration(r.Spec.RunInterval)
@@ -500,7 +507,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 // StartChecks starts all checks concurrently and ensures they stay running
 func (k *Kuberhealthy) StartChecks() {
-	// wait for theor check wg to be done, just in case
+	// wait for all check wg to be done, just in case
 	k.wg.Wait()
 
 	log.Infoln("control: Reloading check configuration...")
@@ -545,12 +552,19 @@ func (k *Kuberhealthy) masterStatusWatcher(ctx context.Context) {
 			continue
 		}
 
-		// watch for context expiration and close watcher if it happens
-		go func(ctx context.Context, watcher watch.Interface) {
-			<-ctx.Done()
-			watcher.Stop()
-			log.Debugln("master status monitor watch stopping due to context cancellation")
-		}(ctx, watcher)
+		// watch for the parent context to expire as well as this watch context. if the parent context expires,
+		// then we stop the watcher.  if the watcher context expires, we terminate the go routine to prevent a
+		// goroutine leak
+		watcherCtx, watcherCtxCancel := context.WithCancel(context.Background())
+		go func(watchCtx context.Context, ctx context.Context, watcher watch.Interface) {
+			select {
+			case <-watchCtx.Done():
+				break
+			case <-ctx.Done():
+				watcher.Stop()
+			}
+			log.Debugln("master status monitor watch stopping")
+		}(watcherCtx, ctx, watcher)
 
 		// on each update from the watch, we re-check our master status.
 		for range watcher.ResultChan() {
@@ -570,7 +584,8 @@ func (k *Kuberhealthy) masterStatusWatcher(ctx context.Context) {
 			lastMasterChangeTime = time.Now()
 		}
 
-		watcher.Stop() // TODO - does calling stop twice crash this?  I am assuming not.
+		// cancel the watcher by revoking its context
+		watcherCtxCancel()
 
 		// if the context has expired, then shut down the master status watcher entirely
 		select {
@@ -808,7 +823,7 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	}
 
 	// set the pod namespace and name from the returned metadata
-	podCheckName = pod.Annotations[KH_CHECK_NAME_ANNOTATION_KEY]
+	podCheckName = pod.Annotations[KHCheckNameAnnotationKey]
 	if len(podCheckName) == 0 {
 		return reportInfo, errors.New("error finding check name annotation on calling pod with ip: " + ip)
 	}
@@ -872,7 +887,7 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 }
 
 // fetchPodByIPForDuration attempts to fetch a pod by its IP repeatedly for the supplied duration.  If the pod is found,
-// then we return it.  If the pod is not found after the duraiton, we return an error
+// then we return it.  If the pod is not found after the duration, we return an error
 func (k *Kuberhealthy) fetchPodByIPForDuration(remoteIP string, d time.Duration) (v1.Pod, error) {
 	endTime := time.Now().Add(d)
 
@@ -1165,7 +1180,7 @@ func (k *Kuberhealthy) configureChecks() {
 	k.Checks = []KuberhealthyCheck{}
 
 	// check external check configurations
-	err := kuberhealthy.addExternalChecks()
+	err := k.addExternalChecks()
 	if err != nil {
 		log.Errorln("control: ERROR loading external checks:", err)
 	}
@@ -1198,5 +1213,5 @@ func (k *Kuberhealthy) configureInfluxForwarding() {
 	if err != nil {
 		log.Fatalln("Error setting up influx client:", err)
 	}
-	kuberhealthy.MetricForwarder = metricClient
+	k.MetricForwarder = metricClient
 }

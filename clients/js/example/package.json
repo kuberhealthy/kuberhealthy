@@ -1,0 +1,10 @@
+{
+  "name": "example-js-check",
+  "version": "1.0.0",
+  "description": "Example javascript check that uses Kuberhealthy's javascript external check client.",
+  "main": "check.js",
+  "scripts": {},
+  "keywords": [
+    "kuberhealthy"
+  ]
+}

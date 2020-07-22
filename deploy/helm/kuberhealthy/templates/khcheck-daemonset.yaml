@@ -6,9 +6,14 @@ metadata:
   name: daemonset
   namespace: {{ .Release.Namespace }}
 spec:
-  runInterval: 15m
-  timeout: 12m
+  runInterval:  {{ .Values.check.daemonset.runInterval }}
+  timeout: {{ .Values.check.daemonset.timeout }}
   podSpec:
+    {{- if .Values.securityContext.enabled }}
+    securityContext:
+      runAsUser: {{ .Values.securityContext.runAsUser }}
+      fsGroup: {{ .Values.securityContext.fsGroup }}
+    {{- end}}
     containers:
       - env:
           - name: POD_NAMESPACE
@@ -28,6 +33,11 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+        {{- if .Values.securityContext.enabled }}
+        securityContext:
+          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+        {{- end}}
     {{- if .Values.check.daemonset.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.daemonset.nodeSelector | nindent 6 }}
@@ -76,4 +86,3 @@ metadata:
   name: daemonset-khcheck
   namespace: {{ .Release.Namespace }}
 {{- end }}
-

@@ -13,7 +13,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -36,7 +35,7 @@ func runDeploymentCheck() {
 	// TODO: Update this logic to unique services and deployments
 	// Delete all check resources (deployment & service) from this check that should not exist.
 	select {
-	case err := <-cleanUpOrphanedResources():
+	case err := <-cleanUpOrphanedResources(ctx):
 		// If the clean up completes with errors, we report those and stop the check cleanly.
 		if err != nil {
 			log.Errorln("error when cleaning up resources:", err)
@@ -47,10 +46,11 @@ func runDeploymentCheck() {
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal.
 		log.Infoln("Canceling cleanup and shutting down from interrupt.")
+		reportErrorsToKuberhealthy([]string{"failed to perform pre-check cleanup within timeout"})
 		return
 	case <-cleanupTimeout:
 		// If the clean up took too long, exit.
-		reportErrorsToKuberhealthy([]string{"failed to clean up resources in time"})
+		reportErrorsToKuberhealthy([]string{"failed to perform pre-check cleanup within timeout"})
 		return
 	}
 
@@ -73,6 +73,7 @@ func runDeploymentCheck() {
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal.
 		log.Infoln("Cancelling check and shutting down due to interrupt.")
+		reportErrorsToKuberhealthy([]string{"failed to create deployment within timeout"})
 		return
 	case <-runTimeout:
 		// If creating a deployment took too long, exit.
@@ -105,10 +106,11 @@ func runDeploymentCheck() {
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal, exit.
 		log.Infoln("Cancelling check and shutting down due to interrupt.")
+		reportErrorsToKuberhealthy([]string{"failed to create service within timeout"})
 		return
 	case <-runTimeout:
 		// If creating a service took too long, exit.
-		reportErrorsToKuberhealthy([]string{"failed to create deployment within timeout"})
+		reportErrorsToKuberhealthy([]string{"failed to create service within timeout"})
 		return
 	}
 
@@ -116,9 +118,7 @@ func runDeploymentCheck() {
 	// hostname := getServiceLoadBalancerHostname()
 	ipAddress := getServiceClusterIP()
 	if len(ipAddress) == 0 {
-		// if len(hostname) == 0 {
 		// If the retrieved address is empty or nil, clean up and exit.
-		// log.Infoln("Cleaning up check and exiting because the load balancer hostname is nil.")
 		log.Infoln("Cleaning up check and exiting because the cluster IP is nil: ", ipAddress)
 		errorReport := []string{} // Make a slice for errors here, because there can be more than 1 error.
 		// Clean up the check. A deployment was brought up, but no ingress was created.
@@ -156,10 +156,11 @@ func runDeploymentCheck() {
 	case <-ctx.Done():
 		// If there is a cancellation interrupt signal, exit.
 		log.Infoln("Cancelling check and shutting down due to interrupt.")
+		reportErrorsToKuberhealthy([]string{"failed to make http request to the deployment service cluster IP at " + ipAddress + " within timeout"})
 		return
 	case <-runTimeout:
 		// If requests to the hostname endpoint for a status code of 200 took too long, exit.
-		reportErrorsToKuberhealthy([]string{"failed to create deployment within timeout"})
+		reportErrorsToKuberhealthy([]string{"failed to make http request to the deployment service cluster IP at " + ipAddress + " within timeout"})
 		return
 	}
 
@@ -193,10 +194,11 @@ func runDeploymentCheck() {
 		case <-ctx.Done():
 			// If there is a cancellation interrupt signal.
 			log.Infoln("Cancelling check and shutting down due to interrupt.")
+			reportErrorsToKuberhealthy([]string{"failed to update deployment " + deploymentResult.Deployment.Name + " within timeout"})
 			return
 		case <-runTimeout:
 			// If creating a deployment took too long, exit.
-			reportErrorsToKuberhealthy([]string{"failed to update deployment within timeout"})
+			reportErrorsToKuberhealthy([]string{"failed to update deployment " + deploymentResult.Deployment.Name + " within timeout"})
 			return
 		}
 
@@ -220,17 +222,20 @@ func runDeploymentCheck() {
 		case <-ctx.Done():
 			// If there is a cancellation interrupt signal, exit.
 			log.Infoln("Cancelling check and shutting down due to interrupt.")
+			reportErrorsToKuberhealthy([]string{"failed to make http request to the deployment service cluster IP at " + ipAddress + " within timeout"})
 			return
 		case <-runTimeout:
 			// If requests to the hostname endpoint for a status code of 200 took too long, exit.
-			reportErrorsToKuberhealthy([]string{"failed to create deployment within timeout"})
+			reportErrorsToKuberhealthy([]string{"failed to make http request to the deployment service cluster IP at " + ipAddress + " within timeout"})
 			return
 		}
 	}
 
 	// Clean up!
-	cleanUp(ctx)
-
+	cleanUpError := cleanUp(ctx)
+	if cleanUpError != nil {
+		reportErrorsToKuberhealthy([]string{cleanUpError.Error()})
+	}
 	// Report to Kuberhealthy.
 	reportOKToKuberhealthy()
 }
@@ -276,45 +281,37 @@ func cleanUp(ctx context.Context) error {
 
 // cleanUpOrphanedResources cleans up previous deployment and services and ensures
 // a clean slate before beginning a deployment and service check.
-func cleanUpOrphanedResources() chan error {
+func cleanUpOrphanedResources(ctx context.Context) chan error {
 
 	cleanUpChan := make(chan error)
 
-	go func() {
+	go func(c context.Context) {
 		log.Infoln("Wiping all found orphaned resources belonging to this check.")
 
 		defer close(cleanUpChan)
 
-		// Check if an existing service exists.
-		serviceExists, err := findPreviousService()
+		svcExists, err := findPreviousService()
 		if err != nil {
-			cleanUpChan <- errors.New("error listing services: " + err.Error())
+			log.Warnln("Failed to find previous service:", err.Error())
+		}
+		if svcExists {
+			log.Infoln("Found previous service.")
 		}
 
-		// Clean it up if it exists.
-		if serviceExists {
-			err = cleanUpOrphanedService()
-			if err != nil {
-				cleanUpChan <- errors.New("error cleaning up old service: " + err.Error())
-			}
-		}
-
-		// Check if an existing deployment exists.
 		deploymentExists, err := findPreviousDeployment()
 		if err != nil {
-			cleanUpChan <- errors.New("error listing deployments: " + err.Error())
+			log.Warnln("Failed to find previous deployment:", err.Error())
 		}
-
-		// Clean it up if it exists.
 		if deploymentExists {
-			err = cleanUpOrphanedDeployment()
-			if err != nil {
-				cleanUpChan <- errors.New("error cleaning up old deployment: " + err.Error())
-			}
+			log.Infoln("Found previous deployment.")
 		}
 
-		cleanUpChan <- nil
-	}()
+		if svcExists || deploymentExists {
+			cleanUpChan <- cleanUp(c)
+		} else {
+			cleanUpChan <- nil
+		}
+	}(ctx)
 
 	return cleanUpChan
 }
