@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
@@ -52,19 +53,19 @@ func main() {
 
 	kubernetesClient, err := kubeClient.Create("")
 	if err != nil {
-		ctxCancel()
-		reportErrorAndStop("Error creating kubeClient with error" + err.Error())
+		log.Errorln("Error creating kubeClient with error" + err.Error())
 	}
 
 	err = nodeCheck.WaitForKuberhealthy(ctx)
 	if err != nil {
 		ctxCancel()
-		reportErrorAndStop("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
+		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
 	}
 
-	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy")
+	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy", "kube-system")
 	if err != nil {
-		reportErrorAndStop("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
+		// ctxCancel()
+		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
 	}
 
 	// attempt to fetch URL content and fail if we cannot
@@ -81,10 +82,10 @@ func main() {
 	// if nothing has failed the test is succesfull
 	err = checkclient.ReportSuccess()
 	if err != nil {
-		log.Println("failed to report success", err)
+		log.Errorln("failed to report success", err)
 		os.Exit(1)
 	}
-	log.Println("Successfully reported to Kuberhealthy")
+	log.Infoln("Successfully reported to Kuberhealthy")
 }
 
 // getURLContent retrieves bytes and error from URL
@@ -120,12 +121,12 @@ func findStringInContent(b []byte, s string) bool {
 
 // reportErrorAndStop reports to kuberhealthy of error and exits program when called
 func reportErrorAndStop(s string) {
-	log.Println("attempting to report error to kuberhealthy:", s)
+	log.Infoln("attempting to report error to kuberhealthy:", s)
 	err := checkclient.ReportFailure([]string{s})
 	if err != nil {
-		log.Println("failed to report to kuberhealthy servers:", err)
+		log.Errorln("failed to report to kuberhealthy servers:", err)
 		os.Exit(1)
 	}
-	log.Println("Successfully reported to Kuberhealthy")
+	log.Infoln("Successfully reported to Kuberhealthy")
 	os.Exit(0)
 }
