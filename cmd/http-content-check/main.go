@@ -49,7 +49,7 @@ func init() {
 func main() {
 
 	checkTimeLimit := time.Minute * 1
-	ctx, ctxCancel := context.WithTimeout(context.Background(), checkTimeLimit)
+	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
 
 	kubernetesClient, err := kubeClient.Create("")
 	if err != nil {
@@ -58,13 +58,11 @@ func main() {
 
 	err = nodeCheck.WaitForKuberhealthy(ctx)
 	if err != nil {
-		ctxCancel()
 		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
 	}
 
 	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy", "kube-system")
 	if err != nil {
-		// ctxCancel()
 		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
 	}
 
