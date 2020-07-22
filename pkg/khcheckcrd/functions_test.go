@@ -17,7 +17,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Pallinder/go-randomdata"
 	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,7 +55,7 @@ func TestCreate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkDetails := NewKuberhealthyCheck(testCheckName, defaultNamespace, NewCheckConfig(time.Second,v1.PodSpec{}))
+	checkDetails := NewKuberhealthyCheck(testCheckName, defaultNamespace, NewCheckConfig(time.Second, v1.PodSpec{}))
 	result, err := client.Create(&checkDetails, resource, defaultNamespace)
 	if err != nil {
 		t.Fatal(err)
@@ -85,67 +84,4 @@ func TestGet(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(result.Kind)
-}
-
-func TestUpdate(t *testing.T) {
-
-	// make client
-	client, err := Client(group, version, kubeConfigFile, defaultNamespace)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// get the custom resource for the check named gotest
-	checkConfig, err := client.Get(metav1.GetOptions{}, resource, defaultNamespace, testCheckName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("%+v", checkConfig)
-
-	// change something in the check config
-	checkConfig.Spec.RunInterval = (time.Minute * 4).String()
-	randomUUID := randomdata.RandStringRunes(15)
-	checkConfig.Spec.CurrentUUID = randomUUID
-	t.Logf("%+v", checkConfig)
-
-	// apply the updated version to the server
-	_, err = client.Update(checkConfig, resource, defaultNamespace, testCheckName)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// get the updated version back
-	result, err := client.Get(metav1.GetOptions{}, resource, defaultNamespace, testCheckName)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// ensure the interval is set to what we wanted
-	if result.Spec.RunInterval != "4m0s" {
-		t.Log("Incorrect duration after updating and fetching CRD.  Wanted 4m0s but got", result.Spec.RunInterval)
-		t.Fail()
-	}
-
-	// ensure the UUID is the oen we set
-	if result.Spec.CurrentUUID != randomUUID {
-		t.Log("Incorrect CurrentUUID state after updating and fetching CRD.  Wanted", randomUUID, "but got", result.Spec.CurrentUUID)
-		t.Fail()
-	}
-	t.Log(result.Kind)
-}
-
-func TestDelete(t *testing.T) {
-	client, err := Client(group, version, kubeConfigFile, defaultNamespace)
-	if err != nil {
-		t.Fatal(err)
-	}
-	check, err := client.Get(metav1.GetOptions{}, resource, defaultNamespace, testCheckName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	result, err := client.Delete(resource, check.Name, defaultNamespace)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("%+v", result)
 }

@@ -11,6 +11,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/status"
@@ -86,7 +88,7 @@ func sendReport(s status.Report) error {
 	// make sure we got a 200 and consider it an error otherwise
 	if resp.StatusCode != http.StatusOK {
 		writeLog("ERROR: got a bad status code from kuberhealthy:", resp.StatusCode, resp.Status)
-		return fmt.Errorf("bad status code from kuberhealthy status reporting url: %s", resp.StatusCode, resp.Status)
+		return fmt.Errorf("bad status code from kuberhealthy status reporting url: [%d] %s ", resp.StatusCode, resp.Status)
 	}
 	writeLog("INFO: Got a good http return status code from kuberhealthy URL:", url)
 
@@ -106,4 +108,23 @@ func getKuberhealthyURL() (string, error) {
 	}
 
 	return reportingURL, nil
+}
+
+// GetDeadline fetches the KH_CHECK_RUN_DEADLINE environment variable and returns it.
+// Checks are given up to the deadline to complete their check runs.
+func GetDeadline() (time.Time, error) {
+	unixDeadline := os.Getenv(external.KHDeadline)
+
+	if len(unixDeadline) < 1 {
+		writeLog("ERROR: kuberhealthy check deadline from environment variable", external.KHDeadline, "was blank")
+		return time.Time{}, fmt.Errorf("fetched %s environment variable but it was blank", external.KHDeadline)
+	}
+
+	unixDeadlineInt, err := strconv.Atoi(unixDeadline)
+	if err != nil {
+		writeLog("ERROR: unable to parse", external.KHDeadline+": "+err.Error())
+		return time.Time{}, fmt.Errorf("unable to parse %s: %s", external.KHDeadline, err.Error())
+	}
+
+	return time.Unix(int64(unixDeadlineInt), 0), nil
 }

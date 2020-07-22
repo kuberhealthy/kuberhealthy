@@ -13,7 +13,7 @@ metadata:
   name: pod-status
   namespace: kuberhealthy
 spec:
-  runInterval: 60m
+  runInterval: 5m
   timeout: 15m
   podSpec:
     containers:
@@ -24,7 +24,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-        image: kuberhealthy/pod-status-check:v1.1.2
+        image: kuberhealthy/pod-status-check:v1.2.2
         imagePullPolicy: IfNotPresent
         name: main
         resources:

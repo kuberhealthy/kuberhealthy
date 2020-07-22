@@ -62,13 +62,29 @@ var (
 	checkDeploymentReplicasEnv = os.Getenv("CHECK_DEPLOYMENT_REPLICAS")
 	checkDeploymentReplicas    int
 
+	// Node selectors for the deployment check
+	checkDeploymentNodeSelectorsEnv = os.Getenv("NODE_SELECTOR")
+	checkDeploymentNodeSelectors    = make(map[string]string)
+
 	// ServiceAccount that will deploy the test deployment [default = default]
 	checkServiceAccountEnv = os.Getenv("CHECK_SERVICE_ACCOUNT")
 	checkServiceAccount    string
 
+	// Deployment pod resource requests and limits.
+	millicoreRequestEnv = os.Getenv("CHECK_POD_CPU_REQUEST")
+	millicoreRequest    int
+
+	millicoreLimitEnv = os.Getenv("CHECK_POD_CPU_LIMIT")
+	millicoreLimit    int
+
+	memoryRequestEnv = os.Getenv("CHECK_POD_MEM_REQUEST")
+	memoryRequest    int
+
+	memoryLimitEnv = os.Getenv("CHECK_POD_MEM_LIMIT")
+	memoryLimit    int
+
 	// Check time limit.
-	checkTimeLimitEnv = os.Getenv("CHECK_TIME_LIMIT")
-	checkTimeLimit    time.Duration
+	checkTimeLimit time.Duration
 
 	// Boolean value if a rolling-update is requested.
 	rollingUpdateEnv = os.Getenv("CHECK_DEPLOYMENT_ROLLING_UPDATE")
@@ -76,7 +92,7 @@ var (
 
 	// Additional container environment variables if a custom image is used for the deployment.
 	additionalEnvVarsEnv = os.Getenv("ADDITIONAL_ENV_VARS")
-	additionalEnvVars    = make(map[string]string, 0)
+	additionalEnvVars    = make(map[string]string)
 
 	// Seconds allowed for the shutdown process to complete.
 	shutdownGracePeriodEnv = os.Getenv("SHUTDOWN_GRACE_PERIOD")
