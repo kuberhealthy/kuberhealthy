@@ -1,0 +1,24 @@
+# Publish the latest version of master to gh-pages branch
+#
+name: Update gh-pages branch
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ./helm-repos/index.yaml
+      - ./README.md
+#
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps
+    - name: Checkout
+    - uses: actions/Checkout@v2.0.0
+#
+    - name: Deploy 🚀
+      uses: JamesIves/github-pages-deploy-action@3.5.7
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        BRANCH: gh-pages # The branch the action should deploy to.
+        FOLDER: / # The folder the action should deploy.
