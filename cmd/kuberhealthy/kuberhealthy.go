@@ -27,8 +27,13 @@ import (
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/status"
@@ -231,10 +236,9 @@ func (k *Kuberhealthy) reapKHStateResources() error {
 		return fmt.Errorf("khState reaper: error listing khStates for reaping: %w", err)
 	}
 
-	// list all khChecks
-	khChecks, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
+	khChecks, err := listUnstructuredKHChecks()
 	if err != nil {
-		return fmt.Errorf("khState reaper: error listing khChecks for khState reaping: %w", err)
+		return fmt.Errorf("error listing unstructured khChecks: %w", err)
 	}
 
 	log.Infoln("khState reaper: analyzing", len(khStates.Items), "khState resources")
@@ -243,7 +247,12 @@ func (k *Kuberhealthy) reapKHStateResources() error {
 	for _, khState := range khStates.Items {
 		log.Debugln("khState reaper: analyzing khState", khState.GetName(), "in", khState.GetName())
 		var foundKHCheck bool
-		for _, khCheck := range khChecks.Items {
+		for _, kc := range khChecks.Items {
+			khCheck, err := convertUnstructuredKhCheck(kc)
+			if err != nil {
+				log.Errorln("Error converting unstructured object to khcheck:", err)
+				continue
+			}
 			log.Debugln("khState reaper:", khCheck.GetName(), "==", khState.GetName(), "&&", khCheck.GetNamespace(), "==", khState.GetNamespace())
 			if khCheck.GetName() == khState.GetName() && khCheck.GetNamespace() == khState.GetNamespace() {
 				log.Infoln("khState reaper:", khState.GetName(), "in", khState.GetNamespace(), "is still valid")
@@ -348,10 +357,9 @@ func (k *Kuberhealthy) monitorExternalChecks(ctx context.Context, notify chan st
 		<-c
 		log.Debugln("Change notification received. Scanning for external check changes...")
 
-		// fetch all khcheck resources from all namespaces
-		l, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
+		khChecks, err := listUnstructuredKHChecks()
 		if err != nil {
-			log.Errorln("Error listing check configuration resources", err)
+			log.Errorln("error listing unstructured khChecks: %w", err)
 			continue
 		}
 
@@ -361,8 +369,15 @@ func (k *Kuberhealthy) monitorExternalChecks(ctx context.Context, notify chan st
 		// if a khcheck has been deleted, then we signal for change and purge it from the knownSettings map.
 		for mapName := range knownSettings {
 			var existsInItems bool // indicates the item exists in the item listing
-			for _, i := range l.Items {
-				itemMapName := i.Namespace + "/" + i.Name
+
+			for _, kc := range khChecks.Items {
+				khCheck, err := convertUnstructuredKhCheck(kc)
+				if err != nil {
+					log.Errorln("Error converting unstructured object to khcheck:", err)
+					continue
+				}
+
+				itemMapName := khCheck.Namespace + "/" + khCheck.Name
 				if itemMapName == mapName {
 					existsInItems = true
 					break
@@ -375,8 +390,13 @@ func (k *Kuberhealthy) monitorExternalChecks(ctx context.Context, notify chan st
 			}
 		}
 
-		// check for changes or additions in the incoming data
-		for _, i := range l.Items {
+		for _, kc := range khChecks.Items {
+			i, err := convertUnstructuredKhCheck(kc)
+			if err != nil {
+				log.Errorln("Error converting unstructured object to khcheck:", err)
+				continue
+			}
+
 			mapName := i.Namespace + "/" + i.Name
 
 			log.Debugln("Scanning khcheck CRD", mapName, "for changes since last seen...")
@@ -447,16 +467,20 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 	log.Debugln("Fetching khcheck configurations...")
 
-	// list all checks from all namespaces
-	l, err := khCheckClient.List(metav1.ListOptions{}, checkCRDResource, "")
+	khChecks, err := listUnstructuredKHChecks()
 	if err != nil {
 		return err
 	}
 
-	log.Debugln("Found", len(l.Items), "external checks to load")
+	log.Debugln("Found", len(khChecks.Items), "external checks to load")
 
 	// iterate on each check CRD resource and add it as a check
-	for _, r := range l.Items {
+	for _, kc := range khChecks.Items {
+		r, err := convertUnstructuredKhCheck(kc)
+		if err != nil {
+			log.Errorln("Error converting unstructured object to khcheck:", err)
+			continue
+		}
 		log.Debugln("Loading check CRD:", r.Name)
 
 		log.Debugf("External check custom resource loaded: %v", r)
@@ -1214,4 +1238,42 @@ func (k *Kuberhealthy) configureInfluxForwarding() {
 		log.Fatalln("Error setting up influx client:", err)
 	}
 	k.MetricForwarder = metricClient
+}
+
+func listUnstructuredKHChecks() (*unstructured.UnstructuredList, error){
+
+	var unstructuredList *unstructured.UnstructuredList
+	restConfig, err := clientcmd.BuildConfigFromFlags("", configPath)
+	if err != nil {
+		return unstructuredList, err
+	}
+
+	dynClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return unstructuredList, err
+	}
+
+	khCheckGroupVersionResource := schema.GroupVersionResource{
+		Version: checkCRDVersion,
+		Resource: checkCRDResource,
+		Group: checkCRDGroup,
+	}
+
+	unstructuredList, err = dynClient.Resource(khCheckGroupVersionResource).Namespace("").List(metav1.ListOptions{})
+	if err != nil {
+		return unstructuredList, err
+	}
+
+	return unstructuredList, err
+}
+
+func convertUnstructuredKhCheck(unstructured unstructured.Unstructured) (khcheckcrd.KuberhealthyCheck, error){
+	un := unstructured.UnstructuredContent()
+	var khCheck khcheckcrd.KuberhealthyCheck
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(un, &khCheck)
+	if err != nil {
+		return khCheck, fmt.Errorf("error converting unstructured object to khcheck: %w", err)
+	}
+
+	return khCheck, err
 }
