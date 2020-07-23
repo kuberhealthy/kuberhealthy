@@ -205,6 +205,9 @@ func TestWriteWhitelistedUUID(t *testing.T) {
 
 	// fetch the khcheck custom resource state from the server to validate it now that the right UUID has been set
 	c, err := checker.getCheck()
+	if err != nil {
+		t.Fatal("Failed to retrieve khcheck: ", err)
+	}
 
 	// ensure pod spec and containers are set
 	if len(c.Spec.RunInterval) == 0 {

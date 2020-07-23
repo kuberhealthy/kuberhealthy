@@ -1,38 +1,40 @@
 package main
 
 import (
+	"context"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
+	"k8s.io/client-go/kubernetes"
+
 	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 )
 
-// TargetURL retrieves URL that will be used to search for string in response body
-var TargetURL = os.Getenv("TARGET_URL")
+var (
+	// TargetURL retrieves URL that will be used to search for string in response body
+	TargetURL = os.Getenv("TARGET_URL")
 
-// TargetString is the string that will be searched for in the server response body
-var TargetString = os.Getenv("TARGET_STRING")
+	// TargetString is the string that will be searched for in the server response body
+	TargetString = os.Getenv("TARGET_STRING")
 
-// TimeoutDur is user requested timeout duration for specified URL
-var TimeoutDur = os.Getenv("TIMEOUT_DURATION")
+	// TimeoutDur is user requested timeout duration for specified URL
+	TimeoutDur = os.Getenv("TIMEOUT_DURATION")
 
-// reportErrorAndStop reports to kuberhealthy of error and exits program when called
-func reportErrorAndStop(s string) {
-	log.Println("attempting to report error to kuberhealthy:", s)
-	err := checkclient.ReportFailure([]string{s})
-	if err != nil {
-		log.Println("failed to report to kuberhealthy servers:", err)
-		os.Exit(1)
-	}
-	log.Println("successfully reported error to kuberhealthy servers")
-	os.Exit(0)
-}
+	// the global kubernetes client
+	kubernetesClient *kubernetes.Clientset
+)
 
-func main() {
+func init() {
+	// set debug mode for nodeCheck pkg
+	nodeCheck.EnableDebugOutput()
+
 	// check to make sure URL is provided
 	if TargetURL == "" {
 		reportErrorAndStop("No URL provided in YAML")
@@ -42,26 +44,55 @@ func main() {
 	if TargetString == "" {
 		reportErrorAndStop("No string provided in YAML")
 	}
+}
+
+func main() {
+
+	// create context
+	checkTimeLimit := time.Minute * 1
+	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
+
+	// create kubernetes client
+	kubernetesClient, err := kubeClient.Create("")
+	if err != nil {
+		log.Errorln("Error creating kubeClient with error" + err.Error())
+	}
+
+	// hits kuberhealthy endpoint to see if node is ready
+	err = nodeCheck.WaitForKuberhealthy(ctx)
+	if err != nil {
+		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
+	}
+
+	// fetches kube proxy to see if it is ready
+	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy", "kube-system")
+	if err != nil {
+		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
+	}
 
 	// attempt to fetch URL content and fail if we cannot
 	userURLstring, err := getURLContent(TargetURL)
+	log.Infoln("Attempting to fetch content from: " + TargetURL)
 	if err != nil {
 		reportErrorAndStop(err.Error())
 	}
+
+	log.Infoln("Parsing content for string " + TargetString)
 
 	// if we cannot find the content string the test has failed
 	if !findStringInContent(userURLstring, TargetString) {
 		reportErrorAndStop("could not find string in content")
 	}
 
+	log.Infoln("Success! Found " + TargetString + " in " + TargetURL)
+
 	// if nothing has failed the test is succesfull
 	err = checkclient.ReportSuccess()
 	if err != nil {
-		log.Println("failed to report success", err)
+		log.Errorln("failed to report success", err)
 		os.Exit(1)
 	}
-	log.Println("successfully reported to kuberhealthy servers")
-
+	log.Infoln("Successfully reported to Kuberhealthy")
 }
 
 // getURLContent retrieves bytes and error from URL
@@ -93,4 +124,16 @@ func findStringInContent(b []byte, s string) bool {
 		return true
 	}
 	return false
+}
+
+// reportErrorAndStop reports to kuberhealthy of error and exits program when called
+func reportErrorAndStop(s string) {
+	log.Infoln("attempting to report error to kuberhealthy:", s)
+	err := checkclient.ReportFailure([]string{s})
+	if err != nil {
+		log.Errorln("failed to report to kuberhealthy servers:", err)
+		os.Exit(1)
+	}
+	log.Infoln("Successfully reported to Kuberhealthy")
+	os.Exit(0)
 }
