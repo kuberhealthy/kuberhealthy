@@ -214,7 +214,7 @@ func runDeploymentCheck() {
 				if cleanUpError != nil {
 					errorReport = append(errorReport, cleanUpError.Error())
 				}
-				reportErrorsToKuberhealthy([]string{err.Error()})
+				reportErrorsToKuberhealthy(errorReport)
 				return
 			}
 			// Continue with the check if there is no error.

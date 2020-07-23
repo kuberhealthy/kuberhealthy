@@ -90,7 +90,7 @@ func TestWebServer(t *testing.T) {
 	}
 
 	// output the response from the server
-	t.Log("Reading reponse body")
+	t.Log("Reading response body")
 	b, err := ioutil.ReadAll(recorder.Body)
 	if err != nil {
 		t.Fatal("Error reading response body", err)
