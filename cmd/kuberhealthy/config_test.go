@@ -55,7 +55,7 @@ func TestConfigReloadNotificatons(t *testing.T) {
 			foundNotifications++
 			t.Log("Got file change notification!", foundNotifications, "/", expectedNotifications)
 		case <-timeout:
-			t.Fatal("Did not get expected notificaitons in time.")
+			t.Fatal("Did not get expected notifications in time.")
 		}
 	}
 }
