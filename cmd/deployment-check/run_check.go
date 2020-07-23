@@ -325,17 +325,16 @@ func cleanUpOrphanedResources(ctx context.Context) chan error {
 // Waits for kube-proxy to be ready and that Kuberhealthy is reachable.
 func waitForNodeToJoin(ctx context.Context) {
 	// Wait for node to be at least 2m old.
-	log.Infoln("Check namespace:", checkNamespace)
 	err := nodeCheck.WaitForNodeAge(ctx, client, checkNamespace, time.Minute*2)
 	if err != nil {
 		log.Errorln("Failed to check node age:", err.Error())
 	}
 
-	// Check if kube-proxy is ready.
-	err = nodeCheck.WaitForKubeProxy(ctx, client, checkNamespace)
-	if err != nil {
-		log.Errorln("Failed to wait for kube-proxy to become ready:", err.Error())
-	}
+	// // Check if kube-proxy is ready.
+	// err = nodeCheck.WaitForKubeProxy(ctx, client, checkNamespace, "kube-system")
+	// if err != nil {
+	// 	log.Errorln("Failed to wait for kube-proxy to become ready:", err.Error())
+	// }
 
 	// Check if Kuberhealthy is reachable.
 	err = nodeCheck.WaitForKuberhealthy(ctx)
