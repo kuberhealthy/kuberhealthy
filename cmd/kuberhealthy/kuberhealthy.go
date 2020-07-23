@@ -1272,7 +1272,7 @@ func convertUnstructuredKhCheck(unstructured unstructured.Unstructured) (khcheck
 	var khCheck khcheckcrd.KuberhealthyCheck
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(un, &khCheck)
 	if err != nil {
-		return khCheck, errors.New("Error converting unstructured object to khcheck: " + err.Error())
+		return khCheck, fmt.Errorf("error converting unstructured object to khcheck: %w", err)
 	}
 
 	return khCheck, err
