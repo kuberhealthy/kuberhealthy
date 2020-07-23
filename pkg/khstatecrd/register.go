@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 )
 
+// SchemeGroupVersion variable for newly added kh state to be added to Kuberhealthy
 var SchemeGroupVersion schema.GroupVersion
 
 // ConfigureScheme configures the runtime scheme for use with CRD creation

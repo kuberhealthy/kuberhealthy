@@ -20,8 +20,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// KuberhealthyCheckClient holds client data for talking to Kubernetes about
-// the khstate custom resource
+// KuberhealthyCheckClient holds client data for talking to Kubernetes about the khstate custom resource
 type KuberhealthyCheckClient struct {
 	restClient rest.Interface
 }

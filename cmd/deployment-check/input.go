@@ -78,7 +78,7 @@ func parseInputValues() {
 	if len(checkContainerPortEnv) != 0 {
 		port, err := strconv.Atoi(checkContainerPortEnv)
 		if err != nil {
-			log.Fatalln("error occured attempting to parse CHECK_CONTAINER_PORT:", err)
+			log.Fatalln("error occurred attempting to parse CHECK_CONTAINER_PORT:", err)
 		}
 		checkContainerPort = int32(port)
 		log.Infoln("Parsed CHECK_CONTAINER_PORT:", checkContainerPort)
@@ -89,7 +89,7 @@ func parseInputValues() {
 	if len(checkLoadBalancerPortEnv) != 0 {
 		port, err := strconv.Atoi(checkLoadBalancerPortEnv)
 		if err != nil {
-			log.Fatalln("error occured attempting to parse CHECK_LOAD_BALANCER_PORT:", err)
+			log.Fatalln("error occurred attempting to parse CHECK_LOAD_BALANCER_PORT:", err)
 		}
 		checkLoadBalancerPort = int32(port)
 		log.Infoln("Parsed CHECK_LOAD_BALANCER_PORT:", checkLoadBalancerPort)
