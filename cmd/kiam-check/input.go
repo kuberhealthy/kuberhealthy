@@ -41,7 +41,7 @@ func parseInputValues() {
 	if len(expectedLambdaCountEnv) != 0 {
 		count, err := strconv.Atoi(expectedLambdaCountEnv)
 		if err != nil {
-			log.Fatalln("error occured attempting to parse LAMBDA_COUNT:", err)
+			log.Fatalln("error occurred attempting to parse LAMBDA_COUNT:", err)
 		}
 		expectedLambdaCount = count
 		log.Infoln("Parsed LAMBDA_COUNT:", expectedLambdaCount)

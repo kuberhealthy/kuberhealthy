@@ -28,12 +28,12 @@ func init() {
 
 	// Check that the COUNT environment variable is valid.
 	if len(count) == 0 {
-		log.Fatalln("Empty count value. Please update your COUNT environemnt variable.")
+		log.Fatalln("Empty count value. Please update your COUNT environment variable.")
 	}
 
 	// Check that the SECONDS environment variable is valid.
 	if len(seconds) == 0 {
-		log.Fatalln("Empty seconds value. Please update your SECONDS environemnt variable.")
+		log.Fatalln("Empty seconds value. Please update your SECONDS environment variable.")
 	}
 
 	// If the URL does not begin with HTTP, exit.

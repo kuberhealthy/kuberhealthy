@@ -35,9 +35,16 @@ import (
 const defaultMaxFailuresAllowed = 10
 const defaultCheckTimeout = 10 * time.Minute
 
+// KubeConfigFile is a variable containing file path of Kubernetes config files
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+
+// Namespace is a variable to allow code to target all namespaces or a single namespace
 var Namespace string
+
+// CheckTimeout is a variable for how long code should run before it should retry.
 var CheckTimeout time.Duration
+
+// MaxFailuresAllowed is a variable for how many times the pod should retry before stopping.
 var MaxFailuresAllowed int32
 
 // Checker represents a long running pod restart checker.
@@ -140,9 +147,8 @@ func (prc *Checker) Run() error {
 			}
 			return reportKHFailure(errorMessages)
 
-		} else {
-			return reportKHSuccess()
 		}
+		return reportKHSuccess()
 	}
 }
 

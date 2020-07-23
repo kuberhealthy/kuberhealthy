@@ -42,8 +42,8 @@ var (
 	checkDSName    string
 
 	// Check deadline from injected env variable KH_CHECK_RUN_DEADLINE
-	khDeadline     time.Time
-	checkDeadline  time.Time
+	khDeadline    time.Time
+	checkDeadline time.Time
 
 	// Daemonset check configurations
 	hostName      string
@@ -67,7 +67,7 @@ const (
 	// Default shutdown termination grace period
 	defaultShutdownGracePeriod = time.Duration(time.Minute * 1) // grace period for the check to shutdown after receiving a shutdown signal
 	// Default daemonset check deadline
-	defaultCheckDeadline = time.Duration(time.Minute*15)
+	defaultCheckDeadline = time.Duration(time.Minute * 15)
 	// Default user
 	defaultUser = int64(1000)
 )
@@ -133,7 +133,7 @@ func main() {
 		log.Infoln("Done running daemonset check")
 	case <-signalChan:
 		// TO DO: figure out better way to report shutdown signals. Do we report "error" or "ok" to kuberhealthy when
-		// a shutdown signal is received? For now, report OK and wait for the next run. 
+		// a shutdown signal is received? For now, report OK and wait for the next run.
 		reportOKToKuberhealthy()
 		log.Errorln("Received shutdown signal. Canceling context and proceeding directly to cleanup.")
 		ctxCancel() // Causes all functions within the check to return without error and abort. NOT an error

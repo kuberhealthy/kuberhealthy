@@ -19,6 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// KubeConfigFile is a variable containing file path of Kubernetes config files
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var namespace string
 var skipDurationEnv string
