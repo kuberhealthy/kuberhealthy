@@ -1,5 +1,5 @@
 build:
-	docker build -t kuberhealthy/deployment-check:v1.5.1 -f Dockerfile ../../
+	docker build -t jonnydawg/deployment-check:v1.5.1-nc3 -f Dockerfile ../../
 
 push:
-	docker push kuberhealthy/deployment-check:v1.5.1
+	docker push jonnydawg/deployment-check:v1.5.1-nc3

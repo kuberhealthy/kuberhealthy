@@ -26,6 +26,9 @@ import (
 // Attempts to hit the service hostname endpoint, looking for a 200 and reports a success if able to retrieve a 200.
 func runDeploymentCheck() {
 
+	log.Infoln("Waiting for node to become ready before starting check.")
+	waitForNodeToJoin(ctx)
+
 	log.Infoln("Starting check.")
 
 	// Init a timeout for this entire check run.
@@ -322,6 +325,7 @@ func cleanUpOrphanedResources(ctx context.Context) chan error {
 // Waits for kube-proxy to be ready and that Kuberhealthy is reachable.
 func waitForNodeToJoin(ctx context.Context) {
 	// Wait for node to be at least 2m old.
+	log.Infoln("Check namespace:", checkNamespace)
 	err := nodeCheck.WaitForNodeAge(ctx, client, checkNamespace, time.Minute*2)
 	if err != nil {
 		log.Errorln("Failed to check node age:", err.Error())
