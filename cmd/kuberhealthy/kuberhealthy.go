@@ -250,6 +250,7 @@ func (k *Kuberhealthy) reapKHStateResources() error {
 		for _, kc := range khChecks.Items {
 			khCheck, err := convertUnstructuredKhCheck(kc)
 			if err != nil {
+				log.Errorln("Error converting unstructured object to khcheck:", err)
 				continue
 			}
 			log.Debugln("khState reaper:", khCheck.GetName(), "==", khState.GetName(), "&&", khCheck.GetNamespace(), "==", khState.GetNamespace())
@@ -359,6 +360,7 @@ func (k *Kuberhealthy) monitorExternalChecks(ctx context.Context, notify chan st
 		khChecks, err := listUnstructuredKHChecks()
 		if err != nil {
 			log.Errorln("error listing unstructured khChecks: %w", err)
+			continue
 		}
 
 		// this bool indicates if we should send a change signal to the channel
@@ -371,6 +373,7 @@ func (k *Kuberhealthy) monitorExternalChecks(ctx context.Context, notify chan st
 			for _, kc := range khChecks.Items {
 				khCheck, err := convertUnstructuredKhCheck(kc)
 				if err != nil {
+					log.Errorln("Error converting unstructured object to khcheck:", err)
 					continue
 				}
 
@@ -390,6 +393,7 @@ func (k *Kuberhealthy) monitorExternalChecks(ctx context.Context, notify chan st
 		for _, kc := range khChecks.Items {
 			i, err := convertUnstructuredKhCheck(kc)
 			if err != nil {
+				log.Errorln("Error converting unstructured object to khcheck:", err)
 				continue
 			}
 
@@ -474,6 +478,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 	for _, kc := range khChecks.Items {
 		r, err := convertUnstructuredKhCheck(kc)
 		if err != nil {
+			log.Errorln("Error converting unstructured object to khcheck:", err)
 			continue
 		}
 		log.Debugln("Loading check CRD:", r.Name)
@@ -1240,13 +1245,11 @@ func listUnstructuredKHChecks() (*unstructured.UnstructuredList, error){
 	var unstructuredList *unstructured.UnstructuredList
 	restConfig, err := clientcmd.BuildConfigFromFlags("", configPath)
 	if err != nil {
-		log.Errorln("Error building rest config for dynamic client:", err)
 		return unstructuredList, err
 	}
 
 	dynClient, err := dynamic.NewForConfig(restConfig)
 	if err != nil {
-		log.Errorln("Error creating dynamic client:", err)
 		return unstructuredList, err
 	}
 
@@ -1258,7 +1261,6 @@ func listUnstructuredKHChecks() (*unstructured.UnstructuredList, error){
 
 	unstructuredList, err = dynClient.Resource(khCheckGroupVersionResource).Namespace("").List(metav1.ListOptions{})
 	if err != nil {
-		log.Errorln("Error listing check configuration resources", err)
 		return unstructuredList, err
 	}
 
@@ -1270,7 +1272,6 @@ func convertUnstructuredKhCheck(unstructured unstructured.Unstructured) (khcheck
 	var khCheck khcheckcrd.KuberhealthyCheck
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(un, &khCheck)
 	if err != nil {
-		log.Errorln("Error converting unstructured object to khcheck:", err)
 		return khCheck, errors.New("Error converting unstructured object to khcheck: " + err.Error())
 	}
 
