@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net"
 	"os"
@@ -21,14 +22,13 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	// required for oidc kubectl testing
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	"k8s.io/client-go/kubernetes"
 
-	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
@@ -92,9 +92,29 @@ func main() {
 
 	dc := New()
 
-	// Check node age before running check. DNS resolution check runs often, and very quickly. If the node is new, we
-	// want to sleep for a minute to give the node extra time to be fully ready for the check run.
-	checkNodeAge(client)
+	// Since this check runs often and very quickly, run all nodeChecks to make sure that:
+	// - check doesn't run on a node that's too young
+	// - kuberhealthy endpoint is ready
+	// - kube-proxy is ready and running on the node the check is running on
+	nodeCheck.EnableDebugOutput()
+	checkTimeLimit := time.Minute * 1
+	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
+
+	minNodeAge := time.Minute * 3
+	err = nodeCheck.WaitForNodeAge(ctx, client, "kuberhealthy", minNodeAge)
+	if err != nil {
+		log.Errorln("Error waiting for node to reach minimum age:", err)
+	}
+
+	err = nodeCheck.WaitForKuberhealthy(ctx)
+	if err != nil {
+		log.Errorln("Error waiting for Kuberhealthy to be ready:", err)
+	}
+
+	err = nodeCheck.WaitForKubeProxy(ctx, client, "kuberhealthy", "kube-system")
+	if err != nil {
+		log.Errorln("Error waiting for kube proxy to be ready:", err)
+	}
 
 	err = dc.Run(client)
 	if err != nil {
@@ -154,29 +174,6 @@ func (dc *Checker) doChecks() error {
 	}
 	log.Infoln("DNS Status check determined that", dc.Hostname, "was OK.")
 	return nil
-}
-
-// checkNodeAge checks the node's age to make sure its not less than three minutes old. If so, sleep for one minute
-// before running check
-func checkNodeAge(client *kubernetes.Clientset) {
-
-	node, err := client.CoreV1().Nodes().Get(NodeName, v1.GetOptions{})
-	if err != nil {
-		log.Errorln("Failed to get node:", NodeName, err)
-		return
-	}
-
-	nodeMinAge := time.Minute * 3
-	sleepDuration := time.Minute
-	nodeAge := now.Sub(node.CreationTimestamp.Time)
-	// if the node the pod is on is less than 3 minutes old, wait 1 minute before running check.
-	log.Infoln("Check running on node: ", node.Name, "with node age:", nodeAge)
-	if nodeAge < nodeMinAge {
-		log.Infoln("Node is than", nodeMinAge, "old. Sleeping for", sleepDuration, "before running check")
-		time.Sleep(sleepDuration)
-		return
-	}
-	return
 }
 
 // reportKHSuccess reports success to Kuberhealthy servers and verifies the report successfully went through
