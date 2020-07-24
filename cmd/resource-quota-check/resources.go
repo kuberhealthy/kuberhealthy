@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Job struct containing namespace object used throughout code to grab all resources in all namespaces
 type Job struct {
 	namespace string
 }

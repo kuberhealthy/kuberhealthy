@@ -12,15 +12,15 @@ prometheus:
 
 image:
   repository: kuberhealthy/kuberhealthy
-  tag: v2.2.0
+  tag: v2.3.0
 
 resources:
   requests:
     cpu: 400m
     memory: 300Mi
   limits:
-    cpu: 2m
-    memory: 1G1
+    cpu: 2
+    memory: 1Gi
 
 tolerations:
   # change to true to tolerate and deploy to masters
@@ -89,7 +89,7 @@ check:
     timeout: 15m
     image:
       repository: kuberhealthy/dns-resolution-check
-      tag: v1.3.0
+      tag: v1.4.0
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
