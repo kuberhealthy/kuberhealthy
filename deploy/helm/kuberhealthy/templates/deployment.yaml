@@ -90,6 +90,10 @@ spec:
           requests:
             cpu: {{ .Values.resources.requests.cpu }}
             memory: {{ .Values.resources.requests.memory }}
+      volumes:
+      - configMap:
+          name: kuberhealthy
+        name: config-volume
       {{- if .Values.deployment.nodeSelector }}
       nodeSelector:
 {{- toYaml .Values.deployment.nodeSelector | nindent 8 }}
