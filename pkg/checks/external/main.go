@@ -64,10 +64,10 @@ const defaultTimeout = time.Minute * 15
 // defaultShutdownGracePeriod is the default time a pod is given to shutdown gracefully
 const defaultShutdownGracePeriod = time.Minute
 
-// constant for the error when a pod is deleted expectedly during a check run
+// ErrPodRemovedExpectedly is a constant for the error when a pod is deleted expectedly during a check run
 var ErrPodRemovedExpectedly = errors.New("pod deleted expectedly")
 
-// constant for the error when a pod is deleted before the check pod running
+// ErrPodDeletedBeforeRunning is a constant for the error when a pod is deleted before the check pod running
 var ErrPodDeletedBeforeRunning = errors.New("the khcheck check pod is deleted, waiting for start failed")
 
 // DefaultName is used when no check name is supplied
@@ -79,10 +79,16 @@ var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 // Namespace of Kuberhealthy pod. Used to help set ownerReference for created checker pods.
 var kuberhealthyNamespace = "kuberhealthy"
 
-// constants for using the kuberhealthy check CRD
+// CRDGroup constant value for grouping Kuberhealthy's custom resource definitions on a server.
 const CRDGroup = "comcast.github.io"
+
+// CRDVersion constant value for versoning Kuberhealthy's custom resource definitions.
 const CRDVersion = "v1"
+
+// checkCRDResource constant value for creating the Kuberhealthy "check" CRDs.
 const checkCRDResource = "khchecks"
+
+// stateCRDResource constant value for creating the Kuberhealthy "state" CRDs.
 const stateCRDResource = "khstates"
 
 // Checker implements a KuberhealthyCheck for external
@@ -1218,20 +1224,20 @@ func (ext *Checker) Shutdown() error {
 	log.Debugln("Waiting for pod", ext.podName(), "to shutdown")
 
 	select {
-		case err := <- ext.waitForShutdown(ctx):
-			if err != nil {
-				ext.log("Error waiting for pod removal during shutdown:", err)
-				return err
-			}
-			ext.log("Check using pod" + ext.podName() + "successfully shutdown.")
-		case <-time.After(defaultShutdownGracePeriod):
-			ext.log("Reached timeout:", defaultShutdownGracePeriod, "trying to shutdown pod:", ext.podName(), "Killing pod forcefully.")
-			err := util.PodKill(ext.KubeClient, ext.podName(), ext.Namespace, 0)
-			if err != nil {
-				ext.log("Error force killing pod:", ext.podName(), "Error:", err)
-				return err
-			}
-			ext.log("Check using pod" + ext.podName() + "killed forcefully.")
+	case err := <-ext.waitForShutdown(ctx):
+		if err != nil {
+			ext.log("Error waiting for pod removal during shutdown:", err)
+			return err
+		}
+		ext.log("Check using pod" + ext.podName() + "successfully shutdown.")
+	case <-time.After(defaultShutdownGracePeriod):
+		ext.log("Reached timeout:", defaultShutdownGracePeriod, "trying to shutdown pod:", ext.podName(), "Killing pod forcefully.")
+		err := util.PodKill(ext.KubeClient, ext.podName(), ext.Namespace, 0)
+		if err != nil {
+			ext.log("Error force killing pod:", ext.podName(), "Error:", err)
+			return err
+		}
+		ext.log("Check using pod" + ext.podName() + "killed forcefully.")
 	}
 	return nil
 }
