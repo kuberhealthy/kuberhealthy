@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-    - uses: actions/Checkout@v2.0.0
+      uses: actions/Checkout@v2.0.0
 #
     - name: Run Kubernetes tools
       uses: stefanprodan/kube-tools@v1
