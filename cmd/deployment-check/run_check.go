@@ -330,12 +330,6 @@ func waitForNodeToJoin(ctx context.Context) {
 		log.Errorln("Failed to check node age:", err.Error())
 	}
 
-	// // Check if kube-proxy is ready.
-	// err = nodeCheck.WaitForKubeProxy(ctx, client, checkNamespace, "kube-system")
-	// if err != nil {
-	// 	log.Errorln("Failed to wait for kube-proxy to become ready:", err.Error())
-	// }
-
 	// Check if Kuberhealthy is reachable.
 	err = nodeCheck.WaitForKuberhealthy(ctx)
 	if err != nil {
