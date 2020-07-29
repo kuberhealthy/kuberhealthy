@@ -62,7 +62,7 @@ func parseInputValues() {
 	}
 	log.Infoln("Setting check daemonset name to:", checkDSName)
 
-  // Parse incoming deployment node selectors
+	// Parse incoming deployment node selectors
 	if len(dsNodeSelectorsEnv) != 0 {
 		splitEnvVars := strings.Split(dsNodeSelectorsEnv, ",")
 		for _, splitEnvVarKeyValuePair := range splitEnvVars {

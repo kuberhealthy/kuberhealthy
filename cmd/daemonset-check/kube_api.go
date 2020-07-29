@@ -14,6 +14,7 @@ import (
 
 // Use exponential backoff for retries
 var exponentialBackoff = backoff.NewExponentialBackOff()
+
 const maxElapsedTime = time.Minute
 
 func init() {
@@ -45,7 +46,7 @@ func createDaemonset(daemonsetSpec *appsv1.DaemonSet) error {
 		_, err = getDSClient().Create(daemonsetSpec)
 		return err
 	}, exponentialBackoff)
-	if err != nil{
+	if err != nil {
 		log.Errorln("Failed to create daemonset. Error:", err)
 		return err
 	}
@@ -63,7 +64,7 @@ func listDaemonsets(more string) (*appsv1.DaemonSetList, error) {
 		})
 		return err
 	}, exponentialBackoff)
-	if err != nil{
+	if err != nil {
 		log.Errorln("Failed to list daemonsets. Error:", err)
 		return dsList, err
 	}
@@ -78,7 +79,7 @@ func deleteDaemonset(dsName string) error {
 		err = getDSClient().Delete(dsName, &metav1.DeleteOptions{})
 		return err
 	}, exponentialBackoff)
-	if err != nil{
+	if err != nil {
 		log.Errorln("Failed to delete daemonset. Error:", err)
 		return err
 	}
@@ -96,7 +97,7 @@ func listPods() (*v13.PodList, error) {
 		})
 		return err
 	}, exponentialBackoff)
-	if err != nil{
+	if err != nil {
 		log.Errorln("Failed to list daemonset pods. Error:", err)
 		return podList, err
 	}
@@ -113,7 +114,7 @@ func deletePods(dsName string) error {
 		})
 		return err
 	}, exponentialBackoff)
-	if err != nil{
+	if err != nil {
 		log.Errorln("Failed to delete daemonset pods. Error:", err)
 		return err
 	}
@@ -121,7 +122,7 @@ func deletePods(dsName string) error {
 	return err
 }
 
-func listNodes() (*v13.NodeList, error){
+func listNodes() (*v13.NodeList, error) {
 
 	var nodeList *v13.NodeList
 	err := backoff.Retry(func() error {
@@ -129,7 +130,7 @@ func listNodes() (*v13.NodeList, error){
 		nodeList, err = getNodeClient().List(metav1.ListOptions{})
 		return err
 	}, exponentialBackoff)
-	if err != nil{
+	if err != nil {
 		log.Errorln("Failed to list nodes. Error:", err)
 		return nodeList, err
 	}

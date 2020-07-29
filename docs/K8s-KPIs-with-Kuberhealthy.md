@@ -36,7 +36,7 @@ in this [deploy folder](https://github.com/Comcast/kuberhealthy/tree/master/depl
   helm install kuberhealthy kuberhealthy/kuberhealthy
   ```
 
-Running the Helm command should automatically install the newest version of Kuberhealthy (v2.2.0) along with a few basic checks. If you run `kubectl get pods`, you should see two Kuberhealthy pods. These are the pods that create, coordinate, and track test pods. These two Kuberhealthy pods also serve a JSON status page as well as a `/metrics` endpoint. Every other pod you see created is a checker pod designed to execute and shut down when done.
+Running the Helm command should automatically install the newest version of Kuberhealthy (v2.3.0) along with a few basic checks. If you run `kubectl get pods`, you should see two Kuberhealthy pods. These are the pods that create, coordinate, and track test pods. These two Kuberhealthy pods also serve a JSON status page as well as a `/metrics` endpoint. Every other pod you see created is a checker pod designed to execute and shut down when done.
 
 ### Configuring Additional Checks
 
