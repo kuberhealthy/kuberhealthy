@@ -12,9 +12,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps
+    steps:
     - name: Checkout
-    - uses: actions/Checkout@v2.0.0
+      uses: actions/Checkout@v2.0.0
 #
     - name: Deploy 🚀
       uses: JamesIves/github-pages-deploy-action@3.5.7

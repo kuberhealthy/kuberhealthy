@@ -3,7 +3,7 @@ package nodeCheck
 import (
 	"context"
 	"errors"
-	"net"
+	"net/http"
 	"os"
 	"time"
 
@@ -47,15 +47,15 @@ func WaitForKuberhealthy(ctx context.Context) error {
 
 // WaitForKubeProxy waits for kube proxy to be ready and running on the node before running the check. Assumes that the
 // kube-proxy pod follows the naming convention: "kube-proxy-{nodeName}"
-func WaitForKubeProxy(ctx context.Context, client *kubernetes.Clientset, namespace string) error {
+func WaitForKubeProxy(ctx context.Context, client *kubernetes.Clientset, KHNamespace string, kubeProxyNamespace string) error {
 
-	khPod, err := getKHPod(client, namespace)
+	khPod, err := getKHPod(client, KHNamespace)
 	if err != nil {
 		return errors.New("error getting kuberhealthy pod: " + err.Error())
 	}
 	log.Debugln("Checking if kube-proxy is running and ready on this node:", khPod.Spec.NodeName)
 	select {
-	case err := <- waitForKubeProxyReady(client, khPod.Spec.NodeName, ctx):
+	case err := <- waitForKubeProxyReady(ctx, client, khPod.Spec.NodeName, kubeProxyNamespace):
 		if err != nil {
 			return err
 		}
@@ -83,7 +83,7 @@ func WaitForNodeAge(ctx context.Context, client *kubernetes.Clientset, namespace
 	// get current age of the node
 	nodeAge := time.Now().Sub(node.CreationTimestamp.Time)
 	log.Debugln("Check running on node: ", node.Name, "with node age:", nodeAge)
-	if nodeAge <= minNodeAge {
+	if nodeAge >= minNodeAge {
 		return nil
 	}
 
@@ -128,9 +128,11 @@ func waitForKuberhealthyEndpointReady(kuberhealthyEndpoint string, ctx context.C
 			return doneChan
 		default:
 		}
-		_, err := net.LookupHost(kuberhealthyEndpoint)
+
+		_, err := http.NewRequest("GET", kuberhealthyEndpoint, nil)
 		if err == nil {
 			log.Debugln(kuberhealthyEndpoint, "is ready.")
+			doneChan <- nil
 			return doneChan
 		} else {
 			log.Debugln(kuberhealthyEndpoint, "is not ready yet..." + err.Error())
@@ -140,7 +142,7 @@ func waitForKuberhealthyEndpointReady(kuberhealthyEndpoint string, ctx context.C
 }
 
 // waitForKubeProxyReady fetches the kube proxy pod every 5 seconds until it's ready and running.
-func waitForKubeProxyReady(client *kubernetes.Clientset, nodeName string, ctx context.Context) chan error {
+func waitForKubeProxyReady(ctx context.Context, client *kubernetes.Clientset, nodeName string, kubeProxyNamespace string) chan error {
 
 	kubeProxyName := "kube-proxy-" + nodeName
 	doneChan := make(chan error, 1)
@@ -152,7 +154,7 @@ func waitForKubeProxyReady(client *kubernetes.Clientset, nodeName string, ctx co
 			return doneChan
 		default:
 		}
-		kubeProxyReady, err := checkKubeProxyPod(client, kubeProxyName)
+		kubeProxyReady, err := checkKubeProxyPod(client, kubeProxyName, kubeProxyNamespace)
 		if err != nil {
 			doneChan <- err
 			return doneChan
@@ -160,6 +162,7 @@ func waitForKubeProxyReady(client *kubernetes.Clientset, nodeName string, ctx co
 
 		if kubeProxyReady {
 			log.Debugln("Kube proxy: ", kubeProxyName, "is running and ready!")
+			doneChan <- nil
 			return doneChan
 		}
 		time.Sleep(time.Second * 5)
@@ -167,18 +170,18 @@ func waitForKubeProxyReady(client *kubernetes.Clientset, nodeName string, ctx co
 }
 
 // checkKubeProxyPod gets the kube proxy pod and checks if its ready and running.
-func checkKubeProxyPod(client *kubernetes.Clientset, podName string) (bool, error) {
+func checkKubeProxyPod(client *kubernetes.Clientset, podName string, kubeProxyNamespace string) (bool, error) {
 
 	var kubeProxyReady bool
 
-	kubeProxyPod, err := client.CoreV1().Pods("").Get(podName, v1.GetOptions{})
+	kubeProxyPod, err := client.CoreV1().Pods(kubeProxyNamespace).Get(podName, v1.GetOptions{})
 	if err != nil {
 		return kubeProxyReady, errors.New("Failed to get kube-proxy pod: " + podName + ". Error: " + err.Error())
 	}
 
 	var podReady = true
 	for _, cs := range kubeProxyPod.Status.Conditions {
-		if cs.Type != corev1.PodReady {
+		if cs.Status != "True" {
 			podReady = false
 			break
 		}
