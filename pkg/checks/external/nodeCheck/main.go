@@ -34,7 +34,7 @@ func WaitForKuberhealthy(ctx context.Context) error {
 
 	log.Debugln("Checking if the kuberhealthy endpoint:", kuberhealthyEndpoint, "is ready.")
 	select {
-	case err := <-waitForKuberhealthyEndpointReady(kuberhealthyEndpoint, ctx):
+	case err := <-waitForKuberhealthyEndpointReady(ctx, kuberhealthyEndpoint):
 		if err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func WaitForKubeProxy(ctx context.Context, client *kubernetes.Clientset, KHNames
 	}
 	log.Debugln("Checking if kube-proxy is running and ready on this node:", khPod.Spec.NodeName)
 	select {
-	case err := <- waitForKubeProxyReady(ctx, client, khPod.Spec.NodeName, kubeProxyNamespace):
+	case err := <-waitForKubeProxyReady(ctx, client, khPod.Spec.NodeName, kubeProxyNamespace):
 		if err != nil {
 			return err
 		}
@@ -88,7 +88,7 @@ func WaitForNodeAge(ctx context.Context, client *kubernetes.Clientset, namespace
 	}
 
 	select {
-	case <- ctx.Done():
+	case <-ctx.Done():
 		return errors.New("context cancelled waiting for node to reach minNodeAge")
 	default:
 		sleepDuration := minNodeAge - nodeAge
@@ -117,13 +117,13 @@ func getKHPod(client *kubernetes.Clientset, namespace string) (*corev1.Pod, erro
 
 // waitForKuberhealthyEndpointReady hits the kuberhealthy endpoint every 3 seconds to see if the node is ready to reach
 // the endpoint.
-func waitForKuberhealthyEndpointReady(kuberhealthyEndpoint string, ctx context.Context) chan error {
+func waitForKuberhealthyEndpointReady(ctx context.Context, kuberhealthyEndpoint string) chan error {
 
 	doneChan := make(chan error, 1)
 
 	for {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			doneChan <- errors.New("context cancelled waiting for Kuberhealthy endpoint to be ready")
 			return doneChan
 		default:
@@ -135,7 +135,7 @@ func waitForKuberhealthyEndpointReady(kuberhealthyEndpoint string, ctx context.C
 			doneChan <- nil
 			return doneChan
 		} else {
-			log.Debugln(kuberhealthyEndpoint, "is not ready yet..." + err.Error())
+			log.Debugln(kuberhealthyEndpoint, "is not ready yet..."+err.Error())
 		}
 		time.Sleep(time.Second * 3)
 	}
@@ -149,7 +149,7 @@ func waitForKubeProxyReady(ctx context.Context, client *kubernetes.Clientset, no
 
 	for {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			doneChan <- errors.New("context cancelled waiting for kube proxy to be ready and running")
 			return doneChan
 		default:
