@@ -8,13 +8,12 @@ fi
 
 $HELM version
 
-cd ./deploy/helm/kuberhealthy
-helm lint ./
+$HELM lint ./kuberhealthy
 if [ "$?" -ne "0" ]; then
   echo "Linting reports error"
   exit 1
 fi
-helm package --app-version ${GITHUB_REF##*/} --version $GITHUB_RUN_ID -d ../../../helm-repos/archives ./ 
-cd ../../../helm-repos/archives
-helm repo index ./ --merge index.yaml --url https://comcast.github.io/kuberhealthy/helm-repos
+$HELM package --app-version ${GITHUB_REF##*/} --version $GITHUB_RUN_ID -d ../../helm-repos/archives ./kuberhealthy
+cd ../../helm-repos/archives
+$HELM repo index ./ --merge index.yaml --url https://comcast.github.io/kuberhealthy/helm-repos
 
