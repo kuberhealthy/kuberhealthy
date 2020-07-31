@@ -24,6 +24,10 @@ jobs:
       run: docker build --file cmd/deployment-check/Dockerfile --tag $IMAGE_NAME .
     - name: Log into docker hub
       run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
+    - name: Push new tagged image
+      run: |
+          cd cmd/deployment-check/
+          make build && make push
     - name: Push new latest image
       run: |
           docker tag $IMAGE_NAME kuberhealthy/$IMAGE_NAME
