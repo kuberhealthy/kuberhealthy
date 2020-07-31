@@ -137,16 +137,6 @@ func (ncc *Checker) Run(ctx context.Context, client *kubernetes.Clientset) error
 
 	// wait for either a timeout or job completion
 	select {
-	// case <-time.After(checkTimeout + (2000 * time.Millisecond)):
-
-	// 	// The check has timed out after its specified timeout period
-
-	// 	err := checkclient.ReportFailure([]string{errorMessage})
-	// 	if err != nil {
-	// 		log.Println("Error reporting failure to Kuberhealthy servers:", err)
-	// 		return err
-	// 	}
-	// 	return err
 	case <-ctx.Done():
 		log.Println("Cancelling check and shutting down due to interrupt.")
 		return reportKHFailure("Cancelling check and shutting down due to interrupt.")
