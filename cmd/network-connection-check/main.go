@@ -212,7 +212,7 @@ func reportKHFailure(errorMessage string) error {
 // Waits for kube-proxy to be ready and that Kuberhealthy is reachable.
 func waitForNodeToJoin(ctx context.Context, client *kubernetes.Clientset, namespace *string) {
 	// Wait for node to be at least 2m old.
-	err := nodeCheck.WaitForNodeAge(ctx, client, *namespace, time.Minute*2)
+	err := nodeCheck.WaitForNodeAge(ctx, client, *namespace, time.Minute*5)
 	if err != nil {
 		log.Errorln("Failed to check node age:", err.Error())
 	}
