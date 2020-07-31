@@ -28,5 +28,9 @@ jobs:
       run: |
           docker tag $IMAGE_NAME kuberhealthy/$IMAGE_NAME
           docker push kuberhealthy/$IMAGE_NAME
+    - name: Push new tagged image
+      run: |
+          cd cmd/check-reaper/
+          make build && make push
     - name: scan docker image for vulnerabilities
       run: curl -s https://ci-tools.anchore.io/inline_scan-v0.6.0 | bash -s -- -p -r kuberhealthy/$IMAGE_NAME:latest

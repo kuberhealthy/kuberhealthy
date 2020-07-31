@@ -7,7 +7,7 @@ on:
     branches:
       - master
 jobs:
-  tests:
+  sec:
     runs-on: ubuntu-latest
     env:
       GO111MODULE: on
@@ -22,3 +22,8 @@ jobs:
         #G304: prevent loading configuration files from variable locations (we want to do this in local development)
         #G601: Implicit memory aliasing in for loop.  (disabled due to false positives for safe code)
         run: gosec -exclude=G107,G109,G304,G601 ./...
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run golangci-lint
+        uses: actions-contrib/golangci-lint@latest

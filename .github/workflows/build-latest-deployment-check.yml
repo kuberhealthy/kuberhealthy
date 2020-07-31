@@ -24,13 +24,13 @@ jobs:
       run: docker build --file cmd/deployment-check/Dockerfile --tag $IMAGE_NAME .
     - name: Log into docker hub
       run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
-    - name: Push new tagged image
-      run: |
-          cd cmd/deployment-check/
-          make build && make push
     - name: Push new latest image
       run: |
           docker tag $IMAGE_NAME kuberhealthy/$IMAGE_NAME
           docker push kuberhealthy/$IMAGE_NAME
+    - name: Push new tagged image
+      run: |
+          cd cmd/deployment-check/
+          make build && make push
     - name: scan docker image for vulnerabilities
       run: curl -s https://ci-tools.anchore.io/inline_scan-v0.6.0 | bash -s -- -p -r kuberhealthy/$IMAGE_NAME:latest
