@@ -35,7 +35,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	v12 "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
+	khjob "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/status"
 	"github.com/Comcast/kuberhealthy/v2/pkg/health"
@@ -581,7 +581,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 		// create a new kubernetes client for this external checker
 		log.Infoln("Enabling external check:", r.Name)
-		j := v12.KuberhealthyJob{}
+		j := khjob.KuberhealthyJob{}
 		c := external.New(kubernetesClient, &r, &j, khCheckClient, khStateClient, khJobClient, cfg.ExternalCheckReportingURL, false)
 
 		// parse the run interval string from the custom resource and setup the run interval
