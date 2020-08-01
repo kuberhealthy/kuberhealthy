@@ -66,6 +66,12 @@ func New(c rest.Interface) *KhjobV1Client {
 }
 
 func setConfigDefaults(config *rest.Config) error {
+
+	err := ConfigureScheme("comcast.github.io", "v1")
+	if err != nil {
+		return err
+	}
+
 	gv := SchemeGroupVersion
 	config.GroupVersion = &gv
 	config.APIPath = "/apis"

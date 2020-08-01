@@ -11,7 +11,9 @@
 
 package health
 
-import "time"
+import (
+	"time"
+)
 
 // CheckDetails contains details about a single check's current status
 type CheckDetails struct {
@@ -22,6 +24,7 @@ type CheckDetails struct {
 	LastRun          time.Time // the time the check last was last run
 	AuthoritativePod string    // the pod that last ran the check
 	CurrentUUID      string    `json:"uuid"` // the UUID that is authorized to report statuses into the kuberhealthy endpoint
+	KHJob            bool
 }
 
 // NewCheckDetails creates a new CheckDetails struct
