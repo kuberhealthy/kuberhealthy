@@ -110,3 +110,26 @@ func getCheckState(c KuberhealthyCheck) (health.CheckDetails, error) {
 	log.Debugln("Successfully retrieved khstate resource:", name)
 	return khstate.Spec, nil
 }
+
+// getCheckState retrieves the check values from the kuberhealthy khstate
+// custom resource
+func getJobState(j KuberhealthyJob) (health.CheckDetails, error) {
+
+	var state = health.NewCheckDetails()
+	var err error
+	name := sanitizeResourceName(j.Name())
+
+	// make sure the CRD exists, even when checking status
+	err = ensureStateResourceExists(j.Name(), j.CheckNamespace())
+	if err != nil {
+		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
+	}
+
+	log.Debugln("Retrieving khstate custom resource for:", name)
+	khstate, err := khStateClient.Get(metav1.GetOptions{}, stateCRDResource, name, j.CheckNamespace())
+	if err != nil {
+		return state, errors.New("Error retrieving custom khstate resource: " + name + " " + err.Error())
+	}
+	log.Debugln("Successfully retrieved khstate resource:", name)
+	return khstate.Spec, nil
+}

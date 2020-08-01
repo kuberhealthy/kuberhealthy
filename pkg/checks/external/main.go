@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
+	khjobcrd "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
 	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
@@ -99,6 +100,7 @@ type Checker struct {
 	RunInterval              time.Duration // how often this check runs a loop
 	RunTimeout               time.Duration // time check must run completely within
 	KubeClient               *kubernetes.Clientset
+	KHJobClient              *khjobcrd.KhjobV1Client
 	KHCheckClient            *khcheckcrd.KuberhealthyCheckClient
 	KHStateClient            *khstatecrd.KuberhealthyStateClient
 	PodSpec                  apiv1.PodSpec // the current pod spec we are using after enforcement of settings
@@ -114,6 +116,7 @@ type Checker struct {
 	wg                       sync.WaitGroup     // used to track background workers and processes
 	hostname                 string             // hostname cache
 	checkPodName             string             // the current unique checker pod name
+	khjob                    bool				// whether or not this check is kuberhealthy job
 }
 
 func init() {
@@ -124,14 +127,29 @@ func init() {
 }
 
 // New creates a new external checker
-func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck, khCheckClient *khcheckcrd.KuberhealthyCheckClient, khStateClient *khstatecrd.KuberhealthyStateClient, reportingURL string) *Checker {
+func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck, jobConfig *khjobcrd.KuberhealthyJob, khCheckClient *khcheckcrd.KuberhealthyCheckClient, khStateClient *khstatecrd.KuberhealthyStateClient, khJobClient *khjobcrd.KhjobV1Client, reportingURL string, khjob bool) *Checker {
 	if len(checkConfig.Namespace) == 0 {
 		checkConfig.Namespace = "kuberhealthy"
 	}
 
-	log.Debugf("Creating external check from check config: %+v \n", checkConfig)
-
 	// build the checker object
+	if khjob {
+		log.Debugf("Creating kuberhealthy job from job config: %+v \n", jobConfig)
+		return &Checker{
+			Namespace:                jobConfig.Namespace,
+			KHJobClient:              khJobClient,
+			KHStateClient:            khStateClient,
+			CheckName:                jobConfig.Name,
+			KuberhealthyReportingURL: reportingURL,
+			ExtraAnnotations:         make(map[string]string),
+			ExtraLabels:              make(map[string]string),
+			OriginalPodSpec:          jobConfig.Spec.PodSpec,
+			PodSpec:                  jobConfig.Spec.PodSpec,
+			KubeClient:               client,
+			khjob:                    khjob,
+		}
+	}
+	log.Debugf("Creating external check from check config: %+v \n", checkConfig)
 	return &Checker{
 		Namespace:                checkConfig.Namespace,
 		KHCheckClient:            khCheckClient,

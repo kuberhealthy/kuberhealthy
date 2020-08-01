@@ -64,7 +64,7 @@ func (c *kuberhealthyJobs) Get(name string, options metav1.GetOptions) (result K
 	result = KuberhealthyJob{}
 	err = c.client.Get().
 		Namespace(c.ns).
-		Resource("kuberhealthyjobs").
+		Resource("khjobs").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
@@ -81,7 +81,7 @@ func (c *kuberhealthyJobs) List(opts metav1.ListOptions) (result KuberhealthyJob
 	result = KuberhealthyJobList{}
 	err = c.client.Get().
 		Namespace(c.ns).
-		Resource("kuberhealthyjobs").
+		Resource("khjobs").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
 		Do().
@@ -98,7 +98,7 @@ func (c *kuberhealthyJobs) Watch(opts metav1.ListOptions) (watch.Interface, erro
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
-		Resource("kuberhealthyjobs").
+		Resource("khjobs").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
 		Watch()
@@ -109,7 +109,7 @@ func (c *kuberhealthyJobs) Create(kuberhealthyJob KuberhealthyJob) (result Kuber
 	result = KuberhealthyJob{}
 	err = c.client.Post().
 		Namespace(c.ns).
-		Resource("kuberhealthyjobs").
+		Resource("khjobs").
 		Body(kuberhealthyJob).
 		Do().
 		Into(&result)
@@ -121,7 +121,7 @@ func (c *kuberhealthyJobs) Update(kuberhealthyJob KuberhealthyJob) (result Kuber
 	result = KuberhealthyJob{}
 	err = c.client.Put().
 		Namespace(c.ns).
-		Resource("kuberhealthyjobs").
+		Resource("khjobs").
 		Name(kuberhealthyJob.Name).
 		Body(kuberhealthyJob).
 		Do().
@@ -133,7 +133,7 @@ func (c *kuberhealthyJobs) Update(kuberhealthyJob KuberhealthyJob) (result Kuber
 func (c *kuberhealthyJobs) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
-		Resource("kuberhealthyjobs").
+		Resource("khjobs").
 		Name(name).
 		Body(options).
 		Do().
@@ -148,7 +148,7 @@ func (c *kuberhealthyJobs) DeleteCollection(options *metav1.DeleteOptions, listO
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
-		Resource("kuberhealthyjobs").
+		Resource("khjobs").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Timeout(timeout).
 		Body(options).
@@ -161,7 +161,7 @@ func (c *kuberhealthyJobs) Patch(name string, pt types.PatchType, data []byte, s
 	result = KuberhealthyJob{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
-		Resource("kuberhealthyjobs").
+		Resource("khjobs").
 		SubResource(subresources...).
 		Name(name).
 		Body(data).
