@@ -27,5 +27,8 @@ jobs:
     steps:
       - name: Checkout Source 
         uses: actions/checkout@v2
-      - name: Run golangci-lint
-        uses: actions-contrib/golangci-lint@latest
+      - name: Download Golint
+        run: go get -u golang.org/x/lint/golint
+      - name: Run Golint
+        run: eval $(go list -f {{.Target}} golang.org/x/lint/golint)
+        # uses: actions-contrib/golangci-lint@latest
