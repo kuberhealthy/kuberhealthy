@@ -7,7 +7,7 @@ on:
     branches:
       - master
 jobs:
-  sec:
+  gosec:
     runs-on: ubuntu-latest
     env:
       GO111MODULE: on
@@ -22,13 +22,3 @@ jobs:
         #G304: prevent loading configuration files from variable locations (we want to do this in local development)
         #G601: Implicit memory aliasing in for loop.  (disabled due to false positives for safe code)
         run: gosec -exclude=G107,G109,G304,G601 ./...
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Source 
-        uses: actions/checkout@v2
-      - name: Download Golint
-        run: go get -u golang.org/x/lint/golint
-      - name: Run Golint
-        run: eval $(go list -f {{.Target}} golang.org/x/lint/golint)
-        # uses: actions-contrib/golangci-lint@latest
