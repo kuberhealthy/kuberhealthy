@@ -1,9 +1,11 @@
 name: Update Helm Repo Files
 on:
-  create:
-    tags:
-      - v*
-
+  ##  create:
+  ##    tags:
+  ##      - v*
+  push:
+    branches:
+      - helm_repo_update
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -11,7 +13,7 @@ jobs:
     - name: Checkout
       uses: actions/Checkout@v2.0.0
       with:
-        ref: helm-repo-update
+        ref: helm_repo_update
 #
     - name: Run Kubernetes tools
       uses: stefanprodan/kube-tools@v1
