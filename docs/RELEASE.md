@@ -25,12 +25,10 @@ To release a new version of Kuberhealthy:
     - Integration test values [values.yaml](../.ci/values.yaml)
     - Once the PR is merged, make sure the Flat File Generation PR is also merged -- this updates the deployment flat spec files with the latest Kuberhealthy release image tag
 
-7. Merge the PR Ensure the github site publish action runs properly so that the github site serves the newest helm data with the latest Kuberhealthy release image tag
-
-8. Write up and publish release notes, giving an update / latest changes from the last release: new *Kuberhealthy Checks* (if any), new *Features*, and *Bug Fixes*
+7. Write up and publish release notes, giving an update / latest changes from the last release: new *Kuberhealthy Checks* (if any), new *Features*, and *Bug Fixes*
     - Tag the issue and pr as well as the contributor to the release notes
  
-9. When the release is published, the new version tag is automatically created. This new tag triggers two github actions:
+8. When the release is published, the new version tag is automatically created. This new tag triggers two github actions:
     - Creating a PR to update the Helm repo with the new version tag
     - Updates the latest version of master to the gh-pages branch 
 
