@@ -10,13 +10,12 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/Checkout@v2.0.0
+      with:
+        ref: helm-repo-update
 #
     - name: Run Kubernetes tools
       uses: stefanprodan/kube-tools@v1
       with:
-        #kubectl: 1.16.2
-        #kustomize: 3.4.0
-        #helm: 2.16.1
         helmv3: 3.2.1
         command: | 
           helmv3 version
@@ -56,8 +55,8 @@ jobs:
         # The name of the project column under which a card should be created.
         #project-column: # optional
         # The pull request branch name.
-        branch: Helm_Repo_Update
+        branch: helm_repo_update
         # The pull request base branch.
-        base: master
+        base: helm_repo_update
         # The branch suffix type.
         #branch-suffix: # optional
