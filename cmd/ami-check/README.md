@@ -38,33 +38,33 @@ spec:
     iam.amazonaws.com/role: <role-arn> # Replace this value with your ARN
   podSpec:
     containers:
-    - name: ami
-      image: kuberhealthy/ami-check:v1.1.0
-      imagePullPolicy: IfNotPresent
-      env:
-        - name: AWS_REGION
-          value: "us-east-1"
-        - name: AWS_S3_BUCKET_NAME
-          value: "s3-bucket-name"
-        - name: CLUSTER_FQDN
-          value: "cluster.k8s"
-      resources:
-        requests:
-          cpu: 10m
-          memory: 10Mi
-        limits:
-          cpu: 15m
-      restartPolicy: Always
-
+      - name: ami
+        image: kuberhealthy/ami-check:v1.3.0
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: AWS_REGION
+            value: "us-east-1"
+          - name: AWS_S3_BUCKET_NAME
+            value: "s3-bucket-name"
+          - name: CLUSTER_FQDN
+            value: "cluster.k8s"
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+          limits:
+            cpu: 15m
+        restartPolicy: Always
 ```
 
 #### Install
 
 You must first configure a valid role ARN via IAM in your AWS account. The ARN needs to have enough permissions to perform reads on the Lambda service. If you need to create or update a role for this, attaching the AWS-provided `AmazonEC2ContainerRegistryReadOnly`, `AmazonEC2ReadOnlyAccess`, `AmazonS3ReadOnlyAccess` policies should allow enough permissions for the check to run.
 
-To use the *kops AMI Check* with Kuberhealthy, replace the `<role-arn>` value in the configuration file at [ami-check](ami-check.yaml). Then apply it to your Kubernetes Cluster `kubectl apply -f kiam-check.yaml`.`
+To use the _kops AMI Check_ with Kuberhealthy, replace the `<role-arn>` value in the configuration file at [ami-check](ami-check.yaml). Then apply it to your Kubernetes Cluster `kubectl apply -f kiam-check.yaml`.`
 
 Make sure you are using the latest release of Kuberhealthy 2.0.0.
 
 The check configuration file contains:
+
 - KuberhealthyCheck

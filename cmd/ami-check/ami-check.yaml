@@ -11,20 +11,20 @@ spec:
     iam.amazonaws.com/role: <role-arn> # Replace this value with your ARN
   podSpec:
     containers:
-    - name: ami
-      image: kuberhealthy/ami-check:v1.1.0
-      imagePullPolicy: IfNotPresent
-      env:
-        - name: AWS_REGION
-          value: "us-east-1"
-        - name: AWS_S3_BUCKET_NAME
-          value: "s3-bucket-name"
-        - name: CLUSTER_FQDN
-          value: "cluster.k8s"
-      resources:
-        requests:
-          cpu: 10m
-          memory: 10Mi
-        limits:
-          cpu: 15m
-      restartPolicy: Always
+      - name: ami
+        image: kuberhealthy/ami-check:v1.3.0
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: AWS_REGION
+            value: "us-east-1"
+          - name: AWS_S3_BUCKET_NAME
+            value: "s3-bucket-name"
+          - name: CLUSTER_FQDN
+            value: "cluster.k8s"
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+          limits:
+            cpu: 15m
+        restartPolicy: Always
