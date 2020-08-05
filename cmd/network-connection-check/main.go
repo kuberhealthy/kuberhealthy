@@ -101,12 +101,12 @@ func main() {
 
 	// create a new network connection checker
 	ncc := New()
-
-	ctx = context.Background()
+	var cancelFunc context.CancelFunc
+	ctx, cancelFunc = context.WithTimeout(context.Background(), checkTimeout)
 
 	// wait for the node to join the worker pool
 	waitForNodeToJoin(ctx, client, &checkNamespace)
-	err = ncc.Run(ctx, client)
+	err = ncc.Run(ctx, cancelFunc, client)
 	if err != nil {
 		log.Errorln("Error running network connection check for:", connectionTarget)
 	}
@@ -122,7 +122,7 @@ func New() *Checker {
 }
 
 // Run implements the entrypoint for check execution
-func (ncc *Checker) Run(ctx context.Context, client *kubernetes.Clientset) error {
+func (ncc *Checker) Run(ctx context.Context, cancel context.CancelFunc, client *kubernetes.Clientset) error {
 	log.Infoln("Running network connection checker")
 
 	doneChan := make(chan error)
@@ -141,9 +141,11 @@ func (ncc *Checker) Run(ctx context.Context, client *kubernetes.Clientset) error
 		log.Println("Cancelling check and shutting down due to interrupt.")
 		return reportKHFailure("Cancelling check and shutting down due to interrupt.")
 	case <-runTimeout:
+		cancel()
 		log.Println("Cancelling check and shutting down due to timeout.")
 		return reportKHFailure("Failed to complete network connection check in time! Timeout was reached.")
 	case err := <-doneChan:
+		cancel()
 		if err != nil && ncc.targetUnreachable != true {
 			return reportKHFailure(err.Error())
 		}
