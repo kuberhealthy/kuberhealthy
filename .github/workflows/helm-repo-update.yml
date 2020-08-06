@@ -1,11 +1,11 @@
 name: Update Helm Repo Files
 on:
-    create:
-      tags:
-        - "v*.*.*"
-          #push:
-          #branches:
-          #- HelmRepo_GhActionsAutoUpdate
+  #    create:
+  #    tags:
+  #      - "v*.*.*"
+          push:
+          branches:
+          - HelmRepo_GhActionsAutoUpdate
 jobs:
   build:
     runs-on: ubuntu-latest
