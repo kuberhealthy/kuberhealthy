@@ -13,7 +13,9 @@ if [ "$?" -ne "0" ]; then
   echo "Linting reports error"
   exit 1
 fi
-$HELM package --app-version ${GITHUB_REF##*/} --version $GITHUB_RUN_ID -d ../../helm-repos/archives ./kuberhealthy
-cd ../../helm-repos/archives
-$HELM repo index ./ --merge ../index.yaml --url https://comcast.github.io/kuberhealthy/helm-repos
+#$HELM package --app-version ${GITHUB_REF##*/} --version $GITHUB_RUN_ID -d ../../helm-repos/archives ./kuberhealthy
+HELM package --app-version ${GITHUB_REF##*/} --version ${GITHUB_REF##*/} -d ../../helm-repos/archives ./kuberhealthy
+#cd ../../helm-repos/archives
+cd ../../helm-replos
+$HELM repo index ./archives --merge index.yaml --url https://comcast.github.io/kuberhealthy/helm-repos
 
