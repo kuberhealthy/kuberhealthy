@@ -3,10 +3,10 @@ entries:
   kuberhealthy:
   - apiVersion: v2
     appVersion: HelmRepo_GhActionsAutoUpdate
-    created: "2020-08-05T00:06:06.80881169Z"
+    created: "2020-08-06T18:40:03.00031308Z"
     description: An operator for synthetic test and monitoring.  Works great with
       Prometheus.
-    digest: adda2f89815427e056fa588c8e5b85a2a5b899bf448d97e2bbb710ed02df2eac
+    digest: be2ac989b2c02e1d5377c5c1f6c556a480a8cce88e91523cbbbeedd859b24765
     home: https://comcast.github.io/kuberhealthy/
     icon: https://raw.githubusercontent.com/Comcast/kuberhealthy/master/images/logo-square.png
     keywords:
@@ -36,11 +36,11 @@ entries:
     - https://github.com/helm/charts/tree/master/stable/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/kuberhealthy-195487711.tgz
-    version: "195487711"
+    - https://comcast.github.io/kuberhealthy/helm-repos/kuberhealthy-198126312.tgz
+    version: "198126312"
   - apiVersion: v2
     appVersion: 2.2.0
-    created: "2020-08-05T00:06:06.810883798Z"
+    created: "2020-08-06T18:40:03.002626519Z"
     description: An operator for synthetic test and monitoring.  Works great with
       Prometheus.
     digest: b9c03b1d19be71ae0fbe5494836c7eb02f7b22c2724d059de26e43d31739cd90
@@ -77,7 +77,7 @@ entries:
     version: 2.2.0
   - apiVersion: v2
     appVersion: 2.1.0
-    created: "2020-08-05T00:06:06.809889394Z"
+    created: "2020-08-06T18:40:03.001439447Z"
     description: An operator for synthetic test and monitoring.  Works great with
       Prometheus.
     digest: 8a6c55cb356ea546b39ff149da9c32b992d9bc3084390bd7a939a99434939b74
@@ -112,4 +112,4 @@ entries:
     urls:
     - https://comcast.github.io/kuberhealthy/helm-repos/kuberhealthy-2.1.0.tgz
     version: 2.1.0
-generated: "2020-08-05T00:06:06.807135784Z"
+generated: "2020-08-06T18:40:02.998771787Z"
