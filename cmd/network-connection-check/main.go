@@ -14,7 +14,9 @@
 package main
 
 import (
+	"context"
 	"errors"
+	"io/ioutil"
 	"net"
 	"os"
 	"strconv"
@@ -29,13 +31,22 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
-var kubeConfigFile = os.Getenv("KUBECONFIG")
-var checkTimeout time.Duration
-var connectionTarget string
-var targetUnreachable bool
+var (
+	kubeConfigFile    = os.Getenv("KUBECONFIG")
+	checkTimeout      time.Duration
+	connectionTarget  string
+	targetUnreachable bool
+	checkNamespace    string
+	ctx               context.Context
+)
+
+const (
+	errorMessage = "Failed to complete network connection check in time! Timeout was reached."
+)
 
 // Checker validates that DNS is functioning correctly
 type Checker struct {
@@ -48,18 +59,15 @@ func init() {
 
 	var err error
 
-	// Grab and verify environment variables and set them as global vars
-	CheckTimeout := os.Getenv("CONNECTION_TIMEOUT")
-	if len(CheckTimeout) == 0 {
-		CheckTimeout = "20s"
-		log.Infoln("CONNECTION_TIMEOUT environment variable has not been set. Use", CheckTimeout, "as default timeout.")
-	}
-
-	checkTimeout, err = time.ParseDuration(CheckTimeout)
+	// Set check time limit to default
+	checkTimeout = time.Duration(time.Second * 20)
+	// Get the deadline time in unix from the env var
+	timeDeadline, err := checkclient.GetDeadline()
 	if err != nil {
-		log.Errorln("Error parsing timeout for check", CheckTimeout, err)
-		return
+		log.Infoln("There was an issue getting the check deadline:", err.Error())
 	}
+	checkTimeout = timeDeadline.Sub(time.Now().Add(time.Second * 5))
+	log.Infoln("Check time limit set to:", checkTimeout)
 
 	connectionTarget = os.Getenv("CONNECTION_TARGET")
 	if len(connectionTarget) == 0 {
@@ -69,10 +77,20 @@ func init() {
 
 	targetUnreachable, err = strconv.ParseBool(os.Getenv("CONNECTION_TARGET_UNREACHABLE"))
 	if err != nil {
-		log.Infoln("CONNECTION_TARGET_UNREACHABLE could not parsed.")
+		log.Infoln("CONNECTION_TARGET_UNREACHABLE could not be parsed.")
 		return
 	}
 
+	data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		log.Warnln("Failed to open namespace file:", err.Error())
+	}
+	if len(data) != 0 {
+		log.Infoln("Found pod namespace:", string(data))
+		checkNamespace = string(data)
+	}
+
+	nodeCheck.EnableDebugOutput()
 }
 
 func main() {
@@ -83,8 +101,12 @@ func main() {
 
 	// create a new network connection checker
 	ncc := New()
+	var cancelFunc context.CancelFunc
+	ctx, cancelFunc = context.WithTimeout(context.Background(), checkTimeout)
 
-	err = ncc.Run(client)
+	// wait for the node to join the worker pool
+	waitForNodeToJoin(ctx, client, &checkNamespace)
+	err = ncc.Run(ctx, cancelFunc, client)
 	if err != nil {
 		log.Errorln("Error running network connection check for:", connectionTarget)
 	}
@@ -100,10 +122,11 @@ func New() *Checker {
 }
 
 // Run implements the entrypoint for check execution
-func (ncc *Checker) Run(client *kubernetes.Clientset) error {
+func (ncc *Checker) Run(ctx context.Context, cancel context.CancelFunc, client *kubernetes.Clientset) error {
 	log.Infoln("Running network connection checker")
 
 	doneChan := make(chan error)
+	runTimeout := time.After(checkTimeout)
 
 	ncc.client = client
 	// run the check in a goroutine and notify the doneChan when completed
@@ -114,18 +137,15 @@ func (ncc *Checker) Run(client *kubernetes.Clientset) error {
 
 	// wait for either a timeout or job completion
 	select {
-	case <-time.After(checkTimeout + (2000 * time.Millisecond)):
-
-		// The check has timed out after its specified timeout period
-		errorMessage := "Failed to complete network connection check in time! Timeout was reached."
-
-		err := checkclient.ReportFailure([]string{errorMessage})
-		if err != nil {
-			log.Println("Error reporting failure to Kuberhealthy servers:", err)
-			return err
-		}
-		return err
+	case <-ctx.Done():
+		log.Println("Cancelling check and shutting down due to interrupt.")
+		return reportKHFailure("Cancelling check and shutting down due to interrupt.")
+	case <-runTimeout:
+		cancel()
+		log.Println("Cancelling check and shutting down due to timeout.")
+		return reportKHFailure("Failed to complete network connection check in time! Timeout was reached.")
 	case err := <-doneChan:
+		cancel()
 		if err != nil && ncc.targetUnreachable != true {
 			return reportKHFailure(err.Error())
 		}
@@ -188,4 +208,20 @@ func reportKHFailure(errorMessage string) error {
 	}
 	log.Println("Successfully reported failure to Kuberhealthy servers")
 	return err
+}
+
+// waitForNodeToJoin waits for the node to join the worker pool.
+// Waits for kube-proxy to be ready and that Kuberhealthy is reachable.
+func waitForNodeToJoin(ctx context.Context, client *kubernetes.Clientset, namespace *string) {
+	// Wait for node to be at least 2m old.
+	err := nodeCheck.WaitForNodeAge(ctx, client, *namespace, time.Minute*5)
+	if err != nil {
+		log.Errorln("Failed to check node age:", err.Error())
+	}
+
+	// Check if Kuberhealthy is reachable.
+	err = nodeCheck.WaitForKuberhealthy(ctx)
+	if err != nil {
+		log.Errorln("Failed to reach Kuberhealthy:", err.Error())
+	}
 }
