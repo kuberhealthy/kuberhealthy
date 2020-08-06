@@ -3,9 +3,9 @@ on:
   #    create:
   #    tags:
   #      - "v*.*.*"
-          push:
-          branches:
-          - HelmRepo_GhActionsAutoUpdate
+  push:
+    branches:
+      - HelmRepo_GhActionsAutoUpdate
 jobs:
   build:
     runs-on: ubuntu-latest
