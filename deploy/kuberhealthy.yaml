@@ -394,6 +394,9 @@ spec:
           requests:
             cpu: 400m
             memory: 300Mi
+          limits:
+            cpu: 2
+            memory: 1Gi
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
 ---
