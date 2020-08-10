@@ -9,82 +9,48 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package sslStatus implements an SSL checker for Kuberhealthy
+// Package ssl-handshake-check implements an SSL TLS handshake checker for Kuberhealthy
 // It verifies that a domain's SSL cert is valid, and does not expire in the next 60 days
 
 package main
 
 import (
-	"crypto/tls"
-	"net"
 	"os"
-	"time"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/ssl_util"
 	log "github.com/sirupsen/logrus"
 )
 
-// For security purposes, SkipVerify should always be set to "false" except for testing purposes
-const SkipVerify = false
-
-var Domainname string
-
-var Portnum string
-
-var TimeoutSeconds = 5
+var domainName string
+var portNum string
 
 func init() {
-	Domainname = os.Getenv("DOMAINNAME")
-	if len(Domainname) == 0 {
+	domainName = os.Getenv("DOMAINNAME")
+	if len(domainName) == 0 {
 		log.Errorln("ERROR: The DOMAINNAME environment variable has not been set.")
 		return
 	}
-	Portnum = os.Getenv("PORT")
-	if len(Portnum) == 0 {
+	portNum = os.Getenv("PORT")
+	if len(portNum) == 0 {
 		log.Errorln("ERROR: The PORT environment variable has not been set.")
 		return
 	}
 }
 
 func main() {
-	/*TestCert, TestIP, _*/ err := FetchCert(Domainname, Portnum)
-	//fmt.Println(TestCert, TestIP)
+	_, err := ssl_util.CertHandshake(domainName, portNum)
 	if err != nil {
-		log.Fatal("Unable to perform SSL handshake with host:", err)
+		reportErr := reportKHFailure(err.Error())
+		if reportErr != nil {
+			log.Error(reportErr)
+		}
 	} else {
-		log.Println("SSL handshake check completed")
+		reportErr := reportKHSuccess()
+		if reportErr != nil {
+			log.Error(reportErr)
+		}
 	}
-}
-
-func FetchCert(host, port string) /*[]*x509.Certificate, string, */ error {
-	d := &net.Dialer{
-		Timeout: time.Duration(TimeoutSeconds) * time.Second,
-	}
-
-	conn, err := tls.DialWithDialer(d, "tcp", host+":"+port, &tls.Config{
-		InsecureSkipVerify: SkipVerify,
-	})
-
-	if err != nil {
-		log.Fatal( /*[]*x509.Certificate{&x509.Certificate{}}, "", */ err)
-	}
-	defer conn.Close()
-
-	handshakeErr := conn.Handshake()
-	if handshakeErr != nil {
-		log.Fatal("Unable to complete SSL handshake with host", host+":", handshakeErr)
-		return reportKHFailure(err.Error())
-	} else {
-		log.Println("SSL handshake to host", host, "completed successfully")
-		return reportKHSuccess()
-	}
-	/*
-		addr := conn.RemoteAddr()
-		ip, _, _ := net.SplitHostPort(addr.String())
-		cert := conn.ConnectionState().PeerCertificates
-
-		return cert, ip, nil
-	*/
 }
 
 // reportKHSuccess reports success to Kuberhealthy servers and verifies the report successfully went through
