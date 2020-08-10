@@ -28,8 +28,8 @@ To release a new version of Kuberhealthy:
 7. Write up and publish release notes, giving an update / latest changes from the last release: new *Kuberhealthy Checks* (if any), new *Features*, and *Bug Fixes*
     - Tag the issue and pr as well as the contributor to the release notes
  
-8. When the release is published, the new version tag is automatically created. This new tag triggers two github actions:
-    - Creating a PR to update the Helm repo with the new version tag
-    - Updates the latest version of master to the gh-pages branch 
+8. When the release is published, the new version tag is automatically created. This new tag triggers the following github actions:
+    - PR is created to update the Helm repo with the new version tag. Merge this PR. 
+    - Once this PR for the Helm repo is merged, the gh-pages branch is updated with the latest version of master
 
 Release done!
