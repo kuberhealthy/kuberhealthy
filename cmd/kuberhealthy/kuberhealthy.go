@@ -43,6 +43,12 @@ import (
 	"github.com/Comcast/kuberhealthy/v2/pkg/metrics"
 )
 
+// Set dynamicClient that represents the client used to watch and list unstructured khchecks
+var (
+	restConfig, _ = clientcmd.BuildConfigFromFlags("", configPath)
+	dynamicClient, _ = dynamic.NewForConfig(restConfig)
+)
+
 // Kuberhealthy represents the kuberhealthy server and its checks
 type Kuberhealthy struct {
 	Checks             []KuberhealthyCheck
@@ -287,9 +293,9 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 		time.Sleep(time.Second)
 
 		// start a watch on khcheck resources
-		watcher, err := khCheckClient.Watch(metav1.ListOptions{}, checkCRDResource, listenNamespace)
+		watcher, err := watchUnstructuredKHChecks()
 		if err != nil {
-			log.Errorln("error watching khcheck objects:", err)
+			log.Errorln("error creating watcher for khcheck objects:", err)
 			continue
 		}
 
@@ -322,7 +328,7 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 				log.Debugln("khcheck monitor saw an error event")
 				e := khc.Object.(*metav1.Status)
 				log.Errorln("Error when watching for khcheck changes:", e.Reason)
-				break
+				continue
 			default:
 				log.Warningln("khcheck monitor saw an unknown event type and ignored it:", khc.Type)
 			}
@@ -1240,18 +1246,7 @@ func (k *Kuberhealthy) configureInfluxForwarding() {
 	k.MetricForwarder = metricClient
 }
 
-func listUnstructuredKHChecks() (*unstructured.UnstructuredList, error){
-
-	var unstructuredList *unstructured.UnstructuredList
-	restConfig, err := clientcmd.BuildConfigFromFlags("", configPath)
-	if err != nil {
-		return unstructuredList, err
-	}
-
-	dynClient, err := dynamic.NewForConfig(restConfig)
-	if err != nil {
-		return unstructuredList, err
-	}
+func listUnstructuredKHChecks() (*unstructured.UnstructuredList, error) {
 
 	khCheckGroupVersionResource := schema.GroupVersionResource{
 		Version: checkCRDVersion,
@@ -1259,7 +1254,7 @@ func listUnstructuredKHChecks() (*unstructured.UnstructuredList, error){
 		Group: checkCRDGroup,
 	}
 
-	unstructuredList, err = dynClient.Resource(khCheckGroupVersionResource).Namespace("").List(metav1.ListOptions{})
+	unstructuredList, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").List(metav1.ListOptions{})
 	if err != nil {
 		return unstructuredList, err
 	}
@@ -1276,4 +1271,20 @@ func convertUnstructuredKhCheck(unstructured unstructured.Unstructured) (khcheck
 	}
 
 	return khCheck, err
+}
+
+func watchUnstructuredKHChecks() (watch.Interface, error) {
+
+	khCheckGroupVersionResource := schema.GroupVersionResource{
+		Version: checkCRDVersion,
+		Resource: checkCRDResource,
+		Group: checkCRDGroup,
+	}
+
+	watcher, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").Watch(metav1.ListOptions{})
+	if err != nil {
+		return watcher, err
+	}
+
+	return watcher, err
 }
