@@ -118,7 +118,7 @@ check:
     timeout: 10m
     image:
       repository: kuberhealthy/network-connection-check
-      tag: v0.1.0
+      tag: v0.1.1
     extraEnvs:
       CONNECTION_TARGET: "tcp://github.com:443"
     nodeSelector: {}
