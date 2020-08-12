@@ -10,8 +10,8 @@ spec:
     containers:
       - env:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
-          - name: DOMAINNAME
-            value: "corporate.comcast.com"
+          - name: DOMAIN_NAME
+            value: "google.com"
           # If not using default SSL port of 443, port name env variable must be updated  
           - name: PORT
             value: "443"
