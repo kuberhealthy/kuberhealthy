@@ -15,7 +15,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
@@ -28,9 +27,9 @@ var portNum string
 var daysToExpire string
 
 func init() {
-	domainName = os.Getenv("DOMAINNAME")
+	domainName = os.Getenv("DOMAIN_NAME")
 	if len(domainName) == 0 {
-		log.Errorln("ERROR: The domainNameenvironment variable has not been set.")
+		log.Errorln("ERROR: The DOMAIN_NAME environment variable has not been set.")
 		return
 	}
 	portNum = os.Getenv("PORT")
@@ -46,31 +45,37 @@ func init() {
 }
 
 func main() {
-	_, certExpired, expirePending, daysValid, err := ssl_util.CertExpiry(domainName, portNum, daysToExpire)
+	runExpiry()
+}
+
+func runExpiry() {
+	certExpired, expirePending, err := ssl_util.CertExpiry(domainName, portNum, daysToExpire)
 	if err != nil {
 		log.Error("Unable to perform SSL expiration check with host")
-	} else {
-		log.Println("SSL expiration check completed")
+		os.Exit(1)
 	}
 
 	if certExpired == true {
-		err = fmt.Errorf("Certificate for domain %v is expired", domainName)
-		reportErr := reportKHFailure(err.Error())
-		if reportErr != nil {
-			log.Error(reportErr)
+		err := reportKHFailure("Certificate is expired")
+		if err != nil {
+			log.Error(err)
+			os.Exit(1)
 		}
-	} else if expirePending == true {
-		err = fmt.Errorf("Certificate for domain %v is expiring in %v days", domainName, daysValid)
-		reportErr := reportKHFailure(err.Error())
-		if reportErr != nil {
-			log.Error(reportErr)
+		return
+	}
+
+	if expirePending == true {
+		errMsg := ("Certificate for domain " + domainName + " is expiring in less than " + daysToExpire + " days")
+		err := reportKHFailure(errMsg)
+		if err != nil {
+			log.Error(err)
+			os.Exit(1)
 		}
-	} else {
-		log.Println("SSL is valid and will not expire for more than", daysToExpire, "days")
-		reportErr := reportKHSuccess()
-		if reportErr != nil {
-			log.Error(reportErr)
-		}
+		return
+	}
+	err = reportKHSuccess()
+	if err != nil {
+		log.Error(err)
 	}
 }
 
@@ -81,7 +86,7 @@ func reportKHSuccess() error {
 		log.Error("Error reporting success status to Kuberhealthy servers:", err)
 		return err
 	}
-	log.Println("Successfully reported success status to Kuberhealthy servers")
+	log.Info("Successfully reported success status to Kuberhealthy servers")
 	return err
 }
 
@@ -89,9 +94,9 @@ func reportKHSuccess() error {
 func reportKHFailure(errorMessage string) error {
 	err := checkclient.ReportFailure([]string{errorMessage})
 	if err != nil {
-		log.Println("Error reporting failure status to Kuberhealthy servers:", err)
+		log.Error("Error reporting failure status to Kuberhealthy servers:", err)
 		return err
 	}
-	log.Println("Successfully reported failure status to Kuberhealthy servers")
+	log.Info("Successfully reported failure status to Kuberhealthy servers")
 	return err
 }

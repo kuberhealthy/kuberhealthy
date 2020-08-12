@@ -10,7 +10,7 @@ does not complete within the given timeout it will report a timeout error on the
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: ssl-expiry-check
+  name: ssl-expiry
   namespace: kuberhealthy
 spec:
   runInterval: 1d
@@ -19,7 +19,7 @@ spec:
     containers:
       - env:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
-          - name: DOMAINNAME
+          - name: DOMAIN_NAME
             value: "google.com"
           # If not using default SSL port of 443, port name env variable must be updated  
           - name: PORT
@@ -27,7 +27,7 @@ spec:
           # Number of days until certificate expiration to test for  
           - name: DAYS
             value: "60"
-        image: kuberhealthy/ssl-expiry-check:v1.0.0
+        image: kuberhealthy/ssl-expiry:v1.0.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:

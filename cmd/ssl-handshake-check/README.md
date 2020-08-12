@@ -10,7 +10,7 @@ does not complete within the given timeout it will report a timeout error on the
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: ssl-handshake-check
+  name: ssl-handshake
   namespace: kuberhealthy
 spec:
   runInterval: 5m
@@ -19,12 +19,12 @@ spec:
     containers:
       - env:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
-          - name: DOMAINNAME
+          - name: DOMAIN_NAME
             value: "google.com"
           # If not using default SSL port of 443, port name env variable must be updated  
           - name: PORT
             value: "443"
-        image: kuberhealthy/ssl-handshake-check:v1.0.0
+        image: kuberhealthy/ssl-handshake:v1.0.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:

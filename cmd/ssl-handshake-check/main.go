@@ -26,9 +26,9 @@ var domainName string
 var portNum string
 
 func init() {
-	domainName = os.Getenv("DOMAINNAME")
+	domainName = os.Getenv("DOMAIN_NAME")
 	if len(domainName) == 0 {
-		log.Errorln("ERROR: The DOMAINNAME environment variable has not been set.")
+		log.Errorln("ERROR: The DOMAIN_NAME environment variable has not been set.")
 		return
 	}
 	portNum = os.Getenv("PORT")
@@ -39,17 +39,21 @@ func init() {
 }
 
 func main() {
-	_, err := ssl_util.CertHandshake(domainName, portNum)
+	runHandshake()
+}
+
+func runHandshake() {
+	err := ssl_util.CertHandshake(domainName, portNum)
 	if err != nil {
 		reportErr := reportKHFailure(err.Error())
 		if reportErr != nil {
 			log.Error(reportErr)
+			os.Exit(1)
 		}
-	} else {
-		reportErr := reportKHSuccess()
-		if reportErr != nil {
-			log.Error(reportErr)
-		}
+	}
+	reportErr := reportKHSuccess()
+	if reportErr != nil {
+		log.Error(reportErr)
 	}
 }
 
@@ -57,10 +61,10 @@ func main() {
 func reportKHSuccess() error {
 	err := checkclient.ReportSuccess()
 	if err != nil {
-		log.Println("Error reporting success status to Kuberhealthy servers:", err)
+		log.Error("Error reporting success status to Kuberhealthy servers:", err)
 		return err
 	}
-	log.Println("Successfully reported success status to Kuberhealthy servers")
+	log.Info("Successfully reported success status to Kuberhealthy servers")
 	return err
 }
 
@@ -68,9 +72,9 @@ func reportKHSuccess() error {
 func reportKHFailure(errorMessage string) error {
 	err := checkclient.ReportFailure([]string{errorMessage})
 	if err != nil {
-		log.Println("Error reporting failure status to Kuberhealthy servers:", err)
+		log.Error("Error reporting failure status to Kuberhealthy servers:", err)
 		return err
 	}
-	log.Println("Successfully reported failure status to Kuberhealthy servers")
+	log.Info("Successfully reported failure status to Kuberhealthy servers")
 	return err
 }
