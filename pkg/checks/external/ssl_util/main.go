@@ -49,9 +49,6 @@ func CertExpiry(host, port, days string) (bool, bool, error) {
 	log.Info("Testing SSL expiration on host ", host, " over port ", port)
 	var certExpired bool
 	var expireWarning bool
-	var currentTime time.Time
-	var daysUntilInvalid uint
-	var cert []*x509.Certificate
 
 	d := &net.Dialer{
 		Timeout: time.Duration(TimeoutSeconds) * time.Second,
@@ -69,26 +66,24 @@ func CertExpiry(host, port, days string) (bool, bool, error) {
 	defer conn.Close()
 
 	// var cert is assigned the slice of certs that can be pulled from a given host
-	cert = conn.ConnectionState().PeerCertificates
-
-	// for loop went here
-	currentTime = time.Now()
-	//convert # of days declared in pod spec from string to uint64, then to uint
+	cert := conn.ConnectionState().PeerCertificates
+	currentTime := time.Now()
+	// convert # of days declared in pod spec from string to uint64, then to uint, to compare against cert expiration info
 	daysInt64, _ := strconv.ParseUint(days, 10, 64)
 	daysInt := uint(daysInt64)
 
 	// the first cert in the slice (cert[0]) is the domain certificate that is to be checked
-	// calculate hours until invalid to uint and convert to # of days
-	daysUntilInvalid = (uint(cert[0].NotAfter.Sub(currentTime).Hours())) / uint(24)
+	// calculate # of hours until invalid to uint, and then convert to # of days
+	daysUntilInvalid := (uint(cert[0].NotAfter.Sub(currentTime).Hours())) / uint(24)
 	log.Info("Cert for", host, "is valid from", cert[0].NotBefore, "until", cert[0].NotAfter)
 
-	// Check that the current date/time is between the certificate's Not Before and Not After window
+	// check that the current date/time is between the certificate's Not Before and Not After window
 	if currentTime.Before(cert[0].NotBefore) || currentTime.After(cert[0].NotAfter) {
 		certExpired = true
 		log.Warn("Certificate for domain", host, "expired on", cert[0].NotAfter)
 	}
 
-	// Check that the # of days in the pod spec is greater than the number of days left until cert expiration
+	// check that the # of days in the pod spec is greater than the number of days left until cert expiration
 	if daysInt >= daysUntilInvalid {
 		expireWarning = true
 		log.Warn("Certificate for domain ", host, " will expire in ", daysUntilInvalid, " days")
