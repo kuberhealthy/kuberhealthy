@@ -28,33 +28,35 @@ var portNum string
 func init() {
 	domainName = os.Getenv("DOMAIN_NAME")
 	if len(domainName) == 0 {
-		log.Errorln("ERROR: The DOMAIN_NAME environment variable has not been set.")
+		log.Error("ERROR: The DOMAIN_NAME environment variable has not been set.")
 		return
 	}
 	portNum = os.Getenv("PORT")
 	if len(portNum) == 0 {
-		log.Errorln("ERROR: The PORT environment variable has not been set.")
+		log.Error("ERROR: The PORT environment variable has not been set.")
 		return
 	}
 }
 
 func main() {
-	runHandshake()
-}
-
-func runHandshake() {
-	err := ssl_util.CertHandshake(domainName, portNum)
+	err := runHandshake()
 	if err != nil {
 		reportErr := reportKHFailure(err.Error())
 		if reportErr != nil {
 			log.Error(reportErr)
-			os.Exit(1)
 		}
+		os.Exit(1)
 	}
 	reportErr := reportKHSuccess()
 	if reportErr != nil {
 		log.Error(reportErr)
 	}
+}
+
+// run the SSL handshake check for the specified host and port number from ssl_util package
+func runHandshake() error {
+	err := ssl_util.CertHandshake(domainName, portNum)
+	return err
 }
 
 // reportKHSuccess reports success to Kuberhealthy servers and verifies the report successfully went through

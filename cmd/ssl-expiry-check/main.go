@@ -15,6 +15,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
@@ -29,54 +30,53 @@ var daysToExpire string
 func init() {
 	domainName = os.Getenv("DOMAIN_NAME")
 	if len(domainName) == 0 {
-		log.Errorln("ERROR: The DOMAIN_NAME environment variable has not been set.")
+		log.Error("ERROR: The DOMAIN_NAME environment variable has not been set.")
 		return
 	}
 	portNum = os.Getenv("PORT")
 	if len(portNum) == 0 {
-		log.Errorln("ERROR: The PORT environment variable has not been set.")
+		log.Error("ERROR: The PORT environment variable has not been set.")
 		return
 	}
 	daysToExpire = os.Getenv("DAYS")
 	if len(daysToExpire) == 0 {
-		log.Errorln("ERROR: The DAYS environment variable has not been set.")
+		log.Error("ERROR: The DAYS environment variable has not been set.")
 		return
 	}
 }
 
 func main() {
-	runExpiry()
+	err := runExpiry()
+	if err != nil {
+		reportErr := reportKHFailure(err.Error())
+		if reportErr != nil {
+			log.Error(reportErr)
+		}
+		os.Exit(1)
+	}
+	reportErr := reportKHSuccess()
+	if reportErr != nil {
+		log.Error(reportErr)
+	}
 }
 
-func runExpiry() {
+func runExpiry() error {
 	certExpired, expirePending, err := ssl_util.CertExpiry(domainName, portNum, daysToExpire)
 	if err != nil {
-		log.Error("Unable to perform SSL expiration check with host")
-		os.Exit(1)
+		log.Error("Unable to perform SSL expiration check")
 	}
 
 	if certExpired == true {
-		err := reportKHFailure("Certificate is expired")
-		if err != nil {
-			log.Error(err)
-			os.Exit(1)
-		}
-		return
+		err := fmt.Errorf("Certificate for domain " + domainName + " is expired")
+		return err
 	}
 
 	if expirePending == true {
-		errMsg := ("Certificate for domain " + domainName + " is expiring in less than " + daysToExpire + " days")
-		err := reportKHFailure(errMsg)
-		if err != nil {
-			log.Error(err)
-			os.Exit(1)
-		}
-		return
+		err := fmt.Errorf("Certificate for domain " + domainName + " is expiring in less than " + daysToExpire + " days")
+		return err
 	}
-	err = reportKHSuccess()
-	if err != nil {
-		log.Error(err)
-	}
+
+	return err
 }
 
 // reportKHSuccess reports success to Kuberhealthy servers and verifies the report successfully went through
