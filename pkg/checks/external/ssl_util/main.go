@@ -16,7 +16,7 @@ import (
 
 var TimeoutSeconds = 10
 
-// CertHandshake performs a basic TLS/SSL handshake on the specified host and port, returning the cert information and any errors
+// CertHandshake performs a basic TLS/SSL handshake on the specified host and port, returning any errors
 func CertHandshake(host, port string) error {
 	log.Info("Testing SSL handshake on host ", host, " over port ", port)
 
@@ -30,21 +30,21 @@ func CertHandshake(host, port string) error {
 	})
 
 	if err != nil {
-		log.Warnln([]*x509.Certificate{&x509.Certificate{}}, "", err)
+		log.Warnln([]*x509.Certificate{&x509.Certificate{}}, "ERROR IS: ", err)
 		return err
 	}
 	defer conn.Close()
 
 	err = conn.Handshake()
 	if err != nil {
-		log.Warn("Unable to complete SSL handshake with host", host+":", err)
+		log.Warn("Unable to complete SSL handshake with host ", host+":", err)
 		return err
 	}
-	log.Info("SSL handshake to host", host, "completed successfully")
+	log.Info("SSL handshake to host ", host, " completed successfully")
 	return err
 }
 
-// CertExpiry checks that the cert on a given host and port is not currently expired, and that the expiration day is the specified number of days away
+// CertExpiry returns bool values indicating if the cert on a given host and port are currently exiring or if the expiration is the specified number of days away, and any errors
 func CertExpiry(host, port, days string) (bool, bool, error) {
 	log.Info("Testing SSL expiration on host ", host, " over port ", port)
 	var certExpired bool
@@ -68,19 +68,19 @@ func CertExpiry(host, port, days string) (bool, bool, error) {
 	// var cert is assigned the slice of certs that can be pulled from a given host
 	cert := conn.ConnectionState().PeerCertificates
 	currentTime := time.Now()
+
 	// convert # of days declared in pod spec from string to uint64, then to uint, to compare against cert expiration info
 	daysInt64, _ := strconv.ParseUint(days, 10, 64)
 	daysInt := uint(daysInt64)
 
-	// the first cert in the slice (cert[0]) is the domain certificate that is to be checked
-	// calculate # of hours until invalid to uint, and then convert to # of days
+	// calculate # of hours until the domain cert (cert[0] from the slice) is invalid, then convery to uint and to # of days
 	daysUntilInvalid := (uint(cert[0].NotAfter.Sub(currentTime).Hours())) / uint(24)
-	log.Info("Cert for", host, "is valid from", cert[0].NotBefore, "until", cert[0].NotAfter)
+	log.Info("Certificate for ", host, " is valid from ", cert[0].NotBefore, " until ", cert[0].NotAfter)
 
 	// check that the current date/time is between the certificate's Not Before and Not After window
 	if currentTime.Before(cert[0].NotBefore) || currentTime.After(cert[0].NotAfter) {
 		certExpired = true
-		log.Warn("Certificate for domain", host, "expired on", cert[0].NotAfter)
+		log.Warn("Certificate for domain ", host, " expired on ", cert[0].NotAfter)
 	}
 
 	// check that the # of days in the pod spec is greater than the number of days left until cert expiration
@@ -89,7 +89,8 @@ func CertExpiry(host, port, days string) (bool, bool, error) {
 		log.Warn("Certificate for domain ", host, " will expire in ", daysUntilInvalid, " days")
 	}
 
-	log.Info("Certificate for domain ", host, " is currently valid and will expire in ", daysUntilInvalid, " days")
-
+	if (daysInt <= daysUntilInvalid) && (currentTime.Before(cert[0].NotAfter) || currentTime.After(cert[0].NotBefore)) {
+		log.Info("Certificate for domain ", host, " is currently valid and will expire in ", daysUntilInvalid, " days")
+	}
 	return certExpired, expireWarning, err
 }
