@@ -64,6 +64,7 @@ func runExpiry() error {
 	certExpired, expirePending, err := ssl_util.CertExpiry(domainName, portNum, daysToExpire)
 	if err != nil {
 		log.Error("Unable to perform SSL expiration check")
+		return err
 	}
 
 	if certExpired == true {
