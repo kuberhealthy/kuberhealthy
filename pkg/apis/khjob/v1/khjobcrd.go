@@ -113,3 +113,15 @@ func (in *KuberhealthyJobList) DeepCopyObject() runtime.Object {
 	}
 	return nil
 }
+
+// NewKuberhealthyJob creates a KuberhealthyCheck struct which represents
+// the data inside a KuberhealthyCheck resource
+func NewKuberhealthyJob(name string, namespace string, spec JobConfig) KuberhealthyJob {
+	job := KuberhealthyJob{}
+	job.Name = name
+	job.ObjectMeta.Name = name
+	job.Spec = spec
+	job.Namespace = namespace
+	job.ObjectMeta.Namespace = namespace
+	return job
+}

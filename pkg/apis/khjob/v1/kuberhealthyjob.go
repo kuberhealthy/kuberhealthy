@@ -35,8 +35,8 @@ type KuberhealthyJobsGetter interface {
 
 // KuberhealthyJobInterface has methods to work with KuberhealthyJob resources.
 type KuberhealthyJobInterface interface {
-	Create(KuberhealthyJob) (KuberhealthyJob, error)
-	Update(KuberhealthyJob) (KuberhealthyJob, error)
+	Create(*KuberhealthyJob) (KuberhealthyJob, error)
+	Update(*KuberhealthyJob) (KuberhealthyJob, error)
 	Delete(name string, options *metav1.DeleteOptions) error
 	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
 	Get(name string, options metav1.GetOptions) (KuberhealthyJob, error)
@@ -52,7 +52,7 @@ type kuberhealthyJobs struct {
 }
 
 // newKuberhealthyJobs returns a KuberhealthyJobs
-func newKuberhealthyJobs(c *KhjobV1Client, namespace string) *kuberhealthyJobs {
+func newKuberhealthyJobs(c *KHJobV1Client, namespace string) *kuberhealthyJobs {
 	return &kuberhealthyJobs{
 		client: c.RESTClient(),
 		ns:     namespace,
@@ -105,7 +105,7 @@ func (c *kuberhealthyJobs) Watch(opts metav1.ListOptions) (watch.Interface, erro
 }
 
 // Create takes the representation of a kuberhealthyJob and creates it.  Returns the server's representation of the kuberhealthyJob, and an error, if there is any.
-func (c *kuberhealthyJobs) Create(kuberhealthyJob KuberhealthyJob) (result KuberhealthyJob, err error) {
+func (c *kuberhealthyJobs) Create(kuberhealthyJob *KuberhealthyJob) (result KuberhealthyJob, err error) {
 	result = KuberhealthyJob{}
 	err = c.client.Post().
 		Namespace(c.ns).
@@ -117,7 +117,7 @@ func (c *kuberhealthyJobs) Create(kuberhealthyJob KuberhealthyJob) (result Kuber
 }
 
 // Update takes the representation of a kuberhealthyJob and updates it. Returns the server's representation of the kuberhealthyJob, and an error, if there is any.
-func (c *kuberhealthyJobs) Update(kuberhealthyJob KuberhealthyJob) (result KuberhealthyJob, err error) {
+func (c *kuberhealthyJobs) Update(kuberhealthyJob *KuberhealthyJob) (result KuberhealthyJob, err error) {
 	result = KuberhealthyJob{}
 	err = c.client.Put().
 		Namespace(c.ns).

@@ -27,11 +27,21 @@ type KuberhealthyJob struct {
 // endpoint.
 // +k8s:openapi-gen=true
 type JobConfig struct {
+	Phase            JobPhase          `json:"phase"`            // the state or phase of the job
 	Timeout          string            `json:"timeout"`          // the maximum time the pod is allowed to run before a failure is assumed
-	PodSpec          apiv1.PodSpec     `json:"podSpec"`          // a spec for the external checker
+	PodSpec          apiv1.PodSpec     `json:"podSpec"`          // a spec for the external job
 	ExtraAnnotations map[string]string `json:"extraAnnotations"` // a map of extra annotations that will be applied to the pod
 	ExtraLabels      map[string]string `json:"extraLabels"`      // a map of extra labels that will be applied to the pod
 }
+
+// JobPhase is a label for the condition of the job at the current time.
+type JobPhase string
+
+// These are the valid phases of jobs.
+const (
+	JobRunning JobPhase = "Running"
+	JobCompleted JobPhase = "Completed"
+)
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

@@ -53,7 +53,6 @@ var (
 // Kuberhealthy represents the kuberhealthy server and its checks
 type Kuberhealthy struct {
 	Checks             []KuberhealthyCheck
-	Jobs               []KuberhealthyJob
 	ListenAddr         string // the listen address, such as ":80"
 	MetricForwarder    metrics.Client
 	overrideKubeClient *kubernetes.Clientset
@@ -143,12 +142,6 @@ func (k *Kuberhealthy) AddCheck(c KuberhealthyCheck) {
 	k.Checks = append(k.Checks, c)
 }
 
-// AddCheck adds a check to Kuberhealthy.  Must be done before Start or StartChecks
-// are called.
-func (k *Kuberhealthy) AddJob(c KuberhealthyJob) {
-	k.Jobs = append(k.Jobs, c)
-}
-
 // Shutdown causes the kuberhealthy check group to shutdown gracefully
 func (k *Kuberhealthy) Shutdown(doneChan chan struct{}) {
 	if k.shutdownCtxFunc != nil {
@@ -219,12 +212,8 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 	lostMasterChan := make(chan struct{}, 10)
 	go k.masterMonitor(ctx, becameMasterChan, lostMasterChan)
 
-	// monitor for kuberhealthy jobs and notify channel to trigger the job
-	kuberhealthyJobChan := make(chan struct{}, 50)
-	kuberhealthyJobChanLimited := make(chan struct{}, 50)
-	go monitorKHJobs(ctx, kuberhealthyJobChan)
-	go notifyChanLimiter(maxUpdateInterval, kuberhealthyJobChan, kuberhealthyJobChanLimited)
-	go k.triggerKHJob(ctx, kuberhealthyJobChanLimited)
+	// monitor for kuberhealthy jobs and trigger when a new job is added
+	go k.monitorKHJobs(ctx)
 
 	// loop and select channels to do appropriate thing when master changes
 	for {
@@ -344,7 +333,8 @@ func (k *Kuberhealthy) reapKHStateResources() error {
 
 }
 
-func monitorKHJobs(ctx context.Context, c chan struct{}) {
+// monitorKHJobs watches for newly added KHJobs and triggers them
+func (k *Kuberhealthy) monitorKHJobs(ctx context.Context) {
 
 	log.Debugln("Spawned watcher for KH jobs")
 
@@ -379,7 +369,13 @@ func monitorKHJobs(ctx context.Context, c chan struct{}) {
 			// Ignore all other event types.
 			case watch.Added:
 				log.Debugln("khjob monitor saw an added event")
-				c <- struct{}{}
+				kj := khj.Object.(*khjob.KuberhealthyJob)
+				if verifyNewKHJob(kj.Name, kj.Namespace) {
+					log.Infoln("khJob is newly added, triggering khjob:", kj.Name)
+					 k.triggerKHJob(*kj)
+					continue
+				}
+				log.Debugln("KHJob is not new, in phase:", kj.Spec.Phase, "Skipping added event")
 			case watch.Error:
 				log.Debugln("khjob monitor saw an error event")
 				e := khj.Object.(*metav1.Status)
@@ -467,22 +463,18 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 	}
 }
 
-// verifyNewJobAdded checks the age of the job applied. If the job if less than 1 minute old, run job, if not, ignore.
-// This helps when deciding to run multiple, new jobs concurrently.
-func verifyNewJobAdded(khJobName string, jobNamespace string) bool {
+func verifyNewKHJob(khJobName string, khJobNamespace string) bool {
 
-	kj, err := khJobClient.KuberhealthyJobs(jobNamespace).Get(khJobName, metav1.GetOptions{})
+	kj, err := khJobClient.KuberhealthyJobs(khJobNamespace).Get(khJobName, metav1.GetOptions{})
 	if err != nil {
 		log.Debugln(khJobName, "Error getting khjob:", khJobName, err)
 		return false
 	}
+	log.Debugln("Found khjob:", kj.Name, "in job phase:", kj.Spec.Phase)
 
-	jobAge := time.Now().Sub(kj.CreationTimestamp.Time)
-	log.Debugln(khJobName, "khjob age:", jobAge)
-	if jobAge < time.Minute * 1 {
+	if kj.Spec.Phase == "" {
 		return true
 	}
-
 	return false
 }
 
@@ -633,8 +625,7 @@ func (k *Kuberhealthy) addExternalChecks() error {
 
 		// create a new kubernetes client for this external checker
 		log.Infoln("Enabling external check:", r.Name)
-		j := khjob.KuberhealthyJob{}
-		c := external.New(kubernetesClient, &r, &j, khCheckClient, khStateClient, khJobClient, cfg.ExternalCheckReportingURL, false)
+		c := external.New(kubernetesClient, &r, khCheckClient, khStateClient, cfg.ExternalCheckReportingURL)
 
 		// parse the run interval string from the custom resource and setup the run interval
 		c.RunInterval, err = time.ParseDuration(r.Spec.RunInterval)
@@ -676,102 +667,54 @@ func (k *Kuberhealthy) addExternalChecks() error {
 	return nil
 }
 
+
 // addExternalJobs syncs up the state of the all jobs installed in this Kuberhealthy struct.
-func (k *Kuberhealthy) addExternalJobs() error {
+func (k *Kuberhealthy) configureJob(job khjob.KuberhealthyJob) KuberhealthyCheck {
 
-	log.Debugln("Fetching khjob configurations...")
+	log.Debugln("Loading job CRD:", job.Name)
 
-	khjobs, err := khJobClient.KuberhealthyJobs(listenNamespace).List(metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
+	// create a new kubernetes client for this external checker
+	log.Infoln("Enabling external job:", job.Name)
+	kj := external.NewJob(kubernetesClient, &job, khJobClient, khStateClient, cfg.ExternalCheckReportingURL)
 
-	log.Debugln("Found", len(khjobs.Items), "external jobs to load")
-
-	for _, kj := range khjobs.Items {
-
-		log.Debugln("Verifying if job is new")
-		if verifyNewJobAdded(kj.Name, kj.Namespace) {
-
-			log.Debugln("khjob is new. Triggering job.")
-
-			log.Debugln("Loading job CRD:", kj.Name)
-
-			// create a new kubernetes client for this external checker
-			log.Infoln("Enabling external job:", kj.Name)
-			kc := khcheckcrd.KuberhealthyCheck{}
-			c := external.New(kubernetesClient, &kc, &kj, khCheckClient, khStateClient, khJobClient, cfg.ExternalCheckReportingURL, true)
-
-			// parse the user specified timeout if present
-			c.RunTimeout = khcheckcrd.DefaultTimeout
-			if len(kj.Spec.Timeout) > 0 {
-				c.RunTimeout, err = time.ParseDuration(kj.Spec.Timeout)
-				if err != nil {
-					log.Errorln("Error parsing timeout for check", c.CheckName, "in namespace", c.Namespace, err)
-					log.Errorln("Defaulting check to a timeout of", khcheckcrd.DefaultTimeout)
-				}
-			}
-
-			log.Debugln("RunTimeout for job:", c.CheckName, "set to", c.RunTimeout)
-
-			// add on extra annotations and labels
-			if c.ExtraAnnotations != nil {
-				log.Debugln("External job setting extra annotations:", c.ExtraAnnotations)
-				c.ExtraAnnotations = kj.Spec.ExtraAnnotations
-			}
-			if c.ExtraLabels != nil {
-				log.Debugln("External job setting extra labels:", c.ExtraLabels)
-				c.ExtraLabels = kj.Spec.ExtraLabels
-			}
-			log.Debugln("External job labels and annotations:", c.ExtraLabels, c.ExtraAnnotations)
-
-			// add the check into the checker
-			k.AddJob(c)
-		} else {
-			log.Debugln("khjob is not new. Ignoring job.")
-
+	var err error
+	// parse the user specified timeout if present
+	kj.RunTimeout = khcheckcrd.DefaultTimeout
+	if len(job.Spec.Timeout) > 0 {
+		kj.RunTimeout, err = time.ParseDuration(job.Spec.Timeout)
+		if err != nil {
+			log.Errorln("Error parsing timeout for check", kj.CheckName, "in namespace", kj.Namespace, err)
+			log.Errorln("Defaulting check to a timeout of", khcheckcrd.DefaultTimeout)
 		}
 	}
 
-	return nil
-}
+	log.Debugln("RunTimeout for job:", kj.CheckName, "set to", kj.RunTimeout)
 
-
-// triggerKHJob waits to be triggered by the upstream channel when a khjob is added
-func (k *Kuberhealthy) triggerKHJob(ctx context.Context, khJobChan chan struct{}) {
-
-	for {
-		select {
-		case <- khJobChan:
-			log.Debugln("khjob trigger, isMaster:", isMaster)
-			// only the master pod should be running khjobs or khjobs are duplicated
-			if isMaster {
-				k.StartJobs()
-			}
-		default:
-		}
+	// add on extra annotations and labels
+	if kj.ExtraAnnotations != nil {
+		log.Debugln("External job setting extra annotations:", kj.ExtraAnnotations)
+		kj.ExtraAnnotations = job.Spec.ExtraAnnotations
 	}
+	if kj.ExtraLabels != nil {
+		log.Debugln("External job setting extra labels:", kj.ExtraLabels)
+		kj.ExtraLabels = job.Spec.ExtraLabels
+	}
+	log.Debugln("External job labels and annotations:", kj.ExtraLabels, kj.ExtraAnnotations)
+	return kj
 }
 
 
-// StartJobs starts all jobs concurrently
-func (k *Kuberhealthy) StartJobs() {
+// triggerKHJob checks if its master, sets the context, and runs the khjob in a goroutine
+func (k *Kuberhealthy) triggerKHJob(job khjob.KuberhealthyJob) {
 
-	log.Infoln("control: Reloading job configuration...")
-	k.configureJobs()
+	log.Debugln("khjob trigger, isMaster:", isMaster)
+	// only the master pod should be running khjobs or khjobs are duplicated
+	if isMaster {
+		// create a context for checks to abort with
+		ctx, cancelFunc := context.WithCancel(context.Background())
+		k.cancelChecksFunc = cancelFunc
 
-	// sleep to make a more graceful switch-up during lots of master and check changes coming in
-	log.Infoln("control:", len(k.Jobs), "jobs starting!")
-
-	// create a context for checks to abort with
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	k.cancelChecksFunc = cancelFunc
-
-	// start each job with this check group's context
-	for _, c := range k.Jobs {
-		k.wg.Add(1)
-		// start the job in its own routine
-		go k.runJob(ctx, c)
+		go k.runJob(ctx, job)
 	}
 }
 
@@ -907,7 +850,10 @@ func (k *Kuberhealthy) masterMonitor(ctx context.Context, becameMasterChan chan 
 }
 
 // runJob runs the job and sets its status
-func (k *Kuberhealthy) runJob(ctx context.Context, j KuberhealthyJob) {
+func (k *Kuberhealthy) runJob(ctx context.Context, job khjob.KuberhealthyJob) {
+
+	log.Infoln("control: Loading job configuration...")
+	j := k.configureJob(job)
 
 	log.Println("Starting kuberhealthy job:", j.CheckNamespace(), "/", j.Name())
 	// break out if context cancels
@@ -924,7 +870,13 @@ func (k *Kuberhealthy) runJob(ctx context.Context, j KuberhealthyJob) {
 	log.Infoln("Running job:", j.Name())
 	// Record job run start time
 	jobStartTime := time.Now()
-	err := j.Run(kubernetesClient)
+	// set KHJob phase to running
+	err := setJobPhase(job.Name, job.Namespace, khjob.JobRunning)
+	if err != nil {
+		log.Errorln("Error setting job phase:", err)
+	}
+
+	err = j.Run(kubernetesClient)
 	if err != nil {
 		log.Errorln("Error running job:", j.Name(), "in namespace", j.CheckNamespace()+":", err)
 		if strings.Contains(err.Error(), "pod deleted expectedly") {
@@ -989,6 +941,12 @@ func (k *Kuberhealthy) runJob(ctx context.Context, j KuberhealthyJob) {
 	err = k.storeCheckState(j.Name(), j.CheckNamespace(), details)
 	if err != nil {
 		log.Errorln("Error storing CRD state for job:", j.Name(), "in namespace", j.CheckNamespace(), err)
+	}
+
+	// set KHJob phase to running:
+	err = setJobPhase(j.Name(), j.CheckNamespace(), khjob.JobCompleted)
+	if err != nil {
+		log.Errorln("Error setting job phase:", err)
 	}
 }
 
@@ -1532,13 +1490,17 @@ func (k *Kuberhealthy) getCheck(name string, namespace string) (KuberhealthyChec
 }
 
 // getJob returns a Kuberhealthy job object from its name, returns an error otherwise
-func (k *Kuberhealthy) getJob(name string, namespace string) (KuberhealthyJob, error) {
-	for _, j := range k.Jobs {
-		if j.Name() == name && j.CheckNamespace() == namespace {
-			return j, nil
-		}
+func (k *Kuberhealthy) getJob(name string, namespace string) (KuberhealthyCheck, error) {
+
+	var kjob KuberhealthyCheck
+	j, err := khJobClient.KuberhealthyJobs(namespace).Get(name, metav1.GetOptions{})
+	if err != nil {
+		log.Debugln("Error getting khjob:", name, err)
+		return kjob, err
 	}
-	return nil, fmt.Errorf("could not find Kuberhealthy job with name %s", name)
+
+	kjob = k.configureJob(j)
+	return kjob, fmt.Errorf("could not find Kuberhealthy job with name %s", name)
 }
 
 // configureChecks removes all checks set in Kuberhealthy and reloads them
@@ -1553,17 +1515,6 @@ func (k *Kuberhealthy) configureChecks() {
 	err := k.addExternalChecks()
 	if err != nil {
 		log.Errorln("control: ERROR loading external checks:", err)
-	}
-}
-
-func (k *Kuberhealthy) configureJobs() {
-	log.Infoln("control: Loading job configuration...")
-
-	k.Jobs = []KuberhealthyJob{}
-
-	err := k.addExternalJobs()
-	if err != nil {
-		log.Errorln("control: ERROR loading external jobs:", err)
 	}
 }
 

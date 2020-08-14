@@ -23,22 +23,22 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type KhjobV1Interface interface {
+type KHJobV1Interface interface {
 	RESTClient() rest.Interface
 	KuberhealthyJobsGetter
 }
 
-// KhjobV1Client is used to interact with features provided by the khjob group.
-type KhjobV1Client struct {
+// KHJobV1Client is used to interact with features provided by the khjob group.
+type KHJobV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *KhjobV1Client) KuberhealthyJobs(namespace string) KuberhealthyJobInterface {
+func (c *KHJobV1Client) KuberhealthyJobs(namespace string) KuberhealthyJobInterface {
 	return newKuberhealthyJobs(c, namespace)
 }
 
-// NewForConfig creates a new KhjobV1Client for the given config.
-func NewForConfig(c *rest.Config) (*KhjobV1Client, error) {
+// NewForConfig creates a new KHJobV1Client for the given config.
+func NewForConfig(c *rest.Config) (*KHJobV1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -47,12 +47,12 @@ func NewForConfig(c *rest.Config) (*KhjobV1Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &KhjobV1Client{client}, nil
+	return &KHJobV1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new KhjobV1Client for the given config and
+// NewForConfigOrDie creates a new KHJobV1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *KhjobV1Client {
+func NewForConfigOrDie(c *rest.Config) *KHJobV1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -60,9 +60,9 @@ func NewForConfigOrDie(c *rest.Config) *KhjobV1Client {
 	return client
 }
 
-// New creates a new KhjobV1Client for the given RESTClient.
-func New(c rest.Interface) *KhjobV1Client {
-	return &KhjobV1Client{c}
+// New creates a new KHJobV1Client for the given RESTClient.
+func New(c rest.Interface) *KHJobV1Client {
+	return &KHJobV1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -86,7 +86,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *KhjobV1Client) RESTClient() rest.Interface {
+func (c *KHJobV1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

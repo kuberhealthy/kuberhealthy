@@ -13,13 +13,15 @@ package main
 
 import (
 	"errors"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 	"time"
+
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	v1 "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
 	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
 )
@@ -113,7 +115,7 @@ func getCheckState(c KuberhealthyCheck) (health.CheckDetails, error) {
 
 // getCheckState retrieves the check values from the kuberhealthy khstate
 // custom resource
-func getJobState(j KuberhealthyJob) (health.CheckDetails, error) {
+func getJobState(j KuberhealthyCheck) (health.CheckDetails, error) {
 
 	var state = health.NewCheckDetails()
 	var err error
@@ -132,4 +134,22 @@ func getJobState(j KuberhealthyJob) (health.CheckDetails, error) {
 	}
 	log.Debugln("Successfully retrieved khstate resource:", name)
 	return khstate.Spec, nil
+}
+
+// setJobPhase updates the kuberhealthy job phase depending on the state of its run.
+func setJobPhase(jobName string, jobNamespace string, jobPhase v1.JobPhase) error {
+
+	kj, err := khJobClient.KuberhealthyJobs(jobNamespace).Get(jobName, metav1.GetOptions{})
+	if err != nil {
+		log.Errorln("error getting khjob:", jobName, err)
+		return err
+	}
+	resourceVersion := kj.GetResourceVersion()
+	updatedJob := v1.NewKuberhealthyJob(jobName, jobNamespace, kj.Spec)
+	updatedJob.SetResourceVersion(resourceVersion)
+	log.Infoln("Setting khjob phase to:", jobPhase)
+	updatedJob.Spec.Phase = jobPhase
+
+	_, err = khJobClient.KuberhealthyJobs(jobNamespace).Update(&updatedJob)
+	return err
 }
