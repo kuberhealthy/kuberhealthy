@@ -78,7 +78,7 @@ const checkCRDVersion = "v1"
 const checkCRDResource = "khchecks"
 
 // instantiate kuberhealthy job client CRD
-var khJobClient *khjobcrd.KhjobV1Client
+var khJobClient *khjobcrd.KHJobV1Client
 
 // the global kubernetes client
 var kubernetesClient *kubernetes.Clientset

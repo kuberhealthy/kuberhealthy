@@ -100,7 +100,7 @@ type Checker struct {
 	RunInterval              time.Duration // how often this check runs a loop
 	RunTimeout               time.Duration // time check must run completely within
 	KubeClient               *kubernetes.Clientset
-	KHJobClient              *khjobcrd.KhjobV1Client
+	KHJobClient              *khjobcrd.KHJobV1Client
 	KHCheckClient            *khcheckcrd.KuberhealthyCheckClient
 	KHStateClient            *khstatecrd.KuberhealthyStateClient
 	PodSpec                  apiv1.PodSpec // the current pod spec we are using after enforcement of settings
@@ -116,8 +116,15 @@ type Checker struct {
 	wg                       sync.WaitGroup     // used to track background workers and processes
 	hostname                 string             // hostname cache
 	checkPodName             string             // the current unique checker pod name
-	khjob                    bool				// whether or not this check is kuberhealthy job
+	KHWorkload               KHWorkload			// whether this is a Kuberhealthy Check or Job
 }
+
+type KHWorkload string
+
+const (
+	KHCheck KHWorkload = "KHCheck"
+	KHJob KHWorkload = "KHJob"
+)
 
 func init() {
 	// Get namespace of Kuberhealthy pod. Used to help set ownerReference for created checker pods to proper
@@ -127,28 +134,18 @@ func init() {
 }
 
 // New creates a new external checker
-func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck, jobConfig *khjobcrd.KuberhealthyJob, khCheckClient *khcheckcrd.KuberhealthyCheckClient, khStateClient *khstatecrd.KuberhealthyStateClient, khJobClient *khjobcrd.KhjobV1Client, reportingURL string, khjob bool) *Checker {
+func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck, khCheckClient *khcheckcrd.KuberhealthyCheckClient, khStateClient *khstatecrd.KuberhealthyStateClient, reportingURL string) *Checker {
+
+	return NewCheck(client, checkConfig, khCheckClient, khStateClient, reportingURL)
+}
+
+func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck, khCheckClient *khcheckcrd.KuberhealthyCheckClient, khStateClient *khstatecrd.KuberhealthyStateClient, reportingURL string) *Checker {
+
 	if len(checkConfig.Namespace) == 0 {
 		checkConfig.Namespace = "kuberhealthy"
 	}
 
 	// build the checker object
-	if khjob {
-		log.Debugf("Creating kuberhealthy job from job config: %+v \n", jobConfig)
-		return &Checker{
-			Namespace:                jobConfig.Namespace,
-			KHJobClient:              khJobClient,
-			KHStateClient:            khStateClient,
-			CheckName:                jobConfig.Name,
-			KuberhealthyReportingURL: reportingURL,
-			ExtraAnnotations:         make(map[string]string),
-			ExtraLabels:              make(map[string]string),
-			OriginalPodSpec:          jobConfig.Spec.PodSpec,
-			PodSpec:                  jobConfig.Spec.PodSpec,
-			KubeClient:               client,
-			khjob:                    khjob,
-		}
-	}
 	log.Debugf("Creating external check from check config: %+v \n", checkConfig)
 	return &Checker{
 		Namespace:                checkConfig.Namespace,
@@ -162,6 +159,30 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 		OriginalPodSpec:          checkConfig.Spec.PodSpec,
 		PodSpec:                  checkConfig.Spec.PodSpec,
 		KubeClient:               client,
+		KHWorkload:               KHCheck,
+	}
+}
+
+func NewJob(client *kubernetes.Clientset, jobConfig *khjobcrd.KuberhealthyJob, khJobClient *khjobcrd.KHJobV1Client, khStateClient *khstatecrd.KuberhealthyStateClient, reportingURL string) *Checker {
+
+	if len(jobConfig.Namespace) == 0 {
+		jobConfig.Namespace = "kuberhealthy"
+	}
+
+	// build the checker object
+	log.Debugf("Creating kuberhealthy job from job config: %+v \n", jobConfig)
+	return &Checker{
+		Namespace:                jobConfig.Namespace,
+		KHJobClient:              khJobClient,
+		KHStateClient:            khStateClient,
+		CheckName:                jobConfig.Name,
+		KuberhealthyReportingURL: reportingURL,
+		ExtraAnnotations:         make(map[string]string),
+		ExtraLabels:              make(map[string]string),
+		OriginalPodSpec:          jobConfig.Spec.PodSpec,
+		PodSpec:                  jobConfig.Spec.PodSpec,
+		KubeClient:               client,
+		KHWorkload:               KHJob,
 	}
 }
 
