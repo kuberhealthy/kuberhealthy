@@ -63,7 +63,7 @@ func runHandshake() error {
 func reportKHSuccess() error {
 	err := checkclient.ReportSuccess()
 	if err != nil {
-		log.Error("Error reporting success status to Kuberhealthy servers:", err)
+		log.Error("Error reporting success status to Kuberhealthy servers: ", err)
 		return err
 	}
 	log.Info("Successfully reported success status to Kuberhealthy servers")
@@ -74,7 +74,7 @@ func reportKHSuccess() error {
 func reportKHFailure(errorMessage string) error {
 	err := checkclient.ReportFailure([]string{errorMessage})
 	if err != nil {
-		log.Error("Error reporting failure status to Kuberhealthy servers:", err)
+		log.Error("Error reporting failure status to Kuberhealthy servers: ", err)
 		return err
 	}
 	log.Info("Successfully reported failure status to Kuberhealthy servers")
