@@ -416,6 +416,10 @@ spec:
             - name: check-reaper
               image: kuberhealthy/check-reaper:v1.4.0
               imagePullPolicy: IfNotPresent
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 999
+                allowPrivilegeEscalation: false
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
