@@ -1,4 +1,4 @@
-# This workflow publishes contents of master branch to gh-pages branch when ./README.md or .helm-repos/index.yaml are modified in master branch.
+# This workflow publishes contents of master branch to gh-pages branch when ./README.md or ./helm-repos/index.yaml are modified in master branch.
 
 name: update_gh-pages_branch
 
