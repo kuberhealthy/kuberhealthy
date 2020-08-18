@@ -3,17 +3,17 @@ on:
   create:
     tags:
       - "v*.*.*"
-  #push:
-  #  branches:
-  #    - HelmRepo_GhActionsAutoUpdate
+#  push:
+#    branches:
+#    - HelmRepo_GhActionsAutoUpdate
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/Checkout@v2.0.0
-      with:
-        ref: HelmRepo_GhActionsAutoUpdate
+#      with:
+#        ref: HelmRepo_GhActionsAutoUpdate
 #
     - name: Run Kubernetes tools
       uses: stefanprodan/kube-tools@v1
@@ -59,6 +59,6 @@ jobs:
         # The pull request branch name.
         branch: helm_repo_update
         # The pull request base branch.
-        base: helm-repo-test
+        base: master
         # The branch suffix type.
         #branch-suffix: # optional
