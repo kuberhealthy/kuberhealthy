@@ -1,3 +1,4 @@
+# Update helm repo index.yaml & .tgz files when a release tag is created
 name: Update Helm Repo Files
 on:
   create:
@@ -14,7 +15,8 @@ jobs:
       uses: actions/Checkout@v2.0.0
 #      with:
 #        ref: HelmRepo_GhActionsAutoUpdate
-#
+
+# script with "helm repo" cmds and GH env vars
     - name: Run Kubernetes tools
       uses: stefanprodan/kube-tools@v1
       with:
