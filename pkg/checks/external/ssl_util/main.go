@@ -16,6 +16,8 @@ import (
 
 var TimeoutSeconds = 10
 
+// var insecure = false
+
 // CertHandshake performs a basic TLS/SSL handshake on the specified host and port, returning any errors
 func CertHandshake(host, port string) error {
 	log.Info("Testing SSL handshake on host ", host, " over port ", port)
@@ -44,7 +46,7 @@ func CertHandshake(host, port string) error {
 }
 
 // CertExpiry returns bool values indicating if the cert on a given host and port are currently exiring or if the expiration is the specified number of days away, and any errors
-func CertExpiry(host, port, days string, insecure bool) (bool, bool, error) {
+func CertExpiry(host, port, days string, overrideTLS bool) (bool, bool, error) {
 	log.Info("Testing SSL expiration on host ", host, " over port ", port)
 	var certExpired bool
 	var expireWarning bool
@@ -55,7 +57,7 @@ func CertExpiry(host, port, days string, insecure bool) (bool, bool, error) {
 
 	// InsecureSkipVerify should be false except for testing purposes or checking a self-signed certificate
 	conn, err := tls.DialWithDialer(d, "tcp", host+":"+port, &tls.Config{
-		InsecureSkipVerify: insecure,
+		InsecureSkipVerify: overrideTLS,
 		MinVersion:         tls.VersionTLS12,
 	})
 
