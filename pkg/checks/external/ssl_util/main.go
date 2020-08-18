@@ -15,6 +15,7 @@ import (
 )
 
 var TimeoutSeconds = 10
+var overrideTLS = false
 
 // CertHandshake performs a basic TLS/SSL handshake on the specified host and port, returning any errors
 func CertHandshake(host, port string) error {
