@@ -17,7 +17,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/ssl_util"
@@ -68,7 +67,8 @@ func main() {
 }
 
 func runExpiry() error {
-	insecureBool, _ := strconv.ParseBool(insecureCheck)
+	// insecureBool, _ := strconv.ParseBool(insecureCheck)
+	insecureBool := false
 	certExpired, expirePending, err := ssl_util.CertExpiry(domainName, portNum, daysToExpire, insecureBool)
 	if err != nil {
 		log.Error("Unable to perform SSL expiration check")
