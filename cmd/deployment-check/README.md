@@ -41,6 +41,7 @@ __IF ROLLING-UPDATE OPTION IS ENABLED__
   - `CHECK_NAMESPACE`: Namespace for the check (default=`kuberhealthy`).
   - `CHECK_DEPLOYMENT_REPLICAS`: Number of replicas in the deployment (default=`2`).
   - `CHECK_DEPLOYMENT_ROLLING_UPDATE`: Boolean to enable rolling-update (default=`false`).
+  - `CHECK_CONTAINER_PORT`: Check pod container port (default=`8080`).
   - `CHECK_POD_CPU_REQUEST`: Check pod deployment CPU request value. Calculated in decimal SI units `(15 = 15m cpu)`.
   - `CHECK_POD_CPU_LIMIT`: Check pod deployment CPU limit value. Calculated in decimal SI units `(75 = 75m cpu)`.
   - `CHECK_POD_MEM_REQUEST`: Check pod deployment memory request value. Calculated in binary SI units `(20 * 1024^2 = 20Mi memory)`.
@@ -66,7 +67,7 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.5.1
+      image: kuberhealthy/deployment-check:v1.6.0
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_IMAGE
@@ -75,6 +76,8 @@ spec:
           value: "nginx:1.17.5-perl"
         - name: CHECK_DEPLOYMENT_REPLICAS
           value: "4"
+        - name: CHECK_CONTAINER_PORT
+          value: "80"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
         - name: ADDITIONAL_ENV_VARS
