@@ -1,8 +1,8 @@
 name: Update Helm Repo Files
 on:
-      create:
-      tags:
-        - "v*.*.*"
+  create:
+    tags:
+      - "v*.*.*"
   #push:
   #  branches:
   #    - HelmRepo_GhActionsAutoUpdate
