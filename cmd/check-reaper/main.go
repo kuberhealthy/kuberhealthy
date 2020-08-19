@@ -245,7 +245,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 	opts := metav1.ListOptions{}
 	del := metav1.DeleteOptions{}
 
-	// convert JobDeleteMinutes into a float64
+	// convert JobDeleteMinutes into time.Duration
 	JobDeleteTimeDuration, err := time.ParseDuration(JobDeleteTimeDurationEnv)
 	if err != nil {
 		log.Errorln("Error converting JobDeleteTimeDurationEnv to Float")
@@ -259,7 +259,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 		return err
 	}
 
-	// Range over list and delete khjobs that meet criteria
+	// Range over list and delete khjobs
 	for _, j := range list.Items {
 		if jobConditions(j, JobDeleteTimeDuration, "Complete") {
 			err := khJobClient.KuberhealthyJobs(j.Namespace).Delete(j.Name, &del)
