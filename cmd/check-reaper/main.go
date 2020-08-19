@@ -26,8 +26,11 @@ var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 // ReapCheckerPods is a variable mapping all reaper pods
 var ReapCheckerPods map[string]v1.Pod
 
-// MaxPodsThreshold is a variable limiting how many reaper pods can exist in a cluster
+// MaxPodsThresholdEnv is a variable limiting how many reaper pods can exist in a cluster
 var MaxPodsThresholdEnv = os.Getenv("MAX_PODS_THRESHOLD")
+
+// JobDeleteMinutesEnv is a variable limiting how many minutes a khjob can be alive before it can be delted
+var JobDeleteMinutesEnv = os.Getenv("JOB_DELETE_MINUTES")
 
 // instantiate kuberhealhty job client CRD
 var khJobClient *khjobcrd.KHJobV1Client
@@ -69,6 +72,8 @@ func main() {
 
 	log.Infoln("Finished reaping checker pods.")
 	log.Infoln("Beginning to search for khjobs ")
+	khJobDelete()
+	log.Infoln("Finished reaping khjobs.")
 
 }
 
@@ -203,10 +208,19 @@ func deletePod(client *kubernetes.Clientset, pod v1.Pod) error {
 	return client.CoreV1().Pods(pod.Namespace).Delete(pod.Name, options)
 }
 
-// podConditions deletes returns true if conditions are met to be deleted
+// podConditions returns true if conditions are met to be deleted for checker pod
 func podConditions(pod v1.Pod, duration float64, phase v1.PodPhase) bool {
 	if time.Now().Sub(pod.CreationTimestamp.Time).Hours() > duration && pod.Status.Phase == phase {
-		log.Infoln("Found pod older than ", duration, " hours in status ", phase, ". Deleting pod:")
+		log.Infoln("Found pod older than ", duration, " hours in status ", phase, ". Deleting pod:", pod)
+		return true
+	}
+	return false
+}
+
+// jobConditions returns true if conditions are met to be deleted for khjob
+func jobConditions(job khjobcrd.KuberhealthyJob, duration float64, phase khjobcrd.JobPhase) bool {
+	if time.Now().Sub(job.CreationTimestamp.Time).Minutes() > duration && job.Spec.Phase == phase {
+		log.Infoln("Found job older than ", duration, " minutes in status ", phase, ". Deleting khjob:", job)
 		return true
 	}
 	return false
@@ -214,6 +228,12 @@ func podConditions(pod v1.Pod, duration float64, phase v1.PodPhase) bool {
 
 //
 func khJobDelete() {
+
+	JobDeleteMinutes, err := strconv.ParseFloat(JobDeleteMinutesEnv, 10)
+	if err != nil {
+		log.Errorln("Error converting JobDeleteMinutesEnv to Float")
+	}
+
 	// make a new crd job client
 	c, err := rest.InClusterConfig()
 	if err != nil {
@@ -231,11 +251,12 @@ func khJobDelete() {
 		log.Errorln("Error: failed to retrieve khjob list with error ", err)
 	}
 
-	for _, p := range list.Items {
-		if p.Spec.Phase == "Complete" {
-			err := khJobClient.KuberhealthyJobs("kuberhealthy").Delete(p.Name, &del)
+	for _, j := range list.Items {
+		if jobConditions(j, JobDeleteMinutes, "Complete") {
+			err := khJobClient.KuberhealthyJobs("kuberhealthy").Delete(j.Name, &del)
 			if err != nil {
-				log.Errorln("Failure to delete khjob ", p.Name, " with error: ", err)
+				log.Errorln("Failure to delete khjob ", j.Name, " with error: ", err)
+
 			}
 		}
 	}

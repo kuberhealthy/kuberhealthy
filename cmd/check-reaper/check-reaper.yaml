@@ -18,6 +18,8 @@ spec:
                 #                  value: kuberhealthy
                 - name: MAX_PODS_THRESHOLD
                   value: "4"
+                - name: JOB_DELETE_MINUTES
+                  value: "15"
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
