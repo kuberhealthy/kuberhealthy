@@ -49,12 +49,13 @@ func init() {
 }
 
 func main() {
-
+	// make client
 	client, err := kubeClient.Create(kubeConfigFile)
 	if err != nil {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
+	// fetch khcheck podlist
 	podList, err := listCheckerPods(client, Namespace)
 	if err != nil {
 		log.Fatalln("Failed to list and delete old checker pods", err)
@@ -72,9 +73,10 @@ func main() {
 
 	log.Infoln("Finished reaping checker pods.")
 	log.Infoln("Beginning to search for khjobs ")
+
+	// fetch and delete khjobs
 	khJobDelete()
 	log.Infoln("Finished reaping khjobs.")
-
 }
 
 // listCheckerPods returns a list of pods with the khcheck name label
@@ -220,15 +222,16 @@ func podConditions(pod v1.Pod, duration float64, phase v1.PodPhase) bool {
 // jobConditions returns true if conditions are met to be deleted for khjob
 func jobConditions(job khjobcrd.KuberhealthyJob, duration float64, phase khjobcrd.JobPhase) bool {
 	if time.Now().Sub(job.CreationTimestamp.Time).Minutes() > duration && job.Spec.Phase == phase {
-		log.Infoln("Found job older than ", duration, " minutes in status ", phase, ". Deleting khjob:", job)
+		log.Infoln("Found job older than ", duration, " minutes in status ", phase, " .Deleting khjob:", job)
 		return true
 	}
 	return false
 }
 
-//
+// KHJobDelete fetches a list of khjobs in a namespace and will delete them if they meet given criteria
 func khJobDelete() {
 
+	// conver JobDeleteMinutes into a float64
 	JobDeleteMinutes, err := strconv.ParseFloat(JobDeleteMinutesEnv, 10)
 	if err != nil {
 		log.Errorln("Error converting JobDeleteMinutesEnv to Float")
@@ -241,24 +244,23 @@ func khJobDelete() {
 	}
 	khJobClient = khjobcrd.NewForConfigOrDie(c)
 
-	// khJobInterface := khJobClient.KuberhealthyJobs("kuberhealthy")
-
 	opts := metav1.ListOptions{}
 	del := metav1.DeleteOptions{}
-	// opts.FieldSelector = "khjob.Spec.Phase = Completed"
-	list, err := khJobClient.KuberhealthyJobs("kuberhealthy").List(opts)
+
+	// list khjobs in Namespace
+	list, err := khJobClient.KuberhealthyJobs(Namespace).List(opts)
 	if err != nil {
 		log.Errorln("Error: failed to retrieve khjob list with error ", err)
 	}
 
+	// Range over list and delete khjobs that meet criteria
 	for _, j := range list.Items {
 		if jobConditions(j, JobDeleteMinutes, "Complete") {
-			err := khJobClient.KuberhealthyJobs("kuberhealthy").Delete(j.Name, &del)
+			err := khJobClient.KuberhealthyJobs(Namespace).Delete(j.Name, &del)
 			if err != nil {
 				log.Errorln("Failure to delete khjob ", j.Name, " with error: ", err)
 
 			}
 		}
 	}
-
 }

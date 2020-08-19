@@ -14,12 +14,12 @@ spec:
               image: kuberhealthy/check-reaper:v1.4.0
               imagePullPolicy: IfNotPresent
               env:
-                #                - name: SINGLE_NAMESPACE
-                #                  value: kuberhealthy
+                - name: SINGLE_NAMESPACE
+                  value: "kuberhealthy"
                 - name: MAX_PODS_THRESHOLD
-                  value: "4"
+                  value: 4
                 - name: JOB_DELETE_MINUTES
-                  value: "15"
+                  value: 15
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
