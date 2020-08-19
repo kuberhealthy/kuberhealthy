@@ -76,7 +76,10 @@ func main() {
 	log.Infoln("Beginning to search for khjobs ")
 
 	// fetch and delete khjobs that meet criteria
-	khJobDelete()
+	err = khJobDelete()
+	if err != nil {
+		log.Errorln("Failed to reap khjobs with error: ", err)
+	}
 	log.Infoln("Finished reaping khjobs.")
 }
 
@@ -230,12 +233,13 @@ func jobConditions(job khjobcrd.KuberhealthyJob, duration float64, phase khjobcr
 }
 
 // KHJobDelete fetches a list of khjobs in a namespace and will delete them if they meet given criteria
-func khJobDelete() {
+func khJobDelete() error {
 
 	// convert JobDeleteMinutes into a float64
 	JobDeleteMinutes, err := strconv.ParseFloat(JobDeleteMinutesEnv, 10)
 	if err != nil {
 		log.Errorln("Error converting JobDeleteMinutesEnv to Float")
+		return err
 	}
 
 	// make a new crd job client
@@ -252,16 +256,19 @@ func khJobDelete() {
 	list, err := khJobClient.KuberhealthyJobs(Namespace).List(opts)
 	if err != nil {
 		log.Errorln("Error: failed to retrieve khjob list with error ", err)
+		return err
 	}
 
 	// Range over list and delete khjobs that meet criteria
 	for _, j := range list.Items {
 		if jobConditions(j, JobDeleteMinutes, "Complete") {
-			err := khJobClient.KuberhealthyJobs(Namespace).Delete(j.Name, &del)
+			err := khJobClient.KuberhealthyJobs(j.Namespace).Delete(j.Name, &del)
 			if err != nil {
 				log.Errorln("Failure to delete khjob ", j.Name, " with error: ", err)
+				return err
 
 			}
 		}
 	}
+	return nil
 }
