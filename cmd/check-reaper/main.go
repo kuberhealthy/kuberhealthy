@@ -66,6 +66,7 @@ func main() {
 		return
 	}
 
+	// delete checker pods that meet criteria
 	err = deleteFilteredCheckerPods(client, podList)
 	if err != nil {
 		log.Fatalln("Error found while deleting old pods:", err)
@@ -74,7 +75,7 @@ func main() {
 	log.Infoln("Finished reaping checker pods.")
 	log.Infoln("Beginning to search for khjobs ")
 
-	// fetch and delete khjobs
+	// fetch and delete khjobs that meet criteria
 	khJobDelete()
 	log.Infoln("Finished reaping khjobs.")
 }
@@ -213,7 +214,7 @@ func deletePod(client *kubernetes.Clientset, pod v1.Pod) error {
 // podConditions returns true if conditions are met to be deleted for checker pod
 func podConditions(pod v1.Pod, duration float64, phase v1.PodPhase) bool {
 	if time.Now().Sub(pod.CreationTimestamp.Time).Hours() > duration && pod.Status.Phase == phase {
-		log.Infoln("Found pod older than ", duration, " hours in status ", phase, ". Deleting pod:", pod)
+		log.Infoln("Found pod older than ", duration, " hours in status ", phase, " .Deleting pod:", pod)
 		return true
 	}
 	return false
@@ -231,7 +232,7 @@ func jobConditions(job khjobcrd.KuberhealthyJob, duration float64, phase khjobcr
 // KHJobDelete fetches a list of khjobs in a namespace and will delete them if they meet given criteria
 func khJobDelete() {
 
-	// conver JobDeleteMinutes into a float64
+	// convert JobDeleteMinutes into a float64
 	JobDeleteMinutes, err := strconv.ParseFloat(JobDeleteMinutesEnv, 10)
 	if err != nil {
 		log.Errorln("Error converting JobDeleteMinutesEnv to Float")
