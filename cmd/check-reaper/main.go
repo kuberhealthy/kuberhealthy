@@ -3,14 +3,19 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
+	khjobcrd "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
@@ -22,7 +27,10 @@ var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var ReapCheckerPods map[string]v1.Pod
 
 // MaxPodsThreshold is a variable limiting how many reaper pods can exist in a cluster
-var MaxPodsThreshold = 4
+var MaxPodsThresholdEnv = os.Getenv("MAX_PODS_THRESHOLD")
+
+// instantiate kuberhealhty job client CRD
+var khJobClient *khjobcrd.KHJobV1Client
 
 // Namespace is a variable to allow code to target all namespaces or a single namespace
 var Namespace string
@@ -60,6 +68,8 @@ func main() {
 	}
 
 	log.Infoln("Finished reaping checker pods.")
+	log.Infoln("Beginning to search for khjobs ")
+
 }
 
 // listCheckerPods returns a list of pods with the khcheck name label
@@ -89,14 +99,15 @@ func listCheckerPods(client *kubernetes.Clientset, namespace string) (map[string
 // deleteFilteredCheckerPods goes through map of all checker pods and deletes older checker pods
 func deleteFilteredCheckerPods(client *kubernetes.Clientset, reapCheckerPods map[string]v1.Pod) error {
 
-	var err error
+	MaxPodsThreshold, err := strconv.Atoi(MaxPodsThresholdEnv)
+	if err != nil {
+		log.Errorln("Error converting MaxPodsThreshold to int")
+	}
 
 	for k, v := range reapCheckerPods {
 
 		// Delete pods older than 5 hours and is in status Succeeded
-		if time.Now().Sub(v.CreationTimestamp.Time).Hours() > 5 && v.Status.Phase == v1.PodSucceeded {
-			log.Infoln("Found pod older than 5 hours in status `Succeeded`. Deleting pod:", k)
-
+		if podConditions(v, 5, v1.PodSucceeded) {
 			err = deletePod(client, v)
 			if err != nil {
 				log.Errorln("Failed to delete pod:", k, err)
@@ -106,9 +117,7 @@ func deleteFilteredCheckerPods(client *kubernetes.Clientset, reapCheckerPods map
 		}
 
 		// Delete failed pods (status Failed) older than 5 days (120 hours)
-		if time.Now().Sub(v.CreationTimestamp.Time).Hours() > 120 && v.Status.Phase == v1.PodFailed {
-			log.Infoln("Found pod older than 5 days in status `Failed`. Deleting pod:", k)
-
+		if podConditions(v, 120, v1.PodFailed) {
 			err = deletePod(client, v)
 			if err != nil {
 				log.Errorln("Failed to delete pod:", k, err)
@@ -192,4 +201,37 @@ func deletePod(client *kubernetes.Clientset, pod v1.Pod) error {
 	propagationForeground := metav1.DeletePropagationForeground
 	options := &metav1.DeleteOptions{PropagationPolicy: &propagationForeground}
 	return client.CoreV1().Pods(pod.Namespace).Delete(pod.Name, options)
+}
+
+// podConditions deletes returns true if conditions are met to be deleted
+func podConditions(pod v1.Pod, duration float64, phase v1.PodPhase) bool {
+	if time.Now().Sub(pod.CreationTimestamp.Time).Hours() > duration && pod.Status.Phase == phase {
+		log.Infoln("Found pod older than ", duration, " hours in status ", phase, ". Deleting pod:")
+		return true
+	}
+	return false
+}
+
+//
+func khJobDelete() {
+	// make a new crd job client
+	c, err := rest.InClusterConfig()
+	if err != nil {
+		c, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	}
+	khJobClient = khjobcrd.NewForConfigOrDie(c)
+
+	// khJobInterface := khJobClient.KuberhealthyJobs("kuberhealthy")
+
+	opts := metav1.ListOptions{}
+	opts.FieldSelector = "khjob.Spec.Phase = Completed"
+	list, err := khJobClient.KuberhealthyJobs("kuberhealthy").List(opts)
+	if err != nil {
+		log.Errorln("Error: failed to retrieve khjob list with error ", err)
+	}
+
+	for range list.Items {
+		khJobDelete()
+	}
+
 }

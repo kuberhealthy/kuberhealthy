@@ -13,9 +13,11 @@ spec:
             - name: check-reaper
               image: kuberhealthy/check-reaper:v1.4.0
               imagePullPolicy: IfNotPresent
-#              env:
-#                - name: SINGLE_NAMESPACE
-#                  value: kuberhealthy
+              env:
+                #                - name: SINGLE_NAMESPACE
+                #                  value: kuberhealthy
+                - name: MAX_PODS_THRESHOLD
+                  value: "4"
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
