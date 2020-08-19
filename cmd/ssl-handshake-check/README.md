@@ -5,7 +5,7 @@ The *SSL Handshake Check* checks that SSL certificates are valid and a TLS hands
 The check runs every 5 minutes (spec.runInterval), with a check timeout set to 3 minutes (spec.timeout). If the check
 does not complete within the given timeout it will report a timeout error on the status page.
 
-Self-signed certificate checks are ***not*** currently supported by the handshake check, but will be added in a future update.
+Self-signed certificate checks are ***not*** currently supported by the handshake check. This functionality will be added in a future update.
 
 #### SSL Handshake Check Kube Spec:
 ```yaml
