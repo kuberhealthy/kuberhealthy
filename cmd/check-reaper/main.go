@@ -224,14 +224,17 @@ func khJobDelete() {
 	// khJobInterface := khJobClient.KuberhealthyJobs("kuberhealthy")
 
 	opts := metav1.ListOptions{}
-	opts.FieldSelector = "khjob.Spec.Phase = Completed"
+	del := metav1.DeleteOptions{}
+	// opts.FieldSelector = "khjob.Spec.Phase = Completed"
 	list, err := khJobClient.KuberhealthyJobs("kuberhealthy").List(opts)
 	if err != nil {
 		log.Errorln("Error: failed to retrieve khjob list with error ", err)
 	}
 
-	for range list.Items {
-		khJobDelete()
+	for _, p := range list.Items {
+		if p.Spec.Phase == "Complete" {
+			khJobClient.KuberhealthyJobs("kuberhealthy").Delete(p.Name, &del)
+		}
 	}
 
 }
