@@ -11,7 +11,7 @@ spec:
       - env:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
           - name: DOMAIN_NAME
-            value: "google.com"
+            value: "corporate.comcast.com"
           # If not using default SSL port of 443, port name env variable must be updated  
           - name: PORT
             value: "443"
@@ -20,7 +20,7 @@ spec:
             value: "60"
           - name: INSECURE
             value: "false"
-        image: zjhans/ssl-expiry:v1.0.1
+        image: kuberhealthy/ssl-expiry:v1.0.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:

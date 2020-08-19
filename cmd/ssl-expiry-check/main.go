@@ -17,6 +17,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/ssl_util"
@@ -45,8 +46,8 @@ func init() {
 		return
 	}
 	insecureCheck = os.Getenv("INSECURE")
-	if len(insecureCheck) == 0 {
-		log.Error("ERROR: The INSECURE environment variable has not been set.")
+	if len(daysToExpire) == 0 {
+		log.Error("ERROR: The DAYS environment variable has not been set.")
 		return
 	}
 }
@@ -67,8 +68,7 @@ func main() {
 }
 
 func runExpiry() error {
-	// insecureBool, _ := strconv.ParseBool(insecureCheck)
-	insecureBool := false
+	insecureBool, _ := strconv.ParseBool(insecureCheck)
 	certExpired, expirePending, err := ssl_util.CertExpiry(domainName, portNum, daysToExpire, insecureBool)
 	if err != nil {
 		log.Error("Unable to perform SSL expiration check")
