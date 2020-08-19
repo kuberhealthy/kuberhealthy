@@ -233,7 +233,10 @@ func khJobDelete() {
 
 	for _, p := range list.Items {
 		if p.Spec.Phase == "Complete" {
-			khJobClient.KuberhealthyJobs("kuberhealthy").Delete(p.Name, &del)
+			err := khJobClient.KuberhealthyJobs("kuberhealthy").Delete(p.Name, &del)
+			if err != nil {
+				log.Errorln("Failure to delete khjob ", p.Name, " with error: ", err)
+			}
 		}
 	}
 
