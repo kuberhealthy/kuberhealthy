@@ -116,15 +116,7 @@ type Checker struct {
 	wg                       sync.WaitGroup     // used to track background workers and processes
 	hostname                 string             // hostname cache
 	checkPodName             string             // the current unique checker pod name
-	KHWorkload               KHWorkload			// whether this is a Kuberhealthy Check or Job
 }
-
-type KHWorkload string
-
-const (
-	KHCheck KHWorkload = "KHCheck"
-	KHJob KHWorkload = "KHJob"
-)
 
 func init() {
 	// Get namespace of Kuberhealthy pod. Used to help set ownerReference for created checker pods to proper
@@ -159,7 +151,6 @@ func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckcrd.Kuberhealthy
 		OriginalPodSpec:          checkConfig.Spec.PodSpec,
 		PodSpec:                  checkConfig.Spec.PodSpec,
 		KubeClient:               client,
-		KHWorkload:               KHCheck,
 	}
 }
 
@@ -182,7 +173,6 @@ func NewJob(client *kubernetes.Clientset, jobConfig *khjobcrd.KuberhealthyJob, k
 		OriginalPodSpec:          jobConfig.Spec.PodSpec,
 		PodSpec:                  jobConfig.Spec.PodSpec,
 		KubeClient:               client,
-		KHWorkload:               KHJob,
 	}
 }
 
@@ -378,7 +368,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	// if the check was not found, we create a fresh one and start there
 	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		ext.log("khstate did not exist, so a default object will be created")
-		details := health.NewCheckDetails()
+		details := health.NewWorkloadDetails()
 		details.Namespace = ext.CheckNamespace()
 		details.AuthoritativePod = ext.hostname
 		details.OK = true

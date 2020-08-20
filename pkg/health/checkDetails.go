@@ -15,8 +15,8 @@ import (
 	"time"
 )
 
-// CheckDetails contains details about a single check's current status
-type CheckDetails struct {
+// WorkloadDetails contains details about a single kuberhealthy check or job's current status
+type WorkloadDetails struct {
 	OK               bool
 	Errors           []string
 	RunDuration      string
@@ -24,12 +24,23 @@ type CheckDetails struct {
 	LastRun          time.Time // the time the check last was last run
 	AuthoritativePod string    // the pod that last ran the check
 	CurrentUUID      string    `json:"uuid"` // the UUID that is authorized to report statuses into the kuberhealthy endpoint
-	KHJob            bool
+	KHWorkload       KHWorkload
 }
 
-// NewCheckDetails creates a new CheckDetails struct
-func NewCheckDetails() CheckDetails {
-	return CheckDetails{
+// NewWorkloadDetails creates a new WorkloadDetails struct
+func NewWorkloadDetails() WorkloadDetails {
+	return WorkloadDetails{
 		Errors: []string{},
 	}
 }
+
+// KHWorkload is used to describe the different types of kuberhealthy workloads: KhCheck or KHJob
+type KHWorkload string
+
+// Two types of KHWorkloads are available: Kuberhealthy Check or Kuberhealthy Job
+// KHChecks run on a scheduled run interval
+// KHJobs run once
+const (
+	KHCheck KHWorkload = "KHCheck"
+	KHJob KHWorkload = "KHJob"
+)

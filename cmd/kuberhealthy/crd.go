@@ -28,7 +28,7 @@ import (
 
 // setCheckStateResource puts a check state's state into the specified CRD resource.  It sets the AuthoritativePod
 // to the server's hostname and sets the LastUpdate time to now.
-func setCheckStateResource(checkName string, checkNamespace string, state health.CheckDetails) error {
+func setCheckStateResource(checkName string, checkNamespace string, state health.WorkloadDetails) error {
 
 	name := sanitizeResourceName(checkName)
 
@@ -74,7 +74,7 @@ func ensureStateResourceExists(checkName string, checkNamespace string) error {
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Infoln("Custom resource not found, creating resource:", name, " - ", err)
-			initialDetails := health.NewCheckDetails()
+			initialDetails := health.NewWorkloadDetails()
 			initialState := khstatecrd.NewKuberhealthyState(name, initialDetails)
 			_, err := khStateClient.Create(&initialState, stateCRDResource, checkNamespace)
 			if err != nil {
@@ -92,9 +92,9 @@ func ensureStateResourceExists(checkName string, checkNamespace string) error {
 
 // getCheckState retrieves the check values from the kuberhealthy khstate
 // custom resource
-func getCheckState(c KuberhealthyCheck) (health.CheckDetails, error) {
+func getCheckState(c KuberhealthyCheck) (health.WorkloadDetails, error) {
 
-	var state = health.NewCheckDetails()
+	var state = health.NewWorkloadDetails()
 	var err error
 	name := sanitizeResourceName(c.Name())
 
@@ -115,9 +115,9 @@ func getCheckState(c KuberhealthyCheck) (health.CheckDetails, error) {
 
 // getCheckState retrieves the check values from the kuberhealthy khstate
 // custom resource
-func getJobState(j KuberhealthyCheck) (health.CheckDetails, error) {
+func getJobState(j KuberhealthyCheck) (health.WorkloadDetails, error) {
 
-	var state = health.NewCheckDetails()
+	var state = health.NewWorkloadDetails()
 	var err error
 	name := sanitizeResourceName(j.Name())
 

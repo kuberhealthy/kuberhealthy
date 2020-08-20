@@ -94,10 +94,14 @@ func (sr *StateReflector) CurrentStatus() health.State {
 			state.OK = false
 		}
 
-		// update check details struct
-		state.CheckDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
+		if khState.Spec.KHWorkload == health.KHCheck {
+			state.CheckDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
+		}
+		if khState.Spec.KHWorkload == health.KHJob {
+			state.JobDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
+		}
 	}
 
-	log.Infoln("khState reflector returning current status on", len(state.CheckDetails), "khStates")
+	log.Infoln("khState reflector returning current status on", len(state.CheckDetails), "check khStates and", len(state.JobDetails), "job khStates.")
 	return state
 }
