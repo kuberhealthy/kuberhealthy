@@ -17,5 +17,5 @@ $HELM package --app-version ${GITHUB_REF##*/} --version $GITHUB_RUN_ID -d ../../
 #HELM package --app-version ${GITHUB_REF##*/} --version ${GITHUB_REF##*/} -d ../../helm-repos/archives ./kuberhealthy
 #cd ../../helm-repos/archives
 cd ../../helm-repos
-$HELM repo index ./archives --merge ./index.yaml --url https://comcast.github.io/kuberhealthy/helm-repos
+$HELM repo index ./archives --merge ./index.yaml --url https://comcast.github.io/kuberhealthy/helm-repos/archives
 
