@@ -13,8 +13,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/Checkout@v2.0.0
-#      with:
-#        ref: HelmRepo_GhActionsAutoUpdate
+      with:
+        ref: master 
 
 # script with "helm repo" cmds and GH env vars
     - name: Run Kubernetes tools
