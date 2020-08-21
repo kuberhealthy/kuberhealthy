@@ -5,7 +5,8 @@ The *SSL Handshake Check* checks that SSL certificates are valid and a TLS hands
 The check runs every 5 minutes (spec.runInterval), with a check timeout set to 3 minutes (spec.timeout). If the check
 does not complete within the given timeout it will report a timeout error on the status page.
 
-Self-signed certificate checks are ***not*** currently supported by the handshake check. This functionality will be added in a future update.
+#### NOTE:
+Self-signed certificate checks are not supported by this check. Please use the *ssl-selfsign-handshake* check for TLS handshake checks on self-signed certificates.
 
 #### SSL Handshake Check Kube Spec:
 ```yaml
@@ -37,8 +38,12 @@ spec:
 
 #### How-to
 
-To implement the SSL Handshake Check with Kuberhealthy, update the spec sheet to the domain name and port number you wish to test and apply. You can use the default values as well by running:
+To implement the SSL Handshake Check with Kuberhealthy, update the spec sheet to the domain name and port number you wish to test and apply:  
 
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/v2.3.0/cmd/ssl-handshake-check/ssl-handshake-check.yaml`
+`kubectl apply -f ssl-handshake-check.yaml`  
+
+You can use the default values as well by running:  
+
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/v2.3.0/cmd/ssl-handshake-check/ssl-handshake-check.yaml`  
 
  Make sure you are using the latest release of Kuberhealthy 2.3.0.
