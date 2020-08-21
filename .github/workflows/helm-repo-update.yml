@@ -1,5 +1,6 @@
 # Update helm repo index.yaml & .tgz files when a release tag is created
 name: Update Helm Repo Files
+# Note you must include a "v" on version tag, ie "v1.2.3"
 on:
   create:
     tags:
