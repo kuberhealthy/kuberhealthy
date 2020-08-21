@@ -21,10 +21,10 @@ type WorkloadDetails struct {
 	Errors           []string
 	RunDuration      string
 	Namespace        string
-	LastRun          time.Time // the time the check last was last run
-	AuthoritativePod string    // the pod that last ran the check
-	CurrentUUID      string    `json:"uuid"` // the UUID that is authorized to report statuses into the kuberhealthy endpoint
-	KHWorkload       KHWorkload
+	LastRun          time.Time 		// the time the check last was last run
+	AuthoritativePod string    		// the pod that last ran the check
+	CurrentUUID      string    		`json:"uuid"` // the UUID that is authorized to report statuses into the kuberhealthy endpoint
+	KHWorkload       KHWorkload		`json:"KHWorkload,omitempty"`
 }
 
 // NewWorkloadDetails creates a new WorkloadDetails struct
