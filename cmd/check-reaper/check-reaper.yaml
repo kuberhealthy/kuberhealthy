@@ -17,7 +17,7 @@ spec:
                 - name: SINGLE_NAMESPACE
                   value: kuberhealthy
                 - name: MAX_PODS_THRESHOLD
-                  value: 4
+                  value: "4"
                 - name: JOB_DELETE_TIME_DURATION
                   value: 15m
           restartPolicy: OnFailure

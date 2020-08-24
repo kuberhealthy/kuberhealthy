@@ -262,6 +262,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 	// Range over list and delete khjobs
 	for _, j := range list.Items {
 		if jobConditions(j, JobDeleteTimeDuration, "Complete") {
+			log.Infoln("Deleting khjob ", j.Name)
 			err := khJobClient.KuberhealthyJobs(j.Namespace).Delete(j.Name, &del)
 			if err != nil {
 				log.Errorln("Failure to delete khjob ", j.Name, " with error: ", err)
