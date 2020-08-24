@@ -28,9 +28,10 @@ type WorkloadDetails struct {
 }
 
 // NewWorkloadDetails creates a new WorkloadDetails struct
-func NewWorkloadDetails() WorkloadDetails {
+func NewWorkloadDetails(workloadType KHWorkload) WorkloadDetails {
 	return WorkloadDetails{
-		Errors: []string{},
+		Errors:     []string{},
+		khWorkload: workloadType,
 	}
 }
 
