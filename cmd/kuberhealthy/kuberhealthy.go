@@ -900,7 +900,7 @@ func (k *Kuberhealthy) runJob(ctx context.Context, job khjob.KuberhealthyJob) {
 	details.OK, details.Errors = j.CurrentStatus()
 	details.RunDuration = jobRunDuration.String()
 	details.CurrentUUID = jobDetails.CurrentUUID
-	details.KHWorkload = health.KHJob
+	details.khWorkload = health.KHJob
 
 	// send data to the metric forwarder if configured
 	if k.MetricForwarder != nil {
