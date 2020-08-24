@@ -46,7 +46,7 @@ import (
 
 // Set dynamicClient that represents the client used to watch and list unstructured khchecks
 var (
-	restConfig, _ = clientcmd.BuildConfigFromFlags("", configPath)
+	restConfig, _    = clientcmd.BuildConfigFromFlags("", configPath)
 	dynamicClient, _ = dynamic.NewForConfig(restConfig)
 )
 
@@ -372,7 +372,7 @@ func (k *Kuberhealthy) monitorKHJobs(ctx context.Context) {
 				kj := khj.Object.(*khjob.KuberhealthyJob)
 				if verifyNewKHJob(kj.Name, kj.Namespace) {
 					log.Infoln("khJob is newly added, triggering khjob:", kj.Name)
-					 k.triggerKHJob(*kj)
+					k.triggerKHJob(ctx, *kj)
 					continue
 				}
 				log.Debugln("KHJob is not new, in phase:", kj.Spec.Phase, "Skipping added event")
@@ -667,7 +667,6 @@ func (k *Kuberhealthy) addExternalChecks() error {
 	return nil
 }
 
-
 // addExternalJobs syncs up the state of the all jobs installed in this Kuberhealthy struct.
 func (k *Kuberhealthy) configureJob(job khjob.KuberhealthyJob) KuberhealthyCheck {
 
@@ -703,17 +702,13 @@ func (k *Kuberhealthy) configureJob(job khjob.KuberhealthyJob) KuberhealthyCheck
 	return kj
 }
 
-
 // triggerKHJob checks if its master, sets the context, and runs the khjob in a goroutine
-func (k *Kuberhealthy) triggerKHJob(job khjob.KuberhealthyJob) {
+func (k *Kuberhealthy) triggerKHJob(ctx context.Context, job khjob.KuberhealthyJob) {
 
 	log.Debugln("khjob trigger, isMaster:", isMaster)
 	// only the master pod should be running khjobs or khjobs are duplicated
 	if isMaster {
 		// create a context for checks to abort with
-		ctx, cancelFunc := context.WithCancel(context.Background())
-		k.cancelChecksFunc = cancelFunc
-
 		go k.runJob(ctx, job)
 	}
 }
@@ -1501,7 +1496,6 @@ func validateCurrentStatusForNamespaces(details map[string]health.WorkloadDetail
 	return statesForNamespaces
 }
 
-
 // getCheck returns a Kuberhealthy check object from its name, returns an error otherwise
 func (k *Kuberhealthy) getCheck(name string, namespace string) (KuberhealthyCheck, error) {
 	for _, c := range k.Checks {
@@ -1574,9 +1568,9 @@ func (k *Kuberhealthy) configureInfluxForwarding() {
 func listUnstructuredKHChecks() (*unstructured.UnstructuredList, error) {
 
 	khCheckGroupVersionResource := schema.GroupVersionResource{
-		Version: checkCRDVersion,
+		Version:  checkCRDVersion,
 		Resource: checkCRDResource,
-		Group: checkCRDGroup,
+		Group:    checkCRDGroup,
 	}
 
 	unstructuredList, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").List(metav1.ListOptions{})
@@ -1587,7 +1581,7 @@ func listUnstructuredKHChecks() (*unstructured.UnstructuredList, error) {
 	return unstructuredList, err
 }
 
-func convertUnstructuredKhCheck(unstructured unstructured.Unstructured) (khcheckcrd.KuberhealthyCheck, error){
+func convertUnstructuredKhCheck(unstructured unstructured.Unstructured) (khcheckcrd.KuberhealthyCheck, error) {
 	un := unstructured.UnstructuredContent()
 	var khCheck khcheckcrd.KuberhealthyCheck
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(un, &khCheck)
@@ -1601,9 +1595,9 @@ func convertUnstructuredKhCheck(unstructured unstructured.Unstructured) (khcheck
 func watchUnstructuredKHChecks() (watch.Interface, error) {
 
 	khCheckGroupVersionResource := schema.GroupVersionResource{
-		Version: checkCRDVersion,
+		Version:  checkCRDVersion,
 		Resource: checkCRDResource,
-		Group: checkCRDGroup,
+		Group:    checkCRDGroup,
 	}
 
 	watcher, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").Watch(metav1.ListOptions{})
