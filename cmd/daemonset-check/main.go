@@ -98,7 +98,10 @@ func main() {
 	log.Infoln("Kubernetes client created.")
 
 	// this check runs all the nodechecks to ensure node is ready before running the daemonset chek
-	checksNodeReady(client)
+	err = checksNodeReady(client)
+	if err != nil {
+		log.Errorln("Error running when doing the nodechecks :", err)
+	}
 
 	// Catch panics.
 	defer func() {
