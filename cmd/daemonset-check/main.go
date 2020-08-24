@@ -93,7 +93,7 @@ func main() {
 	var err error
 	client, err = kubeClient.Create(kubeConfigFile)
 	if err != nil {
-		log.Fatalln("Unable to create kubernetes client", err)
+		log.Fatalln("Unable to create kubernetes client:" + err.Error())
 	}
 	log.Infoln("Kubernetes client created.")
 
@@ -177,7 +177,7 @@ func checksNodeReady(client *kubernetes.Clientset) error {
 	minNodeAge := time.Minute * 3
 	err := nodeCheck.WaitForNodeAge(nctx, client, "kuberhealthy", minNodeAge)
 	if err != nil {
-		log.Errorln("Error waiting for node to reach minimum age:", err)
+		log.Errorln("Error waiting for node to reach minimum age:" + err.Error())
 	}
 
 	// hits kuberhealthy endpoint to see if node is ready
