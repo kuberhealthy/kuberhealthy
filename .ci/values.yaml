@@ -12,7 +12,7 @@ prometheus:
 
 image:
   repository: kuberhealthy/kuberhealthy
-  tag: v2.2.0
+  tag: v2.3.0
 
 resources:
   requests:
@@ -63,7 +63,7 @@ check:
     timeout: 12m
     image:
       repository: kuberhealthy/daemonset-check
-      tag: v2.2.2
+      tag: v3.1.0
     extraEnvs:
     nodeSelector: {}
   deployment:
@@ -72,7 +72,7 @@ check:
     timeout: 15m
     image:
       repository: kuberhealthy/deployment-check
-      tag: v1.4.4
+      tag: v1.5.1
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
@@ -84,7 +84,7 @@ check:
     timeout: 15m
     image:
       repository: kuberhealthy/dns-resolution-check
-      tag: v1.2.0
+      tag: v1.3.0
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
@@ -94,7 +94,7 @@ check:
     timeout: 10m
     image:
       repository: kuberhealthy/pod-restarts-check
-      tag: v2.2.1
+      tag: v2.3.0
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
@@ -112,5 +112,5 @@ checkReaper:
   enabled: false
   image:
     repository: kuberhealthy/check-reaper
-    tag: v1.3.1
+    tag: v1.4.0
   nodeSelector: {}

@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -82,11 +83,18 @@ func createDeploymentConfig(image string) *v1.Deployment {
 	container = createContainerConfig(checkImage)
 	containers = append(containers, container)
 
+	// Check for given node selector values.
+	// Set the map to the default of nil (<none>) if there are no selectors given.
+	if len(checkDeploymentNodeSelectors) == 0 {
+		checkDeploymentNodeSelectors = nil
+	}
+
 	graceSeconds := int64(1)
 
 	// Make and define a pod spec with containers.
 	podSpec := corev1.PodSpec{
 		Containers:                    containers,
+		NodeSelector:                  checkDeploymentNodeSelectors,
 		RestartPolicy:                 corev1.RestartPolicyAlways,
 		TerminationGracePeriodSeconds: &graceSeconds,
 		ServiceAccountName:            checkServiceAccount,
@@ -616,7 +624,7 @@ func waitForDeploymentToDelete() chan bool {
 			_, err := client.AppsV1().Deployments(checkNamespace).Get(checkDeploymentName, metav1.GetOptions{})
 			if err != nil {
 				log.Debugln("error from Deployments().Get():", err.Error())
-				if k8sErrors.IsNotFound(err) {
+				if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 					log.Debugln("Deployment deleted.")
 					deleteChan <- true
 					return

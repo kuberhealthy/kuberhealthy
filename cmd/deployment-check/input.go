@@ -30,7 +30,7 @@ func parseDebugSettings() {
 		var err error
 		debug, err = strconv.ParseBool(debugEnv)
 		if err != nil {
-			log.Fatalln("failed to parse DEBUG environment variable:", err)
+			log.Fatalln("failed to parse DEBUG environment variable:", err.Error())
 		}
 	}
 
@@ -78,7 +78,7 @@ func parseInputValues() {
 	if len(checkContainerPortEnv) != 0 {
 		port, err := strconv.Atoi(checkContainerPortEnv)
 		if err != nil {
-			log.Fatalln("error occured attempting to parse CHECK_CONTAINER_PORT:", err)
+			log.Fatalln("error occurred attempting to parse CHECK_CONTAINER_PORT:", err)
 		}
 		checkContainerPort = int32(port)
 		log.Infoln("Parsed CHECK_CONTAINER_PORT:", checkContainerPort)
@@ -89,7 +89,7 @@ func parseInputValues() {
 	if len(checkLoadBalancerPortEnv) != 0 {
 		port, err := strconv.Atoi(checkLoadBalancerPortEnv)
 		if err != nil {
-			log.Fatalln("error occured attempting to parse CHECK_LOAD_BALANCER_PORT:", err)
+			log.Fatalln("error occurred attempting to parse CHECK_LOAD_BALANCER_PORT:", err)
 		}
 		checkLoadBalancerPort = int32(port)
 		log.Infoln("Parsed CHECK_LOAD_BALANCER_PORT:", checkLoadBalancerPort)
@@ -123,6 +123,22 @@ func parseInputValues() {
 		}
 		checkDeploymentReplicas = reps
 		log.Infoln("Parsed CHECK_DEPLOYMENT_REPLICAS:", checkDeploymentReplicas)
+	}
+
+	// Parse incoming deployment node selectors
+	if len(checkDeploymentNodeSelectorsEnv) > 0 {
+		splitEnvVars := strings.Split(checkDeploymentNodeSelectorsEnv, ",")
+		for _, splitEnvVarKeyValuePair := range splitEnvVars {
+			parsedEnvVarKeyValuePair := strings.Split(splitEnvVarKeyValuePair, "=")
+			if len(parsedEnvVarKeyValuePair) != 2 {
+				log.Warnln("Unable to parse key value pair:", splitEnvVarKeyValuePair)
+				continue
+			}
+			if _, ok := checkDeploymentNodeSelectors[parsedEnvVarKeyValuePair[0]]; !ok {
+				checkDeploymentNodeSelectors[parsedEnvVarKeyValuePair[0]] = parsedEnvVarKeyValuePair[1]
+			}
+		}
+		log.Infoln("Parsed NODE_SELECTOR:", checkDeploymentNodeSelectors)
 	}
 
 	// Parse incoming check pod resource requests and limits

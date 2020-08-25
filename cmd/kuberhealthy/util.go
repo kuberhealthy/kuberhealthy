@@ -40,7 +40,7 @@ func getAllLogLevel() string {
 }
 
 // notifyChanLimiter takes in a chan used for notifications and smooths it out to at most
-// one single notification every specifid duration.  This will continuously empty whatever the inChan
+// one single notification every specified duration.  This will continuously empty whatever the inChan
 // channel fed to it is.  Useful for controlling noisy upstream channel spam. This smooths notifications
 // out so that outChan is only notified after inChan has been quiet for a full duration of
 // the specified maxSpeed.  Stops running when inChan closes
@@ -49,15 +49,24 @@ func notifyChanLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan cha
 	// we wait for an initial inChan message and then watch for spam to stop.
 	// when inChan closes, the func exits
 	for range inChan {
-		log.Println("channel notify limiter witnessed an upstream message on inChan")
+		log.Infoln("channel notify limiter witnessed an upstream message on inChan")
+
+		// Label for following for-select loop
+	notifyChannel:
 		for {
+			log.Debugln("channel notify limiter waiting to receive another inChan or notify after", maxSpeed)
 			select {
 			case <-time.After(maxSpeed):
+				log.Debugln("channel notify limiter reached", maxSpeed, ". Sending output")
 				outChan <- struct{}{}
+				// break out of the for-select loop and go through next inChan loop iteration if any.
+				break notifyChannel
 			case <-inChan:
-				log.Println("channel notify limiter witnessed an upstream message on inChan and is waiting an additional", maxSpeed, "before sending output")
+				log.Debugln("channel notify limiter witnessed an upstream message on inChan and is waiting an additional", maxSpeed, "before sending output")
 			}
 		}
+
+		log.Debugln("channel notify limiter finished going through notifications")
 	}
 }
 

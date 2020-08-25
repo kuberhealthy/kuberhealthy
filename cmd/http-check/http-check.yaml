@@ -1,4 +1,3 @@
----
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
@@ -9,17 +8,23 @@ spec:
   timeout: 10m
   podSpec:
     containers:
-    - name: http
-      image: kuberhealthy/http-check:v1.1.1
-      imagePullPolicy: IfNotPresent
-      env:
-        - name: CHECK_URL
-          value: "http://google.com"
-      resources:
-        requests:
-          cpu: 15m
-          memory: 15Mi
-        limits:
-          cpu: 25m
-      restartPolicy: Always
+      - name: http
+        image: kuberhealthy/http-check:v1.3.0
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: CHECK_URL
+            value: "http://google.com"
+          - name: COUNT
+            value: "1"
+          - name: SECONDS
+            value: "1"
+          - name: PASSING_PERCENT
+            value: "100"
+        resources:
+          requests:
+            cpu: 15m
+            memory: 15Mi
+          limits:
+            cpu: 25m
+        restartPolicy: Always
     terminationGracePeriodSeconds: 5

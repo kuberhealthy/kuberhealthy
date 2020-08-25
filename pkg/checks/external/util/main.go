@@ -7,10 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -50,8 +51,6 @@ func getKuberhealthyPod(client *kubernetes.Clientset, namespace, podName string)
 
 // GetCurrentUser checks which os use that is running the app
 func GetCurrentUser(defaultUser int64) (int64, error) {
-	runAsUser := defaultUser
-
 	currentUser, err := user.Current()
 	if err != nil {
 		return 0, err
@@ -63,14 +62,15 @@ func GetCurrentUser(defaultUser int64) (int64, error) {
 	if intCurrentUser == 0 {
 		return defaultUser, nil
 	}
-	runAsUser = intCurrentUser
-	return runAsUser, nil
+	return intCurrentUser, nil
 
 }
 
 func GetInstanceNamespace(defaultNamespace string) string {
 
 	instanceNamespace := defaultNamespace
+
+	// instanceNamespaceEnv is a variable for storing namespace instance information
 	var instanceNamespaceEnv string
 
 	data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
@@ -88,4 +88,48 @@ func GetInstanceNamespace(defaultNamespace string) string {
 	}
 
 	return instanceNamespace
+}
+
+// PodNameExists determines if a pod with the specified name exists in the specified namespace.
+func PodNameExists(client *kubernetes.Clientset, podName string, namespace string) (bool, error) {
+
+	// setup a pod watching client for our current KH pod
+	podClient := client.CoreV1().Pods(namespace)
+
+	// if the pod is "not found", then it does not exist
+	p, err := podClient.Get(podName, metav1.GetOptions{})
+	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
+		log.Warnln("Pod", podName, "in namespace", namespace, "was not found"+":", err.Error)
+		return false, err
+	}
+
+	// if the pod has succeeded, it no longer exists
+	if p.Status.Phase == apiv1.PodSucceeded {
+		log.Infoln("Pod", podName, "exited successfully.")
+		return false, err
+	}
+
+	// if the pod has failed, it no longer exists
+	if p.Status.Phase == apiv1.PodFailed {
+		log.Infoln("Pod", podName, "failed and no longer exists.")
+		return false, err
+	}
+	log.Infoln("Pod", podName, "is present in namespace", namespace)
+	return true, nil
+}
+
+// PodKill waits a number of seconds determined by the user, then deletes the chosen pod in the namespace specified
+func PodKill(client *kubernetes.Clientset, podName string, namespace string, gracePeriod int64) error {
+
+	// Setup a pod watching client for our current KH pod
+	podClient := client.CoreV1().Pods(namespace)
+
+	// Check for and return any errors, otherwise pod was killed successfully
+	err := podClient.Delete(podName, &metav1.DeleteOptions{GracePeriodSeconds: &gracePeriod})
+	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
+		log.Warnln("Pod", podName, "not found not found in namespace", namespace+":", err.Error)
+		return err
+	}
+	log.Infoln("Pod", podName, "was killed successfully.")
+	return nil
 }

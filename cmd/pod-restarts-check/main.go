@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -32,10 +33,18 @@ import (
 )
 
 const defaultMaxFailuresAllowed = 10
+const defaultCheckTimeout = 10 * time.Minute
 
+// KubeConfigFile is a variable containing file path of Kubernetes config files
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+
+// Namespace is a variable to allow code to target all namespaces or a single namespace
 var Namespace string
+
+// CheckTimeout is a variable for how long code should run before it should retry.
 var CheckTimeout time.Duration
+
+// MaxFailuresAllowed is a variable for how many times the pod should retry before stopping.
 var MaxFailuresAllowed int32
 
 // Checker represents a long running pod restart checker.
@@ -55,19 +64,15 @@ func init() {
 		return
 	}
 
-	// Grab and verify environment variables and set them as global vars
-	checkTimeout := os.Getenv("CHECK_POD_TIMEOUT")
-	if len(checkTimeout) == 0 {
-		log.Errorln("ERROR: The CHECK_TIMEOUT environment variable has not been set.")
-		return
-	}
-
-	var err error
-	CheckTimeout, err = time.ParseDuration(checkTimeout)
+	// Set check time limit to default
+	CheckTimeout = defaultCheckTimeout
+	// Get the deadline time in unix from the env var
+	timeDeadline, err := checkclient.GetDeadline()
 	if err != nil {
-		log.Errorln("Error parsing timeout for check", checkTimeout, err)
-		return
+		log.Infoln("There was an issue getting the check deadline:", err.Error())
 	}
+	CheckTimeout = timeDeadline.Sub(time.Now().Add(time.Second * 5))
+	log.Infoln("Check time limit set to:", CheckTimeout)
 
 	MaxFailuresAllowed = defaultMaxFailuresAllowed
 	maxFailuresAllowed := os.Getenv("MAX_FAILURES_ALLOWED")
@@ -142,9 +147,8 @@ func (prc *Checker) Run() error {
 			}
 			return reportKHFailure(errorMessages)
 
-		} else {
-			return reportKHSuccess()
 		}
+		return reportKHSuccess()
 	}
 }
 
@@ -191,7 +195,7 @@ func (prc *Checker) verifyBadPodRestartExists(podName string) error {
 
 	_, err := prc.client.CoreV1().Pods(prc.Namespace).Get(podName, metav1.GetOptions{})
 	if err != nil {
-		if k8sErrors.IsNotFound(err) {
+		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Infoln("Bad Pod:", podName, "no longer exists. Removing from bad pods map")
 			delete(prc.BadPods, podName)
 		} else {

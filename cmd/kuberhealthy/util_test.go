@@ -31,7 +31,7 @@ func newExternalTestCheck(c *kubernetes.Clientset) (*external.Checker, error) {
 // spec file for pods
 func newTestCheckFromSpec(c *kubernetes.Clientset, spec *khcheckcrd.KuberhealthyCheck) *external.Checker {
 	// create a new checker and insert this pod spec
-	checker := external.New(c, spec, khCheckClient, khStateClient, externalCheckReportingURL) // external checker does not ever return an error so we drop it
+	checker := external.New(c, spec, khCheckClient, khStateClient, cfg.ExternalCheckReportingURL) // external checker does not ever return an error so we drop it
 	checker.Debug = true
 	return checker
 }
@@ -56,6 +56,9 @@ func loadTestPodSpecFile(path string) (*khcheckcrd.KuberhealthyCheck, error) {
 
 	log.Debugln("Decoding this YAML:", string(b))
 	j, err := yaml.YAMLToJSON(b)
+	if err != nil {
+		return &podSpec, err
+	}
 
 	// unmarshal the pod into the pod struct and return
 	err = json.Unmarshal(j, &podSpec)

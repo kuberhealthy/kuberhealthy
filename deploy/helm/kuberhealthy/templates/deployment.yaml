@@ -27,10 +27,19 @@ spec:
       labels:
         app: {{ template "kuberhealthy.name" . }}
     spec:
+      volumes:
+        - name: config-volume
+          configMap:
+            # Provide the name of the ConfigMap containing the files you want
+            # to add to the container
+            name: kuberhealthy
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
+      {{- if .Values.deployment.priorityClassName }}
+      priorityClassName: {{ .Values.deployment.priorityClassName }}
+      {{- end}}
       containers:
-      - image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+      - image: {{ .Values.image.repository }}:v{{ .Chart.AppVersion }}
         command: {{ .Values.deployment.command }}
         {{- if .Values.deployment.args }}
         args:
@@ -53,6 +62,9 @@ spec:
             port: 8080
           timeoutSeconds: 1
         name: {{ template "kuberhealthy.name" . }}
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/config/
         env:
           - name: POD_NAME
             valueFrom:
@@ -78,6 +90,9 @@ spec:
           requests:
             cpu: {{ .Values.resources.requests.cpu }}
             memory: {{ .Values.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
       {{- if .Values.deployment.nodeSelector }}
       nodeSelector:
 {{- toYaml .Values.deployment.nodeSelector | nindent 8 }}
@@ -90,4 +105,3 @@ spec:
         key: node-role.kubernetes.io/master
         operator: Exists
 {{- end -}}
-

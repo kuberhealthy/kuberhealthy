@@ -17,12 +17,17 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+
+	nodeCheck "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 )
 
 // runDeploymentCheck sets up a deployment and applies it to the cluster.
 // Sets up a deployment and service and uses the client to deploy the test deployment and service.
 // Attempts to hit the service hostname endpoint, looking for a 200 and reports a success if able to retrieve a 200.
 func runDeploymentCheck() {
+
+	log.Infoln("Waiting for node to become ready before starting check.")
+	waitForNodeToJoin(ctx)
 
 	log.Infoln("Starting check.")
 
@@ -214,7 +219,7 @@ func runDeploymentCheck() {
 				if cleanUpError != nil {
 					errorReport = append(errorReport, cleanUpError.Error())
 				}
-				reportErrorsToKuberhealthy([]string{err.Error()})
+				reportErrorsToKuberhealthy(errorReport)
 				return
 			}
 			// Continue with the check if there is no error.
@@ -314,4 +319,20 @@ func cleanUpOrphanedResources(ctx context.Context) chan error {
 	}(ctx)
 
 	return cleanUpChan
+}
+
+// waitForNodeToJoin waits for the node to join the worker pool.
+// Waits for kube-proxy to be ready and that Kuberhealthy is reachable.
+func waitForNodeToJoin(ctx context.Context) {
+	// Wait for node to be at least 2m old.
+	err := nodeCheck.WaitForNodeAge(ctx, client, checkNamespace, time.Minute*2)
+	if err != nil {
+		log.Errorln("Failed to check node age:", err.Error())
+	}
+
+	// Check if Kuberhealthy is reachable.
+	err = nodeCheck.WaitForKuberhealthy(ctx)
+	if err != nil {
+		log.Errorln("Failed to reach Kuberhealthy:", err.Error())
+	}
 }

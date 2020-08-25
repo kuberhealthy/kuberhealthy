@@ -2,14 +2,11 @@
 
 An operator for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_monitoring) on [Kubernetes](https://kubernetes.io).  Write your own tests in your own container and Kuberhealthy will manage everything else.  Automatically creates and sends metrics to [Prometheus](https://prometheus.io) and [InfluxDB](https://www.influxdata.com/).  Included simple JSON status page. Supplements other solutions like [Prometheus](https://prometheus.io/) very nicely!
 
-[![Docker Repository on Quay](https://quay.io/repository/comcast/kuberhealthy/status "Kuberhealthy Docker Repository on Quay")](https://quay.io/repository/comcast/kuberhealthy)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Comcast/kuberhealthy)](https://goreportcard.com/report/github.com/Comcast/kuberhealthy)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2822/badge)](https://bestpractices.coreinfrastructure.org/projects/2822)
 [![Twitter Follow](https://img.shields.io/twitter/follow/kuberhealthy.svg?style=social)](https://twitter.com/kuberhealthy)  
-
-
-You can reach out to us directly on the [Kubernetes Slack](http://slack.k8s.io/) in the [#kuberhealthy channel](https://kubernetes.slack.com/messages/CB9G7HWTE).
+[![Join Slack](https://img.shields.io/badge/slack-kubernetes/kuberhealthy-teal.svg?logo=slack)](https://kubernetes.slack.com/messages/CB9G7HWTE)
 
 ## What is Kuberhealthy?
 
@@ -41,11 +38,9 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer`.  This is done for security.  Options are available in the Helm chart to bypass this and deploy with `Type: LoadBalancer` directly.
 
-RBAC bindings and roles are included in all configurations.
-
 Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.15.x`.
 
-More installation options, including static yaml files are available in the [/deploy](/deploy) directory.
+More installation options, including static yaml files are available in the [/deploy](/deploy) directory.  To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/Comcast/kuberhealthy/blob/config-readme/docs/CONFIGURATION.md).
 
 
 ### Why Are Synthetic Tests Important?
@@ -124,11 +119,15 @@ Kuberhealthy scales horizontally in order to be fault tolerant.  By default, two
 
 The state of checks is centralized as [custom resource](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) records.  This allows Kuberhealthy to always serve the same result, no matter which node in the pool you hit.  The current master running checks is calculated by all nodes in the deployment by simply querying the Kubernetes API for 'Ready' Kuberhealthy pods of the correct label, and sorting them alphabetically by name.  The node that comes first is master.  These two strategies together enable Kuberhealthy to maintain state and scale horizontally without deploying an additional backing database.
 
+### Synthetic KPIs with Kuberhealthy
+
+Using Kuberhealthy with prometheus can help capture useful synthetic KPIs. Check out the [K8s KPIs with Kuberhealthy](docs/K8s-KPIs-with-Kuberhealthy.md) doc to learn more on how to install Kuberhealthy and collect cluster KPIs.  
+
 ### Security Considerations
 
 By default, Kuberhealthy exposes an insecure (non-HTTPS) JSON status endpoint without authentication. You should never expose this endpoint to the public internet. Exposing Kuberhealthy's status page to the public internet could result in private cluster information being exposed to the public internet when errors occur and are displayed on the page.
 
-Vulnerabilities or other security related issues should be logged as git issues in this project and immediately reported to The Security Incident Response Team (SIRT) via email at NETO_SIRT@comcast.com.  Please do not post sensitive information in git issues.
+Vulnerabilities or other security related issues should be logged as Github issues in this project.  All new issues are reviewed regularly.  Please be careful not to post any sensitive information in your report!
 
 
 ## Contributing

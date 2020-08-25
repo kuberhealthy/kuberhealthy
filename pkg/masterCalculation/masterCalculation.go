@@ -20,6 +20,8 @@ import (
 	"strings"
 
 	"k8s.io/client-go/kubernetes"
+
+	// blank insert is for handling reverse proxy authN via oidc protocol
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	log "github.com/sirupsen/logrus"

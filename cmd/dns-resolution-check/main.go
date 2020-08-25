@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net"
 	"os"
@@ -21,21 +22,32 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-
 	// required for oidc kubectl testing
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	"k8s.io/client-go/kubernetes"
 
-	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
 const maxTimeInFailure = 60 * time.Second
+const defaultCheckTimeout = 5 * time.Minute
 
+// KubeConfigFile is a variable containing file path of Kubernetes config files
 var KubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+
+// CheckTimeout is a variable for how long code should run before it should retry
 var CheckTimeout time.Duration
+
+// Hostname is a variable for container/pod name
 var Hostname string
+
+// NodeName is a variable for the node where the container/pod is created
+var NodeName string
+
+var now time.Time
 
 // Checker validates that DNS is functioning correctly
 type Checker struct {
@@ -46,25 +58,30 @@ type Checker struct {
 
 func init() {
 
-	// Grab and verify environment variables and set them as global vars
-	checkTimeout := os.Getenv("CHECK_POD_TIMEOUT")
-	if len(checkTimeout) == 0 {
-		log.Errorln("ERROR: The CHECK_TIMEOUT environment variable has not been set.")
-		return
-	}
-
-	var err error
-	CheckTimeout, err = time.ParseDuration(checkTimeout)
+	// Set check time limit to default
+	CheckTimeout = defaultCheckTimeout
+	// Get the deadline time in unix from the env var
+	timeDeadline, err := checkclient.GetDeadline()
 	if err != nil {
-		log.Errorln("Error parsing timeout for check", checkTimeout, err)
-		return
+		log.Infoln("There was an issue getting the check deadline:", err.Error())
 	}
+	CheckTimeout = timeDeadline.Sub(time.Now().Add(time.Second * 5))
+	log.Infoln("Check time limit set to:", CheckTimeout)
 
 	Hostname = os.Getenv("HOSTNAME")
 	if len(Hostname) == 0 {
 		log.Errorln("ERROR: The ENDPOINT environment variable has not been set.")
 		return
 	}
+
+	NodeName = os.Getenv("NODE_NAME")
+	if len(Hostname) == 0 {
+		log.Errorln("ERROR: Failed to retrieve NODE_NAME environment variable.")
+		return
+	}
+	log.Infoln("Check pod is running on node:", NodeName)
+
+	now = time.Now()
 }
 
 func main() {
@@ -74,6 +91,30 @@ func main() {
 	}
 
 	dc := New()
+
+	// Since this check runs often and very quickly, run all nodeChecks to make sure that:
+	// - check doesn't run on a node that's too young
+	// - kuberhealthy endpoint is ready
+	// - kube-proxy is ready and running on the node the check is running on
+	nodeCheck.EnableDebugOutput()
+	checkTimeLimit := time.Minute * 1
+	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
+
+	minNodeAge := time.Minute * 3
+	err = nodeCheck.WaitForNodeAge(ctx, client, "kuberhealthy", minNodeAge)
+	if err != nil {
+		log.Errorln("Error waiting for node to reach minimum age:", err)
+	}
+
+	err = nodeCheck.WaitForKuberhealthy(ctx)
+	if err != nil {
+		log.Errorln("Error waiting for Kuberhealthy to be ready:", err)
+	}
+
+	err = nodeCheck.WaitForKubeProxy(ctx, client, "kuberhealthy", "kube-system")
+	if err != nil {
+		log.Errorln("Error waiting for kube proxy to be ready:", err)
+	}
 
 	err = dc.Run(client)
 	if err != nil {

@@ -10,13 +10,12 @@ Each check lookups and verifies one hostname. Default KHCheck configurations app
     - Check Name: dns-status-external
 
 The check runs every 2 minutes (spec.runInterval), with a check timeout set to 15 minutes (spec.timeout). If the check
-does not complete within the given timeout it will report a timeout error on the status page. The check takes in a
-`CHECK_POD_TIMEOUT` environment variable that ensures the the pod runs the hostname lookup within the timeout.
+does not complete within the given timeout it will report a timeout error on the status page.
 
 To verify other hostnames, apply another KHCheck configuration file with a different `HOSTNAME` environment variable.
 
 #### DNS Status Check Kube Spec:
-```
+```yaml
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
@@ -28,11 +27,13 @@ spec:
   podSpec:
     containers:
       - env:
-          - name: CHECK_POD_TIMEOUT
-            value: "110s"
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.1.0
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+        image: kuberhealthy/dns-resolution-check:v1.4.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:

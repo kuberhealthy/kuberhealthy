@@ -6,15 +6,11 @@ Daemonset Check. The Daemonset Check deploys a Daemonset, and waits for all the 
 state, then terminates them and ensures all pod terminations were successful.
 
 The check runs every 15 minutes (spec.runInterval), with a check timeout set to 12 minutes (spec.timeout). If the check
-does not complete within the given timeout it will report a timeout error on the status page. The check takes in a
-CHECK_POD_TIMEOUT environment variable that ensures the clean up of rogue daemonsets or daemonset pods after the check
-has finished within this timeout.
+does not complete within the given timeout it will report a timeout error on the status page.
 
 Containers are deployed with their resource requirements set to 0 cores and 0 memory and use the pause container from
-Google (gcr.io/google_containers/pause:0.8.0), which is likely already cached on your nodes. The
-node-role.kubernetes.io/master NoSchedule taint is tolerated by daemonset testing pods. The pause container is already
-used by kubelet to do various tasks and should be cached at all times. If a failure occurs anywhere in the daemonset
-deployment or tear down, an error is shown on the status page describing the issue.
+Google (gcr.io/google_containers/pause:0.8.0), which is likely already cached on your nodes. The pause container is already used by kubelet to do various tasks and should be cached at all times. The node-role.kubernetes.io/master 
+NoSchedule taint is tolerated by daemonset testing pods. The Daemonset Check respects a comma separated list of `key=value` node selectors with the `NODE_SELECTOR` environment variable. If a failure occurs anywhere in the daemonset deployment or tear down, an error is shown on the status page describing the issue.
 
 #### Daemonset Check Kube Spec:
 
@@ -38,11 +34,9 @@ spec:
       - env:
           - name: POD_NAMESPACE
             value: "kuberhealthy"
-          - name: CHECK_POD_TIMEOUT
-            # Make sure this value is less than the Kuberhealthy check timeout.
-            # Default is set to 10m (10 minutes).
-            value: "10m"
-        image: kuberhealthy/daemonset-check:v2.2.2
+          - name: NODE_SELECTOR # Schedules daemonsets only to nodes with this label
+            value: "kubernetes.io/os=linux"
+        image: kuberhealthy/daemonset-check:v3.1.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -50,6 +44,16 @@ spec:
             cpu: 10m
             memory: 50Mi
 ```
+
+#### Daemonset Check Env Vars:
+
+| Env Var | Default |
+| :--- | :--- |
+|POD_NAMESPACE|"kuberhealthy"|
+|PAUSE_CONTAINER_IMAGE|"gcr.io/google-containers/pause:3.1"|
+|SHUTDOWN_GRACE_PERIOD|1m|
+|CHECK_DAEMONSET_NAME|"daemonset"|
+|NODE_SELECTOR|`<none>`|
 
 #### Daemonset Check Diagram
 

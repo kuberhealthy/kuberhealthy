@@ -2,7 +2,7 @@
 
 This check tests if a `deployment` and `service` can be created within your Kubernetes cluster. It will attempt to bring up a `deployment` with `2` replicas and a `service` of type `ClusterIP` in the `kuberhealthy` namespace and waits for the pods to come up. Once the `deployment` is ready, the check makes a request to the hostname looking for a `200 OK`. The check then proceeds to terminate them and ensures that the deployment and service terminations were successful. A complete tear down of the `deployment` and `service` after receiving a `200 OK` marks a successful test run.
 
-Container resource requests are set to `15 millicores` of CPU and `20Mi` units of memory and use the Nginx's latest image `nginx:latest` for the deployment. If the environment variable `CHECK_DEPLOYMENT_ROLLING_UPDATE` is set to `true`, the check will attempt to perform a rolling-update on the `deployment`. Once this rolling-update completes, the check makes another request to the hostname looking for a `200 OK` again before cleaning up. By default, the check will initially deploy Nginx's `nginx:1.17.8` image, and update to `nginx:1.17.9`.
+Container resource requests are set to `15 millicores` of CPU and `20Mi` units of memory and use the Nginx's latest image `nginx:latest` for the deployment. If the environment variable `CHECK_DEPLOYMENT_ROLLING_UPDATE` is set to `true`, the check will attempt to perform a rolling-update on the `deployment`. Once this rolling-update completes, the check makes another request to the hostname looking for a `200 OK` again before cleaning up. By default, the check will initially deploy Nginx's unprivileged `nginxinc/nginx-unprivileged:1.17.8` image, and update to `nginxinc/nginx-unprivileged:1.17.9`.
 
 Custom images can be used for this check and can be specified with the `CHECK_IMAGE` and `CHECK_IMAGE_ROLL_TO` environment variables. If a custom image requires the use of environment variables, they can be passed down into your container by setting the environment variable `ADDITIONAL_ENV_VARS` to a string of comma-separated values (`"X=foo,Y=bar"`).
 
@@ -34,17 +34,19 @@ __IF ROLLING-UPDATE OPTION IS ENABLED__
 - Check Interval: 30 minutes
 - Check name: `deployment`
 - Configurable check environment variables:
-  - `CHECK_IMAGE`: Initial container image. (default=`nginx:1.17.8`)
-  - `CHECK_IMAGE_ROLL_TO`: Container image to roll to. (default=`nginx:1.17.9`)
+  - `CHECK_IMAGE`: Initial container image. (default=`nginxinc/nginx-unprivileged:1.17.8`)
+  - `CHECK_IMAGE_ROLL_TO`: Container image to roll to. (default=`nginxinc/nginx-unprivileged:1.17.9`)
   - `CHECK_DEPLOYMENT_NAME`: Name for the check's deployment. (default=`deployment-deployment`)
   - `CHECK_SERVICE_NAME`: Name for the check's service. (default=`deployment-svc`)
   - `CHECK_NAMESPACE`: Namespace for the check (default=`kuberhealthy`).
   - `CHECK_DEPLOYMENT_REPLICAS`: Number of replicas in the deployment (default=`2`).
   - `CHECK_DEPLOYMENT_ROLLING_UPDATE`: Boolean to enable rolling-update (default=`false`).
+  - `CHECK_CONTAINER_PORT`: Check pod container port (default=`8080`).
   - `CHECK_POD_CPU_REQUEST`: Check pod deployment CPU request value. Calculated in decimal SI units `(15 = 15m cpu)`.
   - `CHECK_POD_CPU_LIMIT`: Check pod deployment CPU limit value. Calculated in decimal SI units `(75 = 75m cpu)`.
   - `CHECK_POD_MEM_REQUEST`: Check pod deployment memory request value. Calculated in binary SI units `(20 * 1024^2 = 20Mi memory)`.
   - `CHECK_POD_MEM_LIMIT`: Check pod deployment memory limit value. Calculated in binary SI units `(75 * 1024^2 = 75Mi memory)`.
+  - `NODE_SELECTOR`: Comma separated list of `key=value` node selector values for the deployment check. By default, there are no selectors.
   - `ADDITIONAL_ENV_VARS`: Comma separated list of `key=value` variables passed into the pod's containers.
   - `SHUTDOWN_GRACE_PERIOD`: Amount of time in seconds the shutdown will allow itself to clean up after an interrupt signal (default=`30s`).
   - `DEBUG`: Verbose debug logging.
@@ -65,7 +67,7 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.4.4
+      image: kuberhealthy/deployment-check:v1.6.0
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_IMAGE
@@ -74,10 +76,42 @@ spec:
           value: "nginx:1.17.5-perl"
         - name: CHECK_DEPLOYMENT_REPLICAS
           value: "4"
+        - name: CHECK_CONTAINER_PORT
+          value: "80"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
         - name: ADDITIONAL_ENV_VARS
           value: "var1=foo,var2=bar"
+      resources:
+        requests:
+          cpu: 15m
+          memory: 15Mi
+        limits:
+          cpu: 25m
+      restartPolicy: Always
+```
+
+The following configuration will create a deployment with 6 replicas and roll from `nginxinc/nginx-unprivileged:1.17.8` to `nginxinc/nginx-unprivileged:1.17.9`:
+
+```yaml
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: deployment
+  namespace: kuberhealthy
+spec:
+  runInterval: 10m
+  timeout: 15m
+  podSpec:
+    containers:
+    - name: deployment
+      image: kuberhealthy/deployment-check:v1.6.0
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: CHECK_DEPLOYMENT_REPLICAS
+          value: "6"
+        - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
+          value: "true"
       resources:
         requests:
           cpu: 15m
