@@ -3,11 +3,11 @@
 # Declare variables to be passed into your templates.
 
 prometheus:
-  enabled: false
+  enabled: true
   name: "prometheus"
   release: prometheus-operator
-  enableScraping: false
-  serviceMonitor: false
+  enableScraping: true
+  serviceMonitor: true
   enableAlerting: false
 
 image:
@@ -93,7 +93,7 @@ check:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
   podRestarts:
-    enabled: false
+    enabled: true
     runInterval: 5m
     timeout: 10m
     image:
@@ -103,7 +103,7 @@ check:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
   podStatus:
-    enabled: false
+    enabled: true
     runInterval: 5m
     timeout: 15m
     image:
@@ -112,7 +112,7 @@ check:
     extraEnvs:
     nodeSelector: {}
   networkConnection:
-    enabled: false
+    enabled: true
     runInterval: 30m
     timeout: 10m
     image:
