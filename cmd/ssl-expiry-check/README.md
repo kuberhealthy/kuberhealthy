@@ -30,7 +30,7 @@ spec:
             value: "60"
           - name: INSECURE
             value: "false"
-        image: kuberhealthy/ssl-expiry:v1.0.0
+        image: kuberhealthy/ssl-expiry:v1.0.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -62,7 +62,7 @@ spec:
             value: "60"
           - name: INSECURE
             value: "true"
-        image: kuberhealthy/ssl-expiry:v1.0.0
+        image: kuberhealthy/ssl-expiry:v1.0.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -73,7 +73,16 @@ spec:
 
 #### How-to
 
-To implement the SSL Handshake Check with Kuberhealthy, update the spec sheet to the domain name, port number, and number of days until expiration that you wish to test. TLS handshakes will fail on self-signed certificates. To check expiration dates and timeframes for these skip, that step by setting the INSECURE flag to "true". Update values as needed and apply the spec sheets, or use default values by running:  
+To implement the SSL Handshake Check with Kuberhealthy, update the spec sheet to the domain name, port number, and number of days until expiration that you wish to test. TLS handshakes will fail on self-signed certificates. To check expiration dates and timeframes for self-signed certificates, skip that step by setting the INSECURE variable to "true". 
+
+#### Update values as needed and apply the spec sheets:
+
+`kubectl apply -f ssl-secure-expiry-check.yaml`  
+or  
+`kubectl apply -f ssl-selfsign-expiry-check.yaml`  
+
+
+#### You can also use the default values by running:  
 `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/v2.3.0/cmd/ssl-expiry-check/ssl-secure-expiry-check.yaml`  
 or  
 `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/v2.3.0/cmd/ssl-expiry-check/ssl-selfsign-expiry-check.yaml`  
