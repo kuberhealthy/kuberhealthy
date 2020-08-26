@@ -120,11 +120,11 @@ const (
 	defaultCheckContainerName = "deployment-container"
 
 	// Default images used for check.
-	defaultCheckImageURL  = "nginx:1.17.8"
-	defaultCheckImageURLB = "nginx:1.17.9"
+	defaultCheckImageURL  = "nginxinc/nginx-unprivileged:1.17.8"
+	defaultCheckImageURLB = "nginxinc/nginx-unprivileged:1.17.9"
 
 	// Default container port used for check.
-	defaultCheckContainerPort = int32(80)
+	defaultCheckContainerPort = int32(8080)
 
 	// Default load balancer port used for check.
 	defaultCheckLoadBalancerPort = int32(80)

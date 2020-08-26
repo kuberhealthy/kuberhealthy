@@ -1,0 +1,29 @@
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: ssl-secure-expiry
+  namespace: kuberhealthy
+spec:
+  runInterval: 1d
+  timeout: 5m
+  podSpec:
+    containers:
+      - env:
+          # Domain name env variable must be updated to the domain on which you wish to check the SSL for
+          - name: DOMAIN_NAME
+            value: "kubernetes.default"
+          # If not using default SSL port of 443, port name env variable must be updated  
+          - name: PORT
+            value: "443"
+          # Number of days until certificate expiration to test for  
+          - name: DAYS
+            value: "60"
+          - name: INSECURE
+            value: "true"
+        image: kuberhealthy/ssl-expiry:v1.0.1
+        imagePullPolicy: IfNotPresent
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi

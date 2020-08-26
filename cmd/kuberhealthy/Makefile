@@ -1,8 +1,9 @@
 IMAGE="kuberhealthy/kuberhealthy"
+
 TAG="v2.4.0"
 
 build:
-	docker build -t ${IMAGE}:${TAG} -f Dockerfile ../../
+	docker build --no-cache --pull -t ${IMAGE}:${TAG} -f Dockerfile ../../
 build-dev:
 	docker build -t kuberhealthy:dev -f Dockerfile ../../
 push:
