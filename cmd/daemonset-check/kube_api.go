@@ -40,7 +40,6 @@ func getNodeClient() v12.NodeInterface {
 }
 
 func createDaemonset(daemonsetSpec *appsv1.DaemonSet) error {
-
 	err := backoff.Retry(func() error {
 		var err error
 		_, err = getDSClient().Create(daemonsetSpec)

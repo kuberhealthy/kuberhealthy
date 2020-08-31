@@ -45,7 +45,7 @@ import (
 
 // Set dynamicClient that represents the client used to watch and list unstructured khchecks
 var (
-	restConfig, _ = clientcmd.BuildConfigFromFlags("", configPath)
+	restConfig, _    = clientcmd.BuildConfigFromFlags("", configPath)
 	dynamicClient, _ = dynamic.NewForConfig(restConfig)
 )
 
@@ -989,21 +989,6 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	// make a request ID for tracking this request
 	requestID := "web: " + uuid.New().String()
 
-	k.externalCheckReportHandlerLog(requestID, "Client connected to check report handler from", r.RemoteAddr, r.UserAgent())
-
-	// validate the calling pod to ensure that it has a proper KH_CHECK_NAME and KH_RUN_UUID
-	k.externalCheckReportHandlerLog(requestID, "validating external check status report from: ", r.RemoteAddr)
-	ipReport, err := k.validateExternalRequest(r.RemoteAddr)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by IP:", r.RemoteAddr, err)
-		return nil
-	}
-	k.externalCheckReportHandlerLog(requestID, "Calling pod is", ipReport.Name, "in namespace", ipReport.Namespace)
-
-	// append pod info to request id for easy check tracing in logs
-	requestID = requestID + " (" + ipReport.Namespace + "/" + ipReport.Name + ")"
-
 	// ensure the client is sending a valid payload in the request body
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -1021,7 +1006,23 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		k.externalCheckReportHandlerLog(requestID, "Failed to unmarshal state json:", err, r.RemoteAddr)
 		return nil
 	}
+
 	log.Debugf("Check report after unmarshal: +%v\n", state)
+
+	k.externalCheckReportHandlerLog(requestID, "Client connected to check report handler from", state.PodIP, r.UserAgent())
+
+	// validate the calling pod to ensure that it has a proper KH_CHECK_NAME and KH_RUN_UUID
+	k.externalCheckReportHandlerLog(requestID, "validating external check status report from: ", state.PodIP)
+	ipReport, err := k.validateExternalRequest(state.PodIP)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by IP:", state.PodIP, err)
+		return nil
+	}
+	k.externalCheckReportHandlerLog(requestID, "Calling pod is", ipReport.Name, "in namespace", ipReport.Namespace)
+
+	// append pod info to request id for easy check tracing in logs
+	requestID = requestID + " (" + ipReport.Namespace + "/" + ipReport.Name + ")"
 
 	// ensure that if ok is set to false, then an error is provided
 	if !state.OK {
@@ -1249,9 +1250,9 @@ func (k *Kuberhealthy) configureInfluxForwarding() {
 func listUnstructuredKHChecks() (*unstructured.UnstructuredList, error) {
 
 	khCheckGroupVersionResource := schema.GroupVersionResource{
-		Version: checkCRDVersion,
+		Version:  checkCRDVersion,
 		Resource: checkCRDResource,
-		Group: checkCRDGroup,
+		Group:    checkCRDGroup,
 	}
 
 	unstructuredList, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").List(metav1.ListOptions{})
@@ -1262,7 +1263,7 @@ func listUnstructuredKHChecks() (*unstructured.UnstructuredList, error) {
 	return unstructuredList, err
 }
 
-func convertUnstructuredKhCheck(unstructured unstructured.Unstructured) (khcheckcrd.KuberhealthyCheck, error){
+func convertUnstructuredKhCheck(unstructured unstructured.Unstructured) (khcheckcrd.KuberhealthyCheck, error) {
 	un := unstructured.UnstructuredContent()
 	var khCheck khcheckcrd.KuberhealthyCheck
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(un, &khCheck)
@@ -1276,9 +1277,9 @@ func convertUnstructuredKhCheck(unstructured unstructured.Unstructured) (khcheck
 func watchUnstructuredKHChecks() (watch.Interface, error) {
 
 	khCheckGroupVersionResource := schema.GroupVersionResource{
-		Version: checkCRDVersion,
+		Version:  checkCRDVersion,
 		Resource: checkCRDResource,
-		Group: checkCRDGroup,
+		Group:    checkCRDGroup,
 	}
 
 	watcher, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").Watch(metav1.ListOptions{})

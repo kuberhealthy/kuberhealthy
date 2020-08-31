@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -347,7 +348,8 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 	log.Infoln("Generating daemonset kubernetes spec.")
 	daemonSet := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: daemonSetName,
+			Name:      daemonSetName,
+			Namespace: os.Getenv("POD_NAMESPACE"),
 			Labels: map[string]string{
 				"app":              daemonSetName,
 				"source":           "kuberhealthy",
