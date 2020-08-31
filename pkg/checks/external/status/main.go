@@ -7,6 +7,7 @@ package status
 type Report struct {
 	Errors []string
 	OK     bool
+	PodIP  string
 }
 
 // NewReport creates a new error report to be sent to the server.  If
