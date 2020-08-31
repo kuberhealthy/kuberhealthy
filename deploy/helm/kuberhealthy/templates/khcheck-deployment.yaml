@@ -19,6 +19,10 @@ spec:
       image: {{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
       imagePullPolicy: IfNotPresent
       env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
 {{- range $key, $value := .Values.check.deployment.extraEnvs }}
         - name: {{ $key }}
           value: {{ $value | quote }}
