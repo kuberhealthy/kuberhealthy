@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: certificate-config
+  namespace: kuberhealthy
+data:
+  certificate1: |
+    -----BEGIN CERTIFICATE-----
+    MIIFpDCCA4wCCQDjWkR6pdxTWzANBgkqhkiG9w0BAQsFADCBkzELMAkGA1UEBhMC
+    VVMxCzAJBgNVBAgMAkRFMRMwEQYDVQQHDApXaWxtaW5ndG9uMQ0wCwYDVQQKDARI
+    b21lMRQwEgYDVQQLDAtMaXZpbmcgcm9vbTESMBAGA1UEAwwJbG9jYWxob3N0MSkw
+    JwYJKoZIhvcNAQkBFhp6YWNoYXJ5X2hhbnNvbkBjb21jYXN0LmNvbTAeFw0yMDA4
+    MTgxNzAzMTNaFw0yMTA4MTgxNzAzMTNaMIGTMQswCQYDVQQGEwJVUzELMAkGA1UE
+    CAwCREUxEzARBgNVBAcMCldpbG1pbmd0b24xDTALBgNVBAoMBEhvbWUxFDASBgNV
+    BAsMC0xpdmluZyByb29tMRIwEAYDVQQDDAlsb2NhbGhvc3QxKTAnBgkqhkiG9w0B
+    CQEWGnphY2hhcnlfaGFuc29uQGNvbWNhc3QuY29tMIICIjANBgkqhkiG9w0BAQEF
+    AAOCAg8AMIICCgKCAgEA33mBSxvof2Pt74wWuYHqZygkQcj6v/o2L355SCGfnZzO
+    tAYz5AL0B9h4/eVqavzmISLMAZh4+sCbOJ238ZuNc0BlSU+sIaOUs494ldgcUqqr
+    mdlLfFmWMfknulcZVKzj/GKetHEdPwY/5V/aDaDgfGDcrEk9S95fZEBUyDmvqV+J
+    XVxL7iZuQZGjiNHFOrFGBPptEYn4IWcMIy37TLL/DWb0NoVT5MXpIU4Ju5mN1kD9
+    j3EUy/+BOJcjDiJv05rcO86W1sNXvCPj4lefyoI9uWR5JCE5Rr0RLOBBF7G3Y2Zc
+    3jitM/bpOpVIR4XFjnZIGStBDMaunSm5h+98GZjlv6Ro48Zk4aForagFYgAgT5So
+    APqxF/65w3KpyI6CRajkRUVfF8fqF/Z2yEPXfZLXGkNtt8fpu+P6J0hPjMKoGSPf
+    cd8ddBoLm9ss4vSL1TyL6FP3j//ypmnwI+mANQhS/rqIlgqxXr1YX0oQC1iwWA9L
+    wUaTqD/ebGPgkK0Ym3uZjEMp8TtgEvvRSfrJNWY0wIiH2yfHqJnBLFSFSZ5pGHJH
+    9Xu0GM+KCsGhltfyTEnXuYexpU8cODpKZWKvWo2sjWbwEZeEG+fkaYvKycwvm7Tn
+    cZwoq0xVu1SeVA2X5KCzJqmVQYtDrLmu4m7Owyjgpqkl2ckebKMzRiTpwAfzSyMC
+    AwEAATANBgkqhkiG9w0BAQsFAAOCAgEAHxzduPJRvTA+bquzBZk18E2JxQDHh/0O
+    J6T5vjXysmtwF1ouiQZKT+XPr5cRrb8iLeBhEwJRyb2OvYLyCSh/gzBzwbzoKRum
+    Wr0vTD4qNt1ZvsJpNKgivk57pMQ9tjdWkMSTVNpLEunyQ0CdwS8ReNTcwHBreGj9
+    t7iv1+G3R0Nuy3Z8wtcTMoqhrVSNMeMzs/a4LYzd+s0ZDjCOzf6tTtskbcLkYIIs
+    U5u3De2kWjqhvvpycijgFRoM2Dj+uQ8Up1zSgfv75ivxatyPCPXEd//ckrzu/Xla
+    tZiaCS3xto4CFn3my6PI3V6q5e5WDfPci1sTpWTTV7Gwu3Oe1rLLbXt7uPfbg3Ga
+    /V6FnZd3MgMs/mxGfsq1qRLgNtXkYZmB3jpiVsr00tI7z8d4FKX7I0zCVmjlmpNp
+    QpsbDNozP/kz0Yo4Urqy+aHiGmaw+JoUrhN5iMNK8K3MO5evkivTt7JAbb+IIVa/
+    TgvqgqA8XdblItBS3qswUd96+gMHH5zGblDXBCVRs+k++wT5bZ2lNdKUvXfCmkv7
+    nZuILBF6M52kmIZEeo+I+AOpOGGFbyD3k+0v+s+z9Uuwr0rMnlnxFsltywOQQFrb
+    ZsSH950YY142q+6qaMUYnv3hdSuVcFRddCRc1DmPO5g0x6NTmL/+c+EBrsqMMuLw
+    HNOEO85RY0M=
+    -----END CERTIFICATE-----
+
