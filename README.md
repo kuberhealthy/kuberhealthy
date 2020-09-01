@@ -38,7 +38,7 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer`.  This is done for security.  Options are available in the Helm chart to bypass this and deploy with `Type: LoadBalancer` directly.
 
-Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.15.x`.
+Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.18.x`.
 
 More installation options, including static yaml files are available in the [/deploy](/deploy) directory.  To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/Comcast/kuberhealthy/blob/config-readme/docs/CONFIGURATION.md).
 
