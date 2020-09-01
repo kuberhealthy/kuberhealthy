@@ -30,7 +30,6 @@ It is possible to configure Kuberhealthy's Prometheus integration with Helm vari
 prometheus:
   enabled: true # do we deploy a ServiceMonitor spec?
   name: "prometheus" # the name of the Prometheus deployment in your environment.
-  enableScraping: true # add the Prometheus scrape annotation to Kuberhealthy pods
   serviceMonitor: false # use a ServiceMonitor configuration, for if using Prometheus Operator
   enableAlerting: true # enable default Kuberhealthy alerts configuration
 app:
