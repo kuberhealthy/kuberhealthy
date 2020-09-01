@@ -45,11 +45,8 @@ func (h *State) WriteHTTPStatusResponse(w http.ResponseWriter) error {
 
 	currentStatus := *h
 
-	// Remove KHWorkload field when writing json response
-	updatedStatus := removeKHWorkloadField(currentStatus)
-
 	// marshal the health check results into a json blob of bytes
-	b, err := json.MarshalIndent(updatedStatus, "", "  ")
+	b, err := json.MarshalIndent(currentStatus, "", "  ")
 	if err != nil {
 		log.Warningln("Error marshaling health check json for caller:", err)
 		return err
@@ -65,26 +62,6 @@ func (h *State) WriteHTTPStatusResponse(w http.ResponseWriter) error {
 	// log.Infoln("Wrote response to client:", currentStatus)
 
 	return err
-}
-
-func removeKHWorkloadField(state State) State {
-
-	newState := NewState()
-	newState.OK = state.OK
-	newState.Errors = state.Errors
-	newState.CurrentMaster = state.CurrentMaster
-
-	for k, v := range state.CheckDetails {
-		v.KHWorkload = ""
-		newState.CheckDetails[k] = v
-	}
-
-	for k, v := range state.JobDetails {
-		v.KHWorkload = ""
-		newState.JobDetails[k] = v
-	}
-
-	return newState
 }
 
 // NewState creates a new health check result response

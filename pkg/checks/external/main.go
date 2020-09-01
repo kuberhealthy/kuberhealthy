@@ -368,7 +368,8 @@ func (ext *Checker) setUUID(uuid string) error {
 	// if the check was not found, we create a fresh one and start there
 	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		ext.log("khstate did not exist, so a default object will be created")
-		details := health.NewWorkloadDetails()
+		log.Debugln("creating new workload details:", checkState.Spec.GetKHWorkload())
+		details := health.NewWorkloadDetails(checkState.Spec.GetKHWorkload())
 		details.Namespace = ext.CheckNamespace()
 		details.AuthoritativePod = ext.hostname
 		details.OK = true
