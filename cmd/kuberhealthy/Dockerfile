@@ -1,4 +1,4 @@
-FROM golang:1.13 as builder
+FROM golang:latest as builder
 LABEL LOCATION="git@github.com:Comcast/kuberhealthy.git"
 LABEL DESCRIPTION="Kuberhealthy - Check and expose kubernetes cluster health in detail."
 RUN mkdir /kuberhealthy
@@ -13,13 +13,13 @@ ENV CGO_ENABLED=0
 #RUN go test -v -short -- --debug --forceMaster
 RUN go build -v -o kuberhealthy
 RUN mv kuberhealthy /kuberhealthy/kuberhealthy
+RUN groupadd -g 999 kuberhealthy && useradd -r -u 999 -g kuberhealthy kuberhealthy
 
-FROM golang:1.13
-RUN apt-get update && apt-get upgrade -y && apt-get remove mercurial -y && rm -rf /var/lib/apt/lists/*
+FROM scratch
 WORKDIR /app
 COPY --from=builder /kuberhealthy/ /app
-
-RUN groupadd -g 999 kuberhealthy && useradd -r -u 999 -g kuberhealthy kuberhealthy
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /etc/passwd /etc/passwd
 USER kuberhealthy
 EXPOSE 80
 ENTRYPOINT /app/kuberhealthy
