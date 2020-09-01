@@ -94,14 +94,18 @@ func (sr *StateReflector) CurrentStatus() health.State {
 			state.OK = false
 		}
 
-		if khState.Spec.KHWorkload == health.KHCheck {
+		khWorkload := determineKHWorkload(khState.Name, khState.Namespace)
+
+		log.Debugln("CurrentStatus. workload:", khWorkload)
+		if khWorkload == health.KHCheck {
 			state.CheckDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
 		}
-		if khState.Spec.KHWorkload == health.KHJob {
+
+		if khWorkload == health.KHJob {
 			state.JobDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
 		}
 	}
 
-	log.Infoln("khState reflector returning current status on", len(state.CheckDetails), "check khStates and", len(state.JobDetails), "job khStates.")
+	log.Infoln("CurrentStatus: khState reflector returning current status on", len(state.CheckDetails), "check khStates and", len(state.JobDetails), "job khStates.")
 	return state
 }
