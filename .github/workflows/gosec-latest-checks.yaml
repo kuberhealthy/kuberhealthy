@@ -20,5 +20,6 @@ jobs:
         #G107: Url provided to HTTP request as taint input
         #G109: Potential Integer overflow made by strconv.Atoi result conversion to int16/32
         #G304: prevent loading configuration files from variable locations (we want to do this in local development)
+        #G402: allow variable assignment for InsecureSkipVerify to allow no handshake SSL expiration date checks 
         #G601: Implicit memory aliasing in for loop.  (disabled due to false positives for safe code)
-        run: gosec -exclude=G107,G109,G304,G601 ./...
+        run: gosec -exclude=G107,G109,G304,G402,G601 ./...

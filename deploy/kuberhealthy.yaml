@@ -394,6 +394,9 @@ spec:
           requests:
             cpu: 400m
             memory: 300Mi
+          limits:
+            cpu: 2
+            memory: 1Gi
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
 ---
@@ -413,6 +416,10 @@ spec:
             - name: check-reaper
               image: kuberhealthy/check-reaper:v1.4.0
               imagePullPolicy: IfNotPresent
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 999
+                allowPrivilegeEscalation: false
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
@@ -465,7 +472,7 @@ spec:
       fsGroup: 999
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.5.1
+      image: kuberhealthy/deployment-check:v1.6.0
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS

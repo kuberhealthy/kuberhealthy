@@ -127,7 +127,7 @@ Using Kuberhealthy with prometheus can help capture useful synthetic KPIs. Check
 
 By default, Kuberhealthy exposes an insecure (non-HTTPS) JSON status endpoint without authentication. You should never expose this endpoint to the public internet. Exposing Kuberhealthy's status page to the public internet could result in private cluster information being exposed to the public internet when errors occur and are displayed on the page.
 
-Vulnerabilities or other security related issues should be logged as git issues in this project and immediately reported to The Security Incident Response Team (SIRT) via email at NETO_SIRT@comcast.com.  Please do not post sensitive information in git issues.
+Vulnerabilities or other security related issues should be logged as Github issues in this project.  All new issues are reviewed regularly.  Please be careful not to post any sensitive information in your report!
 
 
 ## Contributing
