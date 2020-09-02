@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
 )
 
@@ -349,7 +350,7 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 	daemonSet := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      daemonSetName,
-			Namespace: os.Getenv("POD_NAMESPACE"),
+			Namespace: os.Getenv(external.KHPodNamespace),
 			Labels: map[string]string{
 				"app":              daemonSetName,
 				"source":           "kuberhealthy",
