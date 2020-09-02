@@ -27,6 +27,7 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
@@ -46,9 +47,6 @@ var Hostname string
 
 // NodeName is a variable for the node where the container/pod is created
 var NodeName string
-
-// PodNamespace is a variable for the checker pod where it is created
-var PodNamespace = os.Getenv("POD_NAMESPACE")
 
 var now time.Time
 
@@ -104,7 +102,7 @@ func main() {
 	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
 
 	minNodeAge := time.Minute * 3
-	err = nodeCheck.WaitForNodeAge(ctx, client, PodNamespace, minNodeAge)
+	err = nodeCheck.WaitForNodeAge(ctx, client, external.KHPodNamespace, minNodeAge)
 	if err != nil {
 		log.Errorln("Error waiting for node to reach minimum age:", err)
 	}
@@ -114,7 +112,7 @@ func main() {
 		log.Errorln("Error waiting for Kuberhealthy to be ready:", err)
 	}
 
-	err = nodeCheck.WaitForKubeProxy(ctx, client, PodNamespace, "kube-system")
+	err = nodeCheck.WaitForKubeProxy(ctx, client, external.KHPodNamespace, "kube-system")
 	if err != nil {
 		log.Errorln("Error waiting for kube proxy to be ready:", err)
 	}
