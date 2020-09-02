@@ -33,7 +33,7 @@ func ReportSuccess() error {
 	// k8s 1.16+ changed network routing logic,
 	// so remoteAddr value is Node IP.
 	// we should to set pod ip to validate on api server
-	newReport.PodIP = os.Getenv("POD_IP")
+	newReport.PodIP = os.Getenv(external.KHPodIP)
 
 	// send the payload
 	return sendReport(newReport)

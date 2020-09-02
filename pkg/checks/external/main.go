@@ -48,6 +48,9 @@ const KH_CHECK_NAME_ANNOTATION_KEY = "comcast.github.io/check-name"
 // checks in.
 const KHPodNamespace = "KH_POD_NAMESPACE"
 
+// KHPodIP is the used by the request validation in kuberhealthy api server
+const KHPodIP = "KH_POD_IP"
+
 // DefaultKuberhealthyReportingURL is the default location that external checks
 // are expected to report into.
 const DefaultKuberhealthyReportingURL = "http://kuberhealthy.kuberhealthy.svc.cluster.local/externalCheckStatus"
@@ -1114,6 +1117,14 @@ func (ext *Checker) configureUserPodSpec(deadline time.Time) error {
 			ValueFrom: &apiv1.EnvVarSource{
 				FieldRef: &apiv1.ObjectFieldSelector{
 					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+		{
+			Name: KHPodIP,
+			ValueFrom: &apiv1.EnvVarSource{
+				FieldRef: &apiv1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
 				},
 			},
 		},
