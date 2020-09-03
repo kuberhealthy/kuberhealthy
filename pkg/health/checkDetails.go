@@ -13,6 +13,8 @@ package health
 
 import (
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // WorkloadDetails contains details about a single kuberhealthy check or job's current status
@@ -29,6 +31,10 @@ type WorkloadDetails struct {
 
 // NewWorkloadDetails creates a new WorkloadDetails struct
 func NewWorkloadDetails(workloadType KHWorkload) WorkloadDetails {
+	if workloadType == "" {
+		log.Panic("Creating workload details with empty workload type.  This will probably cause errors when the struct is used.")
+	}
+	log.Debugln("Forming new workload struct with workload type:", workloadType)
 	return WorkloadDetails{
 		Errors:     []string{},
 		khWorkload: workloadType,
@@ -37,5 +43,9 @@ func NewWorkloadDetails(workloadType KHWorkload) WorkloadDetails {
 
 // GetKHWorkload returns the workload for the WorkloadDetails struct
 func (wd *WorkloadDetails) GetKHWorkload() KHWorkload {
+	// failsafe if the workload is empty
+	if wd.khWorkload == "" {
+		log.Panicln("Fetched a workload type from a WorkloadDetails struct, but it was blank!")
+	}
 	return wd.khWorkload
 }
