@@ -26,6 +26,9 @@ spec:
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
+  {{- if .Values.checkReaper.startingDeadlineSeconds }}
+  startingDeadlineSeconds: {{ .Values.checkReaper.startingDeadlineSeconds }}
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
