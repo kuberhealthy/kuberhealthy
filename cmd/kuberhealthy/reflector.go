@@ -52,8 +52,6 @@ func (sr *StateReflector) Start() {
 }
 
 // CurrentStatus returns the current summary of checks as known by the cache.
-// Returns ALL checks if the list of namespaces to look at is empty.
-// Returns checks from requested namespaces if given any.
 func (sr *StateReflector) CurrentStatus() health.State {
 	log.Infoln("khState reflector fetching current status")
 	state := health.NewState()
@@ -93,7 +91,6 @@ func (sr *StateReflector) CurrentStatus() health.State {
 			log.Debugln("Status page: Setting global OK state to false due to check details not being OK")
 			state.OK = false
 		}
-
 		khWorkload := determineKHWorkload(khState.Name, khState.Namespace)
 
 		log.Debugln("CurrentStatus. workload:", khWorkload)
