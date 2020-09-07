@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"time"
@@ -70,7 +71,7 @@ func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
 
 	var failures []string
 
-	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: "app!=kuberhealthy-check,source!=kuberhealthy"})
+	pods, err := client.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "app!=kuberhealthy-check,source!=kuberhealthy"})
 	if err != nil {
 		return failures, err
 	}
