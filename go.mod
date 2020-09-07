@@ -19,9 +19,9 @@ require (
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
-	k8s.io/api v0.0.0-20200904131630-697df40f2d58
-	k8s.io/apimachinery v0.20.0-alpha.0.0.20200904051630-d8e5c2b33a59
-	k8s.io/client-go v0.0.0-20200907171843-529dda0cb8f9
+	k8s.io/api v0.19.0
+	k8s.io/apimachinery v0.19.0
+	k8s.io/client-go v0.19.0
 	k8s.io/kops v1.11.0
 	sigs.k8s.io/yaml v1.2.0
 )
