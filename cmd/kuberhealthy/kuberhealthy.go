@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	khjob "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
@@ -46,10 +47,20 @@ import (
 )
 
 // Set dynamicClient that represents the client used to watch and list unstructured khchecks
-var (
-	restConfig, _    = clientcmd.BuildConfigFromFlags("", configPath)
-	dynamicClient, _ = dynamic.NewForConfig(restConfig)
-)
+var restConfig *rest.Config
+var dynamicClient dynamic.Interface
+
+func init() {
+	// init a dynamicClient for kubernetes
+	restConfig, err := clientcmd.BuildConfigFromFlags("", configPath)
+	if err != nil {
+		log.Fatalln("Failed to build kubernetes configuration from configuration flags")
+	}
+	dynamicClient, err = dynamic.NewForConfig(restConfig)
+	if err != nil {
+		log.Fatalln("Failed to create kubernetes dynamic client configuration")
+	}
+}
 
 // Kuberhealthy represents the kuberhealthy server and its checks
 type Kuberhealthy struct {

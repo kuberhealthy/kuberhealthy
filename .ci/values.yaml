@@ -6,7 +6,6 @@ prometheus:
   enabled: false
   name: "prometheus"
   release: prometheus-operator
-  enableScraping: false
   serviceMonitor: false
   enableAlerting: false
 
@@ -63,7 +62,7 @@ check:
     timeout: 12m
     image:
       repository: kuberhealthy/daemonset-check
-      tag: v3.1.0
+      tag: v3.1.1
     extraEnvs:
     nodeSelector: {}
   deployment:

@@ -7,7 +7,7 @@ Kuberhealthy has been installed to your cluster!
 	Service Port: {{ .Values.service.externalPort }}
 	Tolerates Masters: {{ .Values.tolerations.master }}
 {{- if .Values.prometheus.enabled -}}
-	Prometheus Scraping: {{ .Values.prometheus.enableScraping }}
+	Prometheus Enabled: {{ .Values.prometheus.enabled }}
 	Prometheus Alerting: {{ .Values.prometheus.enableAlerting }}
 {{- end -}}
 

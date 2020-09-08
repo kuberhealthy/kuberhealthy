@@ -91,13 +91,13 @@ func (sr *StateReflector) CurrentStatus() health.State {
 			log.Debugln("Status page: Setting global OK state to false due to check details not being OK")
 			state.OK = false
 		}
-		khWorkload := determineKHWorkload(khState.Name, khState.Namespace)
+		//khWorkload := determineKHWorkload(khState.Name, khState.Namespace)
 
-		if khWorkload == health.KHCheck {
+		if khState.Spec.GetKHWorkload() == health.KHCheck {
 			state.CheckDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
 		}
 
-		if khWorkload == health.KHJob {
+		if khState.Spec.GetKHWorkload() == health.KHJob {
 			state.JobDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
 		}
 	}
