@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"time"
@@ -68,7 +69,7 @@ func listCheckerPods(client *kubernetes.Clientset, namespace string) (map[string
 
 	ReapCheckerPods = make(map[string]v1.Pod)
 
-	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: "kuberhealthy-check-name"})
+	pods, err := client.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "kuberhealthy-check-name"})
 	if err != nil {
 		log.Errorln("Failed to list checker pods")
 		return ReapCheckerPods, err
@@ -190,6 +191,6 @@ func deletePod(client *kubernetes.Clientset, pod v1.Pod) error {
 
 	log.Infoln("Deleting Pod: ", pod.Name, " in namespace: ", pod.Namespace)
 	propagationForeground := metav1.DeletePropagationForeground
-	options := &metav1.DeleteOptions{PropagationPolicy: &propagationForeground}
-	return client.CoreV1().Pods(pod.Namespace).Delete(pod.Name, options)
+	options := metav1.DeleteOptions{PropagationPolicy: &propagationForeground}
+	return client.CoreV1().Pods(pod.Namespace).Delete(context.TODO(), pod.Name, options)
 }
