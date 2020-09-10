@@ -763,7 +763,7 @@ func (k *Kuberhealthy) masterStatusWatcher(ctx context.Context) {
 		time.Sleep(time.Second * 5)
 
 		// setup a pod watching client for kuberhealthy pods
-		watcher, err := kubernetesClient.CoreV1().Pods(podNamespace).Watch(metav1.ListOptions{
+		watcher, err := kubernetesClient.CoreV1().Pods(podNamespace).Watch(context.TODO(), metav1.ListOptions{
 			LabelSelector: "app=kuberhealthy",
 		})
 		if err != nil {
@@ -1235,7 +1235,7 @@ func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 	listOptions := metav1.ListOptions{
 		FieldSelector: "status.podIP==" + remoteIP + ",status.phase==Running",
 	}
-	podList, err := podClient.List(listOptions)
+	podList, err := podClient.List(context.TODO(), listOptions)
 	if err != nil {
 		return pod, errors.New("failed to fetch pod with remote ip " + remoteIP + " with error: " + err.Error())
 	}
@@ -1581,7 +1581,7 @@ func listUnstructuredKHChecks() (*unstructured.UnstructuredList, error) {
 		Group:    checkCRDGroup,
 	}
 
-	unstructuredList, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").List(metav1.ListOptions{})
+	unstructuredList, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return unstructuredList, err
 	}
@@ -1608,7 +1608,7 @@ func watchUnstructuredKHChecks() (watch.Interface, error) {
 		Group:    checkCRDGroup,
 	}
 
-	watcher, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").Watch(metav1.ListOptions{})
+	watcher, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").Watch(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return watcher, err
 	}

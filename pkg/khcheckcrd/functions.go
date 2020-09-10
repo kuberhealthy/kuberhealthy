@@ -12,6 +12,7 @@
 package khcheckcrd
 
 import (
+	"context"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,7 +34,7 @@ func (c *KuberhealthyCheckClient) Create(check *KuberhealthyCheck, resource stri
 		Namespace(namespace).
 		Resource(resource).
 		Body(check).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 	return &result, err
 }
@@ -46,7 +47,7 @@ func (c *KuberhealthyCheckClient) Delete(resource string, name string, namespace
 		Namespace(namespace).
 		Resource(resource).
 		Name(name).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 	return &result, err
 }
@@ -61,7 +62,7 @@ func (c *KuberhealthyCheckClient) Update(check *KuberhealthyCheck, resource stri
 		Resource(resource).
 		Body(check).
 		Name(name).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 	return &result, err
 }
@@ -75,7 +76,7 @@ func (c *KuberhealthyCheckClient) Get(opts metav1.GetOptions, resource string, n
 		Resource(resource).
 		Name(name).
 		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 	return &result, err
 }
@@ -88,7 +89,7 @@ func (c *KuberhealthyCheckClient) List(opts metav1.ListOptions, resource string,
 		Namespace(namespace).
 		Resource(resource).
 		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 	return &result, err
 }
@@ -108,5 +109,5 @@ func (c *KuberhealthyCheckClient) Watch(opts metav1.ListOptions, resource string
 		Namespace(namespace).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(context.TODO())
 }

@@ -317,9 +317,9 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 	runAsUser := defaultUser
 	currentUser, err := util.GetCurrentUser(defaultUser)
 	if err != nil {
-		log.Errorln("Unable to get the current user id %v", err)
+		log.Errorln("Unable to get the current user id ", err)
 	}
-	log.Debugln("runAsUser will be set to %v", currentUser)
+	log.Debugln("runAsUser will be set to ", currentUser)
 	runAsUser = currentUser
 
 	// if a list of tolerations wasnt passed in, default to tolerating all taints
@@ -422,7 +422,7 @@ func findAllUniqueTolerations(client *kubernetes.Clientset) ([]apiv1.Toleration,
 	var uniqueTolerations []apiv1.Toleration
 
 	// get a list of all the nodes in the cluster
-	nodes, err := client.CoreV1().Nodes().List(metav1.ListOptions{})
+	nodes, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return uniqueTolerations, err
 	}

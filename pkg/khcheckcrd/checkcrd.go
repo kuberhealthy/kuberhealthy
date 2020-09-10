@@ -57,6 +57,7 @@ func NewKuberhealthyCheck(name string, namespace string, spec CheckConfig) Kuber
 	check := KuberhealthyCheck{}
 	check.Name = name
 	check.ObjectMeta.Name = name
+	check.Kind = "KuberhealthyCheck"
 	check.Spec = spec
 	check.Namespace = namespace
 	check.ObjectMeta.Namespace = namespace
