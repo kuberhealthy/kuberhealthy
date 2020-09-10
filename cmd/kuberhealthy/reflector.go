@@ -4,10 +4,13 @@ import (
 	"strings"
 	"time"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
 
 	log "github.com/sirupsen/logrus"
+
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
@@ -91,17 +94,45 @@ func (sr *StateReflector) CurrentStatus() health.State {
 			log.Debugln("Status page: Setting global OK state to false due to check details not being OK")
 			state.OK = false
 		}
-		//khWorkload := determineKHWorkload(khState.Name, khState.Namespace)
 
-		if khState.Spec.GetKHWorkload() == health.KHCheck {
+		khworkload := determineKHWorkload(khState.Name, khState.Namespace)
+		switch khworkload {
+		case health.KHCheck:
 			state.CheckDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
-		}
-
-		if khState.Spec.GetKHWorkload() == health.KHJob {
+		case health.KHJob:
 			state.JobDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
 		}
 	}
 
 	log.Infoln("khState reflector returning current status on", len(state.CheckDetails), "check khStates and", len(state.JobDetails), "job khStates.")
 	return state
+}
+
+// determineKHWorkload uses the name and namespace of the kuberhealthy resource to determine whether its a khjob or khcheck
+// This function is necessary for the CurrentStatus() function as getting the KHWorkload from the state spec returns a blank kh workload.
+func determineKHWorkload(name string, namespace string) health.KHWorkload {
+
+	var khWorkload health.KHWorkload
+	log.Debugln("determineKHWorkload: determining workload:", name)
+
+	checkPod, err := khCheckClient.Get(v1.GetOptions{}, checkCRDResource, namespace, name)
+	if err != nil {
+		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
+			log.Debugln("determineKHWorkload: Not a khcheck.")
+		}
+	} else {
+		log.Debugln("determineKHWorkload: Found khcheck:", checkPod.Name)
+		return health.KHCheck
+	}
+
+	jobPod, err := khJobClient.KuberhealthyJobs(namespace).Get(name, v1.GetOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
+			log.Debugln("determineKHWorkload: Not a khjob.")
+		}
+	} else {
+		log.Debugln("determineKHWorkload: Found khjob:", jobPod.Name)
+		return health.KHJob
+	}
+	return khWorkload
 }

@@ -26,7 +26,6 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1329,19 +1328,23 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		}
 	}
 
-	khWorkload := determineKHWorkload(ipReport.Name, ipReport.Namespace)
-	log.Debugln("kh workload:", khWorkload)
-
+	checkDetails := k.stateReflector.CurrentStatus().CheckDetails
+	jobDetails := k.stateReflector.CurrentStatus().JobDetails
 	checkRunDuration := time.Duration(0).String()
-	if khWorkload == health.KHCheck {
-		checkRunDuration = k.stateReflector.CurrentStatus().CheckDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
+	var khWorkload health.KHWorkload
+
+	if _, exists := checkDetails[ipReport.Namespace+"/"+ipReport.Name]; exists {
+		checkRunDuration = checkDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
+		khWorkload = health.KHCheck
 	}
 
-	if khWorkload == health.KHJob {
-		checkRunDuration = k.stateReflector.CurrentStatus().JobDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
+	if _, exists := jobDetails[ipReport.Namespace+"/"+ipReport.Name]; exists {
+		checkRunDuration = checkDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
+		khWorkload = health.KHJob
 	}
 
 	// create a details object from our incoming status report before storing it as a khstate custom resource
+	log.Debugln("kuberhealthy workload:", khWorkload)
 	details := health.NewWorkloadDetails(khWorkload)
 	details.Errors = state.Errors
 	details.OK = state.OK
@@ -1362,35 +1365,6 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusOK)
 	k.externalCheckReportHandlerLog(requestID, "Request completed successfully.")
 	return nil
-}
-
-func determineKHWorkload(name string, namespace string) health.KHWorkload {
-
-	var khWorkload health.KHWorkload
-	log.Debugln("determineKHWorkload: determining workload:", name)
-
-	checkPod, err := khCheckClient.Get(metav1.GetOptions{}, checkCRDResource, namespace, name)
-	if err != nil {
-		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
-			log.Debugln("determineKHWorkload: Not a khcheck.")
-		}
-	} else {
-		log.Debugln("determineKHWorkload: Found khcheck:", checkPod.Name)
-		return health.KHCheck
-	}
-
-	jobPod, err := khJobClient.KuberhealthyJobs(namespace).Get(name, metav1.GetOptions{})
-	if err != nil {
-		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
-			log.Infoln("determineKHWorkload: Not a khjob.")
-		}
-	} else {
-		log.Debugln("determineKHWorkload: Found khjob:", jobPod.Name)
-		khWorkload = health.KHJob
-		return health.KHJob
-	}
-
-	return khWorkload
 }
 
 // writeHealthCheckError writes an error to the client when things go wrong in a health check handling
@@ -1519,11 +1493,10 @@ func validateCurrentStatusForNamespaces(details map[string]health.WorkloadDetail
 		}
 
 		// update details struct
-		if workload == health.KHCheck {
+		switch workload {
+		case health.KHCheck:
 			statesForNamespaces.CheckDetails[checkName] = checkState
-		}
-
-		if workload == health.KHJob {
+		case health.KHJob:
 			statesForNamespaces.JobDetails[checkName] = checkState
 		}
 	}
