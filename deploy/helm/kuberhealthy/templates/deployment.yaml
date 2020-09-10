@@ -99,9 +99,14 @@ spec:
       {{- end }}
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
-{{- if .Values.tolerations.master }}
+{{- if or .Values.tolerations.master .Values.deployment.tolerations }}
       tolerations:
+{{- end }}
+{{- if .Values.tolerations.master }}
       - effect: NoSchedule
         key: node-role.kubernetes.io/master
         operator: Exists
-{{- end -}}
+{{- end }}
+{{- if .Values.deployment.tolerations }}
+      {{- toYaml .Values.deployment.tolerations | nindent 6 }}
+{{- end }}
