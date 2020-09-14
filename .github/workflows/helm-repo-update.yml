@@ -2,9 +2,10 @@
 name: Update Helm Repo Files
 # Note you must include a "v" on version tag, ie "v1.2.3"
 on:
-  create:
-    tags:
-      - "v*.*.*"
+  release:
+    types: [published]
+      tags:
+        - 'v*.*.*'
 #  push:
 #    branches:
 #    - HelmRepo_GhActionsAutoUpdate
