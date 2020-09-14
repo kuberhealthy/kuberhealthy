@@ -11,7 +11,7 @@ spec:
       - env:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
           - name: DOMAIN_NAME
-            value: "google.com"
+            value: "localhost"
           # If not using default SSL port of 443, port env variable must be updated  
           - name: PORT
             value: "443"
