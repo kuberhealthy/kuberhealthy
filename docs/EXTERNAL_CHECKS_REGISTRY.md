@@ -17,6 +17,7 @@ Here is a list of external checks you can apply to your kubernetes cluster once 
 | [Network Connection Check](../cmd/network-connection-check/README.md) | Checks if a network connection (tcp or udp) could be done to a remote target | [successedNetworkConnectionCheck.yaml](../cmd/network-connection-check/successedNetworkConnectionCheck.yaml) [failedNetworkConnectionCheck.yaml](../cmd/network-connection-check/failedNetworkConnectionCheck.yaml) | @bavarianbidi |
 | [Storage Check](https://github.com/ChrisHirsch/kuberhealthy-storage-check) | Checks if an initialized storage via PVC is available and usable at each discovered/desired Node | [storage-check.yaml](https://github.com/ChrisHirsch/kuberhealthy-storage-check/blob/master/deploy/storage-check.yaml)| @chrishirsch |
 | [IAM Role Check](https://github.com/mmogylenko/kuberhealthy-aws-iam-role-check) | Checks if containers running within your cluster can properly make AWS service requests| [khcheck-aws-iam-role.yaml](https://github.com/mmogylenko/kuberhealthy-aws-iam-role-check/blob/master/example/khcheck-aws-iam-role.yaml) | @mmogylenko |
+| [AMI Exists Check](https://github.com/mtougeron/kuberhealthy-ami-exists-check) | Checks if the AMI(s) used by running AWS nodes still exist| [khcheck-ami-exists.yaml](https://github.com/mtougeron/kuberhealthy-ami-exists-check/tree/main/example) | @mtougeron |
 
 
 If you have a check you would like to share with the community, please open a PR to this file!
