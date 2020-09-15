@@ -30,7 +30,7 @@ spec:
             value: "60"
           - name: INSECURE
             value: "false"
-        image: kuberhealthy/ssl-expiry:v1.0.1
+        image: kuberhealthy/ssl-expiry:v1.2.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -62,7 +62,7 @@ spec:
             value: "60"
           - name: INSECURE
             value: "true"
-        image: kuberhealthy/ssl-expiry:v1.0.1
+        image: kuberhealthy/ssl-expiry:v1.2.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
