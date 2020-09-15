@@ -1,5 +1,5 @@
 build:
-	docker build -t kuberhealthy/ssl-selfsign-handshake:v1.0.0 -f Dockerfile ../../
+	docker build -t kuberhealthy/ssl-selfsign-handshake-check:v1.2.0 -f Dockerfile ../../
 
 push:
-	docker push kuberhealthy/ssl-selfsign-handshake:v1.0.0
+	docker push kuberhealthy/ssl-selfsign-handshake-check:v1.2.0
