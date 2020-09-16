@@ -75,8 +75,8 @@ const (
 	defaultCheckDeadline = time.Duration(time.Minute * 15)
 	// Default user
 	defaultUser = int64(1000)
-	// Default priority class
-	defaultPodPriority = ""
+	// Default priority class name
+	defaultPodPriorityClassName = ""
 )
 
 func init() {
