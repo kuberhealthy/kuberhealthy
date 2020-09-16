@@ -1,14 +1,14 @@
-# Update helm repo index.yaml & .tgz files when a release tag is created
+# This workflow updates the helm repo index.yaml & .tgz files when a release created.
+# ***Please note that it will trigger if the published release is draft or official***
+
 name: Update Helm Repo Files
-# Note you must include a "v" on version tag, ie "v1.2.3"
 on:
   release:
-    published:
-      tags:
-        - 'v*.*.*'
-#  push:
-#    branches:
-#    - HelmRepo_GhActionsAutoUpdate
+    types: [published]
+# Would be nice to filter release by tag syntax as below but doesn't appear to be supported as of 9/20    
+#      tags:
+#        - 'v*.*.*'
+
 jobs:
   build:
     runs-on: ubuntu-latest
