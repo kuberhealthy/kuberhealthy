@@ -63,7 +63,7 @@ func parseInputValues() {
 	log.Infoln("Setting check daemonset name to:", checkDSName)
 
 	// Parse incoming check daemonset name
-	podPriorityClassName = defaultPodPriority
+	podPriorityClassName = defaultPodPriorityClassName
 	if len(podPriorityClassNameEnv) != 0 {
 		podPriorityClassName = podPriorityClassNameEnv
 		log.Infoln("Parsed PRIORITY_CLASS:", podPriorityClassName)
