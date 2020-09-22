@@ -1,0 +1,43 @@
+{{- if .Values.check.dnsExternal.enabled }}
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: dns-status-external
+  namespace: {{ .Release.Namespace }}
+spec:
+  runInterval: {{ .Values.check.dnsExternal.runInterval }}
+  timeout: {{ .Values.check.dnsExternal.timeout }}
+  podSpec:
+    {{- if .Values.securityContext.enabled }}
+    securityContext:
+      runAsUser: {{ .Values.securityContext.runAsUser }}
+      fsGroup: {{ .Values.securityContext.fsGroup }}
+    {{- end}}
+    containers:
+      - env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+{{- range $key, $value := .Values.check.dnsExternal.extraEnvs }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+{{- end }}
+        image: {{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}
+        imagePullPolicy: IfNotPresent
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
+        {{- if .Values.securityContext.enabled }}
+        securityContext:
+          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+        {{- end }}
+    {{- if .Values.check.dnsExternal.nodeSelector }}
+    nodeSelector:
+{{- toYaml .Values.check.dnsExternal.nodeSelector | nindent 6 }}
+    {{- end }}
+{{- end }}
