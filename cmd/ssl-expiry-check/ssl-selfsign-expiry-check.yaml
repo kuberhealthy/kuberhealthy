@@ -5,7 +5,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 24h
-  timeout: 5m
+  timeout: 15m
   podSpec:
     containers:
       - env:
@@ -21,7 +21,7 @@ spec:
           # If "true", the TLS handshake will be skipped. This is only intended to check certificate expiration, not validity/security  
           - name: INSECURE
             value: "true"
-        image: kuberhealthy/ssl-expiry:v1.0.1
+        image: kuberhealthy/ssl-expiry-check:v1.2.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
