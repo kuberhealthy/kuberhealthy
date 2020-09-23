@@ -46,7 +46,7 @@ func init() {
 		return
 	}
 	insecureCheck = os.Getenv("INSECURE")
-	if len(daysToExpire) == 0 {
+	if len(insecureCheck) == 0 {
 		log.Error("ERROR: The INSECURE environment variable has not been set.")
 		return
 	}
