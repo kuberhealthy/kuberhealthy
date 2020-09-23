@@ -26,7 +26,7 @@ spec:
           # If not using default SSL port of 443, port env variable must be updated  
           - name: PORT
             value: "443"
-        image: kuberhealthy/ssl-selfsign-handshake:v1.2.0
+        image: kuberhealthy/ssl-selfsign-handshake-check:v1.2.0
         imagePullPolicy: IfNotPresent
         name: main
         volumeMounts:
