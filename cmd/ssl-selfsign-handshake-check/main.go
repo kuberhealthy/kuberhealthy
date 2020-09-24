@@ -84,7 +84,7 @@ func runCheck(fileFound bool) error {
 	var err error
 
 	// if the user provided pem file is present, import it and run the handshake check
-	if fileFound == true {
+	if fileFound {
 		err := ssl_util.HandshakeFromFile(domainName, portNum)
 		return err
 	}
