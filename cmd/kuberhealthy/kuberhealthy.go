@@ -1151,6 +1151,7 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 // this will return the state of ALL found checks.
 // Failures to fetch CRD state return an error.
 func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
+	log.Debugln("getCurrentState: ", namespaces)
 	if len(namespaces) != 0 {
 		return k.getCurrentStatusForNamespaces(namespaces)
 	}

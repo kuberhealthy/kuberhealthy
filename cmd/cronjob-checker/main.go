@@ -5,42 +5,45 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/events"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/typed/events/v1beta1"
+	"k8s.io/client-go/rest"
 )
 
 // kubeConfigFile is a variable containing file path of Kubernetes config files
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
-func main() {
-	client, err := kubeClient.Create(kubeConfigFile)
-	if err != nil {
-		log.Fatalln("Unable to create kubernetes client", err)
-	}
+// Namespace is a variable to allow code to target all namespaces or a single namespace
+var namespace string
 
-	events
+func main() {
+
+	var restInt rest.Interface
+
+	//create events client
+	client := v1beta1.New(restInt)
+
 
 }
 
-func listCronJobs(client *kubernetes.Clientset, namespace string) (map[string]v1.Pod, error) {
-
+func listCronJobs(c *v1beta1.EventsV1beta1Client, namespace string) {
 	log.Infoln("Listing CronJobs")
 
-	CronJobs := make(map[string]v1.Pod)
-	cj, err := client.BatchV1beta1().CronJobs(namespace).List(context.TODO(), metav1.ListOptions{})
+	var opts1 v1.GetOptions
+
+	//get CronJobs
+	c := c.Events().Get("cronjob",opts1.Kind("CronJob"))
+
+	var opts2 v1.ListOptions
+
+	//find events from CronJobs
+	cronJobs, err := c.Events(namespace).List(opts2)
 	if err != nil {
 		log.Errorln("Failed to list CronJobs")
-		return CronJobs, err
 	}
-	log.Infoln("Found:", len(cj.Items), "cronjobs in namespace:", namespace)
 
-	cj.Descriptor()
-
-	for _, c := range cj.Items {
-		if c.GetLabels()
+	for _, c := range cronJobs.Items {
+		if c.
 	}
 }
