@@ -1,16 +1,3 @@
-## SSL Self-signed Handshake Status Check
-
-The *SSL Self-signed Handshake Check* checks that self-signed SSL certificates are valid and a TLS handshake can be completed successfully against the domain/port specified.
-
-The check runs every 5 minutes (spec.runInterval), with a check timeout set to 3 minutes (spec.timeout). If the check
-does not complete within the given timeout it will report a timeout error on the status page.
-
-There are two different methods that can be used for self signed certificate handshakes. The *ssl-file-handshake-check.yaml* spec takes a user provided self-signed certificate that must be copied into the configmap spec under the *certificate.crt* data label. The *ssl-host-handshake-check.yaml* makes an initial, insecure connection to the host to retrieve the certificate, append it to the system cert store, and then securely checks that a TLS handshake can be performed. 
-
-See examples below:
-
-#### SSL Self-signed Handshake Check Kube Spec, with Provided Cert File:
-```yaml
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
@@ -18,7 +5,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 5m
-  timeout: 3m
+  timeout: 10m
   podSpec:
     containers:
       - env:
@@ -72,50 +59,3 @@ data:
     7VcIuL/NsOFIrFjP+9poMYkeRU3WRf+bsXCu8/qBB41QJbSO3sDq1PjusXe+iKMx
     GiELoUtIiPU6U/rU3M8o2EiDugD3hwr7oY7BWAUtaPg=
     -----END CERTIFICATE-----
-
-```
-
-#### SSL Self-signed Handshake Check Kube Spec, Automatic Cert Pull:
-
-```yaml
-apiVersion: comcast.github.io/v1
-kind: KuberhealthyCheck
-metadata:
-  name: ssl-selfsign-handshake
-  namespace: kuberhealthy
-spec:
-  runInterval: 5m
-  timeout: 3m
-  podSpec:
-    containers:
-      - env:
-          # Domain name env variable must be updated to the domain on which you wish to check the SSL for
-          - name: DOMAIN_NAME
-            value: "kubernetes.default"
-          # If not using default SSL port of 443, port env variable must be updated  
-          - name: PORT
-            value: "443"
-        image: kuberhealthy/ssl-selfsign-handshake-check:v1.3.0
-        imagePullPolicy: IfNotPresent
-        name: main
-        resources:
-          requests:
-            cpu: 10m
-            memory: 50Mi
-```
-#### How-to
-
-To implement the SSL Handshake Check with Kuberhealthy, update the spec sheet with the domain name, port number, and if necessary the self-signed certificate you wish to test, and apply:
-
-`kubectl apply -f ssl-file-selfsign-handshake-check.yaml`
-
-or
-
-`kubectl apply -f ssl-host-selfsign-handshake-check.yaml`
-
-
-You can use the default values as well by running:
-
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/v2.3.0/cmd/ssl-selfsign-handshake-check/ssl-host-selfsign-handshake-check.yaml`
-
- Make sure you are using the latest release of Kuberhealthy, 2.3.0.

@@ -1,32 +1,20 @@
-// Copyright 2020 Comcast Cable Communications Management, LLC
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//     http://www.apache.org/licenses/LICENSE-2.0
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// Package ssl-handshake-check implements an SSL TLS handshake checker for Kuberhealthy
-// It verifies that a domain's SSL cert is valid, and does not expire in the next 60 days
-
 package main
 
 import (
+	"context"
 	"os"
+	"time"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/ssl_util"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
 )
 
 var TimeoutSeconds = 10
-
 var domainName string
 var portNum string
-var selfsignCert = "/etc/ssl/selfsign/certificate.crt"
 
 func init() {
 	domainName = os.Getenv("DOMAIN_NAME")
@@ -42,7 +30,29 @@ func init() {
 }
 
 func main() {
-	err := runSelfsignHandshake()
+	// create context
+	checkTimeLimit := time.Minute * 1
+	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
+
+	// create Kubernetes client
+	kubernetesClient, err := kubeClient.Create("")
+	if err != nil {
+		log.Errorln("Error creating kubeClient with error" + err.Error())
+	}
+
+	// hits kuberhealthy endpoint to see if node is ready
+	err = nodeCheck.WaitForKuberhealthy(ctx)
+	if err != nil {
+		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
+	}
+
+	// fetches kube proxy to see if it is ready
+	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy", "kube-system")
+	if err != nil {
+		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
+	}
+	fileFound := whichCheck()
+	err = runCheck(fileFound)
 	if err != nil {
 		reportErr := reportKHFailure(err.Error())
 		if reportErr != nil {
@@ -50,15 +60,49 @@ func main() {
 		}
 		os.Exit(1)
 	}
-	reportErr := reportKHSuccess()
-	if reportErr != nil {
-		log.Error(reportErr)
+
+	if err == nil {
+		reportErr := reportKHSuccess()
+		if reportErr != nil {
+			log.Error(reportErr)
+		}
+		os.Exit(1)
 	}
 }
 
-// run the SSL handshake check for the specified host and port number from ssl_util package
-func runSelfsignHandshake() error {
-	err := ssl_util.SelfsignHandshake(domainName, portNum)
+// whichCheck determines if a cert has been provided, or if it needs to be retrieved from the host and returns a bool
+func whichCheck() bool {
+	var fromFile bool
+	if _, err := os.Stat("/etc/ssl/selfsign/certificate.crt"); err == nil {
+		fromFile = true
+	}
+	return fromFile
+}
+
+// runCheck takes in a bool from the whichCheck func and calls the one of two handshake check functions
+func runCheck(fileFound bool) error {
+	var err error
+
+	// if the user provided pem file is present, import it and run the handshake check
+	if fileFound == true {
+		err := ssl_util.HandshakeFromFile(domainName, portNum)
+		return err
+	}
+
+	// if the pem file has not been provided, pull the cert from the host, import it, and for the handshake check
+	if fileFound == false {
+		selfCert, err := ssl_util.CertificatePuller(domainName, portNum)
+		if err != nil {
+			log.Warn("Error pulling certificate from host: ", err)
+		}
+
+		err = ssl_util.HandshakeFromHost(domainName, portNum, selfCert)
+
+		if err != nil {
+			log.Warn("Error performing handshake: ", err)
+		}
+		return err
+	}
 	return err
 }
 

@@ -1,7 +1,7 @@
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: ssl-secure-expiry
+  name: ssl-expiry
   namespace: kuberhealthy
 spec:
   runInterval: 24h
@@ -21,7 +21,7 @@ spec:
           # If "false", a TLS handshake is performed on the specified domain
           - name: INSECURE
             value: "false"
-        image: kuberhealthy/ssl-expiry-check:v1.2.0
+        image: kuberhealthy/ssl-expiry-check:v1.2.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:

@@ -15,10 +15,14 @@
 package main
 
 import (
+	"context"
 	"os"
+	"time"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/ssl_util"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,7 +43,28 @@ func init() {
 }
 
 func main() {
-	err := runHandshake()
+	// create context
+	checkTimeLimit := time.Minute * 1
+	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
+
+	// create Kubernetes client
+	kubernetesClient, err := kubeClient.Create("")
+	if err != nil {
+		log.Errorln("Error creating kubeClient with error" + err.Error())
+	}
+
+	// hits kuberhealthy endpoint to see if node is ready
+	err = nodeCheck.WaitForKuberhealthy(ctx)
+	if err != nil {
+		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
+	}
+
+	// fetches kube proxy to see if it is ready
+	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy", "kube-system")
+	if err != nil {
+		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
+	}
+	err = runHandshake()
 	if err != nil {
 		reportErr := reportKHFailure(err.Error())
 		if reportErr != nil {
@@ -51,6 +76,7 @@ func main() {
 	if reportErr != nil {
 		log.Error(reportErr)
 	}
+	os.Exit(1)
 }
 
 // run the SSL handshake check for the specified host and port number from ssl_util package

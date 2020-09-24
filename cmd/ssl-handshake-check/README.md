@@ -17,7 +17,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 5m
-  timeout: 3m
+  timeout: 10m
   podSpec:
     containers:
       - env:
@@ -27,7 +27,7 @@ spec:
           # If not using default SSL port of 443, port name env variable must be updated  
           - name: PORT
             value: "443"
-        image: kuberhealthy/ssl-handshake-check:v1.2.0
+        image: kuberhealthy/ssl-handshake-check:v1.2.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
