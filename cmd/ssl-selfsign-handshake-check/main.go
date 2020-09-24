@@ -90,7 +90,7 @@ func runCheck(fileFound bool) error {
 	}
 
 	// if the pem file has not been provided, pull the cert from the host, import it, and for the handshake check
-	if fileFound == false {
+	if !fileFound {
 		selfCert, err := ssl_util.CertificatePuller(domainName, portNum)
 		if err != nil {
 			log.Warn("Error pulling certificate from host: ", err)
