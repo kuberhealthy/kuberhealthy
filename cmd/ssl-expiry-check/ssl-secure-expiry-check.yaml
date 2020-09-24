@@ -5,7 +5,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   runInterval: 24h
-  timeout: 5m
+  timeout: 15m
   podSpec:
     containers:
       - env:
@@ -21,7 +21,7 @@ spec:
           # If "false", a TLS handshake is performed on the specified domain
           - name: INSECURE
             value: "false"
-        image: kuberhealthy/ssl-expiry:v1.2.0
+        image: kuberhealthy/ssl-expiry-check:v1.2.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:

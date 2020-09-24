@@ -22,7 +22,7 @@ spec:
       - env:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
           - name: DOMAIN_NAME
-            value: "google.com"
+            value: "corporate.comcast.net"
           # If not using default SSL port of 443, port name env variable must be updated  
           - name: PORT
             value: "443"
@@ -30,7 +30,7 @@ spec:
             value: "60"
           - name: INSECURE
             value: "false"
-        image: kuberhealthy/ssl-expiry:v1.2.0
+        image: kuberhealthy/ssl-expiry-check:v1.2.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -44,7 +44,7 @@ spec:
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: ssl-secure-expiry
+  name: ssl-selfsign-expiry
   namespace: kuberhealthy
 spec:
   runInterval: 1d
@@ -54,7 +54,7 @@ spec:
       - env:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
           - name: DOMAIN_NAME
-            value: "google.com"
+            value: "kubernetes.default"
           # If not using default SSL port of 443, port name env variable must be updated  
           - name: PORT
             value: "443"
@@ -62,7 +62,7 @@ spec:
             value: "60"
           - name: INSECURE
             value: "true"
-        image: kuberhealthy/ssl-expiry:v1.2.0
+        image: kuberhealthy/ssl-expiry-check:v1.2.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
