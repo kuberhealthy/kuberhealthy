@@ -2,6 +2,8 @@
 
 The *SSL Expiry Check* checks that SSL certificates are not currently expired, and that the expiration date is a specified number of days away (60 by default).
 
+If running more than one SSL expiry check, the metadata name field should be updated to avoid confusion and over-writing of checks.
+
 The check runs daily (spec.runInterval), with a check timeout set to 5 minutes (spec.timeout). If the check
 does not complete within the given timeout it will report a timeout error on the status page.
 
@@ -12,7 +14,7 @@ The SSL Self-signed Expiry Check spec toggles *InsecureSkipVerify* to **true**. 
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: ssl-secure-expiry
+  name: ssl-expiry
   namespace: kuberhealthy
 spec:
   runInterval: 1d
@@ -22,15 +24,17 @@ spec:
       - env:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
           - name: DOMAIN_NAME
-            value: "corporate.comcast.net"
+            value: "corporate.comcast.com"
           # If not using default SSL port of 443, port name env variable must be updated  
           - name: PORT
             value: "443"
+          # Number of days until certificate expiration to test for  
           - name: DAYS
             value: "60"
+          # If "false", a TLS handshake is performed on the specified domain
           - name: INSECURE
             value: "false"
-        image: kuberhealthy/ssl-expiry-check:v1.2.0
+        image: kuberhealthy/ssl-expiry-check:v1.2.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -44,7 +48,7 @@ spec:
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: ssl-selfsign-expiry
+  name: ssl-expiry
   namespace: kuberhealthy
 spec:
   runInterval: 1d
@@ -58,11 +62,13 @@ spec:
           # If not using default SSL port of 443, port name env variable must be updated  
           - name: PORT
             value: "443"
+          # Number of days until certificate expiration to test for  
           - name: DAYS
             value: "60"
+          # If "true", the TLS handshake will be skipped. This is only intended to check certificate expiration, not validity/security  
           - name: INSECURE
             value: "true"
-        image: kuberhealthy/ssl-expiry-check:v1.2.0
+        image: kuberhealthy/ssl-expiry-check:v1.2.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
