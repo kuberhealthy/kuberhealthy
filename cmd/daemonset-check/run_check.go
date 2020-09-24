@@ -386,6 +386,7 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 				Spec: apiv1.PodSpec{
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
 					Tolerations:                   []apiv1.Toleration{},
+					PriorityClassName:             podPriorityClassName,
 					Containers: []apiv1.Container{
 						{
 							Name:  "sleep",
