@@ -21,29 +21,28 @@ func main() {
 
 	var restInt rest.Interface
 
-	//create events client
+	// //create events client
 	client := v1beta1.New(restInt)
 
+	e := client.Events(namespace)
+
+	var getOpts v1.GetOptions
+
+	events, err := e.Get(context.TODO(), "check-reaper", getOpts)
+	if err != nil {
+		log.Errorln("Error geting events")
+	}
 
 }
 
-func listCronJobs(c *v1beta1.EventsV1beta1Client, namespace string) {
+func listCronJobs(c *v1beta1.EventsV1beta1Client, namespace string, cronJobName string) {
 	log.Infoln("Listing CronJobs")
 
-	var opts1 v1.GetOptions
+	var listOpts v1.ListOptions
 
 	//get CronJobs
-	c := c.Events().Get("cronjob",opts1.Kind("CronJob"))
-
-	var opts2 v1.ListOptions
-
-	//find events from CronJobs
-	cronJobs, err := c.Events(namespace).List(opts2)
+	i, err := c.Events(namespace).List(context.TODO(), listOpts)
 	if err != nil {
-		log.Errorln("Failed to list CronJobs")
-	}
-
-	for _, c := range cronJobs.Items {
-		if c.
+		log.Errorln("Error listing CronJob Events")
 	}
 }
