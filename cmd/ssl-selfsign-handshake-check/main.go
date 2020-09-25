@@ -51,7 +51,7 @@ func main() {
 	if err != nil {
 		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
 	}
-	fileFound := whichCheck()
+	fileFound := certFileProvided()
 	err = runCheck(fileFound)
 	if err != nil {
 		reportErr := reportKHFailure(err.Error())
@@ -70,8 +70,8 @@ func main() {
 	}
 }
 
-// whichCheck determines if a cert has been provided, or if it needs to be retrieved from the host and returns a bool
-func whichCheck() bool {
+// certFileProcided determines if a cert has been provided, or if it needs to be retrieved from the host and returns a bool
+func certFileProvided() bool {
 	var fromFile bool
 	if _, err := os.Stat("/etc/ssl/selfsign/certificate.crt"); err == nil {
 		fromFile = true
@@ -79,18 +79,17 @@ func whichCheck() bool {
 	return fromFile
 }
 
-// runCheck takes in a bool from the whichCheck func and calls the one of two handshake check functions
+// runCheck takes in a bool from the certFileProvided func and calls the one of two handshake check functions
 func runCheck(fileFound bool) error {
-	var err error
 
 	// if the user provided pem file is present, import it and run the handshake check
-	if fileFound == true {
+	if fileFound {
 		err := ssl_util.HandshakeFromFile(domainName, portNum)
 		return err
 	}
 
 	// if the pem file has not been provided, pull the cert from the host, import it, and for the handshake check
-	if fileFound == false {
+	if !fileFound {
 		selfCert, err := ssl_util.CertificatePuller(domainName, portNum)
 		if err != nil {
 			log.Warn("Error pulling certificate from host: ", err)
@@ -103,7 +102,7 @@ func runCheck(fileFound bool) error {
 		}
 		return err
 	}
-	return err
+	return nil
 }
 
 // reportKHSuccess reports success to Kuberhealthy servers and verifies the report successfully went through

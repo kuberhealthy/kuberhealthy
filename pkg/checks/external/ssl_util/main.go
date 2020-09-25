@@ -30,7 +30,7 @@ func CertificatePuller(host, port string) (*x509.Certificate, error) {
 	})
 
 	if err != nil {
-		log.Warnln([]*x509.Certificate{&x509.Certificate{}}, "", err)
+		log.Error("Error establishing connection: ", []*x509.Certificate{&x509.Certificate{}}, "", err)
 		return hostCert, err
 	}
 
@@ -45,6 +45,11 @@ func CertificatePuller(host, port string) (*x509.Certificate, error) {
 			}
 		}
 	}
+
+	if hostCert == nil {
+		log.Error("Empty cert returned, exiting check")
+	}
+
 	return hostCert, err
 }
 
@@ -60,10 +65,6 @@ func HandshakeFromHost(host, port string, cert *x509.Certificate) error {
 		rootCAs = x509.NewCertPool()
 	}
 
-	if cert != nil {
-		rootCAs.AddCert(cert)
-	}
-
 	conn, err := tls.DialWithDialer(d, "tcp", host+":"+port, &tls.Config{
 		InsecureSkipVerify: false,
 		MinVersion:         tls.VersionTLS12,
@@ -71,7 +72,7 @@ func HandshakeFromHost(host, port string, cert *x509.Certificate) error {
 	})
 
 	if err != nil {
-		log.Warnln([]*x509.Certificate{&x509.Certificate{}}, "", err)
+		log.Error("Error establishing connection: ", []*x509.Certificate{&x509.Certificate{}}, "", err)
 		return err
 	}
 
@@ -104,12 +105,12 @@ func HandshakeFromFile(host, port string) error {
 	// read the user specified cert file; throw a fatal error if file cannot be read
 	certs, err := ioutil.ReadFile(selfsignCert)
 	if err != nil {
-		log.Fatalf("Failed to append %q to RootCAs: %v", selfsignCert, err)
+		log.Error("Error reading certificate file: ", selfsignCert, err)
 	}
 
 	// append the user cert to the system cert pool
 	if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
-		log.Println("Failed to import cert ", selfsignCert, ", proceeding with default cert store")
+		log.Error("Failed to import cert from file: ", selfsignCert)
 	}
 
 	conn, err := tls.DialWithDialer(d, "tcp", host+":"+port, &tls.Config{
@@ -119,9 +120,10 @@ func HandshakeFromFile(host, port string) error {
 	})
 
 	if err != nil {
-		log.Warnln([]*x509.Certificate{&x509.Certificate{}}, "", err)
+		log.Error("Error establishing connection: ", []*x509.Certificate{&x509.Certificate{}}, "", err)
 		return err
 	}
+
 	defer conn.Close()
 
 	err = conn.Handshake()
@@ -129,6 +131,7 @@ func HandshakeFromFile(host, port string) error {
 		log.Warn("Unable to complete SSL handshake with host ", host+": ", err)
 		return err
 	}
+
 	log.Info("SSL handshake to host ", host, " completed successfully")
 	return err
 }
