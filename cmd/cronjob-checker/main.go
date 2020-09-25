@@ -17,10 +17,10 @@ import (
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
 // cronJob name
-var cronJob string
+var cronJob = os.Getenv("CRONJOB")
 
 // Namespace is a variable to allow code to target all namespaces or a single namespace
-var namespace string
+var namespace = os.Getenv("NAMESPACE")
 
 func main() {
 
@@ -33,7 +33,7 @@ func main() {
 
 	var getOpts v1.GetOptions
 
-	events, err := e.Get(context.TODO(), "check-reaper", getOpts)
+	events, err := e.Get(context.TODO(), cronJob, getOpts)
 	if err != nil {
 		log.Errorln("Error geting events")
 	}

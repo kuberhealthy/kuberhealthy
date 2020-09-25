@@ -1,0 +1,28 @@
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: cronjob-checker
+  namespace: kuberhealthy
+spec:
+  runInterval: 1h
+  timeout: 10m
+  podSpec:
+    containers:
+      - name: cronjob-checker
+        image: kuberhealthy/cronjob-checker:v1.0.0
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: CRONJOB
+            value: "check-reaper"
+          - name: COUNT
+            value: "1"
+          - name: NAMESPACE
+            value: "kuberhealthy"
+        resources:
+          requests:
+            cpu: 15m
+            memory: 15Mi
+          limits:
+            cpu: 25m
+        restartPolicy: Always
+    terminationGracePeriodSeconds: 5
