@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
+	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/typed/events/v1beta1"
@@ -13,6 +15,9 @@ import (
 
 // kubeConfigFile is a variable containing file path of Kubernetes config files
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+
+// cronJob name
+var cronJob string
 
 // Namespace is a variable to allow code to target all namespaces or a single namespace
 var namespace string
@@ -33,16 +38,14 @@ func main() {
 		log.Errorln("Error geting events")
 	}
 
-}
-
-func listCronJobs(c *v1beta1.EventsV1beta1Client, namespace string, cronJobName string) {
-	log.Infoln("Listing CronJobs")
-
-	var listOpts v1.ListOptions
-
-	//get CronJobs
-	i, err := c.Events(namespace).List(context.TODO(), listOpts)
-	if err != nil {
-		log.Errorln("Error listing CronJob Events")
+	if events.Reason == "FailedNeedsStart" {
+		reportErr := fmt.Errorf("CronJob: " + cronJob + "has an event with reason FailedNeedsStart")
+		ReportFailureAndExit(reportErr)
 	}
+
+	err = kh.ReportSuccess()
+	if err != nil {
+		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+	}
+	log.Infoln("Successfully reported to Kuberhealthy")
 }
