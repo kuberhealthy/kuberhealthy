@@ -9,7 +9,7 @@ does not complete within the given timeout it will report a timeout error on the
 
 The SSL Self-signed Expiry Check spec toggles *InsecureSkipVerify* to **true**. This bypasses the TLS handshake process and is only intended to be used with self-signed certificates.
 
-#### SSL Secure Expiry Check Kube Spec:
+#### SSL CA Expiry Check Kube Spec:
 ```yaml
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
@@ -17,7 +17,7 @@ metadata:
   name: ssl-expiry
   namespace: kuberhealthy
 spec:
-  runInterval: 1d
+  runInterval: 24h
   timeout: 15m
   podSpec:
     containers:
@@ -31,7 +31,7 @@ spec:
           # Number of days until certificate expiration to test for  
           - name: DAYS
             value: "60"
-          # If "false", a TLS handshake is performed on the specified domain
+          # Set INSECURE to "false" for CA issued certificates. If "false", a TLS handshake will be performed during the expiry check.
           - name: INSECURE
             value: "false"
         image: kuberhealthy/ssl-expiry-check:v2.2.1
@@ -51,7 +51,7 @@ metadata:
   name: ssl-expiry
   namespace: kuberhealthy
 spec:
-  runInterval: 1d
+  runInterval: 24h
   timeout: 15m
   podSpec:
     containers:
@@ -65,7 +65,7 @@ spec:
           # Number of days until certificate expiration to test for  
           - name: DAYS
             value: "60"
-          # If "true", the TLS handshake will be skipped. This is only intended to check certificate expiration, not validity/security  
+          # Set INSECURE to "true" for self-signed certificates. If "true", the TLS handshake will be skipped. This only checks expiration status, NOT validity/security.
           - name: INSECURE
             value: "true"
         image: kuberhealthy/ssl-expiry-check:v2.2.1
@@ -75,6 +75,7 @@ spec:
           requests:
             cpu: 10m
             memory: 50Mi
+
 ```
 
 #### How-to
