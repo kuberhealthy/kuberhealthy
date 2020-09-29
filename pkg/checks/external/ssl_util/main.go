@@ -19,8 +19,8 @@ import (
 
 var TimeoutSeconds = 10
 
-// FileUploaded returns 'true' if the pem formatted cert has been mounted at /etc/ssl/selfsign/certificate.crt
-func FileUploaded() bool {
+// fileUploaded returns 'true' if the pem formatted cert has been mounted at /etc/ssl/selfsign/certificate.crt
+func fileUploaded() bool {
 	var certUploaded bool
 	if _, err := os.Stat("/etc/ssl/selfsign/certificate.crt"); err == nil {
 		log.Info("Certificate file uploaded from spec")
@@ -29,8 +29,8 @@ func FileUploaded() bool {
 	return certUploaded
 }
 
-// CertFromHost makes an insecure connection to the host specified and returns the SSL cert that matches the hostname
-func CertFromHost(host, port string) (*x509.Certificate, error) {
+// certFromHost makes an insecure connection to the host specified and returns the SSL cert that matches the hostname
+func certFromHost(host, port string) (*x509.Certificate, error) {
 	var hostCert *x509.Certificate
 	d := &net.Dialer{
 		Timeout: time.Duration(TimeoutSeconds) * time.Second,
@@ -64,8 +64,8 @@ func CertFromHost(host, port string) (*x509.Certificate, error) {
 	return hostCert, err
 }
 
-// PoolFromHost checks for a pem certificate mounted by the check config map, and if one is not present it creates a new cert pool using the CertFromHost function
-func PoolFromHost(host, port string) (*x509.CertPool, error) {
+// poolFromHost checks for a pem certificate mounted by the check config map, and if one is not present it creates a new cert pool using the CertFromHost function
+func poolFromHost(host, port string) (*x509.CertPool, error) {
 	rootCAs, err := x509.SystemCertPool()
 	if err != nil {
 		log.Warn("Unable to retrieve system certificate pool: ", err)
@@ -75,7 +75,7 @@ func PoolFromHost(host, port string) (*x509.CertPool, error) {
 		rootCAs = x509.NewCertPool()
 	}
 
-	hostCert, err := CertFromHost(host, port)
+	hostCert, err := certFromHost(host, port)
 	if hostCert == nil {
 		err = errors.New("Empty certificate returned")
 	}
@@ -87,8 +87,8 @@ func PoolFromHost(host, port string) (*x509.CertPool, error) {
 	return rootCAs, err
 }
 
-// PoolFromFile checks for a pem certificate mounted by the check config map, and appends it to the system cert pool
-func PoolFromFile(host, port string) (*x509.CertPool, error) {
+// poolFromFile checks for a pem certificate mounted by the check config map, and appends it to the system cert pool
+func poolFromFile(host, port string) (*x509.CertPool, error) {
 	var selfsignCert string
 	rootCAs, err := x509.SystemCertPool()
 
@@ -112,26 +112,26 @@ func PoolFromFile(host, port string) (*x509.CertPool, error) {
 	return rootCAs, err
 }
 
-// SelfSignPool determines if an SSL cert has been provided via configmap, and returns an error and a certificate map to check against
-func SelfSignPool(host, port string) (*x509.CertPool, error) {
-	certProvided := FileUploaded()
+// selfSignPool determines if an SSL cert has been provided via configmap, and returns an error and a certificate map to check against
+func selfSignPool(host, port string) (*x509.CertPool, error) {
+	certProvided := fileUploaded()
 	if certProvided {
-		certPool, err := PoolFromFile(host, port)
+		certPool, err := poolFromFile(host, port)
 		return certPool, err
 	}
-	certPool, err := PoolFromHost(host, port)
+	certPool, err := poolFromHost(host, port)
 
 	return certPool, err
 }
 
 // SSLHandshake imports a certificate pool, a
-func SSLHandshake(host, port string, selfSigned bool) error {
+func CertHandshake(host, port string, selfSigned bool) error {
 	var certPool *x509.CertPool
 	var err error
 
 	// Check if the check is being run for a self-signed cert. If so, check to see if the file has been uploaded
 	if selfSigned {
-		certPool, err = SelfSignPool(host, port)
+		certPool, err = selfSignPool(host, port)
 		if err != nil {
 			log.Error("Error generating self-signed certificate pool: ", err)
 			return err

@@ -93,7 +93,7 @@ func main() {
 
 // runHandshake runs the SSL handshake check for the specified host and port number from ssl_util package
 func runHandshake() error {
-	err := ssl_util.SSLHandshake(domainName, portNum, selfSignedBool)
+	err := ssl_util.CertHandshake(domainName, portNum, selfSignedBool)
 	return err
 }
 

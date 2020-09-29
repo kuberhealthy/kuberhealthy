@@ -38,9 +38,6 @@ var (
 	insecureBool  bool
 )
 
-// CheckTimeout is a variable for how long code should run before it should retry.
-var CheckTimeout time.Duration
-
 func init() {
 	domainName = os.Getenv("DOMAIN_NAME")
 	if len(domainName) == 0 {
@@ -67,18 +64,6 @@ func init() {
 
 	// set debug mode for nodeCheck pkg
 	nodeCheck.EnableDebugOutput()
-
-	// Set check time limit to default
-	CheckTimeout = defaultCheckTimeout
-
-	// Get the deadline time in unix from the env var
-	timeDeadline, err := checkclient.GetDeadline()
-	if err != nil {
-		log.Infoln("There was an issue getting the check deadline:", err.Error())
-	}
-
-	CheckTimeout = timeDeadline.Sub(time.Now().Add(time.Second * 5))
-	log.Infoln("Check time limit set to:", CheckTimeout)
 }
 
 func main() {
@@ -128,12 +113,12 @@ func runExpiry() error {
 		return err
 	}
 
-	if certExpired == true {
+	if certExpired {
 		err := fmt.Errorf("Certificate for domain " + domainName + " is expired")
 		return err
 	}
 
-	if expirePending == true {
+	if expirePending {
 		err := fmt.Errorf("Certificate for domain " + domainName + " is expiring in less than " + daysToExpire + " days")
 		return err
 	}
