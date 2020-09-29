@@ -51,7 +51,7 @@ func GenerateMetrics(state health.State) string {
 				errors += fmt.Sprintf("%s|", error)
 			}
 		}
-		errors = strings.Replace(errors, "\"", "", -1)
+		errors = strings.ReplaceAll(errors, "\"", "'")
 		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\",namespace=\"%s\",status=\"%s\",error=\"%s\"}", c, d.Namespace, checkStatus, errors)
 		metricDurationName := fmt.Sprintf("kuberhealthy_check_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		checkMetricState[metricName] = checkStatus
