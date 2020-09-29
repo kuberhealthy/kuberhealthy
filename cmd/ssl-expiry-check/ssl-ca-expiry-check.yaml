@@ -18,10 +18,10 @@ spec:
           # Number of days until certificate expiration to test for  
           - name: DAYS
             value: "60"
-          # If "false", a TLS handshake is performed on the specified domain
+          # Set INSECURE to "false" for CA issued certificates. If "false", a TLS handshake will be performed during the expiry check.
           - name: INSECURE
             value: "false"
-        image: kuberhealthy/ssl-expiry-check:v1.2.1
+        image: kuberhealthy/ssl-expiry-check:v2.2.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:

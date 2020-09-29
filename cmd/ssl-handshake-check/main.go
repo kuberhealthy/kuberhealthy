@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
@@ -26,8 +27,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var domainName string
-var portNum string
+var (
+	domainName     string
+	portNum        string
+	selfSigned     string
+	selfSignedBool bool
+)
 
 func init() {
 	domainName = os.Getenv("DOMAIN_NAME")
@@ -40,6 +45,12 @@ func init() {
 		log.Error("ERROR: The PORT environment variable has not been set.")
 		return
 	}
+	selfSigned = os.Getenv("SELF_SIGNED")
+	if len(selfSigned) == 0 {
+		log.Error("ERROR: The SELF_SIGNED environment variable has not been set.")
+		return
+	}
+	selfSignedBool, _ = strconv.ParseBool(selfSigned)
 }
 
 func main() {
@@ -64,6 +75,7 @@ func main() {
 	if err != nil {
 		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
 	}
+
 	err = runHandshake()
 	if err != nil {
 		reportErr := reportKHFailure(err.Error())
@@ -76,12 +88,12 @@ func main() {
 	if reportErr != nil {
 		log.Error(reportErr)
 	}
-	os.Exit(1)
+	os.Exit(0)
 }
 
-// run the SSL handshake check for the specified host and port number from ssl_util package
+// runHandshake runs the SSL handshake check for the specified host and port number from ssl_util package
 func runHandshake() error {
-	err := ssl_util.CertHandshake(domainName, portNum)
+	err := ssl_util.SSLHandshake(domainName, portNum, selfSignedBool)
 	return err
 }
 

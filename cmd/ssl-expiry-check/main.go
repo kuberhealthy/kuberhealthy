@@ -28,10 +28,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var domainName string
-var portNum string
-var daysToExpire string
-var insecureCheck string
+const defaultCheckTimeout = 10 * time.Minute
+
+var (
+	domainName    string
+	portNum       string
+	daysToExpire  string
+	insecureCheck string
+	insecureBool  bool
+)
+
+// CheckTimeout is a variable for how long code should run before it should retry.
+var CheckTimeout time.Duration
 
 func init() {
 	domainName = os.Getenv("DOMAIN_NAME")
@@ -54,8 +62,23 @@ func init() {
 		log.Error("ERROR: The INSECURE environment variable has not been set.")
 		return
 	}
+
+	insecureBool, _ = strconv.ParseBool(insecureCheck)
+
 	// set debug mode for nodeCheck pkg
 	nodeCheck.EnableDebugOutput()
+
+	// Set check time limit to default
+	CheckTimeout = defaultCheckTimeout
+
+	// Get the deadline time in unix from the env var
+	timeDeadline, err := checkclient.GetDeadline()
+	if err != nil {
+		log.Infoln("There was an issue getting the check deadline:", err.Error())
+	}
+
+	CheckTimeout = timeDeadline.Sub(time.Now().Add(time.Second * 5))
+	log.Infoln("Check time limit set to:", CheckTimeout)
 }
 
 func main() {
@@ -94,11 +117,11 @@ func main() {
 		log.Error(reportErr)
 
 	}
-	os.Exit(1)
+	os.Exit(0)
 }
 
+// runExpiry runs the SSL expiry check from the ssl_util package with the specified env variables
 func runExpiry() error {
-	insecureBool, _ := strconv.ParseBool(insecureCheck)
 	certExpired, expirePending, err := ssl_util.CertExpiry(domainName, portNum, daysToExpire, insecureBool)
 	if err != nil {
 		log.Error("Unable to perform SSL expiration check")
