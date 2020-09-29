@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,7 +32,7 @@ func main() {
 
 	var getOpts v1.GetOptions
 
-	events, err := e.Get(context.TODO(), cronJob, getOpts)
+	events, err := e.Get(cronJob, getOpts)
 	if err != nil {
 		log.Errorln("Error geting events")
 	}
