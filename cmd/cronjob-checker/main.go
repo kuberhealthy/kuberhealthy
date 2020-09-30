@@ -37,6 +37,13 @@ func main() {
 		log.Errorln("Error geting events")
 	}
 
+	for _, reason := range events.Reason {
+		if reason == "FailedNeedsStart" {
+			reportErr := fmt.Errorf("CronJob: " + cronJob + "has an event with reason FailedNeedsStart")
+			ReportFailureAndExit(reportErr)
+		}
+	}
+
 	if events.Reason == "FailedNeedsStart" {
 		reportErr := fmt.Errorf("CronJob: " + cronJob + "has an event with reason FailedNeedsStart")
 		ReportFailureAndExit(reportErr)
