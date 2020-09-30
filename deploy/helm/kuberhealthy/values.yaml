@@ -60,6 +60,11 @@ securityContext:
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
 
+# When enabled kuberhealthy will create a PodSecurityPolicy, Role and Binding to match the specified securityContext
+# In case you use your own images for tests, you might need to add other PSPs as well on your own
+podSecurityPolicy:
+  enabled: false
+
 # Please remember that changing the service type to LoadBalancer
 # will expose Kuberhealthy to the internet, which could cause
 # error messages shown by Kuberhealthy to be exposed to the
