@@ -8,7 +8,7 @@ import (
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/typed/events/v1beta1"
+	events "k8s.io/client-go/kubernetes/typed/events/v1beta1"
 	"k8s.io/client-go/rest"
 )
 
@@ -26,7 +26,7 @@ func main() {
 	var restInt rest.Interface
 
 	// //create events client
-	client := v1beta1.New(restInt)
+	client := events.New(restInt)
 
 	e := client.Events(namespace)
 
@@ -38,8 +38,8 @@ func main() {
 	}
 
 	for _, reason := range events.Reason {
-		if reason == "FailedNeedsStart" {
-			reportErr := fmt.Errorf("CronJob: " + cronJob + "has an event with reason FailedNeedsStart")
+		if "FailedNeedsStart" == events.Reason {
+			reportErr := fmt.Errorf("CronJob: " + cronJob + "has an event with reason:" + string(reason))
 			ReportFailureAndExit(reportErr)
 		}
 	}
