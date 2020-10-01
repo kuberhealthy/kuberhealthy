@@ -47,9 +47,11 @@ func main() {
 
 	//range over eventList for cronjob events that match provided reason
 	for _, e := range eventList.Items {
-		if reason == e.Reason && e.GetName() == cronJob {
+		log.Infoln(e.Reason)
+		if reason == e.Reason {
 			log.Infoln("There was an event with reason:" + e.Reason + " for cronjob" + cronJob)
-			reportErr := fmt.Errorf("CronJob: " + cronJob + "has an event with reason:" + reason)
+			reportErr := fmt.Errorf("CronJob: " + cronJob + " has an event with reason: " + reason)
+			log.Infoln("Reporting Failure to kuberhealthy")
 			ReportFailureAndExit(reportErr)
 		}
 	}
