@@ -22,6 +22,9 @@ var cronJob = os.Getenv("CRONJOB")
 // Namespace is a variable to allow code to target all namespaces or a single namespace
 var namespace = os.Getenv("NAMESPACE")
 
+// Namespace is a variable to allow code to target all namespaces or a single namespace
+var reason = os.Getenv("REASON")
+
 func main() {
 
 	var restInt rest.Interface
@@ -32,24 +35,20 @@ func main() {
 
 	e := client.Events(namespace)
 
-	var getOpts v1.GetOptions
+	// var getOpts v1.GetOptions
+	var listOpts v1.ListOptions
 
-	//get events
-	event, err := e.Get(context.TODO(), cronJob, getOpts)
+	//range over event list
+	eventList, err := e.List(context.TODO(), listOpts)
 	if err != nil {
-		log.Errorln("Error geting events")
+		log.Errorln("Error listing events")
 	}
 
-	
-		if "FailedNeedsStart" == event.Reason {
-			reportErr := fmt.Errorf("CronJob: " + cronJob + "has an event with reason:" + string(reason))
+	for _, e := range eventList.Items {
+		if reason == e.Reason {
+			reportErr := fmt.Errorf("CronJob: " + cronJob + "has an event with reason:" + reason)
 			ReportFailureAndExit(reportErr)
 		}
-	}
-
-	if events.Reason == "FailedNeedsStart" {
-		reportErr := fmt.Errorf("CronJob: " + cronJob + "has an event with reason FailedNeedsStart")
-		ReportFailureAndExit(reportErr)
 	}
 
 	err = kh.ReportSuccess()

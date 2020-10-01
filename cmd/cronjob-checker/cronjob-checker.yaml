@@ -18,6 +18,8 @@ spec:
             value: "1"
           - name: NAMESPACE
             value: "kuberhealthy"
+          - name: REASON
+            value: "FailedNeedsStart"
         resources:
           requests:
             cpu: 15m
