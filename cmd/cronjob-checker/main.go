@@ -36,7 +36,7 @@ func main() {
 	client := kubernetesClient.EventsV1beta1()
 
 	//retrive events from namespace
-	log.Infoln("Begining to retrieve events from cronjob")
+	log.Infoln("Begining to retrieve events from cronjob " + cronJob)
 	e := client.Events(namespace)
 
 	listOpts := v1.ListOptions{}
@@ -54,7 +54,7 @@ func main() {
 		}
 	}
 
-	log.Infoln("Success! There were no events with reason" + reason + " for cronjob" + cronJob)
+	log.Infoln("Success! There were no events with reason " + reason + " for cronjob " + cronJob)
 	err = kh.ReportSuccess()
 	if err != nil {
 		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
