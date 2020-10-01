@@ -35,24 +35,26 @@ func main() {
 	// //create events client
 	client := kubernetesClient.EventsV1beta1()
 
+	//retrive events from namespace
+	log.Infoln("Begining to retrieve events from cronjob")
 	e := client.Events(namespace)
 
-	// var getOpts v1.GetOptions
 	listOpts := v1.ListOptions{}
-
-	//range over event list
 	eventList, err := e.List(context.TODO(), listOpts)
 	if err != nil {
 		log.Errorln("Error listing events")
 	}
 
+	//range over eventList for cronjob events that match provided reason
 	for _, e := range eventList.Items {
 		if reason == e.Reason && e.GetName() == cronJob {
+			log.Infoln("There was an event with reason:" + e.Reason + " for cronjob" + cronJob)
 			reportErr := fmt.Errorf("CronJob: " + cronJob + "has an event with reason:" + reason)
 			ReportFailureAndExit(reportErr)
 		}
 	}
 
+	log.Infoln("Success! There were no events with reason" + reason + " for cronjob" + cronJob)
 	err = kh.ReportSuccess()
 	if err != nil {
 		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
