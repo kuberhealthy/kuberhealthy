@@ -25,16 +25,42 @@ import (
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/ssl_util"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 )
 
+const defaultCheckTimeout = 10 * time.Minute
+
 var (
+	kubeConfigFile = os.Getenv("KUBECONFIG")
+	checkTimeout   time.Duration
 	domainName     string
 	portNum        string
 	selfSigned     string
 	selfSignedBool bool
+	ctx            context.Context
 )
 
+type Checker struct {
+	client         *kubernetes.Clientset
+	domainName     string
+	portNum        string
+	selfSignedBool bool
+}
+
 func init() {
+	var err error
+
+	// Set the check time limit to default
+	checkTimeout = time.Duration(time.Second * 20)
+
+	// Get the deadline time in Unix from the environment variable
+	timeDeadline, err := checkclient.GetDeadline()
+	if err != nil {
+		log.Infoln("There was an issue getting the check deadline:", err.Error())
+	}
+	checkTimeout = timeDeadline.Sub(time.Now().Add(time.Second * 5))
+	log.Infoln("Check time limit set to: ", checkTimeout)
+
 	domainName = os.Getenv("DOMAIN_NAME")
 	if len(domainName) == 0 {
 		log.Error("ERROR: The DOMAIN_NAME environment variable has not been set.")
@@ -51,6 +77,9 @@ func init() {
 		return
 	}
 	selfSignedBool, _ = strconv.ParseBool(selfSigned)
+
+	// set debug mode for nodeCheck pkg
+	nodeCheck.EnableDebugOutput()
 }
 
 func main() {
@@ -76,23 +105,57 @@ func main() {
 		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
 	}
 
-	err = runHandshake()
+	client, err := kubeClient.Create(kubeConfigFile)
 	if err != nil {
-		reportErr := reportKHFailure(err.Error())
-		if reportErr != nil {
-			log.Error(reportErr)
-		}
-		os.Exit(1)
+		log.Fatalln("Unable to create kubernetes client", err)
 	}
-	reportErr := reportKHSuccess()
-	if reportErr != nil {
-		log.Error(reportErr)
+
+	shc := New()
+	var cancelFunc context.CancelFunc
+	ctx, cancelFunc = context.WithTimeout(context.Background(), checkTimeout)
+
+	err = shc.runHandshake(ctx, cancelFunc, client)
+	if err != nil {
+		log.Errorln("Error completing SSL handshake check for", domainName+":", err)
 	}
-	os.Exit(0)
+}
+
+func New() *Checker {
+	return &Checker{
+		domainName:     domainName,
+		portNum:        portNum,
+		selfSignedBool: selfSignedBool,
+	}
 }
 
 // runHandshake runs the SSL handshake check for the specified host and port number from ssl_util package
-func runHandshake() error {
+func (shc *Checker) runHandshake(ctx context.Context, cancel context.CancelFunc, client *kubernetes.Clientset) error {
+	doneChan := make(chan error)
+	runTimeout := time.After(checkTimeout)
+
+	go func(doneChan chan error) {
+		err := shc.doChecks()
+		doneChan <- err
+	}(doneChan)
+
+	select {
+	case <-ctx.Done():
+		log.Println("Cancelling check and shutting down due to interrupt.")
+		return reportKHFailure("Cancelling check and shutting down due to interrupt.")
+	case <-runTimeout:
+		cancel()
+		log.Println("Cancelling check and shutting down due to timeout.")
+		return reportKHFailure("Failed to complete SSL handshake in time. Timeout was reached.")
+	case err := <-doneChan:
+		cancel()
+		if err != nil {
+			return reportKHFailure(err.Error())
+		}
+		return reportKHSuccess()
+	}
+}
+
+func (shc *Checker) doChecks() error {
 	err := ssl_util.CertHandshake(domainName, portNum, selfSignedBool)
 	return err
 }
