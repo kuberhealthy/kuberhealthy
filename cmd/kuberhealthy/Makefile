@@ -1,6 +1,5 @@
 IMAGE="kuberhealthy/kuberhealthy"
-TAG="v2.3.2"
-TAG="dev"
+TAG="v2.4.0"
 
 build:
 	docker build --no-cache --pull -t ${IMAGE}:${TAG} -f Dockerfile ../../

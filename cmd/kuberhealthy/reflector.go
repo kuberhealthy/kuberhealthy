@@ -95,8 +95,8 @@ func (sr *StateReflector) CurrentStatus() health.State {
 			state.OK = false
 		}
 
-		khworkload := determineKHWorkload(khState.Name, khState.Namespace)
-		switch khworkload {
+		khWorkload := determineKHWorkload(khState.Name, khState.Namespace)
+		switch khWorkload {
 		case health.KHCheck:
 			state.CheckDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
 		case health.KHJob:
