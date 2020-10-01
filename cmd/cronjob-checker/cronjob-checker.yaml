@@ -9,7 +9,7 @@ spec:
   podSpec:
     containers:
       - name: cronjob-checker
-        image: kuberhealthy/cronjob-checker:v1.0.0
+        image: jdowni000/cronjob-checker:v1.0.0
         imagePullPolicy: IfNotPresent
         env:
           - name: CRONJOB
