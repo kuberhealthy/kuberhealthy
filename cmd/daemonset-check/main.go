@@ -42,6 +42,10 @@ var (
 	checkDSNameEnv = os.Getenv("CHECK_DAEMONSET_NAME")
 	checkDSName    string
 
+	// The priority class to use for the daemonset
+	podPriorityClassNameEnv = os.Getenv("DAEMONSET_PRIORITY_CLASS_NAME")
+	podPriorityClassName    string
+
 	// Check deadline from injected env variable KH_CHECK_RUN_DEADLINE
 	khDeadline    time.Time
 	checkDeadline time.Time
@@ -71,6 +75,8 @@ const (
 	defaultCheckDeadline = time.Duration(time.Minute * 15)
 	// Default user
 	defaultUser = int64(1000)
+	// Default priority class name
+	defaultPodPriorityClassName = ""
 )
 
 func init() {

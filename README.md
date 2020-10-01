@@ -132,7 +132,7 @@ Vulnerabilities or other security related issues should be logged as Github issu
 
 ## Contributing
 
-If you're interesting in contributing to this project:
+If you're interested in contributing to this project:
 - Check out the [Contributing Guide](CONTRIBUTING.md).
 - If you use Kuberhealthy in a production environment, add yourself to the list of [Kuberhealthy adopters](docs/KUBERHEALTHY_ADOPTERS.md)!
 - Check out [open issues](https://github.com/Comcast/kuberhealthy/issues). If you're new to the project, look for the `good first issue` tag.

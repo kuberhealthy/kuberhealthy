@@ -39,6 +39,11 @@ deployment:
   imagePullPolicy: IfNotPresent
   nodeSelector: {}
   podAnnotations: {}
+  # tolerations:
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
   env: {}
   command:
   - /app/kuberhealthy
@@ -54,6 +59,11 @@ securityContext:
   fsGroup: 999
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
+
+# When enabled kuberhealthy will create a PodSecurityPolicy, Role and Binding to match the specified securityContext
+# In case you use your own images for tests, you might need to add other PSPs as well on your own
+podSecurityPolicy:
+  enabled: false
 
 # Please remember that changing the service type to LoadBalancer
 # will expose Kuberhealthy to the internet, which could cause
@@ -99,6 +109,16 @@ check:
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
+  dnsExternal:
+    enabled: false
+    runInterval: 2m
+    timeout: 15m
+    image:
+      repository: kuberhealthy/dns-resolution-check
+      tag: v1.4.0
+    extraEnvs:
+      HOSTNAME: "google.com"
+    nodeSelector: {}
   podRestarts:
     enabled: false
     runInterval: 5m
@@ -135,3 +155,4 @@ checkReaper:
     repository: kuberhealthy/check-reaper
     tag: v1.4.0
   nodeSelector: {}
+  # startingDeadlineSeconds:

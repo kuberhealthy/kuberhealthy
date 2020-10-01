@@ -1,5 +1,5 @@
 IMAGE="kuberhealthy/kuberhealthy"
-
+TAG="v2.3.2"
 TAG="dev"
 
 build:
