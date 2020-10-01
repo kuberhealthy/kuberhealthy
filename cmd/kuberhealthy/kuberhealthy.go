@@ -1339,7 +1339,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	}
 
 	if _, exists := jobDetails[ipReport.Namespace+"/"+ipReport.Name]; exists {
-		checkRunDuration = checkDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
+		checkRunDuration = jobDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
 		khWorkload = health.KHJob
 	}
 
@@ -1438,10 +1438,21 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 // this will return the state of ALL found checks.
 // Failures to fetch CRD state return an error.
 func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
-	if len(namespaces) != 0 {
-		return k.getCurrentStatusForNamespaces(namespaces)
+
+	currentMaster, err := masterCalculation.CalculateMaster(kubernetesClient)
+	if err != nil {
+		log.Errorln("Failed to calculate master:", err)
 	}
-	return k.stateReflector.CurrentStatus()
+
+	if len(namespaces) != 0 {
+		currentState := k.getCurrentStatusForNamespaces(namespaces)
+		currentState.CurrentMaster = currentMaster
+		return currentState
+	}
+
+	currentState := k.stateReflector.CurrentStatus()
+	currentState.CurrentMaster = currentMaster
+	return currentState
 }
 
 // getCurrentState fetches the current state of all checks from the requested namespaces
