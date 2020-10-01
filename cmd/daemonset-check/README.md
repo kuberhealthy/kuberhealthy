@@ -36,7 +36,7 @@ spec:
             value: "kuberhealthy"
           - name: NODE_SELECTOR # Schedules daemonsets only to nodes with this label
             value: "kubernetes.io/os=linux"
-        image: kuberhealthy/daemonset-check:v3.1.0
+        image: kuberhealthy/daemonset-check:v3.2.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -53,6 +53,7 @@ spec:
 |PAUSE_CONTAINER_IMAGE|"gcr.io/google-containers/pause:3.1"|
 |SHUTDOWN_GRACE_PERIOD|1m|
 |CHECK_DAEMONSET_NAME|"daemonset"|
+|DAEMONSET_PRIORITY_CLASS_NAME|""|
 |NODE_SELECTOR|`<none>`|
 
 #### Daemonset Check Diagram
