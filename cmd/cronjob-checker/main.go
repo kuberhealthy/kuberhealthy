@@ -7,10 +7,9 @@ import (
 	"path/filepath"
 
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 // kubeConfigFile is a variable containing file path of Kubernetes config files
@@ -19,24 +18,27 @@ var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 // cronJob name
 var cronJob = os.Getenv("CRONJOB")
 
-// Namespace is a variable to allow code to target all namespaces or a single namespace
+// namespace is a variable to allow code to target all namespaces or a single namespace
 var namespace = os.Getenv("NAMESPACE")
 
-// Namespace is a variable to allow code to target all namespaces or a single namespace
+// reason is a varaible to search for event types
 var reason = os.Getenv("REASON")
 
 func main() {
 
-	var restInt rest.Interface
+	// create kubernetes client
+	kubernetesClient, err := kubeClient.Create("")
+	if err != nil {
+		log.Errorln("Error creating kubeClient with error" + err.Error())
+	}
 
 	// //create events client
-	clientset := kubernetes.New(restInt)
-	client := clientset.EventsV1beta1()
+	client := kubernetesClient.EventsV1beta1()
 
 	e := client.Events(namespace)
 
 	// var getOpts v1.GetOptions
-	var listOpts v1.ListOptions
+	listOpts := v1.ListOptions{}
 
 	//range over event list
 	eventList, err := e.List(context.TODO(), listOpts)
@@ -45,7 +47,7 @@ func main() {
 	}
 
 	for _, e := range eventList.Items {
-		if reason == e.Reason {
+		if reason == e.Reason && e.GetName() == cronJob {
 			reportErr := fmt.Errorf("CronJob: " + cronJob + "has an event with reason:" + reason)
 			ReportFailureAndExit(reportErr)
 		}

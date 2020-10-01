@@ -4,7 +4,7 @@ COPY go.* /build/
 RUN go mod download
 
 COPY . /build
-WORKDIR /build/cmd/daemonset-check
+WORKDIR /build/cmd/cronjob-checker
 ENV CGO_ENABLED=0
 RUN go build -v
 RUN groupadd -g 999 user && \
