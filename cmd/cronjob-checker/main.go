@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -34,14 +35,13 @@ func main() {
 	var getOpts v1.GetOptions
 
 	//get events
-	events, err := e.Get(cronJob, getOpts)
+	event, err := e.Get(context.TODO(), cronJob, getOpts)
 	if err != nil {
 		log.Errorln("Error geting events")
 	}
 
-	//range over events to find specific reason and report to Kuberhealthy
-	for _, reason := range events.Reason {
-		if "FailedNeedsStart" == events.Reason {
+	
+		if "FailedNeedsStart" == event.Reason {
 			reportErr := fmt.Errorf("CronJob: " + cronJob + "has an event with reason:" + string(reason))
 			ReportFailureAndExit(reportErr)
 		}
