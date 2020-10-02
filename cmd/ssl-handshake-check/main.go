@@ -33,6 +33,7 @@ const defaultCheckTimeout = 10 * time.Minute
 var (
 	kubeConfigFile = os.Getenv("KUBECONFIG")
 	checkTimeout   time.Duration
+	checkNamespace string
 	domainName     string
 	portNum        string
 	selfSigned     string
@@ -48,8 +49,6 @@ type Checker struct {
 }
 
 func init() {
-	var err error
-
 	// Set the check time limit to default
 	checkTimeout = time.Duration(time.Second * 20)
 
@@ -84,8 +83,8 @@ func init() {
 
 func main() {
 	// create context
-	checkTimeLimit := time.Minute * 1
-	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
+	nodeCheckTimeout := time.Minute * 1
+	nodeCheckCtx, _ := context.WithTimeout(context.Background(), nodeCheckTimeout.Round(10))
 
 	// create Kubernetes client
 	kubernetesClient, err := kubeClient.Create("")
@@ -93,14 +92,8 @@ func main() {
 		log.Errorln("Error creating kubeClient with error" + err.Error())
 	}
 
-	// hits kuberhealthy endpoint to see if node is ready
-	err = nodeCheck.WaitForKuberhealthy(ctx)
-	if err != nil {
-		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
-	}
-
 	// fetches kube proxy to see if it is ready
-	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy", "kube-system")
+	err = nodeCheck.WaitForKubeProxy(nodeCheckCtx, kubernetesClient, "kuberhealthy", "kube-system")
 	if err != nil {
 		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
 	}
@@ -110,11 +103,14 @@ func main() {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
+	// wait for the node to join the worker pool
+	waitForNodeToJoin(nodeCheckCtx, client, &checkNamespace)
+
 	shc := New()
 	var cancelFunc context.CancelFunc
-	ctx, cancelFunc = context.WithTimeout(context.Background(), checkTimeout)
+	nodeCheckCtx, cancelFunc = context.WithTimeout(context.Background(), checkTimeout)
 
-	err = shc.runHandshake(ctx, cancelFunc, client)
+	err = shc.runHandshake(nodeCheckCtx, cancelFunc, client)
 	if err != nil {
 		log.Errorln("Error completing SSL handshake check for", domainName+":", err)
 	}
@@ -180,4 +176,18 @@ func reportKHFailure(errorMessage string) error {
 	}
 	log.Info("Successfully reported failure status to Kuberhealthy servers")
 	return err
+}
+
+func waitForNodeToJoin(ctx context.Context, client *kubernetes.Clientset, namespace *string) {
+	// Wait for node to be at least 2m old.
+	err := nodeCheck.WaitForNodeAge(ctx, client, *namespace, time.Minute*5)
+	if err != nil {
+		log.Errorln("Failed to check node age:", err.Error())
+	}
+
+	// Check if Kuberhealthy is reachable.
+	err = nodeCheck.WaitForKuberhealthy(ctx)
+	if err != nil {
+		log.Errorln("Failed to reach Kuberhealthy:", err.Error())
+	}
 }
