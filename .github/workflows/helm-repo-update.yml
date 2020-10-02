@@ -21,7 +21,7 @@ jobs:
 
 # script with "helm repo" cmds and GH env vars which runs if a new release tag with symantic version is published
     - name: update with version tag
-      if: github.ref=='v[0-9]+.[0-9]+.[0-9]+'
+      if: ${{ github.ref == 'v[0-9]+.[0-9]+.[0-9]+' }}
       uses: stefanprodan/kube-tools@v1
       with:
         helmv3: 3.2.1
@@ -33,7 +33,7 @@ jobs:
 
 # script with "helm repo" cmds and GH env vars which runs if a change to 'deploy/helm/kuberhealthy/**' is pushed to master
     - name: update without version tag
-      if: github.ref!='v[0-9]+.[0-9]+.[0-9]+'
+      if: ${{ github.ref != 'v[0-9]+.[0-9]+.[0-9]+' }}
       uses: stefanprodan/kube-tools@v1
       with:
         helmv3: 3.2.1
