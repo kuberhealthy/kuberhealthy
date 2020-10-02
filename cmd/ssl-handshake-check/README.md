@@ -8,9 +8,11 @@ does not complete within the given timeout it will report a timeout error on the
 #### NOTES:
 Certificate Authority (CA) issued certificates should use the first spec sheet (ssl-handshake-check.yaml) with the SELF_SIGNED env var set to "false".
 
-Self-signed certificate checks can be performed two different ways. The first spec below can be set to SELF_SIGNED = "true" and the check will attempt to retrieve the self signed certificate, add it to the cert pool, and run perform a TLS handshake check.
+Self-signed certificate checks can be performed two different ways. The first spec below can be set to SELF_SIGNED = "true" and the check will attempt to retrieve the certificate from the host, add it to the cert pool, and run the TLS handshake check.
 
-The second spec can be used if you have the certificate. Copy and paste the self-signed certificate data into the configmap spec under the certificate.crt data label. See the example below: 
+The second spec can be used if you have the certificate. Copy and paste the self-signed certificate data into the configmap spec under the certificate.crt data label. 
+
+See the examples below: 
 
 #### EXAMPLE SSL Handshake Check - Self Signed or CA Issued Kube Spec (ssl-handshake-check.yaml):
 ```yaml
@@ -34,7 +36,7 @@ spec:
           # For internal, self-signed certs, set to "true" and the handshake check will attempt to automatically retrieve the host certificate
           - name: SELF_SIGNED
             value: "true"
-        image: kuberhealthy/ssl-handshake-check:v3.0.0
+        image: kuberhealthy/ssl-handshake-check:v3.0.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -65,7 +67,7 @@ spec:
           # For internal, self-signed certificates, set to "true" and copy and paste the .pem formatted certificate in the config map below 
           - name: SELF_SIGNED
             value: "true"
-        image: kuberhealthy/ssl-handshake-check:v3.0.0
+        image: kuberhealthy/ssl-handshake-check:v3.0.1
         imagePullPolicy: IfNotPresent
         name: main
         volumeMounts:

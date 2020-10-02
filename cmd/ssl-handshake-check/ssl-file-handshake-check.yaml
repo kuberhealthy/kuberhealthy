@@ -1,7 +1,7 @@
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: ssl-handshake-k8sdefault-file
+  name: ssl-handshake
   namespace: kuberhealthy
 spec:
   runInterval: 5m
@@ -18,7 +18,7 @@ spec:
           # For internal, self-signed certificates, set to "true" and copy and paste the .pem formatted certificate in the config map below 
           - name: SELF_SIGNED
             value: "true"
-        image: kuberhealthy/ssl-handshake-check:v3.0.0
+        image: kuberhealthy/ssl-handshake-check:v3.0.1
         imagePullPolicy: IfNotPresent
         name: main
         volumeMounts:

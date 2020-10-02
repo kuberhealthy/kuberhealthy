@@ -54,8 +54,6 @@ type Checker struct {
 }
 
 func init() {
-	var err error
-
 	// Set check time limit to default
 	checkTimeout = time.Duration(time.Second * 20)
 
@@ -96,8 +94,8 @@ func init() {
 
 func main() {
 	// create context
-	checkTimeLimit := time.Minute * 1
-	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
+	nodeCheckTimeout := time.Minute * 1
+	nodeCheckCtx, _ := context.WithTimeout(context.Background(), nodeCheckTimeout.Round(10))
 
 	// create Kubernetes client
 	kubernetesClient, err := kubeClient.Create("")
@@ -105,14 +103,8 @@ func main() {
 		log.Errorln("Error creating kubeClient with error" + err.Error())
 	}
 
-	// hits kuberhealthy endpoint to see if node is ready
-	err = nodeCheck.WaitForKuberhealthy(ctx)
-	if err != nil {
-		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
-	}
-
 	// fetches kube proxy to see if it is ready
-	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy", "kube-system")
+	err = nodeCheck.WaitForKubeProxy(nodeCheckCtx, kubernetesClient, "kuberhealthy", "kube-system")
 	if err != nil {
 		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
 	}
@@ -122,13 +114,13 @@ func main() {
 	}
 
 	// wait for the node to join the worker pool
-	waitForNodeToJoin(ctx, client, &checkNamespace)
+	waitForNodeToJoin(nodeCheckCtx, client, &checkNamespace)
 
 	sec := New()
 	var cancelFunc context.CancelFunc
-	ctx, cancelFunc = context.WithTimeout(context.Background(), checkTimeout)
+	nodeCheckCtx, cancelFunc = context.WithTimeout(context.Background(), checkTimeout)
 
-	err = sec.runExpiry(ctx, cancelFunc, client)
+	err = sec.runExpiry(nodeCheckCtx, cancelFunc, client)
 	if err != nil {
 		log.Errorln("Error completing SSL expiry check for", domainName+":", err)
 	}

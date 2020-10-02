@@ -34,7 +34,7 @@ spec:
           # Set INSECURE to "false" for CA issued certificates. If "false", a TLS handshake will be performed during the expiry check.
           - name: INSECURE
             value: "false"
-        image: kuberhealthy/ssl-expiry-check:v3.0.0
+        image: kuberhealthy/ssl-expiry-check:v3.0.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -68,7 +68,7 @@ spec:
           # Set INSECURE to "true" for self-signed certificates. If "true", the TLS handshake will be skipped. This only checks expiration status, NOT validity/security.
           - name: INSECURE
             value: "true"
-        image: kuberhealthy/ssl-expiry-check:v3.0.0
+        image: kuberhealthy/ssl-expiry-check:v3.0.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -80,7 +80,7 @@ spec:
 
 #### How-to
 
-To implement the SSL Handshake Check with Kuberhealthy, update the spec sheet to the domain name, port number, and number of days until expiration that you wish to test. TLS handshakes will fail on self-signed certificates. To check expiration dates and timeframes for self-signed certificates, skip that step by setting the INSECURE variable to "true". 
+To implement the SSL Handshake Check with Kuberhealthy, update the spec sheet with the domain name, port number, and number of days until expiration that you wish to test. TLS handshakes will fail on self-signed certificates. To check expiration dates and timeframes for self-signed certificates, skip that step by setting the INSECURE variable to "true". 
 
 #### Update values as needed and apply the spec sheets:
 
