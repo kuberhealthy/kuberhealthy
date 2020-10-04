@@ -3,7 +3,8 @@
 # This script is designed to update the helm repo when a merge occurs which does not include a new version tag
 
 # Update Chart.yaml
-sed -i -e "s/^version:.*/version: $GITHUB_RUN_ID/" kuberhealthy/Chart.yaml
+#sed -i -e "s/^version:.*/version: $GITHUB_RUN_ID/" kuberhealthy/Chart.yaml
+echo "$GITHUB_REF, $GITHUB_RUN_ID"
 
 # the github action we use has helm 3 (required) as 'helmv3' in its path, so we alias that in and use it if present
 HELM="helm"
@@ -12,11 +13,12 @@ if which helmv3; then
     HELM="helmv3"
 fi
 
-$HELM version
-
 $HELM lint ./kuberhealthy
+
+$HELM version
 if [ "$?" -ne "0" ]; then
   echo "Linting reports error"
+#$HELM repo index ./archives --merge ./index.yaml --url https://comcast.github.io/kuberhealthy/helm-repos/archives
   exit 1
 fi
 
@@ -28,7 +30,6 @@ cd ../../helm-repos
 
 $HELM repo index ./tmp.d --merge ./index.yaml --url https://comcast.github.io/kuberhealthy/helm-repos/archives
 # Old indexing line below...
-#$HELM repo index ./archives --merge ./index.yaml --url https://comcast.github.io/kuberhealthy/helm-repos/archives
 
 mv -f ./tmp.d/kuberhealthy-${GITHUB_RUN_ID}.tgz ./archives
 mv -f ./tmp.d/index.yaml ./
