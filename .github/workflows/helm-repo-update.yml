@@ -29,7 +29,7 @@ jobs:
           helmv3 version
           alias helm="helmv3"
           cd ./deploy/helm/
-#          ./helm-repo-update_withTag.sh
+          #./helm-repo-update_withTag.sh
           ./helm-repo-update.sh          
 
 # script with "helm repo" cmds and GH env vars which runs if a change to 'deploy/helm/kuberhealthy/**' is pushed to master
@@ -42,7 +42,7 @@ jobs:
           helmv3 version
           alias helm="helmv3"
           cd ./deploy/helm/
-#          ./helm-repo-update_withoutTag.sh
+          #./helm-repo-update_withoutTag.sh
           ./helm-repo-update.sh
 #
     - name: Create Pull Request
