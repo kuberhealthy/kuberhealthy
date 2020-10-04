@@ -3,7 +3,7 @@
 # This script is designed to update the helm repo when a merge occurs which does not include a new version tag
 
 # Update Chart.yaml
-sed -i -e "s/^version:.*/version: $GITHUB_RUN_ID/" kuberhealthy/Chart.yaml
+sed -i -e "s/^version:.*/version: $GITHUB_RUN_ID/" ./kuberhealthy/Chart.yaml
 
 # the github action we use has helm 3 (required) as 'helmv3' in its path, so we alias that in and use it if present
 HELM="helm"
