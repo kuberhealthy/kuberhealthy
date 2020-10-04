@@ -4,7 +4,7 @@
 
 # Update Chart.yaml
 #sed -i -e "s/^version:.*/version: $GITHUB_RUN_ID/" kuberhealthy/Chart.yaml
-echo "$GITHUB_REF, $GITHUB_RUN_ID"
+echo "$GITHUB_REF, $GITHUB_RUN_ID"/n >> kuberhealhty/testOutput.md
 
 # the github action we use has helm 3 (required) as 'helmv3' in its path, so we alias that in and use it if present
 HELM="helm"
