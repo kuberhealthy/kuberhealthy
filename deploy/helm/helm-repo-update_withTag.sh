@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # update Chart.yaml
-sed -i -e "s/^appVersion:.*/appVersion: ${GITHUB_REF##*/}/" kuberhealthy/Chart.yaml
-sed -i -e "s/^version:.*/version: $GITHUB_RUN_ID/" kuberhealthy/Chart.yaml
+#sed -i -e "s/^appVersion:.*/appVersion: ${GITHUB_REF##*/}/" kuberhealthy/Chart.yaml
+#sed -i -e "s/^version:.*/version: $GITHUB_RUN_ID/" kuberhealthy/Chart.yaml
 
 # the github action we use has helm 3 (required) as 'helmv3' in its path, so we alias that in and use it if present
 HELM="helm"
