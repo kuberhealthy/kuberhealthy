@@ -12,9 +12,9 @@ if which helmv3; then
     HELM="helmv3"
 fi
 
-$HELM lint ./kuberhealthy
-
 $HELM version
+
+$HELM lint ./kuberhealthy
 if [ "$?" -ne "0" ]; then
   echo "Linting reports error"
 #$HELM repo index ./archives --merge ./index.yaml --url https://comcast.github.io/kuberhealthy/helm-repos/archives
