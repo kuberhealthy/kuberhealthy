@@ -29,7 +29,7 @@ jobs:
       if: ${{ github.ref != 'v[0-9]+.[0-9]+.[0-9]+' }}
       run: |
         sed "s/^version:.*/version: $GITHUB_RUN_ID/" ./deploy/helm/kuberhealthy/Chart.yaml > ./deploy/helm/kuberhealthy/Chart.yaml.temp
-        mv ./deploy/helm/kuberhealthy/Chart.yaml.temp ./deploy/helm/kuberhealthy/Chart.yam
+        mv ./deploy/helm/kuberhealthy/Chart.yaml.temp ./deploy/helm/kuberhealthy/Chart.yaml
         
 # script with "helm repo" cmds and GH env vars which runs if a new release tag with symantic version is published
     - name: update with version tag
