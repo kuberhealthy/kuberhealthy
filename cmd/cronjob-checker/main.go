@@ -50,8 +50,7 @@ func main() {
 		log.Infoln(e.Reason)
 		if reason == e.Reason {
 			log.Infoln("There was an event with reason:" + e.Reason + " for cronjob" + cronJob)
-			reportErr := fmt.Errorf("CronJob: " + cronJob + " has an event with reason: " + reason)
-			log.Infoln("Reporting Failure to kuberhealthy")
+			reportErr := fmt.Errorf("cronjob: " + cronJob + " has an event with reason: " + reason)
 			ReportFailureAndExit(reportErr)
 		}
 	}
@@ -67,10 +66,11 @@ func main() {
 // ReportFailureAndExit logs and reports an error to kuberhealthy and then exits the program.
 // If a error occurs when reporting to kuberhealthy, the program fatals.
 func ReportFailureAndExit(err error) {
-	log.Errorln(err)
+	// log.Errorln(err)
 	err2 := kh.ReportFailure([]string{err.Error()})
 	if err2 != nil {
 		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
 	}
+	log.Infoln("Succesfully reported error to kuberhealthy")
 	os.Exit(0)
 }
