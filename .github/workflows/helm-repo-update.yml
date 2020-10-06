@@ -12,6 +12,7 @@ on:
       - 'deploy/helm/kuberhealthy/**'
 jobs:
   build:
+    name: Update chart and repo
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
