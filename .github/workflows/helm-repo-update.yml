@@ -20,7 +20,7 @@ jobs:
         ref: master
  
     - name: modify Chart.yaml if triggered by new published release tag
-      if: ${{ github.ref == v[0-9]+.[0-9]+.[0-9]+ }}
+      if: ${{ github.ref == 'v'[0-9]+'.'[0-9]+'.'[0-9]+ }}
       run: |
         sed "s/^appVersion:.*/appVersion: ${GITHUB_REF##*/}/" ./deploy/helm/kuberhealthy/Chart.yaml > ./deploy/helm/kuberhealthy/Chart.yaml.temp
         sed "s/^version:.*/version: $GITHUB_RUN_ID/" ./deploy/helm/kuberhealthy/Chart.yaml.temp > ./deploy/helm/kuberhealthy/Chart.yaml
