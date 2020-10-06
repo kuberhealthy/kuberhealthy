@@ -11,11 +11,14 @@ spec:
       - env:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
           - name: DOMAIN_NAME
-            value: "google.com"
+            value: "kubernetes.default"
           # If not using default SSL port of 443, port env variable must be updated  
           - name: PORT
             value: "443"
-        image: kuberhealthy/ssl-handshake-check:v1.2.0
+          # For internal, self-signed certs, set to "true" and the handshake check will attempt to automatically retrieve the host certificate
+          - name: SELF_SIGNED
+            value: "true"
+        image: kuberhealthy/ssl-handshake-check:v3.0.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
