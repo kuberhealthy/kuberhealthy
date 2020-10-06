@@ -7,8 +7,10 @@ package ssl_util
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"io/ioutil"
 	"net"
+	"os"
 	"strconv"
 	"time"
 
@@ -17,67 +19,148 @@ import (
 
 var TimeoutSeconds = 10
 
-// CertHandshake performs a basic TLS/SSL handshake on the specified host/port, returning any errors
-func CertHandshake(host, port string) error {
-	log.Info("Testing SSL handshake on host ", host, " over port ", port)
+// fileUploaded returns 'true' if the pem formatted cert has been mounted at /etc/ssl/selfsign/certificate.crt
+func fileUploaded() bool {
+	var certUploaded bool
+	if _, err := os.Stat("/etc/ssl/selfsign/certificate.crt"); err == nil {
+		log.Info("Certificate file uploaded from spec")
+		certUploaded = true
+	}
+	return certUploaded
+}
+
+// certFromHost makes an insecure connection to the host specified and returns the SSL cert that matches the hostname
+func certFromHost(host, port string) (*x509.Certificate, error) {
+	var hostCert *x509.Certificate
 	d := &net.Dialer{
 		Timeout: time.Duration(TimeoutSeconds) * time.Second,
 	}
 
+	// Connect insecurely to the host, range through all certificates found, find the cert that matches the host name for the check, and return it
 	conn, err := tls.DialWithDialer(d, "tcp", host+":"+port, &tls.Config{
-		InsecureSkipVerify: false,
+		InsecureSkipVerify: true,
 		MinVersion:         tls.VersionTLS12,
 	})
 
 	if err != nil {
-		log.Warnln([]*x509.Certificate{&x509.Certificate{}}, "", err)
-		return err
+		log.Error("Error retrieving host certificate: ", []*x509.Certificate{&x509.Certificate{}}, "", err)
+		return hostCert, err
 	}
-	defer conn.Close()
 
-	err = conn.Handshake()
-	if err != nil {
-		log.Warn("Unable to complete SSL handshake with host ", host+": ", err)
-		return err
+	defer conn.Close()
+	cert := conn.ConnectionState().PeerCertificates
+
+	for _, clientCert := range cert {
+		for _, certDNS := range clientCert.DNSNames {
+			if certDNS == host {
+				hostCert = clientCert
+			}
+		}
 	}
-	log.Info("SSL handshake to host ", host, " completed successfully")
-	return err
+
+	if hostCert == nil {
+		err = errors.New("Empty certificate returned")
+	}
+	return hostCert, err
 }
 
-// SelfsignHandshake takes a self-signed cert from a configmap volume, appends it to the system cert store, performs a TLS handshake on the host/port, and returns any errors
-func SelfsignHandshake(host, port string) error {
-	var selfsignCert = "/etc/ssl/selfsign/certificate.crt"
-	log.Info("Testing SSL handshake on host ", host, " over port ", port)
-	d := &net.Dialer{
-		Timeout: time.Duration(TimeoutSeconds) * time.Second,
+// poolFromHost checks for a pem certificate mounted by the check config map, and if one is not present it creates a new cert pool using the CertFromHost function
+func poolFromHost(host, port string) (*x509.CertPool, error) {
+	rootCAs, err := x509.SystemCertPool()
+	if err != nil {
+		log.Warn("Unable to retrieve system certificate pool: ", err)
 	}
 
-	// read the system cert pool, proceed with an empty pool if no certs found
-	rootCAs, _ := x509.SystemCertPool()
 	if rootCAs == nil {
 		rootCAs = x509.NewCertPool()
 	}
-	// read the user specified cert file; throw a fatal error if file cannot be read
+
+	hostCert, err := certFromHost(host, port)
+	if hostCert == nil {
+		err = errors.New("Empty certificate returned")
+	}
+
+	if hostCert != nil {
+		rootCAs.AddCert(hostCert)
+		log.Info("Certificate from host successfully appended to cert pool")
+	}
+	return rootCAs, err
+}
+
+// poolFromFile checks for a pem certificate mounted by the check config map, and appends it to the system cert pool
+func poolFromFile(host, port string) (*x509.CertPool, error) {
+	var selfsignCert string
+	rootCAs, err := x509.SystemCertPool()
+
+	if rootCAs == nil {
+		rootCAs = x509.NewCertPool()
+	}
+
+	selfsignCert = "/etc/ssl/selfsign/certificate.crt"
 	certs, err := ioutil.ReadFile(selfsignCert)
 	if err != nil {
-		log.Fatalf("Failed to append %q to RootCAs: %v", selfsignCert, err)
+		log.Error("Error reading certificate file: ", selfsignCert, err)
 	}
 
 	// append the user cert to the system cert pool
 	if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
-		log.Println("Failed to import cert ", selfsignCert, ", proceeding with default cert store")
+		log.Error("Failed to import cert from file: ", selfsignCert)
+		return rootCAs, err
+	}
+	log.Info("Certificate file successfully appended to cert pool")
+
+	return rootCAs, err
+}
+
+// selfSignPool determines if an SSL cert has been provided via configmap, and returns an error and a certificate map to check against
+func selfSignPool(host, port string) (*x509.CertPool, error) {
+	certProvided := fileUploaded()
+	if certProvided {
+		certPool, err := poolFromFile(host, port)
+		return certPool, err
+	}
+	certPool, err := poolFromHost(host, port)
+
+	return certPool, err
+}
+
+// SSLHandshake imports a certificate pool, a
+func CertHandshake(host, port string, selfSigned bool) error {
+	var certPool *x509.CertPool
+	var err error
+
+	// Check if the check is being run for a self-signed cert. If so, check to see if the file has been uploaded
+	if selfSigned {
+		certPool, err = selfSignPool(host, port)
+		if err != nil {
+			log.Error("Error generating self-signed certificate pool: ", err)
+			return err
+		}
+	}
+
+	// Generaete a default system cert pool if the check is not for a self-signed certificate
+	if !selfSigned {
+		certPool, err = x509.SystemCertPool()
+		if err != nil {
+			log.Warn("Unable to retrieve system certificate pool: ", err)
+		}
+	}
+
+	d := &net.Dialer{
+		Timeout: time.Duration(TimeoutSeconds) * time.Second,
 	}
 
 	conn, err := tls.DialWithDialer(d, "tcp", host+":"+port, &tls.Config{
 		InsecureSkipVerify: false,
 		MinVersion:         tls.VersionTLS12,
-		RootCAs:            rootCAs,
+		RootCAs:            certPool,
 	})
 
 	if err != nil {
-		log.Warnln([]*x509.Certificate{&x509.Certificate{}}, "", err)
+		log.Error("Error performing TLS handshake: ", []*x509.Certificate{&x509.Certificate{}}, "", err)
 		return err
 	}
+
 	defer conn.Close()
 
 	err = conn.Handshake()
@@ -99,7 +182,7 @@ func CertExpiry(host, port, days string, overrideTLS bool) (bool, bool, error) {
 		Timeout: time.Duration(TimeoutSeconds) * time.Second,
 	}
 
-	// InsecureSkipVerify should be false except for testing purposes or checking a self-signed certificate
+	// InsecureSkipVerify should be false unless checking a self-signed certificate
 	conn, err := tls.DialWithDialer(d, "tcp", host+":"+port, &tls.Config{
 		InsecureSkipVerify: overrideTLS,
 		MinVersion:         tls.VersionTLS12,
