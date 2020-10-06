@@ -21,20 +21,20 @@ jobs:
         ref: master
  
     - name: modify Chart.yaml if triggered by new published release tag
-      if: ${{ github.ref == 'v'[0-9]+'.'[0-9]+'.'[0-9]+ }}
+      if: ${{ github.ref == 'v[0-9]+.[0-9]+.[0-9]+' }}
       run: |
         sed "s/^appVersion:.*/appVersion: ${GITHUB_REF##*/}/" ./deploy/helm/kuberhealthy/Chart.yaml > ./deploy/helm/kuberhealthy/Chart.yaml.temp
         sed "s/^version:.*/version: $GITHUB_RUN_ID/" ./deploy/helm/kuberhealthy/Chart.yaml.temp > ./deploy/helm/kuberhealthy/Chart.yaml
 
     - name: modify Chart.yaml if triggered by ./deploy/helm/kuberhealthy modification
-      if: ${{ github.ref != v[0-9]+.[0-9]+.[0-9]+ }}
+      if: ${{ github.ref != 'v[0-9]+.[0-9]+.[0-9]+' }}
       run: |
         sed "s/^version:.*/version: $GITHUB_RUN_ID/" ./deploy/helm/kuberhealthy/Chart.yaml > ./deploy/helm/kuberhealthy/Chart.yaml.temp
         mv ./deploy/helm/kuberhealthy/Chart.yaml.temp ./deploy/helm/kuberhealthy/Chart.yaml
         
 # script with "helm repo" cmds and GH env vars which runs if a new release tag with symantic version is published
     - name: update with version tag
-      if: ${{ github.ref == v[0-9]+.[0-9]+.[0-9]+ }}
+      if: ${{ github.ref == 'v[0-9]+.[0-9]+.[0-9]+' }}
       uses: stefanprodan/kube-tools@v1
       with:
         helmv3: 3.2.1
@@ -47,7 +47,7 @@ jobs:
 
 # script with "helm repo" cmds and GH env vars which runs if a change to 'deploy/helm/kuberhealthy/**' is pushed to master
     - name: update without version tag
-      if: ${{ github.ref != v[0-9]+.[0-9]+.[0-9]+ }}
+      if: ${{ github.ref != 'v[0-9]+.[0-9]+.[0-9]+' }}
       uses: stefanprodan/kube-tools@v1
       with:
         helmv3: 3.2.1
