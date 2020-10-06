@@ -42,7 +42,7 @@ func main() {
 	listOpts := v1.ListOptions{}
 	eventList, err := e.List(context.TODO(), listOpts)
 	if err != nil {
-		log.Errorln("Error listing events")
+		log.Fatalln("Error listing events with error:", err)
 	}
 
 	//range over eventList for cronjob events that match provided reason
