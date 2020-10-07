@@ -39,3 +39,67 @@ spec:
           cpu: 10m
           memory: 50Mi
 ```
+
+
+### Example Kuberhealthy Jobs
+
+Daemonset Job:
+```yaml
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyJob
+metadata:
+  name: daemonset-job
+  namespace: kuberhealthy
+spec:
+  # Make sure this Kuberhealthy check timeout is GREATER THAN the daemonset checker timeout
+  # set in the env var CHECK_POD_TIMEOUT. Default is set to 5m (5 minutes).
+  timeout: 3m
+  podSpec:
+    containers:
+      - env:
+          - name: POD_NAMESPACE
+            value: "kuberhealthy"
+        image: kuberhealthy/daemonset-check:v3.1.0
+        imagePullPolicy: IfNotPresent
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
+    serviceAccountName: daemonset-khcheck
+
+```
+
+Deployment Job:
+```yaml
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyJob
+metadata:
+  name: deployment-job
+  namespace: kuberhealthy
+spec:
+  timeout: 3m
+  podSpec:
+    containers:
+    - name: deployment-job
+      image: kuberhealthy/deployment-check:v1.5.1
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: CHECK_DEPLOYMENT_REPLICAS
+          value: "4"
+        - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
+          value: "true"
+        - name: CHECK_DEPLOYMENT_NAME
+          value: "deployment-job-deployment"
+        - name: CHECK_SERVICE_NAME
+          value: "deployment-job-svc"
+      resources:
+        requests:
+          cpu: 25m
+          memory: 15Mi
+        limits:
+          cpu: 40m
+      restartPolicy: Never
+    serviceAccountName: deployment-sa
+    terminationGracePeriodSeconds: 60
+```
