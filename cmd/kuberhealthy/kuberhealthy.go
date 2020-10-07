@@ -387,6 +387,7 @@ func (k *Kuberhealthy) monitorKHJobs(ctx context.Context) {
 					continue
 				}
 				log.Debugln("KHJob is not new, in phase:", kj.Spec.Phase, "Skipping added event")
+				continue
 			case watch.Error:
 				log.Debugln("khjob monitor saw an error event")
 				e := khj.Object.(*metav1.Status)
@@ -394,6 +395,7 @@ func (k *Kuberhealthy) monitorKHJobs(ctx context.Context) {
 				continue
 			default:
 				log.Warningln("khjob monitor saw an unknown event type and ignored it:", khj.Type)
+				continue
 			}
 		}
 
@@ -1328,19 +1330,16 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		}
 	}
 
-	checkDetails := k.stateReflector.CurrentStatus().CheckDetails
-	jobDetails := k.stateReflector.CurrentStatus().JobDetails
 	checkRunDuration := time.Duration(0).String()
-	var khWorkload health.KHWorkload
-
-	if _, exists := checkDetails[ipReport.Namespace+"/"+ipReport.Name]; exists {
+	khWorkload := determineKHWorkload(ipReport.Name, ipReport.Namespace)
+	if khWorkload == health.KHCheck {
+		checkDetails := k.stateReflector.CurrentStatus().CheckDetails
 		checkRunDuration = checkDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
-		khWorkload = health.KHCheck
 	}
 
-	if _, exists := jobDetails[ipReport.Namespace+"/"+ipReport.Name]; exists {
+	if khWorkload == health.KHJob {
+		jobDetails := k.stateReflector.CurrentStatus().JobDetails
 		checkRunDuration = jobDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
-		khWorkload = health.KHJob
 	}
 
 	// create a details object from our incoming status report before storing it as a khstate custom resource
