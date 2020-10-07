@@ -468,7 +468,7 @@ func (ext *Checker) watchForCheckerPodDelete(ctx context.Context) chan error {
 			waitForDeleteChan <- nil
 		case <-ext.shutdownCTX.Done(): // we saw an abort (cancel) from upstream
 			ext.log("pod shutdown monitor terminating because the shutdown context on the external checker was done")
-			waitForDeleteChan <- errors.New("saw check context expire while waiting for deleted event")
+			//waitForDeleteChan <- errors.New("saw check context expire while waiting for deleted event")
 		}
 		watcher.Stop()
 	}()
@@ -683,7 +683,7 @@ func (ext *Checker) RunOnce() error {
 		return ext.newError(errorMessage)
 	case err := <-podDeletedChan: // pod was removed
 		if err != nil {
-			ext.log("error from pod shutdown watcher when watching for checker pod to report results:", err.Error)
+			ext.log("error from pod shutdown watcher when watching for checker pod to report results:", err.Error())
 		}
 		ext.log("pod removed unexpectedly while waiting for pod to report results")
 		return ErrPodRemovedExpectedly
