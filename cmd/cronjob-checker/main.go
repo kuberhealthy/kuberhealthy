@@ -33,7 +33,7 @@ func main() {
 	}
 
 	// //create events client
-	client := kubernetesClient.EventsV1()
+	client := kubernetesClient.EventsV1beta1()
 
 	//retrive events from namespace
 	log.Infoln("Begining to retrieve events from cronjob " + cronJob)
