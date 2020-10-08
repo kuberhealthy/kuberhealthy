@@ -7,6 +7,7 @@ spec:
   runInterval: 1h
   timeout: 10m
   podSpec:
+    serviceAccountName: cronjob-checker
     containers:
       - name: cronjob-checker
         image: jdowni000/cronjob-checker:dev
@@ -28,3 +29,37 @@ spec:
             cpu: 25m
         restartPolicy: Always
     terminationGracePeriodSeconds: 5
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cronjob-checker
+rules:
+  - apiGroups:
+      - ""
+      - "events.k8s.io"
+    resources:
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cronjob-checker
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cronjob-checker
+subjects:
+  - kind: ServiceAccount
+    name: cronjob-checker
+    namespace: kuberhealthy
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cronjob-checker
+  namespace: kuberhealthy
