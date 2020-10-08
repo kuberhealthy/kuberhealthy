@@ -10,7 +10,7 @@ spec:
     serviceAccountName: cronjob-checker
     containers:
       - name: cronjob-checker
-        image: jdowni000/cronjob-checker:dev2
+        image: kuberhealthy/cronjob-checker:1.0.0
         imagePullPolicy: IfNotPresent
         env:
           - name: CRONJOB

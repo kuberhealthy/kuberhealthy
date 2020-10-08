@@ -1,5 +1,5 @@
 build:
-	docker build -t jdowni000/cronjob-checker:dev2 -f Dockerfile ../../
+	docker build -t kuberhealthy/cronjob-checker:1.0.0 -f Dockerfile ../../
 
 push:
-	docker push jdowni000/cronjob-checker:dev2
+	docker push kuberhealthy/cronjob-checker:1.0.0

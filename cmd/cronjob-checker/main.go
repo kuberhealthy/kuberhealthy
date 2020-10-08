@@ -47,7 +47,7 @@ func main() {
 
 	//range over eventList for cronjob events that match provided reason
 	for _, e := range eventList.Items {
-		log.Infoln(e.Reason)
+		log.Debugln(e.Reason)
 		if reason == e.Reason {
 			log.Infoln("There was an event with reason:" + e.Reason + " for cronjob" + cronJob)
 			reportErr := fmt.Errorf("cronjob: " + cronJob + " has an event with reason: " + reason)
