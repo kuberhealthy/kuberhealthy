@@ -1,3 +1,19 @@
+## CronJob Event Checker
+
+The cronjob-checker reaches out to a specified cronjob in a given namespace and lists events. It then ranges over the events for a specified reason. If there is an event with the specified reason in the given cronjob it will alert kuberhealthy.
+
+You can specify the cronjob to check with the `CRONJOB` environment variable in the `.yaml` file.
+
+You can specify the namespace to check with the `NAMESPACE` environment variable in the `.yaml` file.
+
+You can specify the event reason to check with the `REASON` environment variable in the `.yaml` file.
+
+The check will exit if it is unable to retrieve events from the cronjob in a given namespace.
+
+#### Example CronJob Event Checker
+
+```yaml
+---
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
@@ -61,3 +77,10 @@ kind: ServiceAccount
 metadata:
   name: cronjob-checker
   namespace: kuberhealthy
+```
+
+#### How-to
+
+Make sure you are using the latest release of Kuberhealthy 2.0.0.
+
+Apply a `.yaml` file similar to the one shown above with `kubectl apply -f`
