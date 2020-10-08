@@ -93,7 +93,7 @@ func runDeploymentCheck() {
 	// Apply the service struct manifest to the cluster.
 	var serviceResult ServiceResult
 	select {
-	case serviceResult = <-createService(serviceConfig):
+	case serviceResult = <-createService(ctx, serviceConfig):
 		// Handle errors when the service creation process completes.
 		if serviceResult.Err != nil {
 			log.Errorln("error occurred creating service in cluster:", serviceResult.Err)
@@ -118,10 +118,8 @@ func runDeploymentCheck() {
 		reportErrorsToKuberhealthy([]string{"failed to create service within timeout"})
 		return
 	}
-
-	// Get an ingress hostname associated with the service.
-	// hostname := getServiceLoadBalancerHostname()
-	ipAddress := getServiceClusterIP()
+	
+	ipAddress := getServiceClusterIP(ctx)
 	if len(ipAddress) == 0 {
 		// If the retrieved address is empty or nil, clean up and exit.
 		log.Infoln("Cleaning up check and exiting because the cluster IP is nil: ", ipAddress)
@@ -295,7 +293,7 @@ func cleanUpOrphanedResources(ctx context.Context) chan error {
 
 		defer close(cleanUpChan)
 
-		svcExists, err := findPreviousService()
+		svcExists, err := findPreviousService(ctx)
 		if err != nil {
 			log.Warnln("Failed to find previous service:", err.Error())
 		}
