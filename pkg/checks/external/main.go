@@ -465,9 +465,9 @@ func (ext *Checker) watchForCheckerPodDelete(ctx context.Context) chan error {
 			ext.log("pod shutdown monitor stopping gracefully")
 		case <-ext.waitForDeletedEvent(watcher): // we saw the watched pod remove
 			ext.log("pod shutdown monitor witnessed the checker pod being removed")
-			waitForDeleteChan <- nil
-		case <-ext.shutdownCTX.Done(): // we saw an abort (cancel) from upstream
-			ext.log("pod shutdown monitor terminating because the shutdown context on the external checker was done")
+			waitForDeleteChan <- fmt.Errorf("pod shutdown monitor witnessed the checker pod being removed")
+		//case <-ext.shutdownCTX.Done(): // we saw an abort (cancel) from upstream
+		//	ext.log("pod shutdown monitor terminating because the shutdown context on the external checker was done")
 			//waitForDeleteChan <- errors.New("saw check context expire while waiting for deleted event")
 		}
 		watcher.Stop()
@@ -656,9 +656,11 @@ func (ext *Checker) RunOnce() error {
 	case err := <-podDeletedChan: // pod removed unexpectedly
 		if err != nil {
 			ext.log("error from pod shutdown watcher when watching for checker pod to start:", err.Error())
+			ext.log("pod removed unexpectedly while waiting for pod to start running")
+			return ErrPodRemovedExpectedly
 		}
-		ext.log("pod removed unexpectedly while waiting for pod to start running")
-		return ErrPodRemovedExpectedly
+		ext.log("pod shutdown monitor shutting down")
+		return nil
 	case err = <-ext.waitForPodStart(): // pod started
 		if err != nil {
 			ext.cleanup()
@@ -684,9 +686,11 @@ func (ext *Checker) RunOnce() error {
 	case err := <-podDeletedChan: // pod was removed
 		if err != nil {
 			ext.log("error from pod shutdown watcher when watching for checker pod to report results:", err.Error())
+			ext.log("pod removed unexpectedly while waiting for pod to report results")
+			return ErrPodRemovedExpectedly
 		}
-		ext.log("pod removed unexpectedly while waiting for pod to report results")
-		return ErrPodRemovedExpectedly
+		ext.log("pod shutdown monitor shutting down")
+		return nil
 	case err = <-ext.waitForPodStatusUpdate(lastReportTime): // pod reported in
 		if err != nil {
 			errorMessage := "found an error when waiting for pod status to update: " + err.Error()
