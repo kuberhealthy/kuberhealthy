@@ -91,10 +91,11 @@ func sendReport(s status.Report) error {
 	var resp *http.Response
 	err = backoff.Retry(func() error {
 		var err error
+		writeLog("DEBUG: Making POST request to kuberhealthy:")
 		resp, err = http.Post(url, "application/json", bytes.NewBuffer(b))
 		return err
 	}, exponentialBackoff)
-	if err != nil {
+	if err != nil || resp.StatusCode != http.StatusOK {
 		writeLog("ERROR: got an error sending POST to kuberhealthy:", err.Error())
 		return fmt.Errorf("bad POST request to kuberhealthy status reporting url: %w", err)
 	}
