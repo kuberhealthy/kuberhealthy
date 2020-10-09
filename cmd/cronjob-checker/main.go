@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,12 +26,33 @@ var namespace = os.Getenv("NAMESPACE")
 // reason is a varaible to search for event types
 var reason = os.Getenv("REASON")
 
+func init() {
+	// set debug mode for nodeCheck pkg
+	nodeCheck.EnableDebugOutput()
+}
+
 func main() {
+
+	// create context
+	checkTimeLimit := time.Minute * 1
+	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
 
 	// create kubernetes client
 	kubernetesClient, err := kubeClient.Create("")
 	if err != nil {
 		log.Errorln("Error creating kubeClient with error" + err.Error())
+	}
+
+	// hits kuberhealthy endpoint to see if node is ready
+	err = nodeCheck.WaitForKuberhealthy(ctx)
+	if err != nil {
+		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
+	}
+
+	// fetches kube proxy to see if it is ready
+	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy", "kube-system")
+	if err != nil {
+		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
 	}
 
 	// //create events client
@@ -47,7 +70,7 @@ func main() {
 
 	//range over eventList for cronjob events that match provided reason
 	for _, e := range eventList.Items {
-		log.Debugln(e.Reason)
+		// log.Debugln(e.Reason)
 		if reason == e.Reason {
 			log.Infoln("There was an event with reason:" + e.Reason + " for cronjob" + cronJob)
 			reportErr := fmt.Errorf("cronjob: " + cronJob + " has an event with reason: " + reason)
