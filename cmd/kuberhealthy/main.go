@@ -25,6 +25,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
+	khjobcrd "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
@@ -73,6 +74,9 @@ var khCheckClient *khcheckcrd.KuberhealthyCheckClient
 const checkCRDGroup = "comcast.github.io"
 const checkCRDVersion = "v1"
 const checkCRDResource = "khchecks"
+
+// instantiate kuberhealthy job client CRD
+var khJobClient *khjobcrd.KHJobV1Client
 
 // the global kubernetes client
 var kubernetesClient *kubernetes.Clientset
@@ -238,6 +242,13 @@ func initKubernetesClients() error {
 		return err
 	}
 	khStateClient = stateClient
+
+	// make a new crd job client
+	jobClient, err := khjobcrd.Client(cfg.kubeConfigFile)
+	if err != nil {
+		return err
+	}
+	khJobClient = jobClient
 
 	return nil
 }
