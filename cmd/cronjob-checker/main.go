@@ -17,9 +17,6 @@ import (
 // kubeConfigFile is a variable containing file path of Kubernetes config files
 var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
-// cronJob name
-var cronJob = os.Getenv("CRONJOB")
-
 // namespace is a variable to allow code to target all namespaces or a single namespace
 var namespace = os.Getenv("NAMESPACE")
 
@@ -29,6 +26,16 @@ var reason = os.Getenv("REASON")
 func init() {
 	// set debug mode for nodeCheck pkg
 	nodeCheck.EnableDebugOutput()
+
+	// check to see if REASON in yaml is nil
+	if reason == "" {
+		log.Fatalln("Error: Must provide a REASON in cronjob-checker.yaml")
+	}
+
+	// check to see if NAMESPACE in yaml is nil
+	if namespace == "" {
+		log.Fatalln("Error: Must provide a NAMESPACE in cronjob-checker.yaml")
+	}
 }
 
 func main() {
@@ -59,7 +66,7 @@ func main() {
 	client := kubernetesClient.EventsV1beta1()
 
 	//retrive events from namespace
-	log.Infoln("Begining to retrieve events from cronjob " + cronJob)
+	log.Infoln("Begining to retrieve events from cronjobs")
 	e := client.Events(namespace)
 
 	listOpts := v1.ListOptions{}
@@ -72,13 +79,13 @@ func main() {
 	for _, e := range eventList.Items {
 		// log.Debugln(e.Reason)
 		if reason == e.Reason {
-			log.Infoln("There was an event with reason:" + e.Reason + " for cronjob" + cronJob)
-			reportErr := fmt.Errorf("cronjob: " + cronJob + " has an event with reason: " + reason)
+			log.Infoln("There was an event with reason:" + e.Reason + " for cronjob" + e.Name " in namespace " + namespace )
+			reportErr := fmt.Errorf("cronjob: " + e.Name + " has an event with reason: " + reason)
 			ReportFailureAndExit(reportErr)
 		}
 	}
 
-	log.Infoln("Success! There were no events with reason " + reason + " for cronjob " + cronJob)
+	log.Infoln("Success! There were no events with reason " + reason + " for cronjobs in namespace " + namespace)
 	err = kh.ReportSuccess()
 	if err != nil {
 		log.Fatalln("error when reporting to kuberhealthy:", err.Error())

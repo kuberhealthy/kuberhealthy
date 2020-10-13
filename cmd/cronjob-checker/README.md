@@ -1,8 +1,6 @@
 ## CronJob Event Checker
 
-The cronjob-checker reaches out to a specified cronjob in a given namespace and lists events. It then ranges over the events for a specified reason. If there is an event with the specified reason in the given cronjob it will alert kuberhealthy.
-
-You can specify the cronjob to check with the `CRONJOB` environment variable in the `.yaml` file.
+The cronjob-checker reaches out to a specified namespace and retrieves events from cronjobs. It then ranges over the events for a specified reason. If there is an event with the specified reason it will alert kuberhealthy.
 
 You can specify the namespace to check with the `NAMESPACE` environment variable in the `.yaml` file.
 
@@ -26,11 +24,9 @@ spec:
     serviceAccountName: cronjob-checker
     containers:
       - name: cronjob-checker
-        image: kuberhealthy/cronjob-checker:v1.0.0
+        image: kuberhealthy/cronjob-checker:v1.1.0
         imagePullPolicy: IfNotPresent
         env:
-          - name: CRONJOB
-            value: "check-reaper"
           - name: NAMESPACE
             value: "kuberhealthy"
           - name: REASON
