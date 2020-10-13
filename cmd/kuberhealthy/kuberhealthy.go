@@ -939,7 +939,7 @@ func (k *Kuberhealthy) fetchPodByIPForDuration(remoteIP string, d time.Duration)
 
 		p, err := k.fetchPodByIP(remoteIP)
 		if err != nil {
-			log.Warningln("was unable to find calling pod with remote IP ", remoteIP, " while watching for duration. Error: " + err.Error())
+			log.Warningln("was unable to find calling pod with remote IP ", remoteIP, " while watching for duration. Error: "+err.Error())
 			time.Sleep(time.Second)
 			continue
 		}
@@ -1151,7 +1151,6 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 // this will return the state of ALL found checks.
 // Failures to fetch CRD state return an error.
 func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
-	log.Debugln("getCurrentState: ", namespaces)
 	if len(namespaces) != 0 {
 		return k.getCurrentStatusForNamespaces(namespaces)
 	}

@@ -28,14 +28,6 @@ data:
           severity: critical
         annotations:
           description: Kuberhealthy shows that the cluster is not healthy
-      - alert: DeadMansSwitch
-        expr: vector(1)
-        labels:
-          severity: critical
-        annotations:
-          description: This is a DeadMansSwitch meant to ensure that the entire Alerting
-          pipeline is functional.
-        summary: Alerting DeadMansSwitch
 {{- end -}}
 {{- end -}}
 ---
