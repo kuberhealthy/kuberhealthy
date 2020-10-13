@@ -24,7 +24,7 @@ import (
 // runDeploymentCheck sets up a deployment and applies it to the cluster.
 // Sets up a deployment and service and uses the client to deploy the test deployment and service.
 // Attempts to hit the service hostname endpoint, looking for a 200 and reports a success if able to retrieve a 200.
-func runDeploymentCheck() {
+func runDeploymentCheck(ctx context.Context) {
 
 	log.Infoln("Waiting for node to become ready before starting check.")
 	waitForNodeToJoin(ctx)
@@ -141,7 +141,7 @@ func runDeploymentCheck() {
 	// Utilize a backoff loop for the request, the hostname needs to be allotted enough time
 	// for the hostname to resolve and come up.
 	select {
-	case err := <-makeRequestToDeploymentCheckService(ipAddress):
+	case err := <-makeRequestToDeploymentCheckService(ctx, ipAddress):
 		if err != nil {
 			// Handle errors when the HTTP request process completes.
 			log.Errorln("error occurred making request to service in cluster:", err)
@@ -207,7 +207,7 @@ func runDeploymentCheck() {
 
 		// Hit the service again, looking for a 200.
 		select {
-		case err := <-makeRequestToDeploymentCheckService(ipAddress):
+		case err := <-makeRequestToDeploymentCheckService(ctx, ipAddress):
 			// Handle errors when the HTTP request process completes.
 			if err != nil {
 				log.Errorln("error occurred creating service in cluster:", err)
