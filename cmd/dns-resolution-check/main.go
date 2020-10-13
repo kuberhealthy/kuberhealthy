@@ -75,7 +75,7 @@ func init() {
 	}
 
 	NodeName = os.Getenv("NODE_NAME")
-	if len(Hostname) == 0 {
+	if len(NodeName) == 0 {
 		log.Errorln("ERROR: Failed to retrieve NODE_NAME environment variable.")
 		return
 	}
