@@ -138,6 +138,8 @@ check:
       tag: v1.2.2
     extraEnvs:
     nodeSelector: {}
+    cluster:
+      enabled: false
   networkConnection:
     enabled: false
     runInterval: 30m
