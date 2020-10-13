@@ -66,7 +66,7 @@ func runDeploymentCheck() {
 	// Apply the deployment struct manifest to the cluster.
 	var deploymentResult DeploymentResult
 	select {
-	case deploymentResult = <-createDeployment(deploymentConfig):
+	case deploymentResult = <-createDeployment(ctx, deploymentConfig):
 		// Handle errors when the deployment creation process completes.
 		if deploymentResult.Err != nil {
 			log.Errorln("error occurred creating deployment in cluster:", deploymentResult.Err)
@@ -118,7 +118,7 @@ func runDeploymentCheck() {
 		reportErrorsToKuberhealthy([]string{"failed to create service within timeout"})
 		return
 	}
-	
+
 	ipAddress := getServiceClusterIP(ctx)
 	if len(ipAddress) == 0 {
 		// If the retrieved address is empty or nil, clean up and exit.
@@ -179,7 +179,7 @@ func runDeploymentCheck() {
 		// Apply the deployment struct manifest to the cluster.
 		var updateDeploymentResult DeploymentResult
 		select {
-		case updateDeploymentResult = <-updateDeployment(rolledUpdateConfig):
+		case updateDeploymentResult = <-updateDeployment(ctx, rolledUpdateConfig):
 			// Handle errors when the deployment creation process completes.
 			if updateDeploymentResult.Err != nil {
 				log.Errorln("error occurred applying rolling-update to deployment in cluster:", updateDeploymentResult.Err)
@@ -288,7 +288,7 @@ func cleanUpOrphanedResources(ctx context.Context) chan error {
 
 	cleanUpChan := make(chan error)
 
-	go func(c context.Context) {
+	go func() {
 		log.Infoln("Wiping all found orphaned resources belonging to this check.")
 
 		defer close(cleanUpChan)
@@ -301,7 +301,7 @@ func cleanUpOrphanedResources(ctx context.Context) chan error {
 			log.Infoln("Found previous service.")
 		}
 
-		deploymentExists, err := findPreviousDeployment()
+		deploymentExists, err := findPreviousDeployment(ctx)
 		if err != nil {
 			log.Warnln("Failed to find previous deployment:", err.Error())
 		}
@@ -310,11 +310,11 @@ func cleanUpOrphanedResources(ctx context.Context) chan error {
 		}
 
 		if svcExists || deploymentExists {
-			cleanUpChan <- cleanUp(c)
+			cleanUpChan <- cleanUp(ctx)
 		} else {
 			cleanUpChan <- nil
 		}
-	}(ctx)
+	}()
 
 	return cleanUpChan
 }

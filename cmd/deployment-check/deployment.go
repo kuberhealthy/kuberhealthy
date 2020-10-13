@@ -165,7 +165,7 @@ type DeploymentResult struct {
 }
 
 // createDeployment creates a deployment in the cluster with a given deployment specification.
-func createDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
+func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan DeploymentResult {
 
 	createChan := make(chan DeploymentResult)
 
@@ -176,7 +176,7 @@ func createDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 
 		result := DeploymentResult{}
 
-		deployment, err := client.AppsV1().Deployments(checkNamespace).Create(context.TODO(), deploymentConfig, metav1.CreateOptions{})
+		deployment, err := client.AppsV1().Deployments(checkNamespace).Create(ctx, deploymentConfig, metav1.CreateOptions{})
 		if err != nil {
 			log.Infoln("Failed to create a deployment in the cluster:", err)
 			result.Err = err
@@ -195,7 +195,7 @@ func createDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 			log.Infoln("Watching for deployment to exist.")
 
 			// Watch that it is up.
-			watch, err := client.AppsV1().Deployments(checkNamespace).Watch(context.TODO(), metav1.ListOptions{
+			watch, err := client.AppsV1().Deployments(checkNamespace).Watch(ctx, metav1.ListOptions{
 				Watch:         true,
 				FieldSelector: "metadata.name=" + deployment.Name,
 				// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
@@ -363,7 +363,7 @@ func deleteDeploymentAndWait(ctx context.Context) error {
 			time.Sleep(time.Second * 5)
 
 			// Watch that it is gone by listing repeatedly.
-			deploymentList, err := client.AppsV1().Deployments(checkNamespace).List(context.TODO(), metav1.ListOptions{
+			deploymentList, err := client.AppsV1().Deployments(checkNamespace).List(ctx, metav1.ListOptions{
 				FieldSelector: "metadata.name=" + checkDeploymentName,
 				// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
 			})
@@ -378,7 +378,7 @@ func deleteDeploymentAndWait(ctx context.Context) error {
 				// If the deployment exists, try to delete it.
 				if deploy.GetName() == checkDeploymentName {
 					deploymentExists = true
-					err = deleteDeployment()
+					err = deleteDeployment(ctx)
 					if err != nil {
 						log.Errorln("Error when running a delete on deployment", checkDeploymentName+":", err.Error())
 					}
@@ -396,7 +396,7 @@ func deleteDeploymentAndWait(ctx context.Context) error {
 	}()
 
 	// Send a delete on the deployment.
-	err := deleteDeployment()
+	err := deleteDeployment(ctx)
 	if err != nil {
 		log.Infoln("Could not delete deployment:", checkDeploymentName)
 	}
@@ -405,7 +405,7 @@ func deleteDeploymentAndWait(ctx context.Context) error {
 }
 
 // deleteDeployment issues a foreground delete for the check test deployment name.
-func deleteDeployment() error {
+func deleteDeployment(ctx context.Context) error {
 	log.Infoln("Attempting to delete deployment in", checkNamespace, "namespace.")
 	// Make a delete options object to delete the deployment.
 	deletePolicy := metav1.DeletePropagationForeground
@@ -416,11 +416,11 @@ func deleteDeployment() error {
 	}
 
 	// Delete the deployment and return the result.
-	return client.AppsV1().Deployments(checkNamespace).Delete(context.TODO(), checkDeploymentName, deleteOpts)
+	return client.AppsV1().Deployments(checkNamespace).Delete(ctx, checkDeploymentName, deleteOpts)
 }
 
 // cleanUpOrphanedDeployment cleans up deployments created from previous checks.
-func cleanUpOrphanedDeployment() error {
+func cleanUpOrphanedDeployment(ctx context.Context) error {
 
 	cleanUpChan := make(chan error)
 
@@ -428,7 +428,7 @@ func cleanUpOrphanedDeployment() error {
 		defer close(cleanUpChan)
 
 		// Watch that it is gone.
-		watch, err := client.AppsV1().Deployments(checkNamespace).Watch(context.TODO(), metav1.ListOptions{
+		watch, err := client.AppsV1().Deployments(checkNamespace).Watch(ctx, metav1.ListOptions{
 			Watch:         true,
 			FieldSelector: "metadata.name=" + checkDeploymentName,
 			// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
@@ -472,7 +472,7 @@ func cleanUpOrphanedDeployment() error {
 	}
 
 	// Send the delete request.
-	err := client.AppsV1().Deployments(checkNamespace).Delete(context.TODO(), checkDeploymentName, deleteOpts)
+	err := client.AppsV1().Deployments(checkNamespace).Delete(ctx, checkDeploymentName, deleteOpts)
 	if err != nil {
 		return errors.New("failed to delete previous deployment: " + err.Error())
 	}
@@ -482,11 +482,11 @@ func cleanUpOrphanedDeployment() error {
 
 // findPreviousDeployment lists deployments and checks their names and labels to determine if there should
 // be an old deployment belonging to this check that should be deleted.
-func findPreviousDeployment() (bool, error) {
+func findPreviousDeployment(ctx context.Context) (bool, error) {
 
 	log.Infoln("Attempting to find previously created deployment(s) belonging to this check.")
 
-	deploymentList, err := client.AppsV1().Deployments(checkNamespace).List(context.TODO(), metav1.ListOptions{})
+	deploymentList, err := client.AppsV1().Deployments(checkNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		log.Infoln("error listing deployments:", err)
 		return false, err
@@ -530,7 +530,7 @@ func findPreviousDeployment() (bool, error) {
 
 // updateDeployment performs an update on a deployment with a given deployment configuration.  The DeploymentResult
 // channel is notified when the rolling update is complete.
-func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
+func updateDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan DeploymentResult {
 
 	updateChan := make(chan DeploymentResult)
 
@@ -546,7 +546,7 @@ func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 		// oldPodNames := getPodNames()
 		// newPodStatuses := make(map[string]bool)
 
-		deployment, err := client.AppsV1().Deployments(checkNamespace).Update(context.TODO(), deploymentConfig, metav1.UpdateOptions{})
+		deployment, err := client.AppsV1().Deployments(checkNamespace).Update(ctx, deploymentConfig, metav1.UpdateOptions{})
 		if err != nil {
 			log.Infoln("Failed to update deployment in the cluster:", err)
 			result.Err = err
@@ -555,7 +555,7 @@ func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 		}
 
 		// Watch that it is up.
-		watch, err := client.AppsV1().Deployments(checkNamespace).Watch(context.TODO(), metav1.ListOptions{
+		watch, err := client.AppsV1().Deployments(checkNamespace).Watch(ctx, metav1.ListOptions{
 			Watch:         true,
 			FieldSelector: "metadata.name=" + deployment.Name,
 			// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
@@ -613,7 +613,7 @@ func updateDeployment(deploymentConfig *v1.Deployment) chan DeploymentResult {
 }
 
 // waitForDeploymentToDelete waits for the service to be deleted.
-func waitForDeploymentToDelete() chan bool {
+func waitForDeploymentToDelete(ctx context.Context) chan bool {
 
 	// Make and return a channel while we check that the service is gone in the background.
 	deleteChan := make(chan bool, 1)
@@ -621,7 +621,7 @@ func waitForDeploymentToDelete() chan bool {
 	go func() {
 		defer close(deleteChan)
 		for {
-			_, err := client.AppsV1().Deployments(checkNamespace).Get(context.TODO(), checkDeploymentName, metav1.GetOptions{})
+			_, err := client.AppsV1().Deployments(checkNamespace).Get(ctx, checkDeploymentName, metav1.GetOptions{})
 			if err != nil {
 				log.Debugln("error from Deployments().Get():", err.Error())
 				if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
@@ -639,10 +639,10 @@ func waitForDeploymentToDelete() chan bool {
 
 // rollingUpdateComplete checks the deployment's container images and their statuses and returns
 // a boolean based on whether or not the rolling-update is complete.
-func rollingUpdateComplete(statuses map[string]bool, oldPodNames []string) bool {
+func rollingUpdateComplete(ctx context.Context, statuses map[string]bool, oldPodNames []string) bool {
 
 	// Should be looking at pod and pod names NOT containers.
-	podList, err := client.CoreV1().Pods(checkNamespace).List(context.TODO(), metav1.ListOptions{
+	podList, err := client.CoreV1().Pods(checkNamespace).List(ctx, metav1.ListOptions{
 		// FieldSelector: "metadata.name=" + checkDeploymentName,
 		LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
 	})
@@ -709,11 +709,11 @@ func deploymentAvailable(deployment *v1.Deployment) bool {
 }
 
 // getPodNames gets the current list of pod names -- used to reference for a completed rolling update.
-func getPodNames() []string {
+func getPodNames(ctx context.Context) []string {
 	names := make([]string, 0)
 
 	// Should be looking at pod and pod names NOT containers.
-	podList, err := client.CoreV1().Pods(checkNamespace).List(context.TODO(), metav1.ListOptions{
+	podList, err := client.CoreV1().Pods(checkNamespace).List(ctx, metav1.ListOptions{
 		// FieldSelector: "metadata.name=" + checkDeploymentName,
 		LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
 	})
