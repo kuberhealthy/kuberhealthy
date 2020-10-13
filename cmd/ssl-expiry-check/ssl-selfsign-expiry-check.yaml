@@ -1,7 +1,7 @@
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: ssl-expiry
+  name: ssl-expiry-kubernetes-api
   namespace: kuberhealthy
 spec:
   runInterval: 24h
@@ -11,7 +11,7 @@ spec:
       - env:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
           - name: DOMAIN_NAME
-            value: "kubernetes.default"
+            value: "api.bravo.k8s.aort.theplatform.com"
           # If not using default SSL port of 443, port name env variable must be updated  
           - name: PORT
             value: "443"
@@ -21,7 +21,7 @@ spec:
           # Set INSECURE to "true" for self-signed certificates. If "true", the TLS handshake will be skipped. This only checks expiration status, NOT validity/security.
           - name: INSECURE
             value: "true"
-        image: kuberhealthy/ssl-expiry-check:v3.0.1
+        image: kuberhealthy/ssl-expiry-check:v3.1.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
