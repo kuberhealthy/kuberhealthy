@@ -79,7 +79,7 @@ func main() {
 		}
 	}
 
-	log.Infoln("Success! There were no events with reason " + reason + " for cronjobs in namespace " + namespace)
+	log.Infoln("There were no events with reason " + reason + " for cronjobs in namespace " + namespace)
 	err = kh.ReportSuccess()
 	if err != nil {
 		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
