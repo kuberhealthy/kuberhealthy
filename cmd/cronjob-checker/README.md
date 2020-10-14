@@ -8,6 +8,8 @@ You can specify the event reason to check with the `REASON` environment variable
 
 The check will exit if it is unable to retrieve events from the cronjob in a given namespace.
 
+namespace fields will need to be updated to applied namespace to give permissions appropriately to the check.
+
 #### Example CronJob Event Checker
 
 ```yaml
