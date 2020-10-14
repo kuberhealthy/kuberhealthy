@@ -629,7 +629,7 @@ func (ext *Checker) RunOnce() error {
 			ext.log("error from pod shutdown watcher when watching for checker pod to start:", err.Error)
 		}
 		ext.log("pod removed unexpectedly while waiting for pod to start running")
-		return ErrPodRemovedUnxpectedly
+		return ErrPodRemovedUnexpectedly
 	case err = <-ext.waitForPodStart(): // pod started
 		if err != nil {
 			ext.cleanup()
