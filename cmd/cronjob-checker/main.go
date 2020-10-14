@@ -56,12 +56,6 @@ func main() {
 		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
 	}
 
-	// fetches kube proxy to see if it is ready
-	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy", "kube-system")
-	if err != nil {
-		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
-	}
-
 	// //create events client
 	client := kubernetesClient.EventsV1beta1()
 
