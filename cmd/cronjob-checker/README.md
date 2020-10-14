@@ -6,9 +6,13 @@ You can specify the namespace to check with the `NAMESPACE` environment variable
 
 You can specify the event reason to check with the `REASON` environment variable in the `.yaml` file.
 
+The check will exit if no REASON is given in the yaml file.
+
+The check will exit if no NAMESPACE is given in the yaml file.
+
 The check will exit if it is unable to retrieve events from the cronjob in a given namespace.
 
-namespace fields will need to be updated to applied namespace to give permissions appropriately to the check.
+All namespace fields will need to be updated to applied namespace to give permissions appropriately to the check.
 
 #### Example CronJob Event Checker
 
