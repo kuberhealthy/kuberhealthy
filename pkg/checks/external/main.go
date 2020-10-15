@@ -68,6 +68,9 @@ const defaultShutdownGracePeriod = time.Minute
 // ErrPodRemovedExpectedly is a constant for the error when a pod is deleted expectedly during a check run
 var ErrPodRemovedExpectedly = errors.New("pod deleted expectedly")
 
+// ErrPodRemovedUnexpectedly is a constant for the error when a pod is deleted unexpectedly during a check run
+var ErrPodRemovedUnexpectedly = errors.New("pod deleted unexpectedly")
+
 // ErrPodDeletedBeforeRunning is a constant for the error when a pod is deleted before the check pod running
 var ErrPodDeletedBeforeRunning = errors.New("the khcheck check pod is deleted, waiting for start failed")
 
@@ -657,7 +660,7 @@ func (ext *Checker) RunOnce() error {
 		if err != nil {
 			ext.log("error from pod shutdown watcher when watching for checker pod to start:", err.Error())
 			ext.log("pod removed unexpectedly while waiting for pod to start running")
-			return ErrPodRemovedExpectedly
+			return ErrPodRemovedUnexpectedly
 		}
 		ext.log("pod shutdown monitor shutting down")
 		return nil
@@ -687,7 +690,7 @@ func (ext *Checker) RunOnce() error {
 		if err != nil {
 			ext.log("error from pod shutdown watcher when watching for checker pod to report results:", err.Error())
 			ext.log("pod removed unexpectedly while waiting for pod to report results")
-			return ErrPodRemovedExpectedly
+			return ErrPodRemovedUnexpectedly
 		}
 		ext.log("pod shutdown monitor shutting down")
 		return nil
