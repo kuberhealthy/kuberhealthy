@@ -271,7 +271,7 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 
 	// if the pod was removed, we skip this run gracefully
 	if err != nil && err.Error() == ErrPodRemovedExpectedly.Error() {
-		ext.log("pod was removed during check expectedly.  skipping this run")
+		ext.log("pod was removed during check expectedly. skipping this run")
 		return ErrPodRemovedExpectedly
 	}
 
@@ -469,9 +469,6 @@ func (ext *Checker) watchForCheckerPodDelete(ctx context.Context) chan error {
 		case <-ext.waitForDeletedEvent(watcher): // we saw the watched pod remove
 			ext.log("pod shutdown monitor witnessed the checker pod being removed")
 			waitForDeleteChan <- fmt.Errorf("pod shutdown monitor witnessed the checker pod being removed")
-		//case <-ext.shutdownCTX.Done(): // we saw an abort (cancel) from upstream
-		//	ext.log("pod shutdown monitor terminating because the shutdown context on the external checker was done")
-			//waitForDeleteChan <- errors.New("saw check context expire while waiting for deleted event")
 		}
 		watcher.Stop()
 	}()
@@ -662,8 +659,8 @@ func (ext *Checker) RunOnce() error {
 			ext.log("pod removed unexpectedly while waiting for pod to start running")
 			return ErrPodRemovedUnexpectedly
 		}
-		ext.log("pod shutdown monitor shutting down")
-		return nil
+		ext.log("pod removed expectedly. pod shutdown monitor shutting down")
+		return ErrPodRemovedExpectedly
 	case err = <-ext.waitForPodStart(): // pod started
 		if err != nil {
 			ext.cleanup()
@@ -692,8 +689,8 @@ func (ext *Checker) RunOnce() error {
 			ext.log("pod removed unexpectedly while waiting for pod to report results")
 			return ErrPodRemovedUnexpectedly
 		}
-		ext.log("pod shutdown monitor shutting down")
-		return nil
+		ext.log("pod removed expectedly. pod shutdown monitor shutting down")
+		return ErrPodRemovedExpectedly
 	case err = <-ext.waitForPodStatusUpdate(lastReportTime): // pod reported in
 		if err != nil {
 			errorMessage := "found an error when waiting for pod status to update: " + err.Error()
