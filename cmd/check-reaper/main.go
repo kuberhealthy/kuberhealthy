@@ -233,7 +233,7 @@ func podConditions(pod v1.Pod, duration float64, phase v1.PodPhase) bool {
 // jobConditions returns true if conditions are met to be deleted for khjob
 func jobConditions(job khjobcrd.KuberhealthyJob, duration time.Duration, phase khjobcrd.JobPhase) bool {
 	if time.Now().Sub(job.CreationTimestamp.Time) > duration && job.Spec.Phase == phase {
-		log.Infoln("Found job older than ", duration, " minutes in status ", phase, " .Deleting khjob:", job)
+		log.Infoln("Found job older than", duration, "minutes in status", phase)
 		return true
 	}
 	return false
@@ -263,7 +263,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 
 	// Range over list and delete khjobs
 	for _, j := range list.Items {
-		if jobConditions(j, JobDeleteTimeDuration, "Complete") {
+		if jobConditions(j, JobDeleteTimeDuration, "Completed") {
 			log.Infoln("Deleting khjob", j.Name)
 			err := client.KuberhealthyJobs(j.Namespace).Delete(j.Name, &del)
 			if err != nil {
