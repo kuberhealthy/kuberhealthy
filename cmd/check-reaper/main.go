@@ -55,6 +55,11 @@ func main() {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
+	jobClient, err := khjobcrd.Client(kubeConfigFile)
+	if err != nil {
+		log.Fatalln("Unable to create khJob client", err)
+	}
+
 	podList, err := listCheckerPods(ctx, client, Namespace)
 	if err != nil {
 		log.Fatalln("Failed to list and delete old checker pods", err)
@@ -74,7 +79,7 @@ func main() {
 	log.Infoln("Beginning to search for khjobs ")
 
 	// fetch and delete khjobs that meet criteria
-	err = khJobDelete(khJobClient)
+	err = khJobDelete(jobClient)
 	if err != nil {
 		log.Errorln("Failed to reap khjobs with error: ", err)
 	}
@@ -248,7 +253,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 	}
 
 	// list khjobs in Namespace
-	list, err := khJobClient.KuberhealthyJobs(Namespace).List(opts)
+	list, err := client.KuberhealthyJobs(Namespace).List(opts)
 	if err != nil {
 		log.Errorln("Error: failed to retrieve khjob list with error ", err)
 		return err
@@ -258,7 +263,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 	for _, j := range list.Items {
 		if jobConditions(j, JobDeleteTimeDuration, "Complete") {
 			log.Infoln("Deleting khjob ", j.Name)
-			err := khJobClient.KuberhealthyJobs(j.Namespace).Delete(j.Name, &del)
+			err := client.KuberhealthyJobs(j.Namespace).Delete(j.Name, &del)
 			if err != nil {
 				log.Errorln("Failure to delete khjob ", j.Name, " with error: ", err)
 				return err
