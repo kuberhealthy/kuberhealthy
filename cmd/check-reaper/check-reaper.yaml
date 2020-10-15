@@ -4,7 +4,7 @@ metadata:
   name: check-reaper
   namespace: kuberhealthy
 spec:
-  schedule: "*/1 * * * *"
+  schedule: "*/3 * * * *"
   jobTemplate:
     spec:
       template:
@@ -24,21 +24,6 @@ spec:
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: check-reaper
-rules:
-  - apiGroups:
-      - ""
-      - "comcast.github.io"
-    resources:
-      - khjobs
-    verbs:
-      - get
-      - list
-      - watch
----
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
@@ -46,7 +31,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: check-reaper
+  name: admin
 subjects:
   - kind: ServiceAccount
     name: check-reaper
