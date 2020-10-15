@@ -1,6 +1,6 @@
 
 #modify Chart.yaml based on whether workflow was triggered by a new tag or a file update in ./deploy/helm
-if [[ ${GITHUB_REF##*/} =~ "v"[1-9].* ]]; then
+if [[ ${GITHUB_REF##*/} =~ "v"[1-9].*\.[1-9].*\.[1-9].* ]]; then
 	sed -i -e "s/^appVersion:.*/appVersion: ${GITHUB_REF##*/}/" ./deploy/helm/kuberhealthy/Chart.yaml
 	sed -i -e "s/^version:.*/version: $GITHUB_RUN_NUMBER/" ./deploy/helm/kuberhealthy/Chart.yaml
 else
@@ -22,7 +22,7 @@ if [ "$?" -ne "0" ]; then
   exit 1
 fi
 
-$HELM package -d ../../helm-repos/tmp.d ./kuberhealthy
+$HELM package --version $GITHUB_RUN_NUMBER -d ../../helm-repos/tmp.d ./kuberhealthy
 
 cd ../../helm-repos
 
