@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
+	khjobcrd "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
 	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
@@ -102,6 +103,7 @@ type Checker struct {
 	RunInterval              time.Duration // how often this check runs a loop
 	RunTimeout               time.Duration // time check must run completely within
 	KubeClient               *kubernetes.Clientset
+	KHJobClient              *khjobcrd.KHJobV1Client
 	KHCheckClient            *khcheckcrd.KuberhealthyCheckClient
 	KHStateClient            *khstatecrd.KuberhealthyStateClient
 	PodSpec                  apiv1.PodSpec // the current pod spec we are using after enforcement of settings
@@ -117,6 +119,7 @@ type Checker struct {
 	wg                       sync.WaitGroup     // used to track background workers and processes
 	hostname                 string             // hostname cache
 	checkPodName             string             // the current unique checker pod name
+	KHWorkload 				 health.KHWorkload
 }
 
 func init() {
@@ -128,13 +131,18 @@ func init() {
 
 // New creates a new external checker
 func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck, khCheckClient *khcheckcrd.KuberhealthyCheckClient, khStateClient *khstatecrd.KuberhealthyStateClient, reportingURL string) *Checker {
+
+	return NewCheck(client, checkConfig, khCheckClient, khStateClient, reportingURL)
+}
+
+func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck, khCheckClient *khcheckcrd.KuberhealthyCheckClient, khStateClient *khstatecrd.KuberhealthyStateClient, reportingURL string) *Checker {
+
 	if len(checkConfig.Namespace) == 0 {
 		checkConfig.Namespace = "kuberhealthy"
 	}
 
-	log.Debugf("Creating external check from check config: %+v \n", checkConfig)
-
 	// build the checker object
+	log.Debugf("Creating external check from check config: %+v \n", checkConfig)
 	return &Checker{
 		Namespace:                checkConfig.Namespace,
 		KHCheckClient:            khCheckClient,
@@ -147,6 +155,30 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck
 		OriginalPodSpec:          checkConfig.Spec.PodSpec,
 		PodSpec:                  checkConfig.Spec.PodSpec,
 		KubeClient:               client,
+		KHWorkload:				  health.KHCheck,
+	}
+}
+
+func NewJob(client *kubernetes.Clientset, jobConfig *khjobcrd.KuberhealthyJob, khJobClient *khjobcrd.KHJobV1Client, khStateClient *khstatecrd.KuberhealthyStateClient, reportingURL string) *Checker {
+
+	if len(jobConfig.Namespace) == 0 {
+		jobConfig.Namespace = "kuberhealthy"
+	}
+
+	// build the checker object
+	log.Debugf("Creating kuberhealthy job from job config: %+v \n", jobConfig)
+	return &Checker{
+		Namespace:                jobConfig.Namespace,
+		KHJobClient:              khJobClient,
+		KHStateClient:            khStateClient,
+		CheckName:                jobConfig.Name,
+		KuberhealthyReportingURL: reportingURL,
+		ExtraAnnotations:         make(map[string]string),
+		ExtraLabels:              make(map[string]string),
+		OriginalPodSpec:          jobConfig.Spec.PodSpec,
+		PodSpec:                  jobConfig.Spec.PodSpec,
+		KubeClient:               client,
+		KHWorkload:				  health.KHJob,
 	}
 }
 
@@ -239,7 +271,7 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 
 	// if the pod was removed, we skip this run gracefully
 	if err != nil && err.Error() == ErrPodRemovedExpectedly.Error() {
-		ext.log("pod was removed during check expectedly.  skipping this run")
+		ext.log("pod was removed during check expectedly. skipping this run")
 		return ErrPodRemovedExpectedly
 	}
 
@@ -342,7 +374,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	// if the check was not found, we create a fresh one and start there
 	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		ext.log("khstate did not exist, so a default object will be created")
-		details := health.NewCheckDetails()
+		details := health.NewWorkloadDetails(ext.KHWorkload)
 		details.Namespace = ext.CheckNamespace()
 		details.AuthoritativePod = ext.hostname
 		details.OK = true
@@ -436,10 +468,7 @@ func (ext *Checker) watchForCheckerPodDelete(ctx context.Context) chan error {
 			ext.log("pod shutdown monitor stopping gracefully")
 		case <-ext.waitForDeletedEvent(watcher): // we saw the watched pod remove
 			ext.log("pod shutdown monitor witnessed the checker pod being removed")
-			waitForDeleteChan <- nil
-		case <-ext.shutdownCTX.Done(): // we saw an abort (cancel) from upstream
-			ext.log("pod shutdown monitor terminating because the shutdown context on the external checker was done")
-			waitForDeleteChan <- errors.New("saw check context expire while waiting for deleted event")
+			waitForDeleteChan <- fmt.Errorf("pod shutdown monitor witnessed the checker pod being removed")
 		}
 		watcher.Stop()
 	}()
@@ -626,10 +655,12 @@ func (ext *Checker) RunOnce() error {
 		return ext.newError("failed to see pod running within timeout")
 	case err := <-podDeletedChan: // pod removed unexpectedly
 		if err != nil {
-			ext.log("error from pod shutdown watcher when watching for checker pod to start:", err.Error)
+			ext.log("error from pod shutdown watcher when watching for checker pod to start:", err.Error())
+			ext.log("pod removed unexpectedly while waiting for pod to start running")
+			return ErrPodRemovedUnexpectedly
 		}
-		ext.log("pod removed unexpectedly while waiting for pod to start running")
-		return ErrPodRemovedUnexpectedly
+		ext.log("pod removed expectedly. pod shutdown monitor shutting down")
+		return ErrPodRemovedExpectedly
 	case err = <-ext.waitForPodStart(): // pod started
 		if err != nil {
 			ext.cleanup()
@@ -654,10 +685,12 @@ func (ext *Checker) RunOnce() error {
 		return ext.newError(errorMessage)
 	case err := <-podDeletedChan: // pod was removed
 		if err != nil {
-			ext.log("error from pod shutdown watcher when watching for checker pod to report results:", err.Error)
+			ext.log("error from pod shutdown watcher when watching for checker pod to report results:", err.Error())
+			ext.log("pod removed unexpectedly while waiting for pod to report results")
+			return ErrPodRemovedUnexpectedly
 		}
-		ext.log("pod removed unexpectedly while waiting for pod to report results")
-		return ErrPodRemovedUnexpectedly
+		ext.log("pod removed expectedly. pod shutdown monitor shutting down")
+		return ErrPodRemovedExpectedly
 	case err = <-ext.waitForPodStatusUpdate(lastReportTime): // pod reported in
 		if err != nil {
 			errorMessage := "found an error when waiting for pod status to update: " + err.Error()

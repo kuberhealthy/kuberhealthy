@@ -48,6 +48,7 @@ rules:
     resources:
     - khstates
     - khchecks
+    - khjobs
     verbs:
     - "*"
   - apiGroups:
