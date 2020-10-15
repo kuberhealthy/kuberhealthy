@@ -18,6 +18,7 @@
 package v1
 
 import (
+	"context"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,7 +68,7 @@ func (c *kuberhealthyJobs) Get(name string, options metav1.GetOptions) (result K
 		Resource("khjobs").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 	return
 }
@@ -84,7 +85,7 @@ func (c *kuberhealthyJobs) List(opts metav1.ListOptions) (result KuberhealthyJob
 		Resource("khjobs").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 	return
 }
@@ -101,7 +102,7 @@ func (c *kuberhealthyJobs) Watch(opts metav1.ListOptions) (watch.Interface, erro
 		Resource("khjobs").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(context.TODO())
 }
 
 // Create takes the representation of a kuberhealthyJob and creates it.  Returns the server's representation of the kuberhealthyJob, and an error, if there is any.
@@ -111,7 +112,7 @@ func (c *kuberhealthyJobs) Create(kuberhealthyJob *KuberhealthyJob) (result Kube
 		Namespace(c.ns).
 		Resource("khjobs").
 		Body(kuberhealthyJob).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 	return
 }
@@ -124,7 +125,7 @@ func (c *kuberhealthyJobs) Update(kuberhealthyJob *KuberhealthyJob) (result Kube
 		Resource("khjobs").
 		Name(kuberhealthyJob.Name).
 		Body(kuberhealthyJob).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 	return
 }
@@ -136,7 +137,7 @@ func (c *kuberhealthyJobs) Delete(name string, options *metav1.DeleteOptions) er
 		Resource("khjobs").
 		Name(name).
 		Body(options).
-		Do().
+		Do(context.TODO()).
 		Error()
 }
 
@@ -152,7 +153,7 @@ func (c *kuberhealthyJobs) DeleteCollection(options *metav1.DeleteOptions, listO
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Timeout(timeout).
 		Body(options).
-		Do().
+		Do(context.TODO()).
 		Error()
 }
 
@@ -165,7 +166,7 @@ func (c *kuberhealthyJobs) Patch(name string, pt types.PatchType, data []byte, s
 		SubResource(subresources...).
 		Name(name).
 		Body(data).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 	return
 }

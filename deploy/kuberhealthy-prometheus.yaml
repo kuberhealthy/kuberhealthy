@@ -117,6 +117,19 @@ metadata:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRole
 metadata:
+  name: kuberhealthy-daemonset-khcheck
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
+---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
   name: kuberhealthy
 rules:
   - apiGroups:
@@ -181,19 +194,6 @@ rules:
     - pods/eviction
     verbs:
     - create
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
 ---
 # Source: kuberhealthy/templates/check-reaper.yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -426,6 +426,9 @@ spec:
           requests:
             cpu: 400m
             memory: 300Mi
+          limits:
+            cpu: 2
+            memory: 1Gi
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
 ---
@@ -445,6 +448,10 @@ spec:
             - name: check-reaper
               image: kuberhealthy/check-reaper:v1.4.0
               imagePullPolicy: IfNotPresent
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 999
+                allowPrivilegeEscalation: false
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
@@ -497,7 +504,7 @@ spec:
       fsGroup: 999
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.5.1
+      image: kuberhealthy/deployment-check:v1.6.0
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
@@ -519,7 +526,7 @@ spec:
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
 ---
-# Source: kuberhealthy/templates/khcheck-dns.yaml
+# Source: kuberhealthy/templates/khcheck-dns-internal.yaml
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:

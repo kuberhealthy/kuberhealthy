@@ -76,7 +76,7 @@ func WaitForNodeAge(ctx context.Context, client *kubernetes.Clientset, namespace
 	}
 	log.Debugln("Pod is on node:", khPod.Spec.NodeName)
 
-	node, err := client.CoreV1().Nodes().Get(khPod.Spec.NodeName, v1.GetOptions{})
+	node, err := client.CoreV1().Nodes().Get(ctx, khPod.Spec.NodeName, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func getKHPod(client *kubernetes.Clientset, namespace string) (*corev1.Pod, erro
 	}
 
 	log.Debugln("Getting pod:", podName, "in order to get its node information")
-	khPod, err = client.CoreV1().Pods(namespace).Get(podName, v1.GetOptions{})
+	khPod, err = client.CoreV1().Pods(namespace).Get(context.TODO(), podName, v1.GetOptions{})
 	if err != nil {
 		return khPod, err
 	}
@@ -174,7 +174,7 @@ func checkKubeProxyPod(client *kubernetes.Clientset, podName string, kubeProxyNa
 
 	var kubeProxyReady bool
 
-	kubeProxyPod, err := client.CoreV1().Pods(kubeProxyNamespace).Get(podName, v1.GetOptions{})
+	kubeProxyPod, err := client.CoreV1().Pods(kubeProxyNamespace).Get(context.TODO(), podName, v1.GetOptions{})
 	if err != nil {
 		return kubeProxyReady, errors.New("Failed to get kube-proxy pod: " + podName + ". Error: " + err.Error())
 	}

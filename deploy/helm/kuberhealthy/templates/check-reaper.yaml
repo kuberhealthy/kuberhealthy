@@ -15,6 +15,10 @@ spec:
             - name: check-reaper
               image: {{ .Values.checkReaper.image.repository }}:{{ .Values.checkReaper.image.tag }}
               imagePullPolicy: IfNotPresent
+              securityContext:
+                runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+                runAsUser: {{ .Values.securityContext.runAsUser }}
+                allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
           {{- if .Values.checkReaper.nodeSelector }}
           nodeSelector:
 {{- toYaml .Values.checkReaper.nodeSelector | nindent 12 }}
@@ -22,6 +26,9 @@ spec:
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
+  {{- if .Values.checkReaper.startingDeadlineSeconds }}
+  startingDeadlineSeconds: {{ .Values.checkReaper.startingDeadlineSeconds }}
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding

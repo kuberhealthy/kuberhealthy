@@ -3,9 +3,9 @@ entries:
   kuberhealthy:
   - apiVersion: v2
     appVersion: 2.2.0
-    created: "2020-05-29T12:03:08.086202-07:00"
-    description: An operator for synthetic test and monitoring.  Works great with Prometheus.
-    digest: 78ee7bb03cd4d92ab0773844677d8337f717abfbc8279ab4be51d89ef2b70a2b
+    created: "2020-07-20T23:54:29.57872Z"
+    description: An operator for synthetic test and monitoring. Works great with Prometheus.
+    digest: 85ff9e5623379c3986f2ac2ed857e5143b56a57a3f586206c068e849861fd239
     home: https://comcast.github.io/kuberhealthy/
     icon: https://raw.githubusercontent.com/Comcast/kuberhealthy/master/images/logo-square.png
     keywords:
@@ -35,14 +35,13 @@ entries:
     - https://github.com/helm/charts/tree/master/stable/kuberhealthy
     type: application
     urls:
-    - archives/kuberhealthy-2.2.0.tgz
     - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-2.2.0.tgz
     version: 2.2.0
   - apiVersion: v2
     appVersion: 2.1.0
-    created: "2020-05-29T12:03:08.086202-07:00"
-    description: An operator for synthetic test and monitoring.  Works great with Prometheus.
-    digest: 78ee7bb03cd4d92ab0773844677d8337f717abfbc8279ab4be51d89ef2b70a2b
+    created: "2020-07-20T23:54:29.576855Z"
+    description: An operator for synthetic test and monitoring. Works great with Prometheus.
+    digest: 8a6c55cb356ea546b39ff149da9c32b992d9bc3084390bd7a939a99434939b74
     home: https://comcast.github.io/kuberhealthy/
     icon: https://raw.githubusercontent.com/Comcast/kuberhealthy/master/images/logo-square.png
     keywords:
@@ -72,7 +71,6 @@ entries:
     - https://github.com/helm/charts/tree/master/stable/kuberhealthy
     type: application
     urls:
-    - archives/kuberhealthy-2.1.0.tgz
     - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-2.1.0.tgz
     version: 2.1.0
-generated: "2020-05-29T12:03:08.083223-07:00"
+generated: "2020-07-20T23:54:29.572868Z"

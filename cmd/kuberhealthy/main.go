@@ -24,8 +24,6 @@ import (
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 
 	khjobcrd "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
@@ -246,11 +244,11 @@ func initKubernetesClients() error {
 	khStateClient = stateClient
 
 	// make a new crd job client
-	c, err := rest.InClusterConfig()
+	jobClient, err := khjobcrd.Client(cfg.kubeConfigFile)
 	if err != nil {
-		c, err = clientcmd.BuildConfigFromFlags("", cfg.kubeConfigFile)
+		return err
 	}
-	khJobClient = khjobcrd.NewForConfigOrDie(c)
+	khJobClient = jobClient
 
 	return nil
 }

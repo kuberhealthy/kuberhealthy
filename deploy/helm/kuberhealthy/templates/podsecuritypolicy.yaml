@@ -1,0 +1,53 @@
+{{- if .Values.podSecurityPolicy.enabled }}
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: runtime/default
+    seccomp.security.alpha.kubernetes.io/defaultProfileName: runtime/default
+  name: {{ template "kuberhealthy.name" . }}-psp
+  labels:
+    app: {{ template "kuberhealthy.name" . }}
+spec:
+  privileged: false
+  allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+  requiredDropCapabilities:
+    - ALL
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  fsGroup:
+{{- if .Values.securityContext.runAsNonRoot }}
+    ranges:
+    - max: 65535
+      min: 1
+    rule: MustRunAs
+{{- else }}
+    rule: RunAsAny
+{{- end }}
+  readOnlyRootFilesystem: {{ .Values.securityContext.runAsNonRoot }}
+  runAsUser:
+{{- if .Values.securityContext.runAsNonRoot }}
+    rule: MustRunAsNonRoot
+{{- else }}
+    rule: RunAsAny
+{{- end }}
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+{{- if .Values.securityContext.runAsNonRoot }}
+    ranges:
+    - max: 65535
+      min: 1
+    rule: MustRunAs
+{{- else }}
+    rule: RunAsAny
+{{- end }}
+  volumes:
+  - configMap
+  - downwardAPI
+  - secret
+  - emptyDir
+  - projected
+{{- end -}}

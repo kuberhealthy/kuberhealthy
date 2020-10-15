@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 type KHJobV1Interface interface {
@@ -35,6 +36,21 @@ type KHJobV1Client struct {
 
 func (c *KHJobV1Client) KuberhealthyJobs(namespace string) KuberhealthyJobInterface {
 	return newKuberhealthyJobs(c, namespace)
+}
+
+func Client(kubeConfigFile string) (*KHJobV1Client, error) {
+
+	// make a new crd job client
+	c, err := rest.InClusterConfig()
+	if err != nil {
+		c, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	}
+
+	client, err := NewForConfig(c)
+	if err != nil {
+		return nil, err
+	}
+	return client, err
 }
 
 // NewForConfig creates a new KHJobV1Client for the given config.
@@ -75,7 +91,7 @@ func setConfigDefaults(config *rest.Config) error {
 	gv := SchemeGroupVersion
 	config.GroupVersion = &gv
 	config.APIPath = "/apis"
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	config.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
 
 	if config.UserAgent == "" {
 		config.UserAgent = rest.DefaultKubernetesUserAgent()

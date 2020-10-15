@@ -13,10 +13,12 @@ package health
 
 import (
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
-// CheckDetails contains details about a single check's current status
-type CheckDetails struct {
+// WorkloadDetails contains details about a single kuberhealthy check or job's current status
+type WorkloadDetails struct {
 	OK               bool
 	Errors           []string
 	RunDuration      string
@@ -24,12 +26,26 @@ type CheckDetails struct {
 	LastRun          time.Time // the time the check last was last run
 	AuthoritativePod string    // the pod that last ran the check
 	CurrentUUID      string    `json:"uuid"` // the UUID that is authorized to report statuses into the kuberhealthy endpoint
-	KHJob            bool
+	khWorkload       KHWorkload
 }
 
-// NewCheckDetails creates a new CheckDetails struct
-func NewCheckDetails() CheckDetails {
-	return CheckDetails{
-		Errors: []string{},
+// NewWorkloadDetails creates a new WorkloadDetails struct
+func NewWorkloadDetails(workloadType KHWorkload) WorkloadDetails {
+	if workloadType == "" {
+		log.Panic("Creating workload details with empty workload type.  This will probably cause errors when the struct is used.")
 	}
+	log.Debugln("Forming new workload struct with workload type:", workloadType)
+	return WorkloadDetails{
+		Errors:     []string{},
+		khWorkload: workloadType,
+	}
+}
+
+// GetKHWorkload returns the workload for the WorkloadDetails struct
+func (wd *WorkloadDetails) GetKHWorkload() KHWorkload {
+	// failsafe if the workload is empty
+	if wd.khWorkload == "" {
+		log.Panicln("Fetched a workload type from a WorkloadDetails struct, but it was blank!")
+	}
+	return wd.khWorkload
 }

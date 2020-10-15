@@ -68,6 +68,9 @@ const defaultShutdownGracePeriod = time.Minute
 // ErrPodRemovedExpectedly is a constant for the error when a pod is deleted expectedly during a check run
 var ErrPodRemovedExpectedly = errors.New("pod deleted expectedly")
 
+// ErrPodRemovedUnexpectedly is a constant for the error when a pod is deleted unexpectedly during a check run
+var ErrPodRemovedUnexpectedly = errors.New("pod deleted unexpectedly")
+
 // ErrPodDeletedBeforeRunning is a constant for the error when a pod is deleted before the check pod running
 var ErrPodDeletedBeforeRunning = errors.New("the khcheck check pod is deleted, waiting for start failed")
 
@@ -116,15 +119,8 @@ type Checker struct {
 	wg                       sync.WaitGroup     // used to track background workers and processes
 	hostname                 string             // hostname cache
 	checkPodName             string             // the current unique checker pod name
-	KHWorkload               KHWorkload			// whether this is a Kuberhealthy Check or Job
+	KHWorkload 				 health.KHWorkload
 }
-
-type KHWorkload string
-
-const (
-	KHCheck KHWorkload = "KHCheck"
-	KHJob KHWorkload = "KHJob"
-)
 
 func init() {
 	// Get namespace of Kuberhealthy pod. Used to help set ownerReference for created checker pods to proper
@@ -159,7 +155,7 @@ func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckcrd.Kuberhealthy
 		OriginalPodSpec:          checkConfig.Spec.PodSpec,
 		PodSpec:                  checkConfig.Spec.PodSpec,
 		KubeClient:               client,
-		KHWorkload:               KHCheck,
+		KHWorkload:				  health.KHCheck,
 	}
 }
 
@@ -182,7 +178,7 @@ func NewJob(client *kubernetes.Clientset, jobConfig *khjobcrd.KuberhealthyJob, k
 		OriginalPodSpec:          jobConfig.Spec.PodSpec,
 		PodSpec:                  jobConfig.Spec.PodSpec,
 		KubeClient:               client,
-		KHWorkload:               KHJob,
+		KHWorkload:				  health.KHJob,
 	}
 }
 
@@ -275,7 +271,7 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 
 	// if the pod was removed, we skip this run gracefully
 	if err != nil && err.Error() == ErrPodRemovedExpectedly.Error() {
-		ext.log("pod was removed during check expectedly.  skipping this run")
+		ext.log("pod was removed during check expectedly. skipping this run")
 		return ErrPodRemovedExpectedly
 	}
 
@@ -310,7 +306,7 @@ func (ext *Checker) cleanup() {
 	// find all pods that are running still so we can evict them (not delete - for records)
 	checkLabelSelector := kuberhealthyCheckNameLabel + " = " + ext.CheckName
 	ext.log("eviction: looking for pods with the label", checkLabelSelector)
-	podList, err := podClient.List(metav1.ListOptions{
+	podList, err := podClient.List(context.TODO(), metav1.ListOptions{
 		LabelSelector: checkLabelSelector,
 	})
 
@@ -350,7 +346,7 @@ func (ext *Checker) evictPod(podName string, podNamespace string) error {
 			Namespace: podNamespace,
 		},
 	}
-	err := podClient.Evict(eviction)
+	err := podClient.Evict(context.TODO(), eviction)
 	if err != nil {
 		ext.log("error when trying to cleanup/evict checker pod", podName, "in namespace", podNamespace+":", err)
 		podExists, _ := util.PodNameExists(ext.KubeClient, podName, podNamespace)
@@ -378,7 +374,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	// if the check was not found, we create a fresh one and start there
 	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		ext.log("khstate did not exist, so a default object will be created")
-		details := health.NewCheckDetails()
+		details := health.NewWorkloadDetails(ext.KHWorkload)
 		details.Namespace = ext.CheckNamespace()
 		details.AuthoritativePod = ext.hostname
 		details.OK = true
@@ -472,10 +468,7 @@ func (ext *Checker) watchForCheckerPodDelete(ctx context.Context) chan error {
 			ext.log("pod shutdown monitor stopping gracefully")
 		case <-ext.waitForDeletedEvent(watcher): // we saw the watched pod remove
 			ext.log("pod shutdown monitor witnessed the checker pod being removed")
-			waitForDeleteChan <- nil
-		case <-ext.shutdownCTX.Done(): // we saw an abort (cancel) from upstream
-			ext.log("pod shutdown monitor terminating because the shutdown context on the external checker was done")
-			waitForDeleteChan <- errors.New("saw check context expire while waiting for deleted event")
+			waitForDeleteChan <- fmt.Errorf("pod shutdown monitor witnessed the checker pod being removed")
 		}
 		watcher.Stop()
 	}()
@@ -491,7 +484,7 @@ func (ext *Checker) startPodWatcher(listOptions metav1.ListOptions) (watch.Inter
 	ext.log("creating a pod watcher")
 
 	// start a new watch request
-	return podClient.Watch(listOptions)
+	return podClient.Watch(context.TODO(), listOptions)
 }
 
 // waitForDeletedEvent watches a channel of results from a pod watch and notifies the returned channel when a
@@ -662,9 +655,11 @@ func (ext *Checker) RunOnce() error {
 		return ext.newError("failed to see pod running within timeout")
 	case err := <-podDeletedChan: // pod removed unexpectedly
 		if err != nil {
-			ext.log("error from pod shutdown watcher when watching for checker pod to start:", err.Error)
+			ext.log("error from pod shutdown watcher when watching for checker pod to start:", err.Error())
+			ext.log("pod removed unexpectedly while waiting for pod to start running")
+			return ErrPodRemovedUnexpectedly
 		}
-		ext.log("pod removed unexpectedly while waiting for pod to start running")
+		ext.log("pod removed expectedly. pod shutdown monitor shutting down")
 		return ErrPodRemovedExpectedly
 	case err = <-ext.waitForPodStart(): // pod started
 		if err != nil {
@@ -690,9 +685,11 @@ func (ext *Checker) RunOnce() error {
 		return ext.newError(errorMessage)
 	case err := <-podDeletedChan: // pod was removed
 		if err != nil {
-			ext.log("error from pod shutdown watcher when watching for checker pod to report results:", err.Error)
+			ext.log("error from pod shutdown watcher when watching for checker pod to report results:", err.Error())
+			ext.log("pod removed unexpectedly while waiting for pod to report results")
+			return ErrPodRemovedUnexpectedly
 		}
-		ext.log("pod removed unexpectedly while waiting for pod to report results")
+		ext.log("pod removed expectedly. pod shutdown monitor shutting down")
 		return ErrPodRemovedExpectedly
 	case err = <-ext.waitForPodStatusUpdate(lastReportTime): // pod reported in
 		if err != nil {
@@ -743,7 +740,7 @@ func (ext *Checker) deletePod(podName string) error {
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 	gracePeriodSeconds := int64(1)
 	deletionPolicy := metav1.DeletePropagationForeground
-	err := podClient.Delete(podName, &metav1.DeleteOptions{
+	err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{
 		GracePeriodSeconds: &gracePeriodSeconds,
 		PropagationPolicy:  &deletionPolicy,
 	})
@@ -887,7 +884,7 @@ func (ext *Checker) waitForAllPodsToClear() chan error {
 			}
 
 			// fetch the pod by name
-			p, err := podClient.Get(ext.podName(), metav1.GetOptions{})
+			p, err := podClient.Get(context.TODO(), ext.podName(), metav1.GetOptions{})
 
 			// if we got a "not found" message, then we are done.  This is the happy path.
 			if err != nil {
@@ -931,7 +928,7 @@ func (ext *Checker) waitForPodExit() chan error {
 			// down sometimes, causing false alerts that checker pods failed to stop.
 
 			// start a new watch request
-			pods, err := podClient.List(metav1.ListOptions{
+			pods, err := podClient.List(context.TODO(), metav1.ListOptions{
 				LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
 			})
 
@@ -998,7 +995,7 @@ func (ext *Checker) waitForPodStart() chan error {
 
 			ext.log("starting pod running watcher")
 
-			pods, err := podClient.List(metav1.ListOptions{
+			pods, err := podClient.List(context.TODO(), metav1.ListOptions{
 				LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
 			})
 			if err != nil {
@@ -1010,7 +1007,7 @@ func (ext *Checker) waitForPodStart() chan error {
 				return
 			}
 			// start watching
-			watcher, err := podClient.Watch(metav1.ListOptions{
+			watcher, err := podClient.Watch(context.TODO(), metav1.ListOptions{
 				LabelSelector: kuberhealthyRunIDLabel + "=" + ext.currentCheckUUID,
 			})
 			if err != nil {
@@ -1120,7 +1117,7 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	// Set ownerReference on all checker pods
 	p.OwnerReferences = ownerRef
 
-	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(p)
+	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(context.TODO(), p, metav1.CreateOptions{})
 }
 
 // configureUserPodSpec configures a user-specified pod spec with

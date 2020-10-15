@@ -28,7 +28,7 @@ import (
 
 // setCheckStateResource puts a check state's state into the specified CRD resource.  It sets the AuthoritativePod
 // to the server's hostname and sets the LastUpdate time to now.
-func setCheckStateResource(checkName string, checkNamespace string, state health.CheckDetails) error {
+func setCheckStateResource(checkName string, checkNamespace string, state health.WorkloadDetails) error {
 
 	name := sanitizeResourceName(checkName)
 
@@ -66,7 +66,7 @@ func sanitizeResourceName(c string) string {
 }
 
 // ensureStateResourceExists checks for the existence of the specified resource and creates it if it does not exist
-func ensureStateResourceExists(checkName string, checkNamespace string) error {
+func ensureStateResourceExists(checkName string, checkNamespace string, workload health.KHWorkload) error {
 	name := sanitizeResourceName(checkName)
 
 	log.Debugln("Checking existence of custom resource:", name)
@@ -74,7 +74,7 @@ func ensureStateResourceExists(checkName string, checkNamespace string) error {
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Infoln("Custom resource not found, creating resource:", name, " - ", err)
-			initialDetails := health.NewCheckDetails()
+			initialDetails := health.NewWorkloadDetails(workload)
 			initialState := khstatecrd.NewKuberhealthyState(name, initialDetails)
 			_, err := khStateClient.Create(&initialState, stateCRDResource, checkNamespace)
 			if err != nil {
@@ -92,14 +92,14 @@ func ensureStateResourceExists(checkName string, checkNamespace string) error {
 
 // getCheckState retrieves the check values from the kuberhealthy khstate
 // custom resource
-func getCheckState(c KuberhealthyCheck) (health.CheckDetails, error) {
+func getCheckState(c KuberhealthyCheck) (health.WorkloadDetails, error) {
 
-	var state = health.NewCheckDetails()
+	var state = health.NewWorkloadDetails(health.KHCheck)
 	var err error
 	name := sanitizeResourceName(c.Name())
 
 	// make sure the CRD exists, even when checking status
-	err = ensureStateResourceExists(c.Name(), c.CheckNamespace())
+	err = ensureStateResourceExists(c.Name(), c.CheckNamespace(), health.KHCheck)
 	if err != nil {
 		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
 	}
@@ -115,14 +115,14 @@ func getCheckState(c KuberhealthyCheck) (health.CheckDetails, error) {
 
 // getCheckState retrieves the check values from the kuberhealthy khstate
 // custom resource
-func getJobState(j KuberhealthyCheck) (health.CheckDetails, error) {
+func getJobState(j KuberhealthyCheck) (health.WorkloadDetails, error) {
 
-	var state = health.NewCheckDetails()
+	var state = health.NewWorkloadDetails(health.KHJob)
 	var err error
 	name := sanitizeResourceName(j.Name())
 
 	// make sure the CRD exists, even when checking status
-	err = ensureStateResourceExists(j.Name(), j.CheckNamespace())
+	err = ensureStateResourceExists(j.Name(), j.CheckNamespace(), health.KHJob)
 	if err != nil {
 		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
 	}
