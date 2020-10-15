@@ -72,5 +72,5 @@ helm install kuberhealthy kuberhealthy/kuberhealthy --set check.podStatus.enable
 
 To enable cluster wide check with cluster permissions
 ```
-helm install kuberhealthy kuberhealthy/kuberhealthy --set check.podStatus.enabled=true --set check.podStatus.cluster.enabled=true
+helm install kuberhealthy kuberhealthy/kuberhealthy --set check.podStatus.enabled=true --set check.podStatus.allNamespaces=true
 ```
