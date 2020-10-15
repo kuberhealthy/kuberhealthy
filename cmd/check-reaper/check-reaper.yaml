@@ -12,7 +12,7 @@ spec:
           containers:
             - name: check-reaper
               image: kuberhealthy/check-reaper:v1.5.0
-              imagePullPolicy: IfNotPresent
+              imagePullPolicy: Always
               env:
                 - name: SINGLE_NAMESPACE
                   value: kuberhealthy
