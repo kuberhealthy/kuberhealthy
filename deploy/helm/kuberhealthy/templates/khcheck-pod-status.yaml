@@ -46,7 +46,7 @@ spec:
     {{- end }}
     serviceAccountName: pod-status-sa
 ---
-{{- if .Values.check.podStatus.cluster.enabled }}
+{{- if .Values.check.podStatus.cluster.allNamespaces }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
