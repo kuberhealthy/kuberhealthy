@@ -50,20 +50,20 @@ spec:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: jx-pod-status-check-rb
+  name: pod-status-check-rb
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: jx-pod-status-role
+  name: pod-status-role
 subjects:
   - kind: ServiceAccount
-    name: jx-pod-status-sa
+    name: pod-status-sa
     namespace: kuberhealthy
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: jx-pod-status-role
+  name: pod-status-role
 rules:
   - apiGroups:
       - ""
