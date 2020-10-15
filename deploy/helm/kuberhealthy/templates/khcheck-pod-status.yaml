@@ -111,7 +111,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: pod-status-sa
-{{- if .Values.check.podStatus.cluster.enabled }}
+{{- if .Values.check.podStatus.allNamespaces }}
   namespace: kuberhealthy
 {{- else }}
   namespace: {{ .Release.Namespace }}
