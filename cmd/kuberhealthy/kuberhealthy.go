@@ -721,7 +721,6 @@ func (k *Kuberhealthy) triggerKHJob(ctx context.Context, job khjob.KuberhealthyJ
 	log.Debugln("khjob trigger, isMaster:", isMaster)
 	// only the master pod should be running khjobs or khjobs are duplicated
 	if isMaster {
-		// create a context for checks to abort with
 		go k.runJob(ctx, job)
 	}
 }
@@ -1332,12 +1331,12 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 
 	checkRunDuration := time.Duration(0).String()
 	khWorkload := determineKHWorkload(ipReport.Name, ipReport.Namespace)
-	if khWorkload == health.KHCheck {
+
+	switch khWorkload {
+	case health.KHCheck:
 		checkDetails := k.stateReflector.CurrentStatus().CheckDetails
 		checkRunDuration = checkDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
-	}
-
-	if khWorkload == health.KHJob {
+	case health.KHJob:
 		jobDetails := k.stateReflector.CurrentStatus().JobDetails
 		checkRunDuration = jobDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
 	}
