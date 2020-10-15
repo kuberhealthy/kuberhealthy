@@ -17,7 +17,7 @@ spec:
       - env:
           - name: SKIP_DURATION
             value: "10m"
-          {{- if not .Values.check.podStatus.cluster.enabled }}
+          {{- if not .Values.check.podStatus.allNamespaces }}
           - name: TARGET_NAMESPACE
             valueFrom:
               fieldRef:
