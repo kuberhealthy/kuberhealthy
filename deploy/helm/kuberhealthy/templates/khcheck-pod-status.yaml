@@ -75,7 +75,7 @@ rules:
       - list
       - watch
 {{- end }}
-{{- if not .Values.check.podStatus.cluster.enabled }}
+{{- if not .Values.check.podStatus.allNamespaces }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
