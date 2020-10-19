@@ -104,6 +104,16 @@ func PodNameExists(client *kubernetes.Clientset, podName string, namespace strin
 		return false, err
 	}
 
+	if err != nil {
+		log.Warnln("Error getting pod:", err)
+		return false, err
+	}
+
+	if p.Name == "" {
+		log.Warningln("Pod name is empty. Pod does not exist")
+		return false, err
+	}
+
 	// if the pod has succeeded, it no longer exists
 	if p.Status.Phase == apiv1.PodSucceeded {
 		log.Infoln("Pod", podName, "exited successfully.")
