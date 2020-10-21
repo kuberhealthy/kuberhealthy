@@ -221,15 +221,6 @@ func deletePod(ctx context.Context, client *kubernetes.Clientset, pod v1.Pod) er
 	return client.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, options)
 }
 
-// podConditions returns true if conditions are met to be deleted for checker pod
-func podConditions(pod v1.Pod, duration float64, phase v1.PodPhase) bool {
-	if time.Now().Sub(pod.CreationTimestamp.Time).Hours() > duration && pod.Status.Phase == phase {
-		log.Infoln("Found pod older than ", duration, " hours in status ", phase, " .Deleting pod:", pod)
-		return true
-	}
-	return false
-}
-
 // jobConditions returns true if conditions are met to be deleted for khjob
 func jobConditions(job khjobcrd.KuberhealthyJob, duration time.Duration, phase khjobcrd.JobPhase) bool {
 	if time.Now().Sub(job.CreationTimestamp.Time) > duration && job.Spec.Phase == phase {
@@ -246,7 +237,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 	del := metav1.DeleteOptions{}
 
 	// convert JobDeleteMinutes into time.Duration
-	JobDeleteTimeDuration, err := time.ParseDuration(JobDeleteTimeDurationEnv)
+	jobDeleteTimeDuration, err := time.ParseDuration(JobDeleteTimeDurationEnv)
 	if err != nil {
 		log.Errorln("Error converting JobDeleteTimeDurationEnv to Float")
 		return err
@@ -263,7 +254,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 
 	// Range over list and delete khjobs
 	for _, j := range list.Items {
-		if jobConditions(j, JobDeleteTimeDuration, "Completed") {
+		if jobConditions(j, jobDeleteTimeDuration, "Completed") {
 			log.Infoln("Deleting khjob", j.Name)
 			err := client.KuberhealthyJobs(j.Namespace).Delete(j.Name, &del)
 			if err != nil {
