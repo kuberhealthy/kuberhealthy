@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
@@ -56,20 +57,35 @@ func main() {
 
 	log.Infoln("Found", len(namespaces.Items), "namespaces")
 
+	//counter for test pods
+	successfulPods := 0
+	failedPods := 0
+
 	//range over namespaces and test deployment and deletion of test pods
 	for _, n := range namespaces.Items {
 		log.Infoln("DEPLOYING POD IN NAMESPACE", n.Namespace)
 		err := deployPod(ctx, n.Namespace, podName, kubernetesClient)
 		if err != nil {
 			log.Error(err)
+			failedPods++
+			continue
 		}
 		err = deletePod(ctx, n.Namespace, podName, kubernetesClient)
 		if err != nil {
 			log.Error(err)
+			failedPods++
+			continue
 		}
+		successfulPods++
 	}
-	log.Info("namespace-pod-checker was able to succesfully deploy and delete test pods in", len(namespaces.Items), "namespaces")
+
+	if failedPods != 0 {
+		reportErr := fmt.Errorf("namespace-pod-checker was unable to deploy or delete test pods in " + strconv.Itoa(failedPods) + " out of " + strconv.Itoa(len(namespaces.Items)) + " namespaces")
+		ReportFailureAndExit(reportErr)
+	}
+	log.Info("namespace-pod-checker was able to succesfully deploy and delete test pods in", successfulPods, "namespaces")
 	kh.ReportSuccess()
+
 }
 
 func deployPod(ctx context.Context, namespace string, name string, client *kubernetes.Clientset) error {
