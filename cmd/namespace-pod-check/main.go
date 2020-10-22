@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
+	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
@@ -13,6 +15,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+var podName = "kuberhealthy-namespace-checker-pod"
 
 func init() {
 	// set debug mode for nodeCheck pkg
@@ -50,14 +54,22 @@ func main() {
 	//create namespace list
 	namespaces, err := nsi.List(ctx, listOpts)
 
-	//range over namespaces and test deployment of pods
+	log.Infoln("Found", len(namespaces.Items), "namespaces")
+
+	//range over namespaces and test deployment and deletion of test pods
 	for _, n := range namespaces.Items {
 		log.Infoln("DEPLOYING POD IN NAMESPACE", n.Namespace)
-		err := deployPod(ctx, n.Namespace, "kuberhealthy-namespace-checker-pod", kubernetesClient)
+		err := deployPod(ctx, n.Namespace, podName, kubernetesClient)
+		if err != nil {
+			log.Error(err)
+		}
+		err = deletePod(ctx, n.Namespace, podName, kubernetesClient)
 		if err != nil {
 			log.Error(err)
 		}
 	}
+	log.Info("namespace-pod-checker was able to succesfully deploy and delete test pods in", len(namespaces.Items), "namespaces")
+	kh.ReportSuccess()
 }
 
 func deployPod(ctx context.Context, namespace string, name string, client *kubernetes.Clientset) error {
@@ -114,4 +126,16 @@ func getPodObject(name string) *core.Pod {
 			},
 		},
 	}
+}
+
+// ReportFailureAndExit logs and reports an error to kuberhealthy and then exits the program.
+// If a error occurs when reporting to kuberhealthy, the program fatals.
+func ReportFailureAndExit(err error) {
+	// log.Errorln(err)
+	err2 := kh.ReportFailure([]string{err.Error()})
+	if err2 != nil {
+		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+	}
+	log.Infoln("Succesfully reported error to kuberhealthy")
+	os.Exit(0)
 }
