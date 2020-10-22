@@ -1,18 +1,14 @@
 ## CronJob Event Checker
 
-The cronjob-checker reaches out to a specified namespace and retrieves events from cronjobs. It then ranges over the events for a specified reason. If there is an event with the specified reason it will alert kuberhealthy.
+The cronjob-checker reaches out to a specified namespace and retrieves events from cronjobs. It then ranges over the events for the reason FailedNeedsStart indicating it has stopped scheduling. If there is an event with FailedNeedsStart it will alert kuberhealthy.
 
 You can specify the namespace to check with the `NAMESPACE` environment variable in the `.yaml` file.
 
-You can specify the event reason to check with the `REASON` environment variable in the `.yaml` file.
+The check will exit if no `NAMESPACE` is given in the `yaml` file.
 
-The check will exit if no REASON is given in the yaml file.
+The check will exit if it is unable to retrieve events from cronjobs in a given namespace.
 
-The check will exit if no NAMESPACE is given in the yaml file.
-
-The check will exit if it is unable to retrieve events from the cronjob in a given namespace.
-
-All namespace fields will need to be updated to applied namespace to give permissions appropriately to the check.
+All namespace fields in `yaml` file will need to be updated to the intended applied namespace to give permissions appropriately to the check.
 
 #### Example CronJob Event Checker
 
@@ -30,13 +26,13 @@ spec:
     serviceAccountName: cronjob-checker
     containers:
       - name: cronjob-checker
-        image: kuberhealthy/cronjob-checker:v1.1.0
+        image: kuberhealthy/cronjob-checker:v1.2.0
         imagePullPolicy: IfNotPresent
         env:
           - name: NAMESPACE
-            value: "kuberhealthy"
-          - name: REASON
-            value: "FailedNeedsStart"
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
         resources:
           requests:
             cpu: 15m
