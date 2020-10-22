@@ -11,11 +11,15 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: kuberhealthy/check-reaper:v1.4.0
+              image: kuberhealthy/check-reaper:v1.5.0
               imagePullPolicy: IfNotPresent
-#              env:
-#                - name: SINGLE_NAMESPACE
-#                  value: kuberhealthy
+              env:
+                - name: SINGLE_NAMESPACE
+                  value: kuberhealthy
+                - name: MAX_PODS_THRESHOLD
+                  value: "4"
+                - name: JOB_DELETE_TIME_DURATION
+                  value: 15m
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
@@ -27,7 +31,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: admin
+  name: kuberhealthy
 subjects:
   - kind: ServiceAccount
     name: check-reaper
