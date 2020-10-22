@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
@@ -51,7 +52,11 @@ func main() {
 
 	//range over namespaces and test deployment of pods
 	for _, n := range namespaces.Items {
-
+		log.Infoln("DEPLOYING POD IN NAMESPACE", n.Namespace)
+		err := deployPod(ctx, n.Namespace, "my-test-pod", kubernetesClient)
+		if err != nil {
+			log.Error(err)
+		}
 	}
 }
 
@@ -65,8 +70,8 @@ func deployPod(ctx context.Context, namespace string, name string, client *kuber
 	//create the pod in kubernetes cluster using the clientset
 	pod, err := client.CoreV1().Pods(namespace).Create(ctx, pod, opts)
 	if err != nil {
-		log.Errorln("Error deploying pod", name, "in namespace:", namespace)
-		return err
+		reportErr := fmt.Errorf("Error deploying pod " + name + " in namespace: " + namespace)
+		return reportErr
 	}
 	log.Infoln("Pod", name, "created successfully in namespace:", namespace)
 	return nil
@@ -78,8 +83,8 @@ func deletePod(ctx context.Context, namespace string, name string, client *kuber
 	delOpts := v1.DeleteOptions{}
 	err := client.CoreV1().Pods(namespace).Delete(ctx, name, delOpts)
 	if err != nil {
-		log.Errorln("Error deleting pod", name, "in namespace", namespace)
-		return err
+		reportErr := fmt.Errorf("Error deleting pod " + name + " in namespace " + namespace)
+		return reportErr
 	}
 	log.Infoln("Pod", name, "successfully deleted in namespace", namespace)
 	return nil
