@@ -4,12 +4,15 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
+	khjobcrd "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
@@ -22,8 +25,14 @@ var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 // ReapCheckerPods is a variable mapping all reaper pods
 var ReapCheckerPods map[string]v1.Pod
 
-// MaxPodsThreshold is a variable limiting how many reaper pods can exist in a cluster
-var MaxPodsThreshold = 4
+// MaxPodsThresholdEnv is a variable limiting how many reaper pods can exist in a cluster
+var MaxPodsThresholdEnv = os.Getenv("MAX_PODS_THRESHOLD")
+
+// JobDeleteTimeDurationEnv is a variable limiting how many minutes a khjob can be alive before it can be delted
+var JobDeleteTimeDurationEnv = os.Getenv("JOB_DELETE_TIME_DURATION")
+
+// instantiate kuberhealhty job client CRD
+var khJobClient *khjobcrd.KHJobV1Client
 
 // Namespace is a variable to allow code to target all namespaces or a single namespace
 var Namespace string
@@ -46,6 +55,11 @@ func main() {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
+	jobClient, err := khjobcrd.Client(kubeConfigFile)
+	if err != nil {
+		log.Fatalln("Unable to create khJob client", err)
+	}
+
 	podList, err := listCheckerPods(ctx, client, Namespace)
 	if err != nil {
 		log.Fatalln("Failed to list and delete old checker pods", err)
@@ -62,6 +76,14 @@ func main() {
 	}
 
 	log.Infoln("Finished reaping checker pods.")
+	log.Infoln("Beginning to search for khjobs.")
+
+	// fetch and delete khjobs that meet criteria
+	err = khJobDelete(jobClient)
+	if err != nil {
+		log.Errorln("Failed to reap khjobs with error: ", err)
+	}
+	log.Infoln("Finished reaping khjobs.")
 }
 
 // listCheckerPods returns a list of pods with the khcheck name label
@@ -91,7 +113,10 @@ func listCheckerPods(ctx context.Context, client *kubernetes.Clientset, namespac
 // deleteFilteredCheckerPods goes through map of all checker pods and deletes older checker pods
 func deleteFilteredCheckerPods(ctx context.Context, client *kubernetes.Clientset, reapCheckerPods map[string]v1.Pod) error {
 
-	var err error
+	MaxPodsThreshold, err := strconv.Atoi(MaxPodsThresholdEnv)
+	if err != nil {
+		log.Errorln("Error converting MaxPodsThreshold to int")
+	}
 
 	for k, v := range reapCheckerPods {
 
@@ -194,4 +219,50 @@ func deletePod(ctx context.Context, client *kubernetes.Clientset, pod v1.Pod) er
 	propagationForeground := metav1.DeletePropagationForeground
 	options := metav1.DeleteOptions{PropagationPolicy: &propagationForeground}
 	return client.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, options)
+}
+
+// jobConditions returns true if conditions are met to be deleted for khjob
+func jobConditions(job khjobcrd.KuberhealthyJob, duration time.Duration, phase khjobcrd.JobPhase) bool {
+	if time.Now().Sub(job.CreationTimestamp.Time) > duration && job.Spec.Phase == phase {
+		log.Infoln("Found khjob older than", duration, "minutes in status", phase)
+		return true
+	}
+	return false
+}
+
+// KHJobDelete fetches a list of khjobs in a namespace and will delete them if they meet given criteria
+func khJobDelete(client *khjobcrd.KHJobV1Client) error {
+
+	opts := metav1.ListOptions{}
+	del := metav1.DeleteOptions{}
+
+	// convert JobDeleteMinutes into time.Duration
+	jobDeleteTimeDuration, err := time.ParseDuration(JobDeleteTimeDurationEnv)
+	if err != nil {
+		log.Errorln("Error converting JobDeleteTimeDurationEnv to Float")
+		return err
+	}
+
+	// list khjobs in Namespace
+	list, err := client.KuberhealthyJobs(Namespace).List(opts)
+	if err != nil {
+		log.Errorln("Error: failed to retrieve khjob list with error", err)
+		return err
+	}
+
+	log.Infoln("Found", len(list.Items), "khjobs")
+
+	// Range over list and delete khjobs
+	for _, j := range list.Items {
+		if jobConditions(j, jobDeleteTimeDuration, "Completed") {
+			log.Infoln("Deleting khjob", j.Name)
+			err := client.KuberhealthyJobs(j.Namespace).Delete(j.Name, &del)
+			if err != nil {
+				log.Errorln("Failure to delete khjob", j.Name, "with error:", err)
+				return err
+
+			}
+		}
+	}
+	return nil
 }
