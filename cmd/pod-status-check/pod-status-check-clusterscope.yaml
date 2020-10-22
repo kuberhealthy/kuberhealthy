@@ -1,0 +1,66 @@
+---
+# Source: kuberhealthy/templates/khcheck-pod-status.yaml
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: pod-status
+  namespace: kuberhealthy
+spec:
+  runInterval: 5m
+  timeout: 15m
+  podSpec:
+    securityContext:
+      runAsUser: 999
+      fsGroup: 999
+    containers:
+      - env:
+          - name: SKIP_DURATION
+            value: "10m"
+        image: kuberhealthy/pod-status-check:v1.2.2
+        imagePullPolicy: IfNotPresent
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+    serviceAccountName: pod-status-sa
+---
+# Source: kuberhealthy/templates/khcheck-pod-status.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pod-status-check-rb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pod-status-role
+subjects:
+  - kind: ServiceAccount
+    name: pod-status-sa
+    namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/khcheck-pod-status.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-status-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+---
+# Source: kuberhealthy/templates/khcheck-pod-status.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pod-status-sa
+  namespace: kuberhealthy
