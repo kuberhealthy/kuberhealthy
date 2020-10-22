@@ -21,7 +21,7 @@ var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 var namespace = os.Getenv("NAMESPACE")
 
 // reason is a varaible to search for event types
-var reason = os.Getenv("REASON")
+var reason = "FailedNeedsStart"
 
 func init() {
 	// set debug mode for nodeCheck pkg
