@@ -2,7 +2,6 @@ apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
   name: cronjob-checker
-  namespace: kuberhealthy
 spec:
   runInterval: 1h
   timeout: 10m
@@ -42,7 +41,7 @@ rules:
       - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
   name: cronjob-checker
 roleRef:
@@ -52,10 +51,8 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: cronjob-checker
-    namespace: kuberhealthy
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: cronjob-checker
-  namespace: kuberhealthy

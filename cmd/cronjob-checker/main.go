@@ -26,16 +26,6 @@ var reason = "FailedNeedsStart"
 func init() {
 	// set debug mode for nodeCheck pkg
 	nodeCheck.EnableDebugOutput()
-
-	// check to see if REASON in yaml is nil
-	if reason == "" {
-		log.Fatalln("Error: Must provide a REASON in cronjob-checker.yaml")
-	}
-
-	// check to see if NAMESPACE in yaml is nil
-	if namespace == "" {
-		log.Fatalln("Error: Must provide a NAMESPACE in cronjob-checker.yaml")
-	}
 }
 
 func main() {
