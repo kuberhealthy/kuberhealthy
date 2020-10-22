@@ -53,7 +53,7 @@ func main() {
 	//range over namespaces and test deployment of pods
 	for _, n := range namespaces.Items {
 		log.Infoln("DEPLOYING POD IN NAMESPACE", n.Namespace)
-		err := deployPod(ctx, n.Namespace, "my-test-pod", kubernetesClient)
+		err := deployPod(ctx, n.Namespace, "kuberhealthy-namespace-checker-pod", kubernetesClient)
 		if err != nil {
 			log.Error(err)
 		}
