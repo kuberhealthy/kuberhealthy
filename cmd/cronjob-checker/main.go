@@ -63,7 +63,7 @@ func main() {
 	for _, e := range eventList.Items {
 		// log.Debugln(e.Reason)
 		if reason == e.Reason {
-			log.Infoln("There was an event with reason:" + e.Reason + " for cronjob" + e.Name + " in namespace " + namespace)
+			log.Infoln("There was an event with reason: " + e.Reason + " for cronjob " + e.Name + " in namespace " + namespace)
 			reportErr := fmt.Errorf("cronjob: " + e.Name + " has an event with reason: " + reason)
 			ReportFailureAndExit(reportErr)
 		}
