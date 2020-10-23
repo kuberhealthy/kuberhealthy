@@ -57,7 +57,6 @@ func main() {
 
 	//range over namespaces and test deployment and deletion of test pods
 	for _, n := range namespaces.Items {
-		log.Infoln(n.Name)
 		log.Infoln("DEPLOYING POD IN NAMESPACE", n.Name)
 		err := deployPod(ctx, n.Name, podName, kubernetesClient)
 		if err != nil {
@@ -79,21 +78,24 @@ func main() {
 		ReportFailureAndExit(reportErr)
 	}
 	log.Info("namespace-pod-check was able to succesfully deploy and delete test pods in", successfulPods, "namespaces")
-	kh.ReportSuccess()
-
+	err = kh.ReportSuccess()
+	if err != nil {
+		log.Fatalln("error when reporting to kuberhealthy with error:", err)
+	}
+	log.Infoln("Successfully reported to kuberhealthy.")
 }
 
 func deployPod(ctx context.Context, namespace string, name string, client *kubernetes.Clientset) error {
 
 	//pod defination
-	pod := getPodObject(name)
+	pod := getPodObject(name, namespace)
 
 	opts := metav1.CreateOptions{}
 
 	//create the pod in kubernetes cluster using the clientset
 	pod, err := client.CoreV1().Pods(namespace).Create(ctx, pod, opts)
 	if err != nil {
-		reportErr := fmt.Errorf("Error deploying pod " + name + " in namespace: " + namespace)
+		reportErr := fmt.Errorf("Error deploying pod " + name + " in namespace: " + namespace + " with error " + error.Error(err))
 		return reportErr
 	}
 	log.Infoln("Pod", name, "created successfully in namespace:", namespace)
@@ -106,7 +108,7 @@ func deletePod(ctx context.Context, namespace string, name string, client *kuber
 	delOpts := v1.DeleteOptions{}
 	err := client.CoreV1().Pods(namespace).Delete(ctx, name, delOpts)
 	if err != nil {
-		reportErr := fmt.Errorf("Error deleting pod " + name + " in namespace " + namespace)
+		reportErr := fmt.Errorf("Error deleting pod " + name + " in namespace " + namespace + " with error " + error.Error(err))
 		return reportErr
 	}
 	log.Infoln("Pod", name, "successfully deleted in namespace", namespace)
@@ -114,11 +116,11 @@ func deletePod(ctx context.Context, namespace string, name string, client *kuber
 }
 
 //getPodObject returns container to run for test
-func getPodObject(name string) *core.Pod {
+func getPodObject(name string, namespace string) *core.Pod {
 	return &core.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: "default",
+			Namespace: namespace,
 			Labels: map[string]string{
 				"app": "demo",
 			},
@@ -142,10 +144,9 @@ func getPodObject(name string) *core.Pod {
 // ReportFailureAndExit logs and reports an error to kuberhealthy and then exits the program.
 // If a error occurs when reporting to kuberhealthy, the program fatals.
 func ReportFailureAndExit(err error) {
-	// log.Errorln(err)
-	err2 := kh.ReportFailure([]string{err.Error()})
-	if err2 != nil {
-		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+	err = kh.ReportFailure([]string{err.Error()})
+	if err != nil {
+		log.Fatalln("error when reporting to kuberhealthy with error:", err)
 	}
 	log.Infoln("Succesfully reported error to kuberhealthy")
 	os.Exit(0)
