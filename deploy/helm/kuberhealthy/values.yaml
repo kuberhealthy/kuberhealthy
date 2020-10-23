@@ -138,6 +138,7 @@ check:
       tag: v1.2.3
     extraEnvs:
     nodeSelector: {}
+    allNamespaces: false
   networkConnection:
     enabled: false
     runInterval: 30m
