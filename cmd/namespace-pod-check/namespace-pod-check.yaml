@@ -10,7 +10,7 @@ spec:
     containers:
       - name: namespace-pod-check
         image: jdowni000/namespace-pod-check:dev
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         resources:
           requests:
             cpu: 15m

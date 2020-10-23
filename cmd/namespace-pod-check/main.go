@@ -57,15 +57,15 @@ func main() {
 
 	//range over namespaces and test deployment and deletion of test pods
 	for _, n := range namespaces.Items {
-		log.Infoln(n)
-		log.Infoln("DEPLOYING POD IN NAMESPACE", n.Namespace)
-		err := deployPod(ctx, n.Namespace, podName, kubernetesClient)
+		log.Infoln(n.Name)
+		log.Infoln("DEPLOYING POD IN NAMESPACE", n.Name)
+		err := deployPod(ctx, n.Name, podName, kubernetesClient)
 		if err != nil {
 			log.Error(err)
 			failedPods++
 			continue
 		}
-		err = deletePod(ctx, n.Namespace, podName, kubernetesClient)
+		err = deletePod(ctx, n.Name, podName, kubernetesClient)
 		if err != nil {
 			log.Error(err)
 			failedPods++
