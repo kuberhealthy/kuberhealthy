@@ -41,12 +41,6 @@ func main() {
 		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
 	}
 
-	// fetches kube proxy to see if it is ready
-	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy", "kube-system")
-	if err != nil {
-		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
-	}
-
 	//create namespace interface
 	nsi := kubernetesClient.CoreV1().Namespaces()
 
@@ -63,6 +57,7 @@ func main() {
 
 	//range over namespaces and test deployment and deletion of test pods
 	for _, n := range namespaces.Items {
+		log.Infoln(n)
 		log.Infoln("DEPLOYING POD IN NAMESPACE", n.Namespace)
 		err := deployPod(ctx, n.Namespace, podName, kubernetesClient)
 		if err != nil {
@@ -80,10 +75,10 @@ func main() {
 	}
 
 	if failedPods != 0 {
-		reportErr := fmt.Errorf("namespace-pod-checker was unable to deploy or delete test pods in " + strconv.Itoa(failedPods) + " out of " + strconv.Itoa(len(namespaces.Items)) + " namespaces")
+		reportErr := fmt.Errorf("namespace-pod-check was unable to deploy or delete test pods in " + strconv.Itoa(failedPods) + " out of " + strconv.Itoa(len(namespaces.Items)) + " namespaces")
 		ReportFailureAndExit(reportErr)
 	}
-	log.Info("namespace-pod-checker was able to succesfully deploy and delete test pods in", successfulPods, "namespaces")
+	log.Info("namespace-pod-check was able to succesfully deploy and delete test pods in", successfulPods, "namespaces")
 	kh.ReportSuccess()
 
 }
