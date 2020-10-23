@@ -77,7 +77,7 @@ func main() {
 		reportErr := fmt.Errorf("namespace-pod-check was unable to deploy or delete test pods in " + strconv.Itoa(failedPods) + " out of " + strconv.Itoa(len(namespaces.Items)) + " namespaces")
 		ReportFailureAndExit(reportErr)
 	}
-	log.Info("namespace-pod-check was able to succesfully deploy and delete test pods in", successfulPods, "namespaces")
+	log.Info("namespace-pod-check was able to succesfully deploy and delete test pods in ", successfulPods, " namespaces")
 	err = kh.ReportSuccess()
 	if err != nil {
 		log.Fatalln("error when reporting to kuberhealthy with error:", err)
@@ -111,7 +111,7 @@ func deletePod(ctx context.Context, namespace string, name string, client *kuber
 		reportErr := fmt.Errorf("Error deleting pod " + name + " in namespace " + namespace + " with error " + error.Error(err))
 		return reportErr
 	}
-	log.Infoln("Pod", name, "successfully deleted in namespace", namespace)
+	log.Infoln("Pod", name, "successfully deleted in namespace:", namespace)
 	return nil
 }
 
