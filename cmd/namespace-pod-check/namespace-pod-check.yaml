@@ -7,6 +7,7 @@ spec:
   runInterval: 1h
   timeout: 10m
   podSpec:
+    serviceAccountName: namespace-pod-check
     containers:
       - name: namespace-pod-check
         image: jdowni000/namespace-pod-check:dev
@@ -20,7 +21,7 @@ spec:
         restartPolicy: Always
     terminationGracePeriodSeconds: 5
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: namespace-pod-check
