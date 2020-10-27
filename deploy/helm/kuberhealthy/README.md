@@ -44,6 +44,11 @@ resources:
   limits:
     cpu: 400m
     memory: 200Mi
+## Only minAvailable or maxUnavailable can be set at the same time.
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  #maxUnavailable:
 tolerations:
   # change to true to tolerate and deploy to masters annotated with node-role.kubernetes.io/master
   master: true

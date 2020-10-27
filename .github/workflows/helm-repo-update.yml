@@ -1,13 +1,16 @@
-# Update helm repo index.yaml & .tgz files when a release tag is created
+# This workflow updates the helm repo index.yaml & .tgz files when a release created.
+# ***Please note that it will trigger if the published release is draft or official***
+
 name: Update Helm Repo Files
-# Note you must include a "v" on version tag, ie "v1.2.3"
 on:
-  create:
-    tags:
-      - "v*.*.*"
-#  push:
-#    branches:
-#    - HelmRepo_GhActionsAutoUpdate
+  release:
+    types: [published]
+  push:
+    branches:
+      - master
+    paths:
+      - 'deploy/helm/kuberhealthy/**'
+      - '!deploy/helm/kuberhealthy/Chart.yaml'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,19 +20,18 @@ jobs:
       with:
         ref: master 
 
-# script with "helm repo" cmds and GH env vars
-    - name: Run Kubernetes tools
+# script with "helm repo" cmds and Chart.yaml modifications
+    - name: update with version tag
       uses: stefanprodan/kube-tools@v1
       with:
         helmv3: 3.2.1
         command: | 
           helmv3 version
           alias helm="helmv3"
-          cd ./deploy/helm/
-          ./helm-repo-update.sh
+          ./deploy/helm/helm-repo-update.sh
 #
     - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v2.4.4
+      uses: peter-evans/create-pull-request@v3.4.1
       with:
         # GITHUB_TOKEN or a repo scoped PAT
         token: ${{ secrets.GITHUB_TOKEN }}
