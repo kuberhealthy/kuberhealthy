@@ -19,7 +19,7 @@ spec:
                   memory: 50Mi
               env:
                 - name: SINGLE_NAMESPACE
-                  value: kuberhealthy
+                  value: ""
                 - name: MAX_PODS_THRESHOLD
                   value: "4"
                 - name: JOB_DELETE_TIME_DURATION
