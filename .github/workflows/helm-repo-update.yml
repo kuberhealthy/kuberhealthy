@@ -28,8 +28,7 @@ jobs:
         command: | 
           helmv3 version
           alias helm="helmv3"
-          cd ./deploy/helm/
-          ./helm-repo-update.sh
+          ./deploy/helm/helm-repo-update.sh
 #
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v3.4.1
