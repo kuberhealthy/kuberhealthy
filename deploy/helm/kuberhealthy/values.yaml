@@ -79,6 +79,8 @@ service:
 
 check:
   daemonset:
+    # leave blank for the default service account name
+    serviceAccountName:
     enabled: true
     runInterval: 15m
     timeout: 12m

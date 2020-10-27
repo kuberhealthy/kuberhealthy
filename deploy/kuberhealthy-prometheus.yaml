@@ -56,6 +56,34 @@ spec:
     matchLabels:
       app: kuberhealthy
 ---
+# Source: kuberhealthy/templates/check-reaper.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: check-reaper
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/khcheck-daemonset.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: daemonset-khcheck
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/khcheck-deployment.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deployment-sa
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kuberhealthy
+  namespace: kuberhealthy
+---
 # Source: kuberhealthy/templates/configmap.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -100,6 +128,7 @@ data:
     influxDB: "http://localhost:8086" # Name of the InfluxDB database
     enableInflux: false # Set to true to enable metric forwarding to Infux DB
 ---
+
 # Source: kuberhealthy/templates/check-reaper.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -230,6 +259,20 @@ subjects:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRoleBinding
 metadata:
+  name: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kuberhealthy
+subjects:
+- kind: ServiceAccount
+  name: kuberhealthy
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/clusterrolebinding.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRoleBinding
+metadata:
   name: kuberhealthy-daemonset-khcheck
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -238,20 +281,6 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: daemonset-khcheck
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/clusterrolebinding.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRoleBinding
-metadata:
-  name: kuberhealthy
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kuberhealthy
-subjects:
-- kind: ServiceAccount
-  name: kuberhealthy
   namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
