@@ -56,6 +56,22 @@ spec:
     matchLabels:
       app: kuberhealthy
 ---
+# Source: kuberhealthy/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kuberhealthy
+data:
+  kuberhealthy.yaml: |-
+    listenAddress: ":8080" # The port for kuberhealthy to listen on for web requests
+    enableForceMaster: false # Set to true to enable local testing, forced master mode
+    logLevel: "debug" # Log level to be used
+    influxUsername: "" # Username for the InfluxDB instance
+    influxPassword: "" # Password for the InfluxDB instance
+    influxURL: "" # Address for the InfluxDB instance
+    influxDB: "http://localhost:8086" # Name of the InfluxDB database
+    enableInflux: false # Set to true to enable metric forwarding to Infux DB
+---
 # Source: kuberhealthy/templates/check-reaper.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -83,35 +99,6 @@ kind: ServiceAccount
 metadata:
   name: kuberhealthy
   namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/configmap.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kuberhealthy
-data:
-  kuberhealthy.yaml: |-
-    listenAddress: ":8080" # The port for kuberhealthy to listen on for web requests
-    enableForceMaster: false # Set to true to enable local testing, forced master mode
-    logLevel: "debug" # Log level to be used
-    influxUsername: "" # Username for the InfluxDB instance
-    influxPassword: "" # Password for the InfluxDB instance
-    influxURL: "" # Address for the InfluxDB instance
-    influxDB: "http://localhost:8086" # Name of the InfluxDB database
-    enableInflux: false # Set to true to enable metric forwarding to Infux DB
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
 ---
 # Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -183,6 +170,19 @@ rules:
     verbs:
     - create
 ---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
+  name: kuberhealthy-daemonset-khcheck
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
+---
 # Source: kuberhealthy/templates/check-reaper.yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -202,20 +202,6 @@ subjects:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRoleBinding
 metadata:
-  name: kuberhealthy
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kuberhealthy
-subjects:
-- kind: ServiceAccount
-  name: kuberhealthy
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/clusterrolebinding.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRoleBinding
-metadata:
   name: kuberhealthy-daemonset-khcheck
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -224,6 +210,20 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: daemonset-khcheck
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/clusterrolebinding.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRoleBinding
+metadata:
+  name: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kuberhealthy
+subjects:
+- kind: ServiceAccount
+  name: kuberhealthy
   namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
