@@ -15,6 +15,17 @@ spec:
             - name: check-reaper
               image: {{ .Values.checkReaper.image.repository }}:{{ .Values.checkReaper.image.tag }}
               imagePullPolicy: IfNotPresent
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 50Mi
+              env:
+                - name: SINGLE_NAMESPACE
+                  value: ""
+                - name: MAX_PODS_THRESHOLD
+                  value: "4"
+                - name: JOB_DELETE_TIME_DURATION
+                  value: 15m
               securityContext:
                 runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
                 runAsUser: {{ .Values.securityContext.runAsUser }}
