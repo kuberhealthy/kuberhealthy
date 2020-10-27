@@ -1,5 +1,5 @@
 build:
-	docker build -t jdowni000/namespace-pod-check:dev -f Dockerfile ../../
+	docker build -t kuberhealthy/namespace-pod-check:v1.0.0 -f Dockerfile ../../
 
 push:
-	docker push jdowni000/namespace-pod-check:dev
+	docker push kuberhealthy/namespace-pod-check:v1.0.0

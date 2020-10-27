@@ -10,8 +10,8 @@ spec:
     serviceAccountName: namespace-pod-check
     containers:
       - name: namespace-pod-check
-        image: jdowni000/namespace-pod-check:dev
-        imagePullPolicy: Always
+        image: kuberhealthy/namespace-pod-check:v1.0.0
+        imagePullPolicy: IfNotPresent
         resources:
           requests:
             cpu: 15m

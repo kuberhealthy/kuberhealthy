@@ -19,7 +19,7 @@ spec:
   podSpec:
     containers:
       - name: namespace-pod-check
-        image: jdowni000/namespace-pod-check:dev
+        image: kuberhealthy/namespace-pod-check:v1.0.0
         imagePullPolicy: IfNotPresent
         resources:
           requests:
@@ -30,7 +30,7 @@ spec:
         restartPolicy: Always
     terminationGracePeriodSeconds: 5
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: namespace-pod-check
