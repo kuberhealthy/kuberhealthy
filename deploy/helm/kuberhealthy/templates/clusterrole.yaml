@@ -48,6 +48,7 @@ rules:
     resources:
     - khstates
     - khchecks
+    - khjobs
     verbs:
     - "*"
   - apiGroups:
@@ -66,6 +67,17 @@ rules:
     - pods/eviction
     verbs:
     - create
+{{- if .Values.podSecurityPolicy.enabled }}
+  - apiGroups:
+      - extensions
+    resourceNames:
+      - {{ template "kuberhealthy.name" . }}-psp
+    resources:
+      - podsecuritypolicies
+    verbs:
+      - use
+{{- end }}
+
 ---
 apiVersion: {{ template "rbac.apiVersion" . }}
 kind: ClusterRole

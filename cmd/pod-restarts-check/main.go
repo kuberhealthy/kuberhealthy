@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -159,7 +160,7 @@ func (prc *Checker) doChecks() error {
 
 	log.Infoln("Checking for pod BackOff events for all pods in the namespace:", prc.Namespace)
 
-	podWarningEvents, err := prc.client.CoreV1().Events(prc.Namespace).List(metav1.ListOptions{FieldSelector: "type=Warning"})
+	podWarningEvents, err := prc.client.CoreV1().Events(prc.Namespace).List(context.TODO(), metav1.ListOptions{FieldSelector: "type=Warning"})
 	if err != nil {
 		return err
 	}
@@ -193,7 +194,7 @@ func (prc *Checker) doChecks() error {
 // verifyBadPodRestartExists removes the bad pod found from the events list if the pod no longer exists
 func (prc *Checker) verifyBadPodRestartExists(podName string) error {
 
-	_, err := prc.client.CoreV1().Pods(prc.Namespace).Get(podName, metav1.GetOptions{})
+	_, err := prc.client.CoreV1().Pods(prc.Namespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Infoln("Bad Pod:", podName, "no longer exists. Removing from bad pods map")

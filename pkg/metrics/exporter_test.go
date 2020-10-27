@@ -80,7 +80,7 @@ func TestGenerateMetrics(t *testing.T) {
 	}
 	// Test with checks, one good, one bad
 	state = health.State{
-		CheckDetails: map[string]health.CheckDetails{
+		CheckDetails: map[string]health.WorkloadDetails{
 			"good": {
 				OK: true,
 			},

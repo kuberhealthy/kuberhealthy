@@ -62,6 +62,14 @@ func parseInputValues() {
 	}
 	log.Infoln("Setting check daemonset name to:", checkDSName)
 
+	// Parse incoming check daemonset name
+	podPriorityClassName = defaultPodPriorityClassName
+	if len(podPriorityClassNameEnv) != 0 {
+		podPriorityClassName = podPriorityClassNameEnv
+		log.Infoln("Parsed PRIORITY_CLASS:", podPriorityClassName)
+	}
+	log.Infoln("Setting check priority class name to:", podPriorityClassName)
+
 	// Parse incoming deployment node selectors
 	if len(dsNodeSelectorsEnv) != 0 {
 		splitEnvVars := strings.Split(dsNodeSelectorsEnv, ",")
