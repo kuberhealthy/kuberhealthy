@@ -15,21 +15,56 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/ssl_util"
+	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 )
 
-var domainName string
-var portNum string
-var daysToExpire string
-var insecureCheck string
+const defaultCheckTimeout = 10 * time.Minute
+
+var (
+	kubeConfigFile = os.Getenv("KUBECONFIG")
+	checkTimeout   time.Duration
+	domainName     string
+	portNum        string
+	daysToExpire   string
+	insecureCheck  string
+	insecureBool   bool
+	certExpired    bool
+	expireWarning  bool
+	checkNamespace string
+	ctx            context.Context
+)
+
+type Checker struct {
+	client        *kubernetes.Clientset
+	domainName    string
+	portNum       string
+	certExpired   bool
+	expireWarning bool
+}
 
 func init() {
+	// Set check time limit to default
+	checkTimeout = time.Duration(time.Second * 20)
+
+	// Get the deadline time in unix from the env var
+	timeDeadline, err := checkclient.GetDeadline()
+	if err != nil {
+		log.Infoln("There was an issue getting the check deadline:", err.Error())
+	}
+	checkTimeout = timeDeadline.Sub(time.Now().Add(time.Second * 5))
+	log.Infoln("Check time limit set to:", checkTimeout)
+
 	domainName = os.Getenv("DOMAIN_NAME")
 	if len(domainName) == 0 {
 		log.Error("ERROR: The DOMAIN_NAME environment variable has not been set.")
@@ -50,37 +85,97 @@ func init() {
 		log.Error("ERROR: The INSECURE environment variable has not been set.")
 		return
 	}
+
+	insecureBool, _ = strconv.ParseBool(insecureCheck)
+
+	// set debug mode for nodeCheck pkg
+	nodeCheck.EnableDebugOutput()
 }
 
 func main() {
-	err := runExpiry()
+	// create context
+	nodeCheckTimeout := time.Minute * 1
+	nodeCheckCtx, _ := context.WithTimeout(context.Background(), nodeCheckTimeout.Round(10))
+
+	// create Kubernetes client
+	kubernetesClient, err := kubeClient.Create("")
 	if err != nil {
-		reportErr := reportKHFailure(err.Error())
-		if reportErr != nil {
-			log.Error(reportErr)
-		}
-		os.Exit(1)
+		log.Errorln("Error creating kubeClient with error" + err.Error())
 	}
-	reportErr := reportKHSuccess()
-	if reportErr != nil {
-		log.Error(reportErr)
+
+	// fetches kube proxy to see if it is ready
+	err = nodeCheck.WaitForKubeProxy(nodeCheckCtx, kubernetesClient, "kuberhealthy", "kube-system")
+	if err != nil {
+		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
+	}
+	client, err := kubeClient.Create(kubeConfigFile)
+	if err != nil {
+		log.Fatalln("Unable to create kubernetes client", err)
+	}
+
+	// wait for the node to join the worker pool
+	waitForNodeToJoin(nodeCheckCtx, client, &checkNamespace)
+
+	sec := New()
+	var cancelFunc context.CancelFunc
+	nodeCheckCtx, cancelFunc = context.WithTimeout(context.Background(), checkTimeout)
+
+	err = sec.runExpiry(nodeCheckCtx, cancelFunc, client)
+	if err != nil {
+		log.Errorln("Error completing SSL expiry check for", domainName+":", err)
+	}
+
+}
+
+func New() *Checker {
+	return &Checker{
+		domainName:    domainName,
+		portNum:       portNum,
+		certExpired:   certExpired,
+		expireWarning: expireWarning,
 	}
 }
 
-func runExpiry() error {
-	insecureBool, _ := strconv.ParseBool(insecureCheck)
+// runExpiry runs the SSL expiry check from the ssl_util package with the specified env variables
+func (sec *Checker) runExpiry(ctx context.Context, cancel context.CancelFunc, client *kubernetes.Clientset) error {
+	doneChan := make(chan error)
+	runTimeout := time.After(checkTimeout)
+
+	go func(doneChan chan error) {
+		err := sec.doChecks()
+		doneChan <- err
+	}(doneChan)
+
+	select {
+	case <-ctx.Done():
+		log.Println("Cancelling check and shutting down due to interrupt.")
+		return reportKHFailure("Cancelling check and shutting down due to interrupt.")
+	case <-runTimeout:
+		cancel()
+		log.Println("Cancelling check and shutting down due to timeout.")
+		return reportKHFailure("Failed to complete SSL expiry check in time. Timeout was reached.")
+	case err := <-doneChan:
+		cancel()
+		if err != nil {
+			return reportKHFailure(err.Error())
+		}
+		return reportKHSuccess()
+	}
+}
+
+func (sec *Checker) doChecks() error {
 	certExpired, expirePending, err := ssl_util.CertExpiry(domainName, portNum, daysToExpire, insecureBool)
 	if err != nil {
 		log.Error("Unable to perform SSL expiration check")
 		return err
 	}
 
-	if certExpired == true {
+	if certExpired {
 		err := fmt.Errorf("Certificate for domain " + domainName + " is expired")
 		return err
 	}
 
-	if expirePending == true {
+	if expirePending {
 		err := fmt.Errorf("Certificate for domain " + domainName + " is expiring in less than " + daysToExpire + " days")
 		return err
 	}
@@ -108,4 +203,18 @@ func reportKHFailure(errorMessage string) error {
 	}
 	log.Info("Successfully reported failure status to Kuberhealthy servers")
 	return err
+}
+
+func waitForNodeToJoin(ctx context.Context, client *kubernetes.Clientset, namespace *string) {
+	// Wait for node to be at least 2m old.
+	err := nodeCheck.WaitForNodeAge(ctx, client, *namespace, time.Minute*5)
+	if err != nil {
+		log.Errorln("Failed to check node age:", err.Error())
+	}
+
+	// Check if Kuberhealthy is reachable.
+	err = nodeCheck.WaitForKuberhealthy(ctx)
+	if err != nil {
+		log.Errorln("Failed to reach Kuberhealthy:", err.Error())
+	}
 }
