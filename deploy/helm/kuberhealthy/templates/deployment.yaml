@@ -39,7 +39,7 @@ spec:
       priorityClassName: {{ .Values.deployment.priorityClassName }}
       {{- end}}
       containers:
-      - image: {{ .Values.image.repository }}:v{{ .Chart.AppVersion }}
+      - image: {{ .Values.image.repository }}:{{ .Chart.AppVersion }}
         command: {{ .Values.deployment.command }}
         {{- if .Values.deployment.args }}
         args:

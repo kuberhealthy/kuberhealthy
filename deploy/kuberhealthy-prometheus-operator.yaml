@@ -17,6 +17,21 @@ spec:
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  name: khjobs.comcast.github.io
+spec:
+  group: comcast.github.io
+  version: v1
+  scope: Namespaced
+  names:
+    plural: khjobs
+    singular: khjob
+    kind: KuberhealthyJob
+    shortNames:
+      - khj
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
   name: khstates.comcast.github.io
 spec:
   group: comcast.github.io
@@ -176,6 +191,7 @@ rules:
     resources:
     - khstates
     - khchecks
+    - khjobs
     verbs:
     - "*"
   - apiGroups:
@@ -380,7 +396,7 @@ spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
       containers:
-      - image: kuberhealthy/kuberhealthy:v2.2.0
+      - image: kuberhealthy/kuberhealthy:v2.3.0
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
@@ -443,8 +459,19 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: kuberhealthy/check-reaper:v1.4.0
+              image: kuberhealthy/check-reaper:v1.5.0
               imagePullPolicy: IfNotPresent
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 50Mi
+              env:
+                - name: SINGLE_NAMESPACE
+                  value: ""
+                - name: MAX_PODS_THRESHOLD
+                  value: "4"
+                - name: JOB_DELETE_TIME_DURATION
+                  value: 15m
               securityContext:
                 runAsNonRoot: true
                 runAsUser: 999
@@ -474,7 +501,7 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-        image: kuberhealthy/daemonset-check:v3.1.0
+        image: kuberhealthy/daemonset-check:v3.2.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -501,7 +528,7 @@ spec:
       fsGroup: 999
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.6.0
+      image: kuberhealthy/deployment-check:v1.6.2
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
@@ -544,7 +571,7 @@ spec:
                 fieldPath: spec.nodeName
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.4.0
+        image: kuberhealthy/dns-resolution-check:v1.4.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:

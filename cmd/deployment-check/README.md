@@ -33,7 +33,8 @@ __IF ROLLING-UPDATE OPTION IS ENABLED__
 - Timeout: 15 minutes
 - Check Interval: 30 minutes
 - Check name: `deployment`
-- Configurable check environment variables:
+
+#### Check Configuration Environment Variables
   - `CHECK_IMAGE`: Initial container image. (default=`nginxinc/nginx-unprivileged:1.17.8`)
   - `CHECK_IMAGE_ROLL_TO`: Container image to roll to. (default=`nginxinc/nginx-unprivileged:1.17.9`)
   - `CHECK_DEPLOYMENT_NAME`: Name for the check's deployment. (default=`deployment-deployment`)
@@ -67,7 +68,7 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.6.0
+      image: kuberhealthy/deployment-check:v1.6.2
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_IMAGE
@@ -105,7 +106,7 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.6.0
+      image: kuberhealthy/deployment-check:v1.6.2
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS

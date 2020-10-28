@@ -9,6 +9,9 @@ spec:
   runInterval:  {{ .Values.check.daemonset.runInterval }}
   timeout: {{ .Values.check.daemonset.timeout }}
   podSpec:
+    {{- if .Values.check.daemonset.serviceAccountName }}
+    serviceAccountName: {{ .Values.check.daemonset.serviceAccountName }}
+    {{- end}}
     {{- if .Values.securityContext.enabled }}
     securityContext:
       runAsUser: {{ .Values.securityContext.runAsUser }}
