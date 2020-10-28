@@ -71,6 +71,7 @@ func createDeploymentConfig(image string) *v1.Deployment {
 
 	// Make a slice for containers for the pods in the deployment.
 	containers := make([]corev1.Container, 0)
+	tolerations := make([]corev1.Toleration, 0)
 
 	if len(checkImage) == 0 {
 		err := errors.New("check image url for container is empty: " + checkImage)
@@ -82,6 +83,11 @@ func createDeploymentConfig(image string) *v1.Deployment {
 	var container corev1.Container
 	container = createContainerConfig(checkImage)
 	containers = append(containers, container)
+
+	//
+	var toleration corev1.Toleration
+	toleration = createToleration("deploymentCheck")
+	tolerations = append(tolerations, toleration)
 
 	// Check for given node selector values.
 	// Set the map to the default of nil (<none>) if there are no selectors given.
@@ -98,6 +104,7 @@ func createDeploymentConfig(image string) *v1.Deployment {
 		RestartPolicy:                 corev1.RestartPolicyAlways,
 		TerminationGracePeriodSeconds: &graceSeconds,
 		ServiceAccountName:            checkServiceAccount,
+		Tolerations:                   tolerations,
 	}
 
 	// Make labels for pod and deployment.
@@ -249,6 +256,17 @@ func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan
 	}()
 
 	return createChan
+}
+
+// createContainerConfig creates a container resource spec and returns it.
+func createToleration(t string) corev1.Toleration {
+
+	// Create toleration Key
+	tolerations := corev1.Toleration{
+		Key: t,
+	}
+
+	return tolerations
 }
 
 // createContainerConfig creates a container resource spec and returns it.
