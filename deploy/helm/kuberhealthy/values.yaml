@@ -138,9 +138,26 @@ check:
     image:
       repository: kuberhealthy/pod-status-check
       tag: v1.2.3
+    allNamespaces: false
     extraEnvs:
     nodeSelector: {}
-    allNamespaces: false
+  storage:
+  # external check from registry
+  # https://github.com/ChrisHirsch/kuberhealthy-storage-check
+    enabled: false
+    # empty string indicate default storage class
+    # kubectl get storageclass
+    # or put storage class names into list
+    storageClass: [""]
+    runInterval: 5m
+    timeout: 10m
+    image:
+      repository: chrishirsch/kuberhealthy-storage-check
+      tag: v0.0.1
+    extraEnvs:
+      CHECK_STORAGE_IMAGE: bitnami/nginx:1.19
+      CHECK_STORAGE_INIT_IMAGE: bitnami/nginx:1.19
+    nodeSelector: {}
   networkConnection:
     enabled: false
     runInterval: 30m
