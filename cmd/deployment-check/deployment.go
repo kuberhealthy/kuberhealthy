@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +30,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	watchpkg "k8s.io/apimachinery/pkg/watch"
+)
+
+var (
+	// Toleration value to be set in deployment pod
+	tolerationValue = os.Getenv("TOLERATION_VALUE")
 )
 
 const (
@@ -86,7 +92,7 @@ func createDeploymentConfig(image string) *v1.Deployment {
 
 	//
 	var toleration corev1.Toleration
-	toleration = createToleration("deploymentCheck")
+	toleration = createToleration(tolerationValue)
 	tolerations = append(tolerations, toleration)
 
 	// Check for given node selector values.

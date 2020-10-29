@@ -17,6 +17,8 @@ spec:
           value: "4"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
+        - name: TOLERATION_VALUE
+          value: "deploymentCheck"
       resources:
         requests:
           cpu: 25m
