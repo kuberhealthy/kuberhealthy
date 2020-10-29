@@ -3,6 +3,7 @@
 External jobs are configured using the `khjob` custom resources.  These `khjobs` are just like `khchecks` but are configured without a runInterval as they run only once. They act like manually triggered k8s jobs, where as soon as your `khjob` resource is applied to the cluster, kuberhealthy runs it automatically. Any `khcheck` can be configured to be a `khjob` as long as you:
  1) Change the resource to `kind: KuberhealthyJob`
  2) Remove the `runInterval` in the `spec`
+ 3) Verify that the khjob does not share the same name with a khcheck. If they are the same name, the job will report to the same khstate object, overwriting the khcheck's khstate. 
 
 A list of pre-made checks that you can easily configure into `khjobs` are listed [in the external checks registry](../docs/EXTERNAL_CHECKS_REGISTRY.md).  
 
