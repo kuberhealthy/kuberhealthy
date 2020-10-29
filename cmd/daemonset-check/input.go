@@ -86,15 +86,15 @@ func parseInputValues() {
 		log.Infoln("Parsed NODE_SELECTOR:", dsNodeSelectors)
 	}
         // Parse incoming deployment tolerations
-        if len(tolerationsEnv) != 0 {
-                splitEnvVars := strings.Split(tolerationsEnv, ",")
-                for _, toleration := range splitEnvVars {
-                                t := corev1.Toleration{
-		                        Key:      toleration,
-		                        Operator: "Exists",
-	                        }
-                                append(tolerations, t)
-                }
-                log.Infoln("Parsed TOLERATIONS:", tolerations)
-        }
+	if len(tolerationsEnv) != 0 {
+		splitEnvVars := strings.Split(tolerationsEnv, ",")
+		for _, toleration := range splitEnvVars {
+				t := corev1.Toleration{
+					Key:      toleration,
+					Operator: "Exists",
+				}
+				append(tolerations, t)
+		}
+		log.Infoln("Parsed TOLERATIONS:", tolerations)
+	}
 }
