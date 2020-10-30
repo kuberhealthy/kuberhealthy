@@ -409,8 +409,8 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 	}
 
 	// Add our generated list of tolerations or any the user input via flag
-	log.Infoln("Deploying daemonset with tolerations: ", daemonSet.Spec.Template.Spec.Tolerations)
 	daemonSet.Spec.Template.Spec.Tolerations = append(daemonSet.Spec.Template.Spec.Tolerations, tolerations...)
+	log.Infoln("Deploying daemonset with tolerations: ", daemonSet.Spec.Template.Spec.Tolerations)
 
 	return daemonSet
 }
