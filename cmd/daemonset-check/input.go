@@ -6,6 +6,7 @@ import (
 
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // parseInputValues parses and sets global vars from env variables and other inputs
@@ -93,7 +94,7 @@ func parseInputValues() {
 					Key:      toleration,
 					Operator: "Exists",
 				}
-				append(tolerations, t)
+				tolerations = append(tolerations, t)
 		}
 		log.Infoln("Parsed TOLERATIONS:", tolerations)
 	}
