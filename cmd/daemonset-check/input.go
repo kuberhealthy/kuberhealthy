@@ -87,15 +87,20 @@ func parseInputValues() {
 		log.Infoln("Parsed NODE_SELECTOR:", dsNodeSelectors)
 	}
         // Parse incoming deployment tolerations
-	if len(tolerationsEnv) != 0 {
-		splitEnvVars := strings.Split(tolerationsEnv, ",")
-		for _, toleration := range splitEnvVars {
-				t := corev1.Toleration{
-					Key:      toleration,
-					Operator: "Exists",
-				}
-				tolerations = append(tolerations, t)
-		}
+	if len(tolerationsEnv) != 0 && len(tolerationOpEnv) != 0 && len(tolerationValEnv) != 0 && len(tolerationEffectEnv) != 0 {
+		//splitEnvVars := strings.Split(tolerationsEnv, ",")
+		//for _, toleration := range splitEnvVars {
+                        
+			t := corev1.Toleration{
+				Key: tolerationsEnv,
+				Operator: corev1.TolerationOperator(tolerationOpEnv),
+				Value: tolerationValEnv,
+				Effect: corev1.TaintEffect(tolerationEffectEnv),
+			}
+			tolerations = append(tolerations, t)
+		//}
 		log.Infoln("Parsed TOLERATIONS:", tolerations)
+	} else {
+		log.Infoln("Unable to parse tolerations without TOLERATION, TOLERATIONOP, TOLERATIONVAL, and TOLERATIONEFFECT environment values set.")
 	}
 }
