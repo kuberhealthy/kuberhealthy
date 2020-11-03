@@ -52,7 +52,10 @@ var (
 
 	// Daemonset check configurations
 	hostName      string
-	tolerationsEnv = os.Getenv("TOLERATIONS")
+	tolerationsEnv = os.Getenv("TOLERATION")
+	tolerationOpEnv = os.Getenv("TOLERATIONOP")
+	tolerationValEnv = os.Getenv("TOLERATIONVAL")
+	tolerationEffectEnv = os.Getenv("TOLERATIONEFFECT")
 	tolerations   []apiv1.Toleration
 	daemonSetName string
 
