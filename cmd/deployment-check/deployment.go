@@ -270,7 +270,8 @@ func createToleration(t string) corev1.Toleration {
 	// Create toleration Key
 	tolerations := corev1.Toleration{
 		Key:      t,
-		Operator: "Exists",
+		Operator: "Equals",
+		Value:    "kuberhealthy",
 		Effect:   "NoSchedule",
 	}
 
