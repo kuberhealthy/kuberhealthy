@@ -105,8 +105,9 @@ func init() {
 	// set env variables into config if specified
 	externalCheckURL, err := getEnvVar(KHExternalReportingURL)
 	if err != nil {
-		cfg.ExternalCheckReportingURL = externalCheckURL
+		log.Infoln("KH_EXTERNAL_REPORTING_URL environment variable not set: ", err, "Attempting to use default value")
 	}
+	cfg.ExternalCheckReportingURL = externalCheckURL
 
 	// parse and set logging level
 	parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
