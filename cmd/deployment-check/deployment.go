@@ -267,14 +267,19 @@ func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan
 // createContainerConfig creates a container resource spec and returns it.
 func createToleration(t string) corev1.Toleration {
 
+	// return blank tolerations if no value provided in yaml file
+	if len(t) == 0 {
+		tolerations := corev1.Toleration{}
+		return tolerations
+	}
+
 	// Create toleration Key
 	tolerations := corev1.Toleration{
 		Key:      t,
-		Operator: "Equals",
+		Operator: "Equal",
 		Value:    "kuberhealthy",
 		Effect:   "NoSchedule",
 	}
-
 	return tolerations
 }
 
