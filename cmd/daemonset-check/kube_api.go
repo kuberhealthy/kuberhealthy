@@ -94,7 +94,7 @@ func listPods() (*v13.PodList, error) {
 	err := backoff.Retry(func() error {
 		var err error
 		podList, err = getPodClient().List(context.TODO(), metav1.ListOptions{
-			LabelSelector: "app=" + daemonSetName + ",source=kuberhealthy,khcheck=daemonset",
+			LabelSelector: "kh=" + daemonSetName + ",source=kuberhealthy,khcheck=daemonset",
 		})
 		return err
 	}, exponentialBackoff)
@@ -111,7 +111,7 @@ func deletePods(dsName string) error {
 	err := backoff.Retry(func() error {
 		var err error
 		err = getPodClient().DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{
-			LabelSelector: "app=" + dsName + ",source=kuberhealthy,khcheck=daemonset",
+			LabelSelector: "kh=" + dsName + ",source=kuberhealthy,khcheck=daemonset",
 		})
 		return err
 	}, exponentialBackoff)
