@@ -86,7 +86,7 @@ check:
     timeout: 12m
     image:
       repository: kuberhealthy/daemonset-check
-      tag: v3.2.1
+      tag: v3.2.2
     extraEnvs:
     nodeSelector: {}
   deployment:
