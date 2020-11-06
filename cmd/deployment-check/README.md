@@ -74,7 +74,7 @@ spec:
   podSpec:
     containers:
       - name: deployment
-        image: kuberhealthy/deployment-check:v1.7.2
+        image: kuberhealthy/deployment-check:v1.7.0
         imagePullPolicy: Always
         env:
           - name: CHECK_DEPLOYMENT_REPLICAS
