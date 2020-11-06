@@ -13,8 +13,8 @@ spec:
       - env:
           - name: POD_NAMESPACE
             value: "kuberhealthy"
-        image: kuberhealthy/daemonset-check:v3.1.1
-        imagePullPolicy: IfNotPresent
+        image: kuberhealthy/daemonset-check:v3.2.2
+        imagePullPolicy: Never
         name: main
         resources:
           requests:
