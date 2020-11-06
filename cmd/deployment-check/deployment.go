@@ -16,7 +16,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -30,11 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	watchpkg "k8s.io/apimachinery/pkg/watch"
-)
-
-var (
-	// Toleration value to be set in deployment pod
-	tolerationValue = os.Getenv("TOLERATION_VALUE")
 )
 
 const (
@@ -264,16 +258,13 @@ func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan
 	return createChan
 }
 
-// createContainerConfig creates a container resource spec and returns it.
+// createToleration creates a container resource spec and returns it.
 func createToleration(t string) corev1.Toleration {
 
 	// return blank tolerations if no value provided in yaml file
 	if len(t) == 0 {
 		tolerations := corev1.Toleration{
-			Key:      "",
-			Operator: "Exists",
-			Value:    "",
-			Effect:   "",
+			Operator: corev1.TolerationOpExists,
 		}
 		return tolerations
 	}
@@ -281,9 +272,9 @@ func createToleration(t string) corev1.Toleration {
 	// Create toleration Key
 	tolerations := corev1.Toleration{
 		Key:      t,
-		Operator: "Equal",
+		Operator: corev1.TolerationOpEqual,
 		Value:    "kuberhealthy",
-		Effect:   "NoSchedule",
+		Effect:   corev1.TaintEffectNoSchedule,
 	}
 	return tolerations
 }
