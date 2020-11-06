@@ -269,7 +269,12 @@ func createToleration(t string) corev1.Toleration {
 
 	// return blank tolerations if no value provided in yaml file
 	if len(t) == 0 {
-		tolerations := corev1.Toleration{}
+		tolerations := corev1.Toleration{
+			Key:      "",
+			Operator: "Exists",
+			Value:    "",
+			Effect:   "",
+		}
 		return tolerations
 	}
 
