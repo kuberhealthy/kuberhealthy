@@ -53,6 +53,10 @@ This check follows the list of actions in order during the run of the check:
 - `ADDITIONAL_ENV_VARS`: Comma separated list of `key=value` variables passed into the pod's containers.
 - `SHUTDOWN_GRACE_PERIOD`: Amount of time in seconds the shutdown will allow itself to clean up after an interrupt signal (default=`30s`).
 - `DEBUG`: Verbose debug logging.
+- `TOLERATION_VALUE`: Key to be set for toleration in the event dedicated nodes are required for scheduling.
+  (default= "")
+- `NODE_SELECTOR`: node selector label to be passed in to range for when scheduling on dedicated node.
+  (default= "")
 
 #### Example KuberhealthyCheck Spec
 
