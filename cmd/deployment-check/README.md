@@ -82,9 +82,9 @@ spec:
           - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
             value: "true"
           - name: TOLERATION_VALUE
-            value: "dedicated"
+            value: ""
           - name: NODE_SELECTOR
-            value: "dedicated=kuberhealthy"
+            value: ""
         resources:
           requests:
             cpu: 25m
