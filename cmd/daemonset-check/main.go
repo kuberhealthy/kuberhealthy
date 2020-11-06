@@ -236,7 +236,7 @@ func reportOKToKuberhealthy() {
 func reportToKuberhealthy(ok bool, errs []string) {
 	var err error
 	if ok {
-		err := kh.ReportSuccess()
+		err = kh.ReportSuccess()
 		if err != nil {
 			log.Fatalln("error reporting to kuberhealthy:", err.Error())
 		}
