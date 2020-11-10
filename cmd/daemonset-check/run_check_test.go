@@ -14,6 +14,7 @@ func TestNodeLabelsMatch(test *testing.T) {
                 "blah": "blerp",
                 "kubernetes.io/role": "node",
         }
+	//nodeSelectors := map[string]string{}
 	expectedResults := []bool{
 		true,
 		false,
@@ -21,6 +22,6 @@ func TestNodeLabelsMatch(test *testing.T) {
 	test.Log("testing nodelabelsmatch")
 	r := nodeLabelsMatch(labels, nodeSelectors)
 	if r == false {
-		test.Errorf("Expected %v but got: %v", expectedResults[1], r)	
+		test.Errorf("Expected %v but got: %v", expectedResults[0], r)	
 	}
 }
