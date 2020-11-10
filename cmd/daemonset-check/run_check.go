@@ -494,8 +494,6 @@ func getNodesMissingDSPod() ([]string, error) {
 					continue
 				}
 				if taintsAreTolerated(node.Spec.Taints, tolerations) {
-					log.Infoln("in taints range pods.items")
-					log.Infoln(pod.Name)
 					nodeStatuses[node.Name] = true
 					break
 				}
@@ -550,8 +548,6 @@ func nodeLabelsMatch(labels, nodeSelectors map[string]string) bool {
 		// if there is a matching key, the label's value should match the node selector's value
 		// otherwise, this node does not match
 		if labelValue != selectorValue {
-			log.Infoln("labels match")
-			log.Infoln(labelValue, selectorValue)
 			labelsMatch = false
 		}
 	}
