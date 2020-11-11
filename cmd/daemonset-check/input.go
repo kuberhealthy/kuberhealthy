@@ -87,20 +87,54 @@ func parseInputValues() {
 		log.Infoln("Parsed NODE_SELECTOR:", dsNodeSelectors)
 	}
         // Parse incoming deployment tolerations
-	if len(tolerationsEnv) != 0 && len(tolerationOpEnv) != 0 && len(tolerationValEnv) != 0 && len(tolerationEffectEnv) != 0 {
-		//splitEnvVars := strings.Split(tolerationsEnv, ",")
-		//for _, toleration := range splitEnvVars {
-                        
+	if len(tolerationsEnv) != 0 {
+		splitEnvVars := strings.Split(tolerationsEnv, ",")
+		//do we have multiple tolerations
+		if len(splitEnvVars) > 1 {
+			for _, toleration := range splitEnvVars {
+				splitkv := strings.Split(toleration, "=")
+				//does toleration has a value provided
+				if len(splitkv) > 1 {
+					findte := strings.Split(splitkv[1], ":")
+					//does toleration have an effect
+					if len(findte) > 1 {
+						//get value/effect and generate toleration
+						tvalue := findte[0]
+						teffect := findte[1]
+						t := corev1.Toleration{
+							Key: splitkv[0],
+							Operator: "Equal",
+							Value: tvalue,
+							Effect: corev1.TaintEffect(teffect),
+						}
+						tolerations = append(tolerations, t)
+					} else {
+						// generate based on splitkv
+						t := corev1.Toleration{
+							Key: splitkv[0],
+							Operator: "Equal",
+							Value: splitkv[1],
+						}
+						tolerations = append(tolerations, t)
+					}
+				} else {
+					t := corev1.Toleration{
+						Key: toleration,
+						Operator: "Exists",
+					}
+					tolerations = append(tolerations, t)
+				}
+			}
+		} else {
+			//generate toleration based on single string value
 			t := corev1.Toleration{
 				Key: tolerationsEnv,
-				Operator: corev1.TolerationOperator(tolerationOpEnv),
-				Value: tolerationValEnv,
-				Effect: corev1.TaintEffect(tolerationEffectEnv),
-			}
+				Operator: "Exists",
+		        }
 			tolerations = append(tolerations, t)
-		//}
+		}
 		log.Infoln("Parsed TOLERATIONS:", tolerations)
 	} else {
-		log.Infoln("Unable to parse tolerations without TOLERATION, TOLERATIONOP, TOLERATIONVAL, and TOLERATIONEFFECT environment values set.")
+		log.Infoln("Unable to parse tolerations without TOLERATIONS value set.")
 	}
 }
