@@ -75,8 +75,6 @@ check:
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
-      TOLERATION_VALUE: ""
-      NODE_SELECTOR: ""
       DEBUG: "true"
     nodeSelector: {}
   dnsInternal:
