@@ -8,7 +8,7 @@ Custom images can be used for this check and can be specified with the `CHECK_IM
 
 The number of replicas the `deployment` brings up can be adjusted with the `CHECK_DEPLOYMENT_REPLICAS` environment variable. By default the amount of replicas used is `2`, but this can be customized for different scenarios and environments. `maxSurge` and `maxUnavailable` values for the deployment is calculated to be %50 of the deployment replicas (rounded-up).
 
-A successful run implies that a deployment and service can be brought up and the corresponding hostname endpoint returns a `200 OK` response.  A failure implies that an error occurred anywhere in the deployment creation, service creation, HTTP request, or tear down process -- resulting in an error report to the _Kuberhealthy_ status page.
+A successful run implies that a deployment and service can be brought up and the corresponding hostname endpoint returns a `200 OK` response. A failure implies that an error occurred anywhere in the deployment creation, service creation, HTTP request, or tear down process -- resulting in an error report to the _Kuberhealthy_ status page.
 
 #### Deployment Check Diagram
 
@@ -17,12 +17,13 @@ A successful run implies that a deployment and service can be brought up and the
 #### Check Steps
 
 This check follows the list of actions in order during the run of the check:
+
 1.  Looks for old services and deployments belonging to this check and cleans them up.
 2.  Creates a deployment configuration, applies it to the namespace, and waits for the deployment to come up.
 3.  Creates a service configuration, applies it to the namespace, and waits for the service to come up.
 4.  Makes an HTTP Get request to the service endpoint, looking for a `200 OK`.
 
-__IF ROLLING-UPDATE OPTION IS ENABLED__
+**IF ROLLING-UPDATE OPTION IS ENABLED**
 
 5.  Creates an updated deployment configuration, applies it to the namespace, and waits for the deployment to complete its rolling-update.
 6.  Makes a second HTTP Get request to the service endpoint, looking for another `200 OK`.
@@ -35,22 +36,27 @@ __IF ROLLING-UPDATE OPTION IS ENABLED__
 - Check name: `deployment`
 
 #### Check Configuration Environment Variables
-  - `CHECK_IMAGE`: Initial container image. (default=`nginxinc/nginx-unprivileged:1.17.8`)
-  - `CHECK_IMAGE_ROLL_TO`: Container image to roll to. (default=`nginxinc/nginx-unprivileged:1.17.9`)
-  - `CHECK_DEPLOYMENT_NAME`: Name for the check's deployment. (default=`deployment-deployment`)
-  - `CHECK_SERVICE_NAME`: Name for the check's service. (default=`deployment-svc`)
-  - `CHECK_NAMESPACE`: Namespace for the check (default=`kuberhealthy`).
-  - `CHECK_DEPLOYMENT_REPLICAS`: Number of replicas in the deployment (default=`2`).
-  - `CHECK_DEPLOYMENT_ROLLING_UPDATE`: Boolean to enable rolling-update (default=`false`).
-  - `CHECK_CONTAINER_PORT`: Check pod container port (default=`8080`).
-  - `CHECK_POD_CPU_REQUEST`: Check pod deployment CPU request value. Calculated in decimal SI units `(15 = 15m cpu)`.
-  - `CHECK_POD_CPU_LIMIT`: Check pod deployment CPU limit value. Calculated in decimal SI units `(75 = 75m cpu)`.
-  - `CHECK_POD_MEM_REQUEST`: Check pod deployment memory request value. Calculated in binary SI units `(20 * 1024^2 = 20Mi memory)`.
-  - `CHECK_POD_MEM_LIMIT`: Check pod deployment memory limit value. Calculated in binary SI units `(75 * 1024^2 = 75Mi memory)`.
-  - `NODE_SELECTOR`: Comma separated list of `key=value` node selector values for the deployment check. By default, there are no selectors.
-  - `ADDITIONAL_ENV_VARS`: Comma separated list of `key=value` variables passed into the pod's containers.
-  - `SHUTDOWN_GRACE_PERIOD`: Amount of time in seconds the shutdown will allow itself to clean up after an interrupt signal (default=`30s`).
-  - `DEBUG`: Verbose debug logging.
+
+- `CHECK_IMAGE`: Initial container image. (default=`nginxinc/nginx-unprivileged:1.17.8`)
+- `CHECK_IMAGE_ROLL_TO`: Container image to roll to. (default=`nginxinc/nginx-unprivileged:1.17.9`)
+- `CHECK_DEPLOYMENT_NAME`: Name for the check's deployment. (default=`deployment-deployment`)
+- `CHECK_SERVICE_NAME`: Name for the check's service. (default=`deployment-svc`)
+- `CHECK_NAMESPACE`: Namespace for the check (default=`kuberhealthy`).
+- `CHECK_DEPLOYMENT_REPLICAS`: Number of replicas in the deployment (default=`2`).
+- `CHECK_DEPLOYMENT_ROLLING_UPDATE`: Boolean to enable rolling-update (default=`false`).
+- `CHECK_CONTAINER_PORT`: Check pod container port (default=`8080`).
+- `CHECK_POD_CPU_REQUEST`: Check pod deployment CPU request value. Calculated in decimal SI units `(15 = 15m cpu)`.
+- `CHECK_POD_CPU_LIMIT`: Check pod deployment CPU limit value. Calculated in decimal SI units `(75 = 75m cpu)`.
+- `CHECK_POD_MEM_REQUEST`: Check pod deployment memory request value. Calculated in binary SI units `(20 * 1024^2 = 20Mi memory)`.
+- `CHECK_POD_MEM_LIMIT`: Check pod deployment memory limit value. Calculated in binary SI units `(75 * 1024^2 = 75Mi memory)`.
+- `NODE_SELECTOR`: Comma separated list of `key=value` node selector values for the deployment check. By default, there are no selectors.
+- `ADDITIONAL_ENV_VARS`: Comma separated list of `key=value` variables passed into the pod's containers.
+- `SHUTDOWN_GRACE_PERIOD`: Amount of time in seconds the shutdown will allow itself to clean up after an interrupt signal (default=`30s`).
+- `DEBUG`: Verbose debug logging.
+- `TOLERATION_VALUE`: Key to be set for toleration in the event dedicated nodes are required for scheduling.
+  (default= "")
+- `NODE_SELECTOR`: node selector label to be passed in to range for when scheduling on dedicated node.
+  (default= "")
 
 #### Example KuberhealthyCheck Spec
 
@@ -67,29 +73,27 @@ spec:
   timeout: 15m
   podSpec:
     containers:
-    - name: deployment
-      image: kuberhealthy/deployment-check:v1.6.2
-      imagePullPolicy: IfNotPresent
-      env:
-        - name: CHECK_IMAGE
-          value: "nginx:1.17-perl"
-        - name: CHECK_IMAGE_ROLL_TO
-          value: "nginx:1.17.5-perl"
-        - name: CHECK_DEPLOYMENT_REPLICAS
-          value: "4"
-        - name: CHECK_CONTAINER_PORT
-          value: "80"
-        - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
-          value: "true"
-        - name: ADDITIONAL_ENV_VARS
-          value: "var1=foo,var2=bar"
-      resources:
-        requests:
-          cpu: 15m
-          memory: 15Mi
-        limits:
-          cpu: 25m
-      restartPolicy: Always
+      - name: deployment
+        image: kuberhealthy/deployment-check:v1.7.0
+        imagePullPolicy: Always
+        env:
+          - name: CHECK_DEPLOYMENT_REPLICAS
+            value: "4"
+          - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
+            value: "true"
+          - name: TOLERATION_VALUE
+            value: ""
+          - name: NODE_SELECTOR
+            value: ""
+        resources:
+          requests:
+            cpu: 25m
+            memory: 15Mi
+          limits:
+            cpu: 40m
+        restartPolicy: Never
+    serviceAccountName: deployment-sa
+    terminationGracePeriodSeconds: 60
 ```
 
 The following configuration will create a deployment with 6 replicas and roll from `nginxinc/nginx-unprivileged:1.17.8` to `nginxinc/nginx-unprivileged:1.17.9`:
@@ -105,32 +109,33 @@ spec:
   timeout: 15m
   podSpec:
     containers:
-    - name: deployment
-      image: kuberhealthy/deployment-check:v1.6.2
-      imagePullPolicy: IfNotPresent
-      env:
-        - name: CHECK_DEPLOYMENT_REPLICAS
-          value: "6"
-        - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
-          value: "true"
-      resources:
-        requests:
-          cpu: 15m
-          memory: 15Mi
-        limits:
-          cpu: 25m
-      restartPolicy: Always
+      - name: deployment
+        image: kuberhealthy/deployment-check:v1.6.2
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: CHECK_DEPLOYMENT_REPLICAS
+            value: "6"
+          - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
+            value: "true"
+        resources:
+          requests:
+            cpu: 15m
+            memory: 15Mi
+          limits:
+            cpu: 25m
+        restartPolicy: Always
 ```
 
 #### Install
 
-To use the *Deployment Check* with Kuberhealthy, apply the configuration file [deployment-check.yaml](deployment-check.yaml) to your Kubernetes Cluster. The following command will also apply the configuration file to your current context:
+To use the _Deployment Check_ with Kuberhealthy, apply the configuration file [deployment-check.yaml](deployment-check.yaml) to your Kubernetes Cluster. The following command will also apply the configuration file to your current context:
 
 `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/deployment-check/deployment-check.yaml`
 
 Make sure you are using the latest release of Kuberhealthy 2.0.0 or later.
 
 The check configuration file contains:
+
 - KuberhealthyCheck
 - Role
 - Rolebinding
