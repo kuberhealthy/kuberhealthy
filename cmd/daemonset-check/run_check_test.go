@@ -7,7 +7,7 @@ import (
 func TestNodeLabelsMatch(test *testing.T) {
 	labels := map[string]string{
 		"blah": "blerp",
-                "kubernetes.io/hostname": "ip-10-112-79-36.us-west-2.compute.internal",
+		"kubernetes.io/hostname": "ip-10-112-79-36.us-west-2.compute.internal",
 		"kubernetes.io/role": "node",
 	}
         nodeSelectors := map[string]string{
