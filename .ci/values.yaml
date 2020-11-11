@@ -71,10 +71,12 @@ check:
     timeout: 15m
     image:
       repository: kuberhealthy/deployment-check
-      tag: v1.6.2
+      tag: v1.7.0
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
+      TOLERATION_VALUE: ""
+      NODE_SELECTOR: ""
       DEBUG: "true"
     nodeSelector: {}
   dnsInternal:
