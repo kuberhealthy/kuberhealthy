@@ -103,7 +103,7 @@ func parseInputValues() {
 						teffect := findte[1]
 						t := corev1.Toleration{
 							Key: splitkv[0],
-							Operator: "Equal",
+							Operator: corev1.TolerationOpEqual,
 							Value: tvalue,
 							Effect: corev1.TaintEffect(teffect),
 						}
@@ -112,7 +112,7 @@ func parseInputValues() {
 						// generate based on splitkv
 						t := corev1.Toleration{
 							Key: splitkv[0],
-							Operator: "Equal",
+							Operator: corev1.TolerationOpEqual,
 							Value: splitkv[1],
 						}
 						tolerations = append(tolerations, t)
@@ -120,7 +120,7 @@ func parseInputValues() {
 				} else {
 					t := corev1.Toleration{
 						Key: toleration,
-						Operator: "Exists",
+						Operator: corev1.TolerationOpExists,
 					}
 					tolerations = append(tolerations, t)
 				}
@@ -129,7 +129,7 @@ func parseInputValues() {
 			//generate toleration based on single string value
 			t := corev1.Toleration{
 				Key: tolerationsEnv,
-				Operator: "Exists",
+				Operator: corev1.TolerationOpExists,
 		        }
 			tolerations = append(tolerations, t)
 		}
