@@ -166,6 +166,18 @@ func (dc *Checker) Run(client *kubernetes.Clientset) error {
 func (dc *Checker) doChecks() error {
 
 	log.Infoln("DNS Status check testing hostname:", dc.Hostname)
+	endpoints, err := dc.client.CoreV1().EndpointsList("kube-system").List(<fixme>)
+	log.Infoln(endpoints)
+	//r := &net.Resolver{
+	//	PreferGo: true,
+	//	Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+	//		d := net.Dialer{
+	//			Timeout: time.Millisecond * time.Duration(10000),
+	//		}
+	//		return d.DialContext(ctx, "udp", server)
+        //	},
+    	//}
+	//_, err := r.LookupHost(context.Background(), dc.Hostname)
 	_, err := net.LookupHost(dc.Hostname)
 	if err != nil {
 		errorMessage := "DNS Status check determined that " + dc.Hostname + " is DOWN: " + err.Error()
