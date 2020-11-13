@@ -9,6 +9,39 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+func createToleration(toleration string) *corev1.Toleration {
+	splitkv := strings.Split(toleration, "=")
+	//does toleration has a value provided
+	if len(splitkv) > 1 {
+		findte := strings.Split(splitkv[1], ":")
+		//does toleration have an effect
+		if len(findte) > 1 {
+			//get value/effect and generate toleration
+			tvalue := findte[0]
+			teffect := findte[1]
+			t := corev1.Toleration{
+				Key: splitkv[0],
+				Operator: corev1.TolerationOpEqual,
+				Value: tvalue,
+				Effect: corev1.TaintEffect(teffect),
+			}
+			return &t
+		}
+		// generate based on splitkv
+		t := corev1.Toleration{
+			Key: splitkv[0],
+			Operator: corev1.TolerationOpEqual,
+			Value: splitkv[1],
+		}
+		return &t
+	}
+	t := corev1.Toleration{
+		Key: toleration,
+		Operator: corev1.TolerationOpExists,
+	}
+	return &t
+}
+
 // parseInputValues parses and sets global vars from env variables and other inputs
 func parseInputValues() {
 
@@ -92,49 +125,15 @@ func parseInputValues() {
 		//do we have multiple tolerations
 		if len(splitEnvVars) > 1 {
 			for _, toleration := range splitEnvVars {
-				splitkv := strings.Split(toleration, "=")
-				//does toleration has a value provided
-				if len(splitkv) > 1 {
-					findte := strings.Split(splitkv[1], ":")
-					//does toleration have an effect
-					if len(findte) > 1 {
-						//get value/effect and generate toleration
-						tvalue := findte[0]
-						teffect := findte[1]
-						t := corev1.Toleration{
-							Key: splitkv[0],
-							Operator: corev1.TolerationOpEqual,
-							Value: tvalue,
-							Effect: corev1.TaintEffect(teffect),
-						}
-						tolerations = append(tolerations, t)
-					} else {
-						// generate based on splitkv
-						t := corev1.Toleration{
-							Key: splitkv[0],
-							Operator: corev1.TolerationOpEqual,
-							Value: splitkv[1],
-						}
-						tolerations = append(tolerations, t)
-					}
-				} else {
-					t := corev1.Toleration{
-						Key: toleration,
-						Operator: corev1.TolerationOpExists,
-					}
-					tolerations = append(tolerations, t)
-				}
+				//parse each toleration, create a corev1.Toleration object, and append to tolerations slice
+				tol := createToleration(toleration)
+				tolerations = append(tolerations, *tol)
 			}
-		} else {
-			//generate toleration based on single string value
-			t := corev1.Toleration{
-				Key: tolerationsEnv,
-				Operator: corev1.TolerationOpExists,
-		        }
-			tolerations = append(tolerations, t)
+		}  else {
+			//parse single toleration and append to slice
+			tol := createToleration(tolerationsEnv)
+			tolerations = append(tolerations, *tol)
 		}
 		log.Infoln("Parsed TOLERATIONS:", tolerations)
-	} else {
-		log.Infoln("Unable to parse tolerations without TOLERATIONS value set.")
-	}
+	} 
 }
