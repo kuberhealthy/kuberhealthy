@@ -11,7 +11,7 @@ prometheus:
 
 image:
   repository: kuberhealthy/kuberhealthy
-  tag: v2.3.0
+  tag: v2.3.1
 
 resources:
   requests:
@@ -79,12 +79,14 @@ service:
 
 check:
   daemonset:
+    # leave blank for the default service account name
+    serviceAccountName:
     enabled: true
     runInterval: 15m
     timeout: 12m
     image:
       repository: kuberhealthy/daemonset-check
-      tag: v3.2.1
+      tag: v3.2.2
     extraEnvs:
     nodeSelector: {}
   deployment:
@@ -136,9 +138,26 @@ check:
     image:
       repository: kuberhealthy/pod-status-check
       tag: v1.2.3
+    allNamespaces: false
     extraEnvs:
     nodeSelector: {}
-    allNamespaces: false
+  storage:
+  # external check from registry
+  # https://github.com/ChrisHirsch/kuberhealthy-storage-check
+    enabled: false
+    # empty string indicate default storage class
+    # kubectl get storageclass
+    # or put storage class names into list
+    storageClass: [""]
+    runInterval: 5m
+    timeout: 10m
+    image:
+      repository: chrishirsch/kuberhealthy-storage-check
+      tag: v0.0.1
+    extraEnvs:
+      CHECK_STORAGE_IMAGE: bitnami/nginx:1.19
+      CHECK_STORAGE_INIT_IMAGE: bitnami/nginx:1.19
+    nodeSelector: {}
   networkConnection:
     enabled: false
     runInterval: 30m

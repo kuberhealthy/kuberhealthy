@@ -18,7 +18,7 @@ spec:
           # For internal, self-signed certificates, set to "true" and copy and paste the .pem formatted certificate in the config map below 
           - name: SELF_SIGNED
             value: "true"
-        image: kuberhealthy/ssl-handshake-check:v3.0.1
+        image: kuberhealthy/ssl-handshake-check:v3.1.1
         imagePullPolicy: IfNotPresent
         name: main
         volumeMounts:
