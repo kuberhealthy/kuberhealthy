@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
@@ -59,14 +60,22 @@ func main() {
 		log.Fatalln("Error listing events with error:", err)
 	}
 
+	// probCount counts the number of events found with reason
+	probCount := 0
+
 	//range over eventList for cronjob events that match provided reason
 	for _, e := range eventList.Items {
-		// log.Debugln(e.Reason)
 		if reason == e.Reason {
 			log.Infoln("There was an event with reason: " + e.Reason + " for cronjob " + e.Name + " in namespace " + namespace)
-			reportErr := fmt.Errorf("cronjob: " + e.Name + " has an event with reason: " + reason)
-			ReportFailureAndExit(reportErr)
+			reportErr := fmt.Errorf("cronjob " + e.Name + " has an event with reason: " + reason)
+			log.Errorln(reportErr)
+			probCount++
 		}
+	}
+
+	if probCount != 0 {
+		khError := fmt.Errorf("There were " + strconv.Itoa(len(eventList.Items)) + " cronjob(s) with an event reason " + reason + ". Please see cronjob-checker logs")
+		ReportFailureAndExit(khError)
 	}
 
 	log.Infoln("There were no events with reason " + reason + " for cronjobs in namespace " + namespace)
