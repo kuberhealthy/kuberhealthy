@@ -10,12 +10,16 @@ spec:
       template:
         spec:
           containers:
-            - name: check-reaper
-              image: kuberhealthy/check-reaper:v1.5.0
+            - image: kuberhealthy/check-reaper:v1.5.0
               imagePullPolicy: IfNotPresent
+              name: check-reaper
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 50Mi
               env:
                 - name: SINGLE_NAMESPACE
-                  value: kuberhealthy
+                  value: ""
                 - name: MAX_PODS_THRESHOLD
                   value: "4"
                 - name: JOB_DELETE_TIME_DURATION

@@ -21,7 +21,7 @@ spec:
           # Set INSECURE to "false" for CA issued certificates. If "false", a TLS handshake will be performed during the expiry check.
           - name: INSECURE
             value: "false"
-        image: kuberhealthy/ssl-expiry-check:v3.0.1
+        image: kuberhealthy/ssl-expiry-check:v3.1.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:

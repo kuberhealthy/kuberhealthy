@@ -5,12 +5,12 @@ name: Update Helm Repo Files
 on:
   release:
     types: [published]
-  push:
-    branches:
-      - master
-    paths:
-      - 'deploy/helm/kuberhealthy/**'
-      - '!deploy/helm/kuberhealthy/Chart.yaml'
+#   push:
+#     branches:
+#       - master
+#     paths:
+#       - 'deploy/helm/kuberhealthy/**'
+#       - '!deploy/helm/kuberhealthy/Chart.yaml'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,8 +28,7 @@ jobs:
         command: | 
           helmv3 version
           alias helm="helmv3"
-          cd ./deploy/helm/
-          ./helm-repo-update.sh
+          ./deploy/helm/helm-repo-update.sh
 #
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v3.4.1
