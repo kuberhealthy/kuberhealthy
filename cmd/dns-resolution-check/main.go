@@ -26,6 +26,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	"k8s.io/client-go/kubernetes"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
@@ -165,25 +166,35 @@ func (dc *Checker) Run(client *kubernetes.Clientset) error {
 // doChecks does validations on the DNS call to the endpoint
 func (dc *Checker) doChecks() error {
 
+	var ct context.Context
 	log.Infoln("DNS Status check testing hostname:", dc.Hostname)
-	endpoints, err := dc.client.CoreV1().EndpointsList("kube-system").List(<fixme>)
-	log.Infoln(endpoints)
-	//r := &net.Resolver{
-	//	PreferGo: true,
-	//	Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-	//		d := net.Dialer{
-	//			Timeout: time.Millisecond * time.Duration(10000),
-	//		}
-	//		return d.DialContext(ctx, "udp", server)
-        //	},
-    	//}
-	//_, err := r.LookupHost(context.Background(), dc.Hostname)
-	_, err := net.LookupHost(dc.Hostname)
+	endpoints, err := dc.client.CoreV1().Endpoints("kube-system").List(ct, metav1.ListOptions{LabelSelector:"k8s-app=kube-dns"})
 	if err != nil {
-		errorMessage := "DNS Status check determined that " + dc.Hostname + " is DOWN: " + err.Error()
-		log.Errorln(errorMessage)
-		return errors.New(errorMessage)
+		message := "DNS status check unable to get dns endpoints from cluster: " + err.Error()
+		log.Errorln(message)
+		return errors.New(message)
 	}
+	log.Infoln(endpoints)
+	//for ep := 1; ep < len(endpoints); ep++ {
+	//	print(endpoints[ep])
+	//	r := &net.Resolver{
+	//		PreferGo: true,
+	//		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+	//			d := net.Dialer{
+	//				Timeout: time.Millisecond * time.Duration(10000),
+	//			}
+	//			print(d)
+	//			//return d.DialContext(ctx, "udp", server)
+        //		},
+    	//	}
+		//_, err := r.LookupHost(context.Background(), dc.Hostname)
+		_, err2 := net.LookupHost(dc.Hostname)
+		if err2 != nil {
+			errorMessage := "DNS Status check determined that " + dc.Hostname + " is DOWN: " + err2.Error()
+			log.Errorln(errorMessage)
+			return errors.New(errorMessage)
+		}
+	//}
 	log.Infoln("DNS Status check determined that", dc.Hostname, "was OK.")
 	return nil
 }
