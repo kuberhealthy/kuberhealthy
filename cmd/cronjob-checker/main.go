@@ -24,9 +24,17 @@ var namespace = os.Getenv("NAMESPACE")
 // reason is a varaible to search for event types
 var reason = "FailedNeedsStart"
 
+// age is the max age of event to return
+var ageEnv = os.Getenv("AGE")
+
 func init() {
 	// set debug mode for nodeCheck pkg
 	nodeCheck.EnableDebugOutput()
+
+	// set default ageEnv if nil
+	if len(ageEnv) == 0 {
+		ageEnv = "60"
+	}
 }
 
 func main() {
@@ -35,6 +43,11 @@ func main() {
 	checkTimeLimit := time.Minute * 1
 	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
 
+	// parse string from env variable age into a float64
+	age, err := strconv.ParseFloat(ageEnv, 64)
+	if err != nil {
+		log.Errorln("Error parsing time duration")
+	}
 	// create kubernetes client
 	kubernetesClient, err := kubeClient.Create("")
 	if err != nil {
@@ -65,7 +78,7 @@ func main() {
 
 	//range over eventList for cronjob events that match provided reason
 	for _, e := range eventList.Items {
-		if reason == e.Reason {
+		if time.Now().Sub(e.CreationTimestamp.Time).Minutes() < age && reason == e.Reason {
 			log.Infoln("There was an event with reason: " + e.Reason + " for cronjob " + e.Name + " in namespace " + namespace)
 			reportErr := fmt.Errorf("cronjob " + e.Name + " has an event with reason: " + reason)
 			log.Errorln(reportErr)
