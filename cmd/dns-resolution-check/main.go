@@ -166,35 +166,42 @@ func (dc *Checker) Run(client *kubernetes.Clientset) error {
 // doChecks does validations on the DNS call to the endpoint
 func (dc *Checker) doChecks() error {
 
-	var ct context.Context
+	//var ct context.Context
 	log.Infoln("DNS Status check testing hostname:", dc.Hostname)
-	endpoints, err := dc.client.CoreV1().Endpoints("kube-system").List(ct, metav1.ListOptions{LabelSelector:"k8s-app=kube-dns"})
+	endpoints, err := dc.client.CoreV1().Endpoints("kube-system").List(context.TODO(), metav1.ListOptions{LabelSelector:"k8s-app=kube-dns"})
+	//endpoints := dc.client.CoreV1().Endpoints("kube-system")
 	if err != nil {
 		message := "DNS status check unable to get dns endpoints from cluster: " + err.Error()
 		log.Errorln(message)
 		return errors.New(message)
 	}
-	log.Infoln(endpoints)
-	//for ep := 1; ep < len(endpoints); ep++ {
-	//	print(endpoints[ep])
-	//	r := &net.Resolver{
-	//		PreferGo: true,
-	//		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-	//			d := net.Dialer{
-	//				Timeout: time.Millisecond * time.Duration(10000),
-	//			}
-	//			print(d)
-	//			//return d.DialContext(ctx, "udp", server)
-        //		},
-    	//	}
-		//_, err := r.LookupHost(context.Background(), dc.Hostname)
-		_, err2 := net.LookupHost(dc.Hostname)
-		if err2 != nil {
-			errorMessage := "DNS Status check determined that " + dc.Hostname + " is DOWN: " + err2.Error()
+	for ep := 0; ep < len(endpoints.Items); ep++ {
+		for sub := 0; sub < len(endpoints.Items[ep].Subsets); sub++ {
+			for address := 0; address < len(endpoints.Items[ep].Subsets[sub].Addresses); address++ {
+				r := &net.Resolver{
+					PreferGo: true,
+					Dial: func(ctx context.Context, network, address2 string) (net.Conn, error) {
+						d := net.Dialer{
+							Timeout: time.Millisecond * time.Duration(10000),
+						}
+						return d.DialContext(ctx, "udp", endpoints.Items[ep].Subsets[sub].Addresses[address].IP + ":53")
+					},
+				}
+				_, err := r.LookupHost(context.Background(), dc.Hostname)
+				if err != nil {
+					errorMessage := "DNS Status check on host: " + endpoints.Items[ep].Subsets[sub].Addresses[address].IP + "determined that " + dc.Hostname + " is DOWN: " + err.Error()
+					log.Errorln(errorMessage)
+					return errors.New(errorMessage)
+				}
+			}
+		}
+		_, err := net.LookupHost(dc.Hostname)
+		if err != nil {
+			errorMessage := "DNS Status check determined that " + dc.Hostname + " is DOWN: " + err.Error()
 			log.Errorln(errorMessage)
 			return errors.New(errorMessage)
 		}
-	//}
+	}
 	log.Infoln("DNS Status check determined that", dc.Hostname, "was OK.")
 	return nil
 }
