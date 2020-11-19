@@ -60,34 +60,6 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  labels:
-    app: "prometheus"
-    prometheus: prometheus
-    role: alert-rules
-  name: kuberhealthy
-  namespace: kuberhealthy
-data:
-  kuberhealthy.rules: |-
-    groups:
-    - name: ./kuberhealthy.rules
-      rules:
-      - alert: KuberhealthyError
-        expr: kuberhealthy_running < 1
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          description: Kuberhealthy is not healthy
-      - alert: ClusterUnhealthy
-        expr: kuberhealthy_cluster_state < 1
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          description: Kuberhealthy shows that the cluster is not healthy---
-apiVersion: v1
-kind: ConfigMap
-metadata:
   name: kuberhealthy
 data:
   kuberhealthy.yaml: |-
@@ -127,19 +99,6 @@ kind: ServiceAccount
 metadata:
   name: kuberhealthy
   namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
 ---
 # Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -210,6 +169,19 @@ rules:
     - pods/eviction
     verbs:
     - create
+---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
+  name: kuberhealthy-daemonset-khcheck
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
 ---
 # Source: kuberhealthy/templates/check-reaper.yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -399,7 +371,7 @@ spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
       containers:
-      - image: kuberhealthy/kuberhealthy:v2.3.0
+      - image: kuberhealthy/kuberhealthy:v2.3.1
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
@@ -504,7 +476,7 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-        image: kuberhealthy/daemonset-check:v3.2.1
+        image: kuberhealthy/daemonset-check:v3.2.2
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -584,3 +556,31 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
+---
+# Source: kuberhealthy/templates/prometheusrule.yml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: prometheus
+    role: alert-rules
+  name: kuberhealthy
+  namespace: kuberhealthy
+spec:
+  groups:
+    - name: ./kuberhealthy.rules
+      rules:
+        - alert: KuberhealthyError
+          expr: kuberhealthy_running < 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            description: Kuberhealthy is not healthy
+        - alert: ClusterUnhealthy
+          expr: kuberhealthy_cluster_state < 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            description: Kuberhealthy shows that the cluster is not healthy
