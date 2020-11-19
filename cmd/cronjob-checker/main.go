@@ -87,7 +87,7 @@ func main() {
 	}
 
 	if probCount != 0 {
-		khError := fmt.Errorf("There were " + strconv.Itoa(probCount) + " cronjob(s) with an event reason " + reason + ". Please see cronjob-checker logs")
+		khError := fmt.Errorf("There were " + strconv.Itoa(probCount) + " cronjob event(s) with reason " + reason + ". Please see cronjob-checker logs")
 		ReportFailureAndExit(khError)
 	}
 

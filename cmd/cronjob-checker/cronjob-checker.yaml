@@ -3,19 +3,21 @@ kind: KuberhealthyCheck
 metadata:
   name: cronjob-checker
 spec:
-  runInterval: 65m
+  runInterval: 1h
   timeout: 10m
   podSpec:
     serviceAccountName: cronjob-checker
     containers:
       - name: cronjob-checker
-        image: jdowni000/cronjob-checker:v1.2.1
+        image: kuberhealthy/cronjob-checker:v1.2.2
         imagePullPolicy: IfNotPresent
         env:
           - name: NAMESPACE
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          - name: AGE
+            value: "60" #in Minutes, should be equal to or less than run interval
         resources:
           requests:
             cpu: 15m
