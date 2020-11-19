@@ -3,43 +3,59 @@ package main
 import (
 	"strings"
 	"time"
+	"errors"
 
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 )
 
-func createToleration(toleration string) *corev1.Toleration {
+func findValEffect(find string) (string, string, error) {
+	if len(find) < 1 {
+		return "", "", errors.New("Empty string in findValEffect")
+	}
+	findte := strings.Split(find, ":")
+	if len(findte) > 1 {
+		tvalue := findte[0]
+		teffect := findte[1]
+		if len(tvalue) < 1 {
+			return "", "", errors.New("Empty value after split on :")
+		}
+		return tvalue, teffect, nil
+	}
+	return find, "", nil
+}
+
+func createToleration(toleration string) (*corev1.Toleration, error) {
+	t := corev1.Toleration{}
+	if len(toleration) < 1 {
+		errorMessage := "Must pass toleration value to createToleration"	
+		return &t, errors.New(errorMessage)
+	}
 	splitkv := strings.Split(toleration, "=")
 	//does toleration has a value provided
 	if len(splitkv) > 1 {
-		findte := strings.Split(splitkv[1], ":")
-		//does toleration have an effect
-		if len(findte) > 1 {
-			//get value/effect and generate toleration
-			tvalue := findte[0]
-			teffect := findte[1]
-			t := corev1.Toleration{
-				Key: splitkv[0],
-				Operator: corev1.TolerationOpEqual,
-				Value: tvalue,
-				Effect: corev1.TaintEffect(teffect),
-			}
-			return &t
+		if len(splitkv[0]) < 1 {
+			return &t, errors.New("Empty key after split on =")
 		}
-		// generate based on splitkv
-		t := corev1.Toleration{
+		tvalue, teffect, err := findValEffect(splitkv[1])
+		if err != nil {
+			log.Errorln(err)
+			return &t, err
+		}
+		t = corev1.Toleration {
 			Key: splitkv[0],
 			Operator: corev1.TolerationOpEqual,
-			Value: splitkv[1],
+			Value: tvalue,
+			Effect: corev1.TaintEffect(teffect),
 		}
-		return &t
+		return &t, nil
 	}
-	t := corev1.Toleration{
+	t = corev1.Toleration {
 		Key: toleration,
 		Operator: corev1.TolerationOpExists,
 	}
-	return &t
+	return &t, nil
 }
 
 // parseInputValues parses and sets global vars from env variables and other inputs
@@ -126,14 +142,24 @@ func parseInputValues() {
 		if len(splitEnvVars) > 1 {
 			for _, toleration := range splitEnvVars {
 				//parse each toleration, create a corev1.Toleration object, and append to tolerations slice
-				tol := createToleration(toleration)
+				tol, err := createToleration(toleration)
+				if err != nil {
+					log.Errorln(err)
+					continue
+				}
 				tolerations = append(tolerations, *tol)
 			}
 		}  else {
 			//parse single toleration and append to slice
-			tol := createToleration(tolerationsEnv)
+			tol, err := createToleration(tolerationsEnv)
+			if err != nil {
+				log.Errorln(err)
+				return
+			}
 			tolerations = append(tolerations, *tol)
 		}
-		log.Infoln("Parsed TOLERATIONS:", tolerations)
+		if len(tolerations) > 1 {
+			log.Infoln("Parsed TOLERATIONS:", tolerations)
+		}
 	} 
 }
