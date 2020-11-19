@@ -11,7 +11,7 @@ prometheus:
 
 image:
   repository: kuberhealthy/kuberhealthy
-  tag: v2.3.0
+  tag: v2.3.1
 
 resources:
   requests:
@@ -86,7 +86,7 @@ check:
     timeout: 12m
     image:
       repository: kuberhealthy/daemonset-check
-      tag: v3.2.1
+      tag: v3.2.2
     extraEnvs:
     nodeSelector: {}
   deployment:
