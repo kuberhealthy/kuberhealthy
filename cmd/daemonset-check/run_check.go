@@ -275,7 +275,7 @@ func waitForPodRemoval(ctx context.Context) error {
 			return errors.New(errorMessage)
 		}
 
-		log.Infoln("DaemonsetChecker using LabelSelector: app=" + daemonSetName + ",source=kuberhealthy,khcheck=daemonset to remove ds pods")
+		log.Infoln("DaemonsetChecker using LabelSelector: kh-app=" + daemonSetName + ",source=kuberhealthy,khcheck=daemonset to remove ds pods")
 
 		// If the delete ticker has ticked, then issue a repeat request for pods to be deleted.
 		// See kuberhealthy issue #74
@@ -349,7 +349,7 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: daemonSetName,
 			Labels: map[string]string{
-				"app":              daemonSetName,
+				"kh-app":           daemonSetName,
 				"source":           "kuberhealthy",
 				"khcheck":          "daemonset",
 				"creatingInstance": hostName,
@@ -361,7 +361,7 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 			MinReadySeconds: 2,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app":              daemonSetName,
+					"kh-app":           daemonSetName,
 					"source":           "kuberhealthy",
 					"khcheck":          "daemonset",
 					"creatingInstance": hostName,
@@ -371,7 +371,7 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app":              daemonSetName,
+						"kh-app":           daemonSetName,
 						"source":           "kuberhealthy",
 						"khcheck":          "daemonset",
 						"creatingInstance": hostName,

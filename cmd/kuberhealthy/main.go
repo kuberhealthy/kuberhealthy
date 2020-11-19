@@ -102,11 +102,17 @@ func init() {
 		log.Println("WARNING: Failed to read configuration file from disk:", err)
 	}
 
-	// set env variables into config if specified
+	// set env variables into config if specified. otherwise set external check URL to default
 	externalCheckURL, err := getEnvVar(KHExternalReportingURL)
 	if err != nil {
-		cfg.ExternalCheckReportingURL = externalCheckURL
+		if len(podNamespace) == 0 {
+			log.Fatalln("KH_EXTERNAL_REPORTING_URL environment variable not set and POD_NAMESPACE environment variable was blank.  Could not determine Kuberhealthy callback URL.")
+		}
+		log.Infoln("KH_EXTERNAL_REPORTING_URL environment variable not set, using default value")
+		externalCheckURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local/externalCheckStatus"
 	}
+	cfg.ExternalCheckReportingURL = externalCheckURL
+	log.Infoln("External check reporting URL set to:", cfg.ExternalCheckReportingURL)
 
 	// parse and set logging level
 	parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
@@ -124,15 +130,6 @@ func init() {
 		log.Infoln("Setting debug output on because user specified flag")
 		log.SetLevel(log.DebugLevel)
 	}
-
-	// parse external check URL configuration
-	if len(cfg.ExternalCheckReportingURL) == 0 {
-		if len(podNamespace) == 0 {
-			log.Fatalln("KH_EXTERNAL_REPORTING_URL environment variable not set and POD_NAMESPACE environment variable was blank.  Could not determine Kuberhealthy callback URL.")
-		}
-		cfg.ExternalCheckReportingURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local/externalCheckStatus"
-	}
-	log.Infoln("External check reporting URL set to:", cfg.ExternalCheckReportingURL)
 
 	// Handle force master mode
 	if cfg.EnableForceMaster == true {
