@@ -1,9 +1,9 @@
 package main
 
 import (
+	"errors"
 	"strings"
 	"time"
-	"errors"
 
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	log "github.com/sirupsen/logrus"
@@ -29,7 +29,7 @@ func findValEffect(find string) (string, string, error) {
 func createToleration(toleration string) (*corev1.Toleration, error) {
 	t := corev1.Toleration{}
 	if len(toleration) < 1 {
-		errorMessage := "Must pass toleration value to createToleration"	
+		errorMessage := "Must pass toleration value to createToleration"
 		return &t, errors.New(errorMessage)
 	}
 	splitkv := strings.Split(toleration, "=")
@@ -43,16 +43,16 @@ func createToleration(toleration string) (*corev1.Toleration, error) {
 			log.Errorln(err)
 			return &t, err
 		}
-		t = corev1.Toleration {
-			Key: splitkv[0],
+		t = corev1.Toleration{
+			Key:      splitkv[0],
 			Operator: corev1.TolerationOpEqual,
-			Value: tvalue,
-			Effect: corev1.TaintEffect(teffect),
+			Value:    tvalue,
+			Effect:   corev1.TaintEffect(teffect),
 		}
 		return &t, nil
 	}
-	t = corev1.Toleration {
-		Key: toleration,
+	t = corev1.Toleration{
+		Key:      toleration,
 		Operator: corev1.TolerationOpExists,
 	}
 	return &t, nil
@@ -135,7 +135,7 @@ func parseInputValues() {
 		}
 		log.Infoln("Parsed NODE_SELECTOR:", dsNodeSelectors)
 	}
-        // Parse incoming deployment tolerations
+	// Parse incoming deployment tolerations
 	if len(tolerationsEnv) != 0 {
 		splitEnvVars := strings.Split(tolerationsEnv, ",")
 		//do we have multiple tolerations
@@ -149,17 +149,16 @@ func parseInputValues() {
 				}
 				tolerations = append(tolerations, *tol)
 			}
-		}  else {
-			//parse single toleration and append to slice
-			tol, err := createToleration(tolerationsEnv)
-			if err != nil {
-				log.Errorln(err)
-				return
-			}
-			tolerations = append(tolerations, *tol)
 		}
+		//parse single toleration and append to slice
+		tol, err := createToleration(tolerationsEnv)
+		if err != nil {
+			log.Errorln(err)
+			return
+		}
+		tolerations = append(tolerations, *tol)
 		if len(tolerations) > 1 {
 			log.Infoln("Parsed TOLERATIONS:", tolerations)
 		}
-	} 
+	}
 }
