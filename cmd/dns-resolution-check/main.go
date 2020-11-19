@@ -25,8 +25,8 @@ import (
 	// required for oidc kubectl testing
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
-	"k8s.io/client-go/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
@@ -47,6 +47,12 @@ var Hostname string
 
 // NodeName is a variable for the node where the container/pod is created
 var NodeName string
+
+// Namespace where dns pods live
+var namespace = "kube-system"
+
+// Label selector used for dns pods
+var labelSelector = "k8s-app=kube-dns"
 
 var now time.Time
 
@@ -81,6 +87,12 @@ func init() {
 		return
 	}
 	log.Infoln("Check pod is running on node:", NodeName)
+
+	namespace = os.Getenv("NAMESPACE")
+	log.Infoln("Looking for DNS pods in namespace:", namespace)
+
+	labelSelector = os.Getenv("DNSSELECTOR")
+	log.Infoln("Looking for DNS pods with label:", labelSelector)
 
 	now = time.Now()
 }
@@ -168,7 +180,7 @@ func (dc *Checker) doChecks() error {
 
 	//var ct context.Context
 	log.Infoln("DNS Status check testing hostname:", dc.Hostname)
-	endpoints, err := dc.client.CoreV1().Endpoints("kube-system").List(context.TODO(), metav1.ListOptions{LabelSelector:"k8s-app=kube-dns"})
+	endpoints, err := dc.client.CoreV1().Endpoints(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	//endpoints := dc.client.CoreV1().Endpoints("kube-system")
 	if err != nil {
 		message := "DNS status check unable to get dns endpoints from cluster: " + err.Error()
@@ -184,7 +196,7 @@ func (dc *Checker) doChecks() error {
 						d := net.Dialer{
 							Timeout: time.Millisecond * time.Duration(10000),
 						}
-						return d.DialContext(ctx, "udp", endpoints.Items[ep].Subsets[sub].Addresses[address].IP + ":53")
+						return d.DialContext(ctx, "udp", endpoints.Items[ep].Subsets[sub].Addresses[address].IP+":53")
 					},
 				}
 				_, err := r.LookupHost(context.Background(), dc.Hostname)

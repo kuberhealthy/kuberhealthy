@@ -11,11 +11,15 @@ spec:
       - env:
           - name: HOSTNAME
             value: "kubernetes.default"
+          - name: NAMESPACE
+            value: "kube-system"
+          - name: DNSSELECTOR
+            value: "k8s-app=kube-dns"
           - name: NODE_NAME
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-        image: kuberhealthy/dns-resolution-check:v1.4.0
+        image: rjacks161/dns-resolution-check:v1.4.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
