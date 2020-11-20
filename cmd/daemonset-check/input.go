@@ -15,15 +15,15 @@ func findValEffect(find string) (string, string, error) {
 	if len(find) < 1 {
 		return "", "", errors.New("Empty string in findValEffect")
 	}
-	findte := strings.Split(find, ":")
-	if len(findte) > 1 {
+	findTe := strings.Split(find, ":")
+	if len(findTe) > 1 {
 		//if we split the string, and the value isn't null (we don't have ":something"), return the values
-		tvalue := findte[0]
-		teffect := findte[1]
+		tValue := findTe[0]
+		tEffect := findTe[1]
 		if len(tvalue) < 1 {
 			return "", "", errors.New("Empty value after split on :")
 		}
-		return tvalue, teffect, nil
+		return tValue, tEffect, nil
 	}
 	// if we couldn't split the string, just return it back as the value
 	return find, "", nil
