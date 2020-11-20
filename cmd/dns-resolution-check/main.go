@@ -175,6 +175,26 @@ func (dc *Checker) Run(client *kubernetes.Clientset) error {
 	}
 }
 
+// create a Resolver object to use for DNS queries
+func createResolver(ip string) (*net.Resolver, error) {
+	r := &net.Resolver{}
+	// if we're supplied a null string, return an error
+	if len(ip) < 1 {
+		return r, errors.New("Need a valid ip to create Resolver")
+	}
+	// attempt to create the resolver based on the string
+	r = &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address2 string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: time.Millisecond * time.Duration(10000),
+			}
+			return d.DialContext(ctx, "udp", ip+":53")
+		},
+	}
+	return r, nil
+}
+
 // doChecks does validations on the DNS call to the endpoint
 func (dc *Checker) doChecks() error {
 
@@ -187,19 +207,18 @@ func (dc *Checker) doChecks() error {
 		log.Errorln(message)
 		return errors.New(message)
 	}
+	// loop through endpoint list, subsets, and finally addresses to get backend DNS ip's to query
 	for ep := 0; ep < len(endpoints.Items); ep++ {
 		for sub := 0; sub < len(endpoints.Items[ep].Subsets); sub++ {
 			for address := 0; address < len(endpoints.Items[ep].Subsets[sub].Addresses); address++ {
-				r := &net.Resolver{
-					PreferGo: true,
-					Dial: func(ctx context.Context, network, address2 string) (net.Conn, error) {
-						d := net.Dialer{
-							Timeout: time.Millisecond * time.Duration(10000),
-						}
-						return d.DialContext(ctx, "udp", endpoints.Items[ep].Subsets[sub].Addresses[address].IP+":53")
-					},
+				// create resolver based on backends found in the dns endpoint
+				r, err := createResolver(endpoints.Items[ep].Subsets[sub].Addresses[address].IP)
+				if err != nil {
+					log.Errorln(err)
+					continue
 				}
-				_, err := r.LookupHost(context.Background(), dc.Hostname)
+				// do a lookup based on the returned resolver, error if it fails
+				_, err = r.LookupHost(context.Background(), dc.Hostname)
 				if err != nil {
 					errorMessage := "DNS Status check on host: " + endpoints.Items[ep].Subsets[sub].Addresses[address].IP + "determined that " + dc.Hostname + " is DOWN: " + err.Error()
 					log.Errorln(errorMessage)
@@ -207,6 +226,7 @@ func (dc *Checker) doChecks() error {
 				}
 			}
 		}
+		// do lookup normally
 		_, err := net.LookupHost(dc.Hostname)
 		if err != nil {
 			errorMessage := "DNS Status check determined that " + dc.Hostname + " is DOWN: " + err.Error()
