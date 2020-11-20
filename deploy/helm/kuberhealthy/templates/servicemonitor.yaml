@@ -20,8 +20,13 @@ spec:
       - {{ .Release.Namespace }}
   endpoints:
   - port: http
-    interval: 15s
-    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    interval: {{ .Values.prometheus.serviceMonitor.endpoints.interval }}
+    {{- if .Values.prometheus.serviceMonitor.endpoints.bearerTokenFile }}
+    bearerTokenFile: {{ .Values.prometheus.serviceMonitor.endpoints.bearerTokenFile }}
+    {{- end }}
+    {{- if .Values.prometheus.serviceMonitor.endpoints.bearerTokenSecret }}
+    bearerTokenSecret: {{ .Values.prometheus.serviceMonitor.endpoints.bearerTokenSecret }}
+    {{- end }}
 {{- end -}}
 {{- end -}}
 
