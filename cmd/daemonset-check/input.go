@@ -20,7 +20,7 @@ func findValEffect(find string) (string, string, error) {
 		//if we split the string, and the value isn't null (we don't have ":something"), return the values
 		tValue := findTe[0]
 		tEffect := findTe[1]
-		if len(tvalue) < 1 {
+		if len(tValue) < 1 {
 			return "", "", errors.New("Empty value after split on :")
 		}
 		return tValue, tEffect, nil
