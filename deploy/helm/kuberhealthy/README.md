@@ -35,7 +35,6 @@ prometheus:
     endpoints: # Endpoint specification
       interval: 15s
       bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
-      bearerTokenSecret: ''
   enableAlerting: true # enable default Kuberhealthy alerts configuration
 app:
   name: "kuberhealthy" # what to name the kuberhealthy deployment

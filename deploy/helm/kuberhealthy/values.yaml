@@ -12,7 +12,6 @@ prometheus:
     endpoints:
       interval: 15s
       bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
-      bearerTokenSecret: ''
 
   enableAlerting: false
 
