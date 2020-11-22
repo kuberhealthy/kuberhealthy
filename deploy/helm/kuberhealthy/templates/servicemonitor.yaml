@@ -24,9 +24,6 @@ spec:
     {{- if .Values.prometheus.serviceMonitor.endpoints.bearerTokenFile }}
     bearerTokenFile: {{ .Values.prometheus.serviceMonitor.endpoints.bearerTokenFile }}
     {{- end }}
-    {{- if .Values.prometheus.serviceMonitor.endpoints.bearerTokenSecret }}
-    bearerTokenSecret: {{ .Values.prometheus.serviceMonitor.endpoints.bearerTokenSecret }}
-    {{- end }}
 {{- end -}}
 {{- end -}}
 
