@@ -1,10 +1,6 @@
 ## CronJob Event Checker
 
-The cronjob-checker reaches out to and retrieves events from cronjobs in the deployed namespace. It then ranges over the events for the reason FailedNeedsStart indicating it has stopped scheduling. If there is an event with FailedNeedsStart it will alert kuberhealthy.
-
-The check will exit if it is unable to retrieve events from cronjobs.
-
-The check will default to 60m if env variable `AGE` is not provided.
+The cronjob-checker fetches a list of all cronjobs in a namespace. After calculating the cron schedule, the check determines the last time the cronjob should have been scheduled through a simulation. It then verifies the last scheduled time was at the simulated time with a tolerance of plus or minus 30 seconds.
 
 #### Example CronJob Event Checker
 
@@ -15,21 +11,19 @@ kind: KuberhealthyCheck
 metadata:
   name: cronjob-checker
 spec:
-  runInterval: 1h
+  runInterval: 5m
   timeout: 10m
   podSpec:
     serviceAccountName: cronjob-checker
     containers:
       - name: cronjob-checker
-        image: kuberhealthy/cronjob-checker:v1.2.2
-        imagePullPolicy: IfNotPresent
+        image: kuberhealthy/cronjob-checker:v2.0.0
+        imagePullPolicy: Always
         env:
           - name: NAMESPACE
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          - name: AGE
-            value: "60" #in Minutes, should be equal to or less than run interval
         resources:
           requests:
             cpu: 15m
@@ -40,28 +34,13 @@ spec:
     terminationGracePeriodSeconds: 5
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: cronjob-checker
-rules:
-  - apiGroups:
-      - ""
-      - "events.k8s.io"
-    resources:
-      - events
-    verbs:
-      - get
-      - list
-      - watch
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: cronjob-checker
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: cronjob-checker
+  name: kuberhealthy
 subjects:
   - kind: ServiceAccount
     name: cronjob-checker
