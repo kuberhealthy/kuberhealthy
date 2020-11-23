@@ -47,6 +47,8 @@ func main() {
 		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
 	}
 
+	log.Infoln("Fetching cronjobs in namespace", namespace)
+
 	// create cronjob client from kubeClient
 	cronList, err := client.BatchV1beta1().CronJobs(namespace).List(ctx, v1.ListOptions{})
 	if err != nil {
