@@ -11,6 +11,7 @@ import (
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
+	"github.com/gorhill/cronexpr"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -21,20 +22,9 @@ var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 // namespace is a variable to allow code to target all namespaces or a single namespace
 var namespace = os.Getenv("NAMESPACE")
 
-// reason is a varaible to search for event types
-var reason = "FailedNeedsStart"
-
-// age is the max age of event to return
-var ageEnv = os.Getenv("AGE")
-
 func init() {
 	// set debug mode for nodeCheck pkg
 	nodeCheck.EnableDebugOutput()
-
-	// set default ageEnv if nil
-	if len(ageEnv) == 0 {
-		ageEnv = "60"
-	}
 }
 
 func main() {
@@ -43,60 +33,77 @@ func main() {
 	checkTimeLimit := time.Minute * 1
 	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
 
-	// parse string from env variable age into a float64
-	age, err := strconv.ParseFloat(ageEnv, 64)
+	// create kubeClient
+	client, err := kubeClient.Create(kubeConfigFile)
 	if err != nil {
-		log.Errorln("Error parsing time duration")
-	}
-	// create kubernetes client
-	kubernetesClient, err := kubeClient.Create("")
-	if err != nil {
-		log.Errorln("Error creating kubeClient with error" + err.Error())
+		errorMessage := fmt.Errorf("Failed to create a kubernetes client with error: " + err.Error())
+		ReportFailureAndExit(errorMessage)
+		return
 	}
 
-	// hits kuberhealthy endpoint to see if node is ready
-	err = nodeCheck.WaitForKuberhealthy(ctx)
+	// create cronjob client from kubeClient
+	cronList, err := client.BatchV1beta1().CronJobs(namespace).List(ctx, v1.ListOptions{})
 	if err != nil {
-		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
+		log.Errorln("Failed to fetch cronjobs with error:", err)
 	}
 
-	// //create events client
-	client := kubernetesClient.EventsV1beta1()
+	log.Infoln("Found", len(cronList.Items), " cronjobs in namespace", namespace)
 
-	//retrive events from namespace
-	log.Infoln("Begining to retrieve events from cronjobs")
-	e := client.Events(namespace)
-
-	listOpts := v1.ListOptions{}
-	eventList, err := e.List(context.TODO(), listOpts)
-	if err != nil {
-		log.Fatalln("Error listing events with error:", err)
-	}
-
-	// probCount counts the number of events found with reason
 	probCount := 0
+	goodCount := 0
 
-	//range over eventList for cronjob events that match provided reason
-	for _, e := range eventList.Items {
-		if time.Now().Sub(e.CreationTimestamp.Time).Minutes() < age && reason == e.Reason {
-			log.Infoln("There was an event with reason: " + e.Reason + " for cronjob " + e.Name + " in namespace " + namespace)
-			reportErr := fmt.Errorf("cronjob " + e.Name + " has an event with reason: " + reason)
-			log.Errorln(reportErr)
-			probCount++
+	// range over cronjobs
+	for _, c := range cronList.Items {
+
+		// continue to next cronjob if it is new and has not scheduled yet
+		if c.Status.LastScheduleTime == nil {
+			continue
 		}
+
+		// get object modified time
+
+		// create client to gather information for specific cronjob
+		cronGet, err := client.BatchV1beta1().CronJobs(namespace).Get(ctx, c.Name, v1.GetOptions{})
+		if err != nil {
+			log.Errorln("Error retrieving cronjob status for cronjob", c.Name, "with error:", err)
+			continue
+		}
+
+		// schedule information for cronjob
+		// creationTimeStamp := c.CreationTimestamp.Time
+		schedule := cronGet.Spec.Schedule
+		lastRunTimeV1 := cronGet.Status.LastScheduleTime
+		lastRunTime := lastRunTimeV1.Time
+		shouldOfRun := findLastCronRunTime(schedule)
+		timeMinus := shouldOfRun.Add(time.Duration(-30) * time.Second)
+		timePlus := shouldOfRun.Add(time.Duration(30) * time.Second)
+
+		log.Infoln("last run time for cronjob", c.Name, "was", lastRunTime)
+
+		if lastRunTime.Before(timeMinus) && lastRunTime.Before(timePlus) {
+			log.Infoln("Cronjob " + c.Name + " has not scheduled a job in scheduled window. Please confirm there are no issues with cronjob in namespace " + c.Namespace)
+			probCount++
+			continue
+		}
+		goodCount++
 	}
 
+	// report issues to kuberhealthy if any are found
 	if probCount != 0 {
-		khError := fmt.Errorf("There were " + strconv.Itoa(probCount) + " cronjob event(s) with reason " + reason + ". Please see cronjob-checker logs")
-		ReportFailureAndExit(khError)
+		log.Infoln("There were " + strconv.Itoa(probCount) + " cronjob(s) that had a last schedule time outside of scheduled window in namespace " + namespace)
+		reportErr := fmt.Errorf(("There were " + strconv.Itoa(probCount) + " cronjob(s) that had a last schedule time outside of scheduled window in namespace " + namespace))
+		ReportFailureAndExit(reportErr)
 	}
 
-	log.Infoln("There were no events with reason " + reason + " for cronjobs in namespace " + namespace)
+	log.Infoln("All cronjobs in namespace " + namespace + " scheduled jobs in schedule window")
+
+	// report success to kuberhealthy
 	err = kh.ReportSuccess()
 	if err != nil {
 		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
 	}
 	log.Infoln("Successfully reported to Kuberhealthy")
+
 }
 
 // ReportFailureAndExit logs and reports an error to kuberhealthy and then exits the program.
@@ -109,4 +116,20 @@ func ReportFailureAndExit(err error) {
 	}
 	log.Infoln("Succesfully reported error to kuberhealthy")
 	os.Exit(0)
+}
+
+func findLastCronRunTime(schedule string) time.Time {
+	cronSchedule := cronexpr.MustParse(schedule) // the cron schedule of the check
+	oneYear := time.Hour * 24 * 366
+	oneYearAgo := time.Now().Add(-oneYear)
+	now := time.Now()
+	timeMarker := oneYearAgo // the time marker we will walk forward until we pass ourselves with the next run time prediction
+	for {
+		nextRunTime := cronSchedule.Next(timeMarker)
+		// if the next forecast run time is after right now, then we stop and return that time (it is the last time that should have ran)
+		if nextRunTime.After(now) {
+			return timeMarker
+		}
+		timeMarker = nextRunTime
+	}
 }

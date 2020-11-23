@@ -3,21 +3,19 @@ kind: KuberhealthyCheck
 metadata:
   name: cronjob-checker
 spec:
-  runInterval: 1h
+  runInterval: 5m
   timeout: 10m
   podSpec:
     serviceAccountName: cronjob-checker
     containers:
       - name: cronjob-checker
-        image: kuberhealthy/cronjob-checker:v1.2.2
+        image: jdowni000/cronjob-checker:v2.0.0
         imagePullPolicy: IfNotPresent
         env:
           - name: NAMESPACE
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          - name: AGE
-            value: "60" #in Minutes, should be equal to or less than run interval
         resources:
           requests:
             cpu: 15m
@@ -28,28 +26,13 @@ spec:
     terminationGracePeriodSeconds: 5
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: cronjob-checker
-rules:
-  - apiGroups:
-      - ""
-      - "events.k8s.io"
-    resources:
-      - events
-    verbs:
-      - get
-      - list
-      - watch
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: cronjob-checker
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: cronjob-checker
+  name: kuberhealthy
 subjects:
   - kind: ServiceAccount
     name: cronjob-checker
