@@ -41,13 +41,19 @@ func main() {
 		return
 	}
 
+	// hits kuberhealthy endpoint to see if node is ready
+	err = nodeCheck.WaitForKuberhealthy(ctx)
+	if err != nil {
+		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
+	}
+
 	// create cronjob client from kubeClient
 	cronList, err := client.BatchV1beta1().CronJobs(namespace).List(ctx, v1.ListOptions{})
 	if err != nil {
 		log.Errorln("Failed to fetch cronjobs with error:", err)
 	}
 
-	log.Infoln("Found", len(cronList.Items), " cronjobs in namespace", namespace)
+	log.Infoln("Found", len(cronList.Items), "cronjob(s) in namespace", namespace)
 
 	probCount := 0
 	goodCount := 0
@@ -59,8 +65,6 @@ func main() {
 		if c.Status.LastScheduleTime == nil {
 			continue
 		}
-
-		// get object modified time
 
 		// create client to gather information for specific cronjob
 		cronGet, err := client.BatchV1beta1().CronJobs(namespace).Get(ctx, c.Name, v1.GetOptions{})
@@ -106,18 +110,6 @@ func main() {
 
 }
 
-// ReportFailureAndExit logs and reports an error to kuberhealthy and then exits the program.
-// If a error occurs when reporting to kuberhealthy, the program fatals.
-func ReportFailureAndExit(err error) {
-	// log.Errorln(err)
-	err2 := kh.ReportFailure([]string{err.Error()})
-	if err2 != nil {
-		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
-	}
-	log.Infoln("Succesfully reported error to kuberhealthy")
-	os.Exit(0)
-}
-
 func findLastCronRunTime(schedule string) time.Time {
 	cronSchedule := cronexpr.MustParse(schedule) // the cron schedule of the check
 	oneYear := time.Hour * 24 * 366
@@ -132,4 +124,16 @@ func findLastCronRunTime(schedule string) time.Time {
 		}
 		timeMarker = nextRunTime
 	}
+}
+
+// ReportFailureAndExit logs and reports an error to kuberhealthy and then exits the program.
+// If a error occurs when reporting to kuberhealthy, the program fatals.
+func ReportFailureAndExit(err error) {
+	// log.Errorln(err)
+	err2 := kh.ReportFailure([]string{err.Error()})
+	if err2 != nil {
+		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
+	}
+	log.Infoln("Succesfully reported error to kuberhealthy")
+	os.Exit(0)
 }
