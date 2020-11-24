@@ -5,9 +5,9 @@ import (
 )
 
 func TestFindValEffect(test *testing.T) {
-	string_tol := ":test"
+	string_tol := "test:test"
 	
-	expectedResults := []string{ "", "test"}
+	expectedResults := []string{ "test", "test"}
 	
 	test.Log("testing findValEffect")
 	value, effect, err := findValEffect(string_tol)
