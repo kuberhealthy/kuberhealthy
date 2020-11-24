@@ -13,6 +13,10 @@ spec:
       - env:
           - name: POD_NAMESPACE
             value: "kuberhealthy"
+          #- name: TOLERATIONS
+          #  value: "kubernetes.io/hostname=test"
+          #- name: NODE_SELECTOR
+          #  value: "kubernetes.io/hostname=test"
         image: kuberhealthy/daemonset-check:v3.2.2
         imagePullPolicy: IfNotPresent
         name: main
