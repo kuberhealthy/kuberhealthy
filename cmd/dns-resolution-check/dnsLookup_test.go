@@ -1,38 +1,35 @@
 package main
 
 import (
+	"context"
 	"errors"
-	"os"
-	"path/filepath"
+	"net"
 	"strings"
 	"testing"
-
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
-	log "github.com/sirupsen/logrus"
+	"time"
 )
 
-func TestDoChecks(t *testing.T) {
-	dc := New()
-	client, err := kubeClient.Create(filepath.Join(os.Getenv("HOME"), ".kube", "config"))
-	if err != nil {
-		log.Fatalln("Unable to create kubernetes client", err)
+func TestDnsLookup(t *testing.T) {
+	r := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address2 string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: time.Millisecond * time.Duration(10000),
+			}
+			return d.DialContext(ctx, "udp", "8.8.8.8:53")
+		},
 	}
-	dc.client = client
 	testCase := make(map[string]error)
 	testCase["bad.host.com"] = errors.New("DNS Status check determined that bad.host.com is DOWN")
 	testCase["google.com"] = nil
 
 	for arg, expectedValue := range testCase {
-		dc.Hostname = arg
+		host := arg
 
-		err := dc.doChecks()
-		if strings.Contains(err.Error(), "i/o timeout") {
-			t.Logf("DNS Timed out")
-			continue
-		}
+		err := dnsLookup(r, host)
 		switch err {
 		case nil:
-			if dc.Hostname != "google.com" {
+			if host != "google.com" {
 				t.Fatalf("doChecks failed to validate hostname correctly. Hostname: %s, Expected Check Result: %v", arg, expectedValue)
 			}
 			t.Logf("doChecks correctly validated hostname. ")
