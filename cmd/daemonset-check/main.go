@@ -52,6 +52,7 @@ var (
 
 	// Daemonset check configurations
 	hostName      string
+	tolerationsEnv = os.Getenv("TOLERATIONS")
 	tolerations   []apiv1.Toleration
 	daemonSetName string
 
