@@ -409,8 +409,8 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 	}
 
 	// Add our generated list of tolerations or any the user input via flag
-	log.Infoln("Deploying daemonset with tolerations: ", daemonSet.Spec.Template.Spec.Tolerations)
 	daemonSet.Spec.Template.Spec.Tolerations = append(daemonSet.Spec.Template.Spec.Tolerations, tolerations...)
+	log.Infoln("Deploying daemonset with tolerations: ", daemonSet.Spec.Template.Spec.Tolerations)
 
 	return daemonSet
 }
@@ -542,6 +542,7 @@ func nodeLabelsMatch(labels, nodeSelectors map[string]string) bool {
 		labelValue, ok := labels[selectorKey]
 		// if there is no matching key, continue to the next node selector
 		if !ok {
+			labelsMatch = false
 			continue
 		}
 		// if there is a matching key, the label's value should match the node selector's value
