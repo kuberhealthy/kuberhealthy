@@ -6,14 +6,11 @@ import (
 )
 
 func TestCreateToleration(test *testing.T) {
-	//string_tol := ""
-	//string_tol := "blah"
-	string_tol := "=test"
-	//string_tol := "blah=test:NoSchedule"
+	string_tol := "test"
 	
 	//nodeSelectors := map[string]string{}
 	expectedResults := corev1.Toleration {
-		Key: "blah",
+		Key: "test",
 	//	Value: "test",
 	//	Effect: corev1.TaintEffect("NoSchedule"),
 		Operator: corev1.TolerationOpExists,
