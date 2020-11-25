@@ -22,16 +22,25 @@ var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 // namespace is a variable to allow code to target all namespaces or a single namespace
 var namespace = os.Getenv("NAMESPACE")
 
+// Check deadline from injected env variable KH_CHECK_RUN_DEADLINE
+var khCheckRunDeadlineEnv = os.Getenv("KH_CHECK_RUN_DEADLINE")
+
 func init() {
 	// set debug mode for nodeCheck pkg
 	nodeCheck.EnableDebugOutput()
 }
 
 func main() {
+	intkhCheckRundDeadline, err := strconv.ParseInt(khCheckRunDeadlineEnv, 10, 64)
+	if err != nil {
+		log.Fatalln("Error parsing KH_CHECK_RUN_DEADLINE:", err)
+	}
+	khCheckRunDeadline := time.Unix(intkhCheckRundDeadline, 0)
 
-	// create context
-	checkTimeLimit := time.Minute * 1
-	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
+	khCheckRunTime := khCheckRunDeadline.Sub(time.Now()) / 2
+
+	log.Infoln(khCheckRunDeadline)
+	ctx, _ := context.WithTimeout(context.Background(), khCheckRunTime)
 
 	// create kubeClient
 	client, err := kubeClient.Create(kubeConfigFile)
@@ -81,12 +90,11 @@ func main() {
 		lastRunTimeV1 := cronGet.Status.LastScheduleTime
 		lastRunTime := lastRunTimeV1.Time
 		shouldOfRun := findLastCronRunTime(schedule)
-		timeMinus := shouldOfRun.Add(time.Duration(-30) * time.Second)
-		timePlus := shouldOfRun.Add(time.Duration(30) * time.Second)
+		tM, tP := scheduleWindow(shouldOfRun, time.Minute*5)
 
 		log.Infoln("last run time for cronjob", c.Name, "was", lastRunTime)
 
-		if lastRunTime.Before(timeMinus) && lastRunTime.Before(timePlus) {
+		if lastRunTime.Before(tM) && lastRunTime.Before(tP) {
 			log.Infoln("Cronjob " + c.Name + " has not scheduled a job in scheduled window. Please confirm there are no issues with cronjob in namespace " + c.Namespace)
 			probCount++
 			continue
@@ -138,4 +146,13 @@ func ReportFailureAndExit(err error) {
 	}
 	log.Infoln("Succesfully reported error to kuberhealthy")
 	os.Exit(0)
+}
+
+// scheduleWindow
+func scheduleWindow(t time.Time, d time.Duration) (time.Time, time.Time) {
+
+	timeMinus := t.Add(-1 * (d / 2))
+	timePlus := t.Add(d / 2)
+
+	return timeMinus, timePlus
 }
