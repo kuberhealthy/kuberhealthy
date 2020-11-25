@@ -28,5 +28,5 @@ keywords:
 - prometheus
 sources:
 - https://github.com/Comcast/kuberhealthy
-- https://github.com/helm/charts/tree/master/stable/kuberhealthy
+- https://github.com/Comcast/kuberhealthy/tree/master/deploy/helm/kuberhealthy
 icon: https://raw.githubusercontent.com/Comcast/kuberhealthy/master/images/logo-square.png
