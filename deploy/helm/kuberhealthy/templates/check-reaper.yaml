@@ -49,7 +49,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: admin
+  name: {{ template "kuberhealthy.name" . }}-check-reaper
 subjects:
   - kind: ServiceAccount
     name: check-reaper
