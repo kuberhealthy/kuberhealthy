@@ -6,7 +6,13 @@ prometheus:
   enabled: false
   name: "prometheus"
   release: prometheus-operator
-  serviceMonitor: false
+
+  serviceMonitor:
+    enabled: false
+    endpoints:
+      interval: 15s
+      bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+
   enableAlerting: false
 
 image:

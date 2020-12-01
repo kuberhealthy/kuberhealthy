@@ -1,5 +1,5 @@
 {{- if .Values.prometheus.enabled -}}
-{{- if .Values.prometheus.serviceMonitor -}}
+{{- if .Values.prometheus.serviceMonitor.enabled -}}
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -20,8 +20,10 @@ spec:
       - {{ .Release.Namespace }}
   endpoints:
   - port: http
-    interval: 15s
-    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    interval: {{ .Values.prometheus.serviceMonitor.endpoints.interval }}
+    {{- if .Values.prometheus.serviceMonitor.endpoints.bearerTokenFile }}
+    bearerTokenFile: {{ .Values.prometheus.serviceMonitor.endpoints.bearerTokenFile }}
+    {{- end }}
 {{- end -}}
 {{- end -}}
 
