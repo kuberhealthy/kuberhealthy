@@ -31,6 +31,8 @@ func init() {
 }
 
 func main() {
+
+	// create check run deadline
 	intkhCheckRundDeadline, err := strconv.ParseInt(khCheckRunDeadlineEnv, 10, 64)
 	if err != nil {
 		log.Fatalln("Error parsing KH_CHECK_RUN_DEADLINE:", err)
@@ -39,7 +41,6 @@ func main() {
 
 	khCheckRunTime := khCheckRunDeadline.Sub(time.Now()) / 2
 
-	log.Infoln(khCheckRunDeadline)
 	ctx, _ := context.WithTimeout(context.Background(), khCheckRunTime)
 
 	// create kubeClient
@@ -90,16 +91,17 @@ func main() {
 		lastRunTimeV1 := cronGet.Status.LastScheduleTime
 		lastRunTime := lastRunTimeV1.Time
 		shouldOfRun := findLastCronRunTime(schedule)
-		tM, tP := scheduleWindow(shouldOfRun, time.Minute*5)
+		earliestRunTime, latestRunTime := scheduleWindow(shouldOfRun, time.Minute*5)
 
-		log.Infoln("last run time for cronjob", c.Name, "was", lastRunTime)
+		log.Infoln("Cronjob", c.Name, "was last scheduled at", lastRunTime)
 
-		if lastRunTime.Before(tM) && lastRunTime.Before(tP) {
-			log.Infoln("Cronjob " + c.Name + " has not scheduled a job in scheduled window. Please confirm there are no issues with cronjob in namespace " + c.Namespace)
-			probCount++
+		if lastRunTime.After(earliestRunTime) && lastRunTime.Before(latestRunTime) {
+			log.Infoln("Cronjob " + c.Name + " is scheduling correctly")
+			goodCount++
 			continue
 		}
-		goodCount++
+		log.Infoln("Cronjob " + c.Name + " has not scheduled a job in scheduled window. Please confirm there are no issues with cronjob in namespace " + c.Namespace)
+		probCount++
 	}
 
 	// report issues to kuberhealthy if any are found
