@@ -52,7 +52,7 @@ A helm chart for deploying Kuberhealthy.  This is the same helm chart published 
   `helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true  --set prometheus.enableAlerting=true`
 
   - With Prometheus Operator:
-  `helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true  --set prometheus.enableAlerting=true --set prometheus.serviceMonitor=true`
+  `helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true  --set prometheus.enableAlerting=true --set prometheus.serviceMonitor.enabled=true`
 
 
 ### Helm
