@@ -34,6 +34,10 @@ spec:
           nodeSelector:
 {{- toYaml .Values.checkReaper.nodeSelector | nindent 12 }}
           {{- end }}
+          {{- if .Values.checkReaper.tolerations }}
+          tolerations:
+{{- toYaml .Values.checkReaper.tolerations | nindent 12 }}
+          {{- end }}
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid

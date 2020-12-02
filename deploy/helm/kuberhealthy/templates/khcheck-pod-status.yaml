@@ -44,6 +44,10 @@ spec:
     nodeSelector:
 {{- toYaml .Values.check.podStatus.nodeSelector | nindent 6 }}
     {{- end }}
+    {{- if .Values.check.podStatus.tolerations }}
+    tolerations:
+{{- toYaml .Values.check.podStatus.tolerations | nindent 6 }}
+    {{- end }}
     serviceAccountName: pod-status-sa
 ---
 {{- if .Values.check.podStatus.allNamespaces }}

@@ -50,6 +50,10 @@ spec:
     nodeSelector:
 {{- toYaml $.Values.check.storage.nodeSelector | nindent 6 }}
     {{- end }}
+    {{- if $.Values.check.storage.tolerations }}
+    tolerations:
+{{- toYaml $.Values.check.storage.tolerations | nindent 6 }}
+    {{- end }}
 {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
