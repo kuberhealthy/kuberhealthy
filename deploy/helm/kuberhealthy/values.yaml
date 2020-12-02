@@ -151,7 +151,7 @@ check:
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
-    tolerations: 
+    tolerations: []
     #- key: "key"
     #  operator: "Equal"
     #  value: "value"
@@ -166,7 +166,7 @@ check:
     allNamespaces: false
     extraEnvs:
     nodeSelector: {}
-    tolerations: 
+    tolerations: []
     #- key: "key"
     #  operator: "Equal"
     #  value: "value"
@@ -188,7 +188,7 @@ check:
       CHECK_STORAGE_IMAGE: bitnami/nginx:1.19
       CHECK_STORAGE_INIT_IMAGE: bitnami/nginx:1.19
     nodeSelector: {}
-    tolerations: 
+    tolerations: []
     #- key: "key"
     #  operator: "Equal"
     #  value: "value"
@@ -203,7 +203,7 @@ check:
     extraEnvs:
       CONNECTION_TARGET: "tcp://github.com:443"
     nodeSelector: {}
-    tolerations: 
+    tolerations: []
     #- key: "key"
     #  operator: "Equal"
     #  value: "value"
@@ -215,7 +215,7 @@ checkReaper:
     repository: kuberhealthy/check-reaper
     tag: v1.5.0
   nodeSelector: {}
-  tolerations: 
+  tolerations: []
     #- key: "key"
     #  operator: "Equal"
     #  value: "value"

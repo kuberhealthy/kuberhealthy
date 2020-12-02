@@ -70,7 +70,7 @@ check:
       tag: v3.2.1
     extraEnvs:
     nodeSelector: {}
-    tolerations:
+    tolerations: []
   # - key: "key"
   #   operator: "Equal"
   #   value: "value"
@@ -87,7 +87,7 @@ check:
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
       DEBUG: "true"
     nodeSelector: {}
-    tolerations:
+    tolerations: []
   # - key: "key"
   #   operator: "Equal"
   #   value: "value"
@@ -102,7 +102,7 @@ check:
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
-    tolerations:
+    tolerations: []
   # - key: "key"
   #   operator: "Equal"
   #   value: "value"
@@ -117,7 +117,7 @@ check:
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
-    tolerations:
+    tolerations: []
   # - key: "key"
   #   operator: "Equal"
   #   value: "value"
@@ -131,7 +131,7 @@ check:
       tag: v1.2.3
     extraEnvs:
     nodeSelector: {}
-    tolerations:
+    tolerations: []
   # - key: "key"
   #   operator: "Equal"
   #   value: "value"
@@ -143,7 +143,7 @@ checkReaper:
     repository: kuberhealthy/check-reaper
     tag: v1.4.0
   nodeSelector: {}
-  tolerations:
+  tolerations: []
   # - key: "key"
   #   operator: "Equal"
   #   value: "value"
