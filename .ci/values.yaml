@@ -31,11 +31,6 @@ deployment:
   maxUnavailable: 1
   imagePullPolicy: IfNotPresent
   nodeSelector: {}
-  # tolerations:
-  # - key: "key"
-  #   operator: "Equal"
-  #   value: "value"
-  #   effect: "NoSchedule"
   podAnnotations: {}
   env: {}
   command:
@@ -70,11 +65,6 @@ check:
       tag: v3.2.1
     extraEnvs:
     nodeSelector: {}
-    tolerations: []
-  # - key: "key"
-  #   operator: "Equal"
-  #   value: "value"
-  #   effect: "NoSchedule"
   deployment:
     enabled: true
     runInterval: 20m
@@ -87,11 +77,6 @@ check:
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
       DEBUG: "true"
     nodeSelector: {}
-    tolerations: []
-  # - key: "key"
-  #   operator: "Equal"
-  #   value: "value"
-  #   effect: "NoSchedule"
   dnsInternal:
     enabled: true
     runInterval: 20m
@@ -102,11 +87,6 @@ check:
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
-    tolerations: []
-  # - key: "key"
-  #   operator: "Equal"
-  #   value: "value"
-  #   effect: "NoSchedule"
   podRestarts:
     enabled: true
     runInterval: 20m
@@ -117,11 +97,6 @@ check:
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
-    tolerations: []
-  # - key: "key"
-  #   operator: "Equal"
-  #   value: "value"
-  #   effect: "NoSchedule"
   podStatus:
     enabled: true
     runInterval: 20m
@@ -131,11 +106,6 @@ check:
       tag: v1.2.3
     extraEnvs:
     nodeSelector: {}
-    tolerations: []
-  # - key: "key"
-  #   operator: "Equal"
-  #   value: "value"
-  #   effect: "NoSchedule"
 
 checkReaper:
   enabled: false
@@ -143,8 +113,4 @@ checkReaper:
     repository: kuberhealthy/check-reaper
     tag: v1.4.0
   nodeSelector: {}
-  tolerations: []
-  # - key: "key"
-  #   operator: "Equal"
-  #   value: "value"
-  #   effect: "NoSchedule"
+  
