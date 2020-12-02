@@ -95,6 +95,11 @@ check:
       tag: v3.2.2
     extraEnvs:
     nodeSelector: {}
+    tolerations:
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
   deployment:
     enabled: true
     runInterval: 10m
@@ -107,6 +112,11 @@ check:
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
       CHECK_SERVICE_ACCOUNT: "default"
     nodeSelector: {}
+    tolerations: 
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
   dnsInternal:
     enabled: true
     runInterval: 2m
@@ -117,6 +127,11 @@ check:
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
+    tolerations: 
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
   dnsExternal:
     enabled: false
     runInterval: 2m
@@ -127,6 +142,11 @@ check:
     extraEnvs:
       HOSTNAME: "google.com"
     nodeSelector: {}
+    tolerations: 
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
   podRestarts:
     enabled: false
     runInterval: 5m
@@ -137,6 +157,11 @@ check:
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
+    tolerations: []
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
   podStatus:
     enabled: false
     runInterval: 5m
@@ -147,6 +172,11 @@ check:
     allNamespaces: false
     extraEnvs:
     nodeSelector: {}
+    tolerations: []
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
   storage:
   # external check from registry
   # https://github.com/ChrisHirsch/kuberhealthy-storage-check
@@ -164,6 +194,11 @@ check:
       CHECK_STORAGE_IMAGE: bitnami/nginx:1.19
       CHECK_STORAGE_INIT_IMAGE: bitnami/nginx:1.19
     nodeSelector: {}
+    tolerations: []
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
   networkConnection:
     enabled: false
     runInterval: 30m
@@ -174,6 +209,11 @@ check:
     extraEnvs:
       CONNECTION_TARGET: "tcp://github.com:443"
     nodeSelector: {}
+    tolerations: []
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
 
 checkReaper:
   enabled: true # Don't disable checkReaper, this flag exist to make e2e tests easier.
@@ -181,4 +221,9 @@ checkReaper:
     repository: kuberhealthy/check-reaper
     tag: v1.5.0
   nodeSelector: {}
+  tolerations: []
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
   # startingDeadlineSeconds:

@@ -26,5 +26,9 @@ spec:
     nodeSelector:
 {{- toYaml .Values.check.networkConnection.nodeSelector | nindent 6 }}
     {{- end }}
+    {{- if .Values.check.networkConnection.tolerations }}
+    tolerations:
+{{- toYaml .Values.check.networkConnection.tolerations | nindent 6 }}
+    {{- end }}
 {{- end }}
 
