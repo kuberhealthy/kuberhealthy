@@ -14,6 +14,8 @@ on:
 jobs:
   # This workflow contains a single job called "build"
   build:
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
