@@ -5,12 +5,12 @@ name: Update Helm Repo Files
 on:
   release:
     types: [published]
-#   push:
-#     branches:
-#       - master
-#     paths:
-#       - 'deploy/helm/kuberhealthy/**'
-#       - '!deploy/helm/kuberhealthy/Chart.yaml'
+  push:
+    branches:
+      - master
+    paths:
+      - 'deploy/helm/kuberhealthy/**'
+      - '!deploy/helm/kuberhealthy/Chart.yaml'
 jobs:
   build:
     runs-on: ubuntu-latest
