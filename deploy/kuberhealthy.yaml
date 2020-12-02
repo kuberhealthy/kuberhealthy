@@ -104,6 +104,34 @@ metadata:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRole
 metadata:
+  name: kuberhealthy-check-reaper
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - delete
+      - list
+  - apiGroups:
+      - comcast.github.io
+    resources:
+      - khchecks
+      - khjobs
+    verbs:
+      - delete
+      - list
+---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
   name: kuberhealthy
 rules:
   - apiGroups:
@@ -182,34 +210,6 @@ rules:
   - nodes
   verbs:
   - list
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-check-reaper
-rules:
-  - apiGroups:
-      - ""
-    resources:
-      - namespaces
-    verbs:
-      - list
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-    verbs:
-      - delete
-      - list
-  - apiGroups:
-      - comcast.github.io
-    resources:
-      - khchecks
-      - khjobs
-    verbs:
-      - delete
-      - list
 ---
 # Source: kuberhealthy/templates/check-reaper.yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
