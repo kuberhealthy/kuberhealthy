@@ -5,9 +5,11 @@ on:
       - 'deploy/helm/kuberhealthy/**'
     branches:
       - master
-      - flat-file-gen
+      - flat-file-gen  
 jobs:
   render:
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
