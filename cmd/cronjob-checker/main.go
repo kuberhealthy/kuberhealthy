@@ -91,7 +91,7 @@ func main() {
 		lastRunTimeV1 := cronGet.Status.LastScheduleTime
 		lastRunTime := lastRunTimeV1.Time
 		shouldOfRun := findLastCronRunTime(schedule)
-		earliestRunTime, latestRunTime := scheduleWindow(shouldOfRun, time.Minute*5)
+		earliestRunTime, latestRunTime := scheduleWindow(shouldOfRun, time.Minute*10)
 
 		log.Infoln("Cronjob", c.Name, "was last scheduled at", lastRunTime)
 
