@@ -50,10 +50,10 @@ var Hostname string
 var NodeName string
 
 // Namespace where dns pods live
-var namespace = "kube-system"
+var namespace string
 
 // Label selector used for dns pods
-var labelSelector = "k8s-app=kube-dns"
+var labelSelector string
 
 var now time.Time
 
@@ -90,10 +90,14 @@ func init() {
 	log.Infoln("Check pod is running on node:", NodeName)
 
 	namespace = os.Getenv("NAMESPACE")
-	log.Infoln("Looking for DNS pods in namespace:", namespace)
+	if len(namespace) > 0 {
+		log.Infoln("Looking for DNS pods in namespace:", namespace)
+	}
 
-	labelSelector = os.Getenv("DNSSELECTOR")
-	log.Infoln("Looking for DNS pods with label:", labelSelector)
+	labelSelector = os.Getenv("DNS_POD_SELECTOR")
+	if len(labelSelector) > 0 {
+		log.Infoln("Looking for DNS pods with label:", labelSelector)
+	}
 
 	now = time.Now()
 }
@@ -225,13 +229,8 @@ func dnsLookup(r *net.Resolver, host string) error {
 	return nil
 }
 
-// doChecks does validations on the DNS call to the endpoint
-func (dc *Checker) doChecks() error {
-
-	//var ct context.Context
-	log.Infoln("DNS Status check testing hostname:", dc.Hostname)
-	endpoints, err := dc.client.CoreV1().Endpoints(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
-	//endpoints := dc.client.CoreV1().Endpoints("kube-system")
+func (dc *Checker) checkEndpoints() error {
+	endpoints, err := dc.client.CoreV1().Endpoints(namespace).List(context.Background(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		message := "DNS status check unable to get dns endpoints from cluster: " + err.Error()
 		log.Errorln(message)
@@ -241,29 +240,45 @@ func (dc *Checker) doChecks() error {
 	//get ips from endpoint list to check
 	ips, err := getIpsFromEndpoint(endpoints)
 	if err != nil {
-		log.Errorln(err.Error())
+		return err
 	}
 
 	//given that we got valid ips from endpoint list, parse them
 	if len(ips) > 0 {
 		for ip := 0; ip < len(ips); ip++ {
-			//create a resolver for each ip
+			//create a resolver for each ip and return any error
 			r, err := createResolver(ips[ip])
 			if err != nil {
-				log.Errorln(err.Error())
-				continue
+				return err
 			}
-			//run a lookup for each ip if we successfully created a resolver, log errors
+			//run a lookup for each ip if we successfully created a resolver, return error
 			err = dnsLookup(r, dc.Hostname)
 			if err != nil {
-				log.Errorln(err.Error())
-				continue
+				return err
 			}
 		}
+		log.Infoln("DNS Status check from service endpoint determined that", dc.Hostname, "was OK.")
+		return nil
+	}
+	return errors.New("No ips found in endpoint with label: " + labelSelector)
+}
+
+// doChecks does validations on the DNS call to the endpoint
+func (dc *Checker) doChecks() error {
+
+	log.Infoln("DNS Status check testing hostname:", dc.Hostname)
+
+	// if there's a label selector, do checks against endpoints
+	if len(labelSelector) > 0 {
+		err := dc.checkEndpoints()
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
-	// do lookup against service endpoint
-	_, err = net.LookupHost(dc.Hostname)
+	// otherwise do lookup against service endpoint
+	_, err := net.LookupHost(dc.Hostname)
 	if err != nil {
 		errorMessage := "DNS Status check determined that " + dc.Hostname + " is DOWN: " + err.Error()
 		log.Errorln(errorMessage)

@@ -13,8 +13,8 @@ spec:
             value: "kubernetes.default"
           - name: NAMESPACE
             value: "kube-system"
-          - name: DNSSELECTOR
-            value: "k8s-app=kube-dns"
+          - name: DNS_NODE_SELECTOR
+            value: apps=k8s-dns
           - name: NODE_NAME
             valueFrom:
               fieldRef:
