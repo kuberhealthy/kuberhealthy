@@ -45,6 +45,10 @@ spec:
     nodeSelector:
 {{- toYaml .Values.check.daemonset.nodeSelector | nindent 6 }}
     {{- end }}
+    {{- if .Values.check.daemonset.tolerations }}
+    tolerations:
+{{- toYaml .Values.check.daemonset.tolerations | nindent 6 }}
+    {{- end }}
     serviceAccountName: daemonset-khcheck
 ---
 apiVersion: rbac.authorization.k8s.io/v1

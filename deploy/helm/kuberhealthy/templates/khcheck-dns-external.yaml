@@ -40,4 +40,8 @@ spec:
     nodeSelector:
 {{- toYaml .Values.check.dnsExternal.nodeSelector | nindent 6 }}
     {{- end }}
+    {{- if .Values.check.dnsExternal.tolerations }}
+    tolerations:
+{{- toYaml .Values.check.dnsExternal.tolerations | nindent 6 }}
+    {{- end }}
 {{- end }}

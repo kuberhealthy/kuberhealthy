@@ -39,6 +39,10 @@ spec:
     nodeSelector:
 {{- toYaml .Values.check.deployment.nodeSelector | nindent 6 }}
     {{- end }}
+    {{- if .Values.check.deployment.tolerations }}
+    tolerations:
+{{- toYaml .Values.check.deployment.tolerations | nindent 6 }}
+    {{- end }}
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
 ---
