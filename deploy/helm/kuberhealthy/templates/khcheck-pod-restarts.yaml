@@ -39,6 +39,10 @@ spec:
     nodeSelector:
 {{- toYaml .Values.check.podRestarts.nodeSelector | nindent 6 }}
     {{- end }}
+    {{- if .Values.check.podRestarts.tolerations }}
+    tolerations:
+{{- toYaml .Values.check.podRestarts.tolerations | nindent 6 }}
+    {{- end }}
     restartPolicy: Never
     serviceAccountName: pod-restart-sa
 ---
