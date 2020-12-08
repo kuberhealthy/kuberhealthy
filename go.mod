@@ -13,6 +13,7 @@ require (
 	github.com/go-ini/ini v1.49.0 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gophercloud/gophercloud v0.1.0 // indirect
+	github.com/gorhill/cronexpr v0.0.0-20180427100037-88b0669f7d75 // indirect
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
 	github.com/imdario/mergo v0.3.5 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20190402204710-8ff2fc3824fc

@@ -10,7 +10,7 @@ spec:
     containers:
       - name: cronjob-checker
         image: kuberhealthy/cronjob-checker:v2.0.1
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
           - name: NAMESPACE
             valueFrom:
