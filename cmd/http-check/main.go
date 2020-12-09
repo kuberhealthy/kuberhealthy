@@ -148,7 +148,7 @@ func main() {
 
 	// Check to see if the number of requests passed at passingPercent and reports to Kuberhealthy accordingly
 	if checksPassed < passInt {
-		reportErr := fmt.Errorf("unable to retrieve a valid response from " + checkURL + "check failed " + strconv.Itoa(checksFailed) + " out of " + strconv.Itoa(checksRan) + " attempts")
+		reportErr := fmt.Errorf("unable to retrieve a valid response from " + checkURL + " check failed " + strconv.Itoa(checksFailed) + " out of " + strconv.Itoa(checksRan) + " attempts")
 		ReportFailureAndExit(reportErr)
 	}
 
