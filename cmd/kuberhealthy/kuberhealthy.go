@@ -1218,7 +1218,7 @@ func (k *Kuberhealthy) fetchPodByIPForDuration(remoteIP string, d time.Duration)
 
 		p, err := k.fetchPodByIP(remoteIP)
 		if err != nil {
-			log.Warningln("was unable to find calling pod with remote IP ", remoteIP, " while watching for duration. Error: " + err.Error())
+			log.Warningln("was unable to find calling pod with remote IP ", remoteIP, " while watching for duration. Error: "+err.Error())
 			time.Sleep(time.Second)
 			continue
 		}
