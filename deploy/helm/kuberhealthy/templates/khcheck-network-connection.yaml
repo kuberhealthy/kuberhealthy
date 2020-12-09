@@ -11,7 +11,13 @@ spec:
   podSpec:
     containers:
     - name: deployment
+      {{- if .Values.imageRegistry }}
+      image: {{- .Values.imageRegistry }}/{{ .Values.check.networkConnection.image.repository }}:{{ .Values.check.networkConnection.image.tag }}
+      {{- else if .Values.check.networkConnection.image.registry }}
+      image: {{ .Values.check.networkConnection.image.registry }}/{{ .Values.check.networkConnection.image.repository }}:{{ .Values.check.networkConnection.image.tag }}
+      {{- else }}
       image: {{ .Values.check.networkConnection.image.repository }}:{{ .Values.check.networkConnection.image.tag }}
+      {{- end }}
       imagePullPolicy: IfNotPresent
       env:
 {{- range $key, $value := .Values.check.networkConnection.extraEnvs }}
