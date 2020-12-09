@@ -16,8 +16,8 @@ spec:
     {{- end}}
     containers:
     - name: deployment
-      {{- if .Values.global.imageRegistry }}
-      image: {{- .Values.global.imageRegistry }}/{{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
+      {{- if .Values.imageRegistry }}
+      image: {{- .Values.imageRegistry }}/{{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
       {{- else if .Values.check.deployment.image.registry }}
       image: {{ .Values.check.deployment.image.registry }}/{{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
       {{- else }}
