@@ -11,8 +11,8 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      {{- if .Values.global.imageRegistry }}
-      image: {{- .Values.global.imageRegistry }}/{{ .Values.check.networkConnection.image.repository }}:{{ .Values.check.networkConnection.image.tag }}
+      {{- if .Values.imageRegistry }}
+      image: {{- .Values.imageRegistry }}/{{ .Values.check.networkConnection.image.repository }}:{{ .Values.check.networkConnection.image.tag }}
       {{- else if .Values.check.networkConnection.image.registry }}
       image: {{ .Values.check.networkConnection.image.registry }}/{{ .Values.check.networkConnection.image.repository }}:{{ .Values.check.networkConnection.image.tag }}
       {{- else }}

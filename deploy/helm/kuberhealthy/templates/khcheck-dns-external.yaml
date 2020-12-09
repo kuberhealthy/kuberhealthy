@@ -24,8 +24,8 @@ spec:
           - name: {{ $key }}
             value: {{ $value | quote }}
 {{- end }}
-        {{- if .Values.global.imageRegistry }}
-        image: {{- .Values.global.imageRegistry }}/{{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}
+        {{- if .Values.imageRegistry }}
+        image: {{- .Values.imageRegistry }}/{{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}
         {{- else if .Values.check.dnsExternal.image.registry }}
         image: {{ .Values.check.dnsExternal.image.registry }}/{{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}
         {{- else }}

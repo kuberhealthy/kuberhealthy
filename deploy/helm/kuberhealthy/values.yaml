@@ -15,8 +15,9 @@ prometheus:
 
   enableAlerting: false
 
-global:
-  imageRegistry: {}
+# imageRegistry can be used to globally override where check images are pulled from. Individual checks can be overridden below. 
+# By default all images are paulled from Github.
+imageRegistry: {}
 
 image:
   repository: kuberhealthy/kuberhealthy

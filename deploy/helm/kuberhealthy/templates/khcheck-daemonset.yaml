@@ -29,8 +29,8 @@ spec:
           - name: {{ $key }}
             value: {{ $value | quote }}
 {{- end }}
-        {{- if .Values.global.imageRegistry }}
-        image: {{- .Values.global.imageRegistry }}/{{ .Values.check.daemonset.image.repository }}:{{ .Values.check.daemonset.image.tag }}
+        {{- if .Values.imageRegistry }}
+        image: {{- .Values.imageRegistry }}/{{ .Values.check.daemonset.image.repository }}:{{ .Values.check.daemonset.image.tag }}
         {{- else if .Values.check.daemonset.image.registry }}
         image: {{ .Values.check.daemonset.image.registry }}/{{ .Values.check.daemonset.image.repository }}:{{ .Values.check.daemonset.image.tag }}
         {{- else }}

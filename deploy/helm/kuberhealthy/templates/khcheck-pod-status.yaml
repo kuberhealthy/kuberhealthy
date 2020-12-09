@@ -27,8 +27,8 @@ spec:
           - name: {{ $key }}
             value: {{ $value | quote }}
 {{- end }}
-        {{- if .Values.global.imageRegistry }}
-        image: {{- .Values.global.imageRegistry }}/{{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
+        {{- if .Values.imageRegistry }}
+        image: {{- .Values.imageRegistry }}/{{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
         {{- else if .Values.check.podStatus.image.registry }}
         image: {{ .Values.check.podStatus.image.registry }}/{{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
         {{- else }}
