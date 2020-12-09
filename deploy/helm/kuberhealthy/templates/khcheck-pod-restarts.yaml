@@ -23,7 +23,13 @@ spec:
           - name: {{ $key }}
             value: {{ $value | quote }}
 {{- end }}
+        {{- if .Values.global.imageRegistry }}
+        image: {{- .Values.global.imageRegistry }}/{{ .Values.check.podRestarts.image.repository }}:{{ .Values.check.podRestarts.image.tag }}
+        {{- else if .Values.check.podRestarts.image.registry }}
+        image: {{ .Values.check.podRestarts.image.registry }}/{{ .Values.check.podRestarts.image.repository }}:{{ .Values.check.podRestarts.image.tag }}
+        {{- else }}
         image: {{ .Values.check.podRestarts.image.repository }}:{{ .Values.check.podRestarts.image.tag }}
+        {{- end }}
         imagePullPolicy: IfNotPresent
         name: main
         resources:
