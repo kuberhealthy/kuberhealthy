@@ -16,7 +16,7 @@ prometheus:
   enableAlerting: false
 
 # imageRegistry can be used to globally override where check images are pulled from. Individual checks can be overridden below. 
-# By default all images are paulled from Github.
+# By default if no overrides are specified, all images are pulled from Docker Hub.
 imageRegistry: {}
 
 image:
