@@ -18,7 +18,13 @@ spec:
     {{- end }}
     containers:
     - name: main
-      image: {{ $.Values.check.storage.image.repository }}:{{ $.Values.check.storage.image.tag }}
+      {{- if .Values.global.imageRegistry }}
+      image: {{- .Values.global.imageRegistry }}/{{ .Values.check.storage.image.repository }}:{{ .Values.check.storage.image.tag }}
+      {{- else if .Values.check.storage.image.registry }}
+      image: {{ .Values.check.storage.image.registry }}/{{ .Values.check.storage.image.repository }}:{{ .Values.check.storage.image.tag }}
+      {{- else }}
+      image: {{ .Values.check.storage.image.repository }}:{{ .Values.check.storage.image.tag }}
+      {{- end }}
       imagePullPolicy: IfNotPresent
       env:
 {{- if ne . "" }}

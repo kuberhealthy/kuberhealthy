@@ -15,6 +15,9 @@ prometheus:
 
   enableAlerting: false
 
+global:
+  imageRegistry: {}
+
 image:
   repository: kuberhealthy/kuberhealthy
   tag: v2.3.1
@@ -91,6 +94,7 @@ check:
     runInterval: 15m
     timeout: 12m
     image:
+      registry: {}
       repository: kuberhealthy/daemonset-check
       tag: v3.2.2
     extraEnvs:
@@ -105,6 +109,7 @@ check:
     runInterval: 10m
     timeout: 15m
     image:
+      registry: {}
       repository: kuberhealthy/deployment-check
       tag: v1.6.2
     extraEnvs:
@@ -122,6 +127,7 @@ check:
     runInterval: 2m
     timeout: 15m
     image:
+      registry: {}
       repository: kuberhealthy/dns-resolution-check
       tag: v1.4.1
     extraEnvs:
@@ -137,6 +143,7 @@ check:
     runInterval: 2m
     timeout: 15m
     image:
+      registry: {}
       repository: kuberhealthy/dns-resolution-check
       tag: v1.4.1
     extraEnvs:
@@ -152,6 +159,7 @@ check:
     runInterval: 5m
     timeout: 10m
     image:
+      registry: {}
       repository: kuberhealthy/pod-restarts-check
       tag: v2.3.1
     extraEnvs:
@@ -167,6 +175,7 @@ check:
     runInterval: 5m
     timeout: 15m
     image:
+      registry: {}
       repository: kuberhealthy/pod-status-check
       tag: v1.2.3
     allNamespaces: false
@@ -204,6 +213,7 @@ check:
     runInterval: 30m
     timeout: 10m
     image:
+      registry: {}
       repository: kuberhealthy/network-connection-check
       tag: v0.1.1
     extraEnvs:
@@ -218,6 +228,7 @@ check:
 checkReaper:
   enabled: true # Don't disable checkReaper, this flag exist to make e2e tests easier.
   image:
+    registry: {}
     repository: kuberhealthy/check-reaper
     tag: v1.5.0
   nodeSelector: {}
