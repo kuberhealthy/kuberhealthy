@@ -29,8 +29,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const defaultCheckTimeout = 10 * time.Minute
-
 var (
 	kubeConfigFile = os.Getenv("KUBECONFIG")
 	checkTimeout   time.Duration
@@ -97,24 +95,13 @@ func main() {
 	nodeCheckTimeout := time.Minute * 1
 	nodeCheckCtx, _ := context.WithTimeout(context.Background(), nodeCheckTimeout.Round(10))
 
-	// create Kubernetes client
-	kubernetesClient, err := kubeClient.Create("")
-	if err != nil {
-		log.Errorln("Error creating kubeClient with error" + err.Error())
-	}
-
-	// fetches kube proxy to see if it is ready
-	err = nodeCheck.WaitForKubeProxy(nodeCheckCtx, kubernetesClient, "kuberhealthy", "kube-system")
-	if err != nil {
-		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
-	}
 	client, err := kubeClient.Create(kubeConfigFile)
 	if err != nil {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
 	// wait for the node to join the worker pool
-	waitForNodeToJoin(nodeCheckCtx, client, &checkNamespace)
+	waitForNodeToJoin(nodeCheckCtx)
 
 	sec := New()
 	var cancelFunc context.CancelFunc
@@ -205,15 +192,10 @@ func reportKHFailure(errorMessage string) error {
 	return err
 }
 
-func waitForNodeToJoin(ctx context.Context, client *kubernetes.Clientset, namespace *string) {
-	// Wait for node to be at least 2m old.
-	err := nodeCheck.WaitForNodeAge(ctx, client, *namespace, time.Minute*5)
-	if err != nil {
-		log.Errorln("Failed to check node age:", err.Error())
-	}
+func waitForNodeToJoin(ctx context.Context) {
 
 	// Check if Kuberhealthy is reachable.
-	err = nodeCheck.WaitForKuberhealthy(ctx)
+	err := nodeCheck.WaitForKuberhealthy(ctx)
 	if err != nil {
 		log.Errorln("Failed to reach Kuberhealthy:", err.Error())
 	}
