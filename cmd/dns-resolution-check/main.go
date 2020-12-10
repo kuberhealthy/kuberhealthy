@@ -101,7 +101,7 @@ func main() {
 	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
 
 	minNodeAge := time.Minute * 3
-	err = nodeCheck.WaitForNodeAge(ctx, client, "kuberhealthy", minNodeAge)
+	err = nodeCheck.WaitForNodeAge(ctx, client, NodeName, minNodeAge)
 	if err != nil {
 		log.Errorln("Error waiting for node to reach minimum age:", err)
 	}
@@ -109,11 +109,6 @@ func main() {
 	err = nodeCheck.WaitForKuberhealthy(ctx)
 	if err != nil {
 		log.Errorln("Error waiting for Kuberhealthy to be ready:", err)
-	}
-
-	err = nodeCheck.WaitForKubeProxy(ctx, client, "kuberhealthy", "kube-system")
-	if err != nil {
-		log.Errorln("Error waiting for kube proxy to be ready:", err)
 	}
 
 	err = dc.Run(client)

@@ -105,7 +105,7 @@ func main() {
 	log.Infoln("Kubernetes client created.")
 
 	// this check runs all the nodechecks to ensure node is ready before running the daemonset chek
-	err = checksNodeReady(client)
+	err = checksNodeReady()
 	if err != nil {
 		log.Errorln("Error running when doing the nodechecks :", err)
 	}
@@ -179,28 +179,17 @@ func main() {
 }
 
 // checksNodeReady checks whether node is ready or not before running the check
-func checksNodeReady(client *kubernetes.Clientset) error {
+func checksNodeReady() error {
 	// create context
 	checkTimeLimit := time.Minute * 1
 	nctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
 
-	minNodeAge := time.Minute * 3
-	err := nodeCheck.WaitForNodeAge(nctx, client, "kuberhealthy", minNodeAge)
-	if err != nil {
-		log.Errorln("Error waiting for node to reach minimum age:" + err.Error())
-	}
-
 	// hits kuberhealthy endpoint to see if node is ready
-	err = nodeCheck.WaitForKuberhealthy(nctx)
+	err := nodeCheck.WaitForKuberhealthy(nctx)
 	if err != nil {
 		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
 	}
 
-	// fetches kube proxy to see if it is ready
-	err = nodeCheck.WaitForKubeProxy(nctx, client, "kuberhealthy", "kube-system")
-	if err != nil {
-		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
-	}
 	return nil
 }
 

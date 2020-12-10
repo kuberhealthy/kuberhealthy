@@ -97,7 +97,7 @@ check:
     image:
       registry: {}
       repository: kuberhealthy/daemonset-check
-      tag: v3.2.2
+      tag: v3.2.3
     extraEnvs:
     nodeSelector: {}
     tolerations:
@@ -112,7 +112,7 @@ check:
     image:
       registry: {}
       repository: kuberhealthy/deployment-check
-      tag: v1.6.2
+      tag: v1.7.1
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
@@ -130,7 +130,7 @@ check:
     image:
       registry: {}
       repository: kuberhealthy/dns-resolution-check
-      tag: v1.4.1
+      tag: v1.4.2
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
@@ -146,7 +146,7 @@ check:
     image:
       registry: {}
       repository: kuberhealthy/dns-resolution-check
-      tag: v1.4.1
+      tag: v1.4.2
     extraEnvs:
       HOSTNAME: "google.com"
     nodeSelector: {}
@@ -216,7 +216,7 @@ check:
     image:
       registry: {}
       repository: kuberhealthy/network-connection-check
-      tag: v0.1.1
+      tag: v0.1.2
     extraEnvs:
       CONNECTION_TARGET: "tcp://github.com:443"
     nodeSelector: {}
