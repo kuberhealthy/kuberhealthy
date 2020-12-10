@@ -10,13 +10,13 @@ import (
 	"syscall"
 	"time"
 
-	awsutil "github.com/Comcast/kuberhealthy/v2/pkg/aws"
-	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	"github.com/aws/aws-sdk-go/aws/session"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
+
+	awsutil "github.com/Comcast/kuberhealthy/v2/pkg/aws"
+	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 )
 
 var (
@@ -117,22 +117,10 @@ func main() {
 	checkTimeLimit := time.Minute * 1
 	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
 
-	// create kubernetes client
-	kubernetesClient, err := kubeClient.Create("")
-	if err != nil {
-		log.Errorln("Error creating kubeClient with error" + err.Error())
-	}
-
 	// hits kuberhealthy endpoint to see if node is ready
 	err = nodeCheck.WaitForKuberhealthy(ctx)
 	if err != nil {
 		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
-	}
-
-	// fetches kube proxy to see if it is ready
-	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy", "kube-system")
-	if err != nil {
-		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
 	}
 
 	// Create an AWS session.

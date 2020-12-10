@@ -36,7 +36,7 @@ spec:
             value: "kuberhealthy"
           - name: NODE_SELECTOR # Schedules daemonsets only to nodes with this label
             value: "kubernetes.io/os=linux"
-        image: kuberhealthy/daemonset-check:v3.2.2
+        image: kuberhealthy/daemonset-check:v3.2.3
         imagePullPolicy: IfNotPresent
         name: main
         resources:

@@ -21,7 +21,7 @@ spec:
           # Set INSECURE to "true" for self-signed certificates. If "true", the TLS handshake will be skipped. This only checks expiration status, NOT validity/security.
           - name: INSECURE
             value: "true"
-        image: kuberhealthy/ssl-expiry-check:v3.1.1
+        image: kuberhealthy/ssl-expiry-check:v3.1.2
         imagePullPolicy: IfNotPresent
         name: main
         resources:

@@ -8,7 +8,6 @@ You can specify the string to look for with the `TARGET_STRING` environment vari
 #### Example http-content-check Spec
 
 ```yaml
----
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
@@ -18,7 +17,7 @@ spec:
   timeout: 2m # After this much time, Kuberhealthy will kill your check and consider it "failed"
   podSpec: # The exact pod spec that will run.  All normal pod spec is valid here.
     containers:
-      - image: kuberhealthy/http-content-check:v1.4.0 # The image of the check you just pushed
+      - image: kuberhealthy/http-content-check:v1.4.1 # The image of the check you just pushed
         imagePullPolicy: IfNotPresent # uses local image if present
         name: main
         env:
