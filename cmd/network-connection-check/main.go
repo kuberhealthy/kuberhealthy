@@ -105,7 +105,7 @@ func main() {
 	ctx, cancelFunc = context.WithTimeout(context.Background(), checkTimeout)
 
 	// wait for the node to join the worker pool
-	waitForNodeToJoin(ctx, client, &checkNamespace)
+	waitForNodeToJoin(ctx)
 	err = ncc.Run(ctx, cancelFunc, client)
 	if err != nil {
 		log.Errorln("Error running network connection check for:", connectionTarget)
@@ -212,15 +212,10 @@ func reportKHFailure(errorMessage string) error {
 
 // waitForNodeToJoin waits for the node to join the worker pool.
 // Waits for kube-proxy to be ready and that Kuberhealthy is reachable.
-func waitForNodeToJoin(ctx context.Context, client *kubernetes.Clientset, namespace *string) {
-	// Wait for node to be at least 2m old.
-	err := nodeCheck.WaitForNodeAge(ctx, client, *namespace, time.Minute*5)
-	if err != nil {
-		log.Errorln("Failed to check node age:", err.Error())
-	}
+func waitForNodeToJoin(ctx context.Context) {
 
 	// Check if Kuberhealthy is reachable.
-	err = nodeCheck.WaitForKuberhealthy(ctx)
+	err := nodeCheck.WaitForKuberhealthy(ctx)
 	if err != nil {
 		log.Errorln("Failed to reach Kuberhealthy:", err.Error())
 	}
