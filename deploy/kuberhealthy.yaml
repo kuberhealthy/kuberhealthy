@@ -104,34 +104,6 @@ metadata:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRole
 metadata:
-  name: kuberhealthy-check-reaper
-rules:
-  - apiGroups:
-      - ""
-    resources:
-      - namespaces
-    verbs:
-      - list
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-    verbs:
-      - delete
-      - list
-  - apiGroups:
-      - comcast.github.io
-    resources:
-      - khchecks
-      - khjobs
-    verbs:
-      - delete
-      - list
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
   name: kuberhealthy
 rules:
   - apiGroups:
@@ -210,6 +182,34 @@ rules:
   - nodes
   verbs:
   - list
+---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
+  name: kuberhealthy-check-reaper
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - delete
+      - list
+  - apiGroups:
+      - comcast.github.io
+    resources:
+      - khchecks
+      - khjobs
+    verbs:
+      - delete
+      - list
 ---
 # Source: kuberhealthy/templates/check-reaper.yaml
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -500,7 +500,7 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-        image: kuberhealthy/daemonset-check:v3.2.2
+        image: kuberhealthy/daemonset-check:v3.2.3
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -527,7 +527,7 @@ spec:
       fsGroup: 999
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.6.2
+      image: kuberhealthy/deployment-check:v1.7.1
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
@@ -570,7 +570,7 @@ spec:
                 fieldPath: spec.nodeName
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.4.1
+        image: kuberhealthy/dns-resolution-check:v1.4.2
         imagePullPolicy: IfNotPresent
         name: main
         resources:
