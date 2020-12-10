@@ -6,6 +6,7 @@ prometheus:
   enabled: false
   name: "prometheus"
   release: prometheus-operator
+  additional_labels: []
 
   serviceMonitor:
     enabled: false
