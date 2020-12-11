@@ -65,3 +65,10 @@ func Client(GroupName string, GroupVersion string, kubeConfig string, namespace 
 	client, err := rest.RESTClientFor(&config)
 	return &KuberhealthyCheckClient{restClient: client}, err
 }
+
+// CreateClient returns a Kuberhealthy Check client using an existing rest client
+func CreateClient(client rest.Interface) *KuberhealthyCheckClient {
+	return &KuberhealthyCheckClient{
+		restClient: client,
+	}
+}
