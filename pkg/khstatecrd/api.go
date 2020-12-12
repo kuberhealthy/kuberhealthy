@@ -62,7 +62,7 @@ func Client(GroupName string, GroupVersion string, kubeConfig string, namespace 
 	return &KuberhealthyStateClient{restClient: client}, err
 }
 
-// // CreateClient returns a Kuberhealthy State client using an existing rest client
+// CreateClient returns a Kuberhealthy State client using an existing rest client
 func CreateClient(client rest.Interface) *KuberhealthyStateClient {
 	return &KuberhealthyStateClient{
 		restClient: client,
