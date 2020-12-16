@@ -37,13 +37,46 @@ var khJobClient *khjobcrd.KHJobV1Client
 // Namespace is a variable to allow code to target all namespaces or a single namespace
 var Namespace string
 
+var MaxPodsThreshold int
+var JobDeleteTimeDuration time.Duration
+
+const (
+	MaxPodsThresholdDefault = 4
+	JobDeleteTimeDurationDefault = time.Minute * 15
+)
+
 func init() {
+	var err error
+
 	Namespace = os.Getenv("SINGLE_NAMESPACE")
 	if len(Namespace) == 0 {
 		log.Infoln("Single namespace not specified, running check reaper across all namespaces")
 		Namespace = ""
 	} else {
 		log.Infoln("Single namespace specified. Running check-reaper in namespace:", Namespace)
+	}
+
+	// Parse incoming MaxPodsThresholdEnv environment variable.
+	MaxPodsThreshold = MaxPodsThresholdDefault
+	if len(MaxPodsThresholdEnv) != 0 {
+		MaxPodsThreshold, err = strconv.Atoi(MaxPodsThresholdEnv)
+		if err != nil {
+			log.Errorln("Error converting MAX_PODS_THRESHOLD to int. Using default value:", MaxPodsThresholdDefault)
+		} else {
+			log.Infoln("Parsed MAX_PODS_THRESHOLD:", MaxPodsThreshold)
+		}
+	}
+
+	// Parse incoming jobDeleteTimeDurationEnv environment variable.
+	JobDeleteTimeDuration = JobDeleteTimeDurationDefault
+	if len(JobDeleteTimeDurationEnv) != 0 {
+		// convert JobDeleteMinutes into time.Duration
+		JobDeleteTimeDuration, err = time.ParseDuration(JobDeleteTimeDurationEnv)
+		if err != nil {
+			log.Errorln("Error converting JOB_DELETE_TIME_DURATION to Duration. Using default value:", JobDeleteTimeDurationDefault)
+		} else {
+			log.Infoln("Parsed MAX_PODS_THRESHOLD:", MaxPodsThreshold)
+		}
 	}
 }
 
@@ -113,10 +146,7 @@ func listCheckerPods(ctx context.Context, client *kubernetes.Clientset, namespac
 // deleteFilteredCheckerPods goes through map of all checker pods and deletes older checker pods
 func deleteFilteredCheckerPods(ctx context.Context, client *kubernetes.Clientset, reapCheckerPods map[string]v1.Pod) error {
 
-	MaxPodsThreshold, err := strconv.Atoi(MaxPodsThresholdEnv)
-	if err != nil {
-		log.Errorln("Error converting MaxPodsThreshold to int")
-	}
+	var err error
 
 	for k, v := range reapCheckerPods {
 
@@ -144,8 +174,8 @@ func deleteFilteredCheckerPods(ctx context.Context, client *kubernetes.Clientset
 			delete(reapCheckerPods, k)
 		}
 
-		// Delete if there are more than 5 checker pods with the same name in status Succeeded that were created more recently
-		// Delete if the checker pod is Failed and there are more than 5 Failed checker pods of the same type which were created more recently
+		// Delete if there are more than MaxPodsThreshold checker pods with the same name in status Succeeded that were created more recently
+		// Delete if the checker pod is Failed and there are more than MaxPodsThreshold Failed checker pods of the same type which were created more recently
 		allCheckPods := getAllPodsWithCheckName(reapCheckerPods, v)
 		if len(allCheckPods) > MaxPodsThreshold {
 
@@ -168,9 +198,9 @@ func deleteFilteredCheckerPods(ctx context.Context, client *kubernetes.Clientset
 				}
 			}
 
-			// Delete if there are more than 5 checker pods with the same name in status Succeeded that were created more recently
+			// Delete if there are more than MaxPodsThreshold checker pods with the same name in status Succeeded that were created more recently
 			if v.Status.Phase == v1.PodSucceeded && successOldCount > MaxPodsThreshold && successCount > MaxPodsThreshold {
-				log.Infoln("Found more than 5 checker pods with the same name in status `Succeeded` that were created more recently. Deleting pod:", k)
+				log.Infoln("Found more than", MaxPodsThreshold, "checker pods with the same name in status `Succeeded` that were created more recently. Deleting pod:", k)
 
 				err = deletePod(ctx, client, v)
 				if err != nil {
@@ -180,9 +210,9 @@ func deleteFilteredCheckerPods(ctx context.Context, client *kubernetes.Clientset
 				delete(reapCheckerPods, k)
 			}
 
-			// Delete if the checker pod is Failed and there are more than 5 Failed checker pods of the same type which were created more recently
+			// Delete if there are more than MaxPodsThreshold checker pods with the same name in status Failed that were created more recently
 			if v.Status.Phase == v1.PodFailed && failOldCount > MaxPodsThreshold && failCount > MaxPodsThreshold {
-				log.Infoln("Found more than 5 `Failed` checker pods of the same type which were created more recently. Deleting pod:", k)
+				log.Infoln("Found more than", MaxPodsThreshold, "checker pods with the same name in status Failed` that were created more recently. Deleting pod:", k)
 
 				err = deletePod(ctx, client, v)
 				if err != nil {
@@ -236,13 +266,6 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 	opts := metav1.ListOptions{}
 	del := metav1.DeleteOptions{}
 
-	// convert JobDeleteMinutes into time.Duration
-	jobDeleteTimeDuration, err := time.ParseDuration(JobDeleteTimeDurationEnv)
-	if err != nil {
-		log.Errorln("Error converting JobDeleteTimeDurationEnv to Float")
-		return err
-	}
-
 	// list khjobs in Namespace
 	list, err := client.KuberhealthyJobs(Namespace).List(opts)
 	if err != nil {
@@ -254,7 +277,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 
 	// Range over list and delete khjobs
 	for _, j := range list.Items {
-		if jobConditions(j, jobDeleteTimeDuration, "Completed") {
+		if jobConditions(j, JobDeleteTimeDuration, "Completed") {
 			log.Infoln("Deleting khjob", j.Name)
 			err := client.KuberhealthyJobs(j.Namespace).Delete(j.Name, &del)
 			if err != nil {
