@@ -70,7 +70,7 @@ func init() {
 	// Parse incoming jobDeleteTimeDurationEnv environment variable.
 	JobDeleteTimeDuration = JobDeleteTimeDurationDefault
 	if len(JobDeleteTimeDurationEnv) != 0 {
-		// convert JobDeleteMinutes into time.Duration
+		// convert JobDeleteTimeDurationEnv into time.Duration
 		JobDeleteTimeDuration, err = time.ParseDuration(JobDeleteTimeDurationEnv)
 		if err != nil {
 			log.Errorln("Error converting JOB_DELETE_TIME_DURATION to Duration. Using default value:", JobDeleteTimeDurationDefault)
