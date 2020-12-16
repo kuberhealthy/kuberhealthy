@@ -75,7 +75,7 @@ func init() {
 		if err != nil {
 			log.Errorln("Error converting JOB_DELETE_TIME_DURATION to Duration. Using default value:", JobDeleteTimeDurationDefault)
 		} else {
-			log.Infoln("Parsed MAX_PODS_THRESHOLD:", MaxPodsThreshold)
+			log.Infoln("Parsed JOB_DELETE_TIME_DURATION:", MaxPodsThreshold)
 		}
 	}
 }
