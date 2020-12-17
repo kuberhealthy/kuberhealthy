@@ -105,6 +105,10 @@ check:
     #  operator: "Equal"
     #  value: "value"
     #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi    
   deployment:
     enabled: true
     runInterval: 10m
