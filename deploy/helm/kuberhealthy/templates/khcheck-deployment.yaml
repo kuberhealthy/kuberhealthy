@@ -31,10 +31,17 @@ spec:
 {{- end }}
       resources:
         requests:
-          cpu: 25m
-          memory: 15Mi
+          cpu: {{ .Values.check.deployment.resources.requests.cpu }}
+          memory: {{ .Values.check.deployment.resources.requests.memory }}
+        {{- if .Values.check.deployment.resources.limits }}
         limits:
-          cpu: 40m
+          {{- if .Values.check.deployment.resources.limits.cpu }}
+          cpu: {{ .Values.check.deployment.resources.limits.cpu }}
+          {{- end }}
+          {{- if .Values.check.deployment.resources.limits.memory }}
+          memory: {{ .Values.check.deployment.resources.limits.memory }}
+          {{- end }}
+        {{- end }}
 {{- if .Values.securityContext.enabled }}
       securityContext:
         allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}

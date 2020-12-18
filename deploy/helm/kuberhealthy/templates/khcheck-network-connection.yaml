@@ -26,7 +26,19 @@ spec:
 {{- end }}
       resources:
         requests:
-          memory: 5Mi
+          {{- if .Values.check.networkConnection.resources.requests.cpu }}
+          cpu: {{ .Values.check.networkConnection.resources.requests.cpu }}
+          {{- end }}
+          memory: {{ .Values.check.networkConnection.resources.requests.memory }}
+        {{- if .Values.check.networkConnection.resources.limits }}
+        limits:
+          {{- if .Values.check.networkConnection.resources.limits.cpu }}
+          cpu: {{ .Values.check.networkConnection.resources.limits.cpu }}
+          {{- end }}
+          {{- if .Values.check.networkConnection.resources.limits.memory }}
+          memory: {{ .Values.check.networkConnection.resources.limits.memory }}
+          {{- end }}
+        {{- end }}
       restartPolicy: Never
     {{- if .Values.check.networkConnection.nodeSelector }}
     nodeSelector:
