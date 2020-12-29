@@ -26,9 +26,7 @@ spec:
 {{- end }}
       resources:
         requests:
-          {{- if .Values.check.networkConnection.resources.requests.cpu }}
           cpu: {{ .Values.check.networkConnection.resources.requests.cpu }}
-          {{- end }}
           memory: {{ .Values.check.networkConnection.resources.requests.memory }}
         {{- if .Values.check.networkConnection.resources.limits }}
         limits:

@@ -258,6 +258,7 @@ check:
     resources:
       requests:
         memory: 5Mi
+        cpu: 10m
 
 checkReaper:
   enabled: true # Don't disable checkReaper, this flag exist to make e2e tests easier.
