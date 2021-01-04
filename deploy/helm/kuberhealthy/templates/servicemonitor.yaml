@@ -8,8 +8,8 @@ metadata:
     app: {{ template "kuberhealthy.name" . }}
     prometheus: {{ .Values.prometheus.name }}
     release: {{ .Values.prometheus.release }}
-    {{- if .Values.prometheus.serviceMonitor.additional_labels}}
-    additional_labels: {{ .Values.prometheus.serviceMonitor.additional_labels}}
+    {{- if .Values.prometheus.serviceMonitor.additionalLabels}}
+    additionalLabels: {{ .Values.prometheus.serviceMonitor.additionalLabels}}
     {{- end  -}}
   name: {{ template "kuberhealthy.name" . }}
   namespace: {{ .Release.Namespace }}
