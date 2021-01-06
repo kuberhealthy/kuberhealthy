@@ -6,7 +6,9 @@ prometheus:
   enabled: false
   name: "prometheus"
   release: prometheus-operator
-  additionalLabels: []
+  additionalLabels: {}
+    #- env: "dev"
+    #  app: "appName"
 
   serviceMonitor:
     enabled: false
