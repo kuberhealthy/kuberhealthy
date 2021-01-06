@@ -273,6 +273,8 @@ checkReaper:
     #  value: "value"
     #  effect: "NoSchedule"
   # startingDeadlineSeconds:
+  maxPodsThreshold: "4"
+  jobDeleteTimeDuration: 15m
   resources:
     requests:
       cpu: 10m
