@@ -23,8 +23,17 @@ spec:
               imagePullPolicy: IfNotPresent
               resources:
                 requests:
-                  cpu: 10m
-                  memory: 50Mi
+                  cpu: {{ .Values.checkReaper.resources.requests.cpu }}
+                  memory: {{ .Values.checkReaper.resources.requests.memory }}
+                {{- if .Values.checkReaper.resources.limits }}
+                limits:
+                  {{- if .Values.checkReaper.resources.limits.cpu }}
+                  cpu: {{ .Values.checkReaper.resources.limits.cpu }}
+                  {{- end }}
+                  {{- if .Values.checkReaper.resources.limits.memory }}
+                  memory: {{ .Values.checkReaper.resources.limits.memory }}
+                  {{- end }}
+                {{- end }}
               env:
                 - name: SINGLE_NAMESPACE
                   value: ""
