@@ -38,9 +38,9 @@ spec:
                 - name: SINGLE_NAMESPACE
                   value: ""
                 - name: MAX_PODS_THRESHOLD
-                  value: "4"
+                  value: {{ .Values.checkReaper.maxPodsThreshold }}
                 - name: JOB_DELETE_TIME_DURATION
-                  value: 15m
+                  value: {{ .Values.checkReaper.jobDeleteTimeDuration }}
               securityContext:
                 runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
                 runAsUser: {{ .Values.securityContext.runAsUser }}
