@@ -105,6 +105,10 @@ check:
     #  operator: "Equal"
     #  value: "value"
     #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi    
   deployment:
     enabled: true
     runInterval: 10m
@@ -123,6 +127,12 @@ check:
     #  operator: "Equal"
     #  value: "value"
     #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 25m
+        memory: 15Mi
+      limits:
+        cpu: 40m
   dnsInternal:
     enabled: true
     runInterval: 2m
@@ -139,6 +149,10 @@ check:
     #  operator: "Equal"
     #  value: "value"
     #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
   dnsExternal:
     enabled: false
     runInterval: 2m
@@ -155,6 +169,10 @@ check:
     #  operator: "Equal"
     #  value: "value"
     #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
   podRestarts:
     enabled: false
     runInterval: 5m
@@ -171,6 +189,10 @@ check:
     #  operator: "Equal"
     #  value: "value"
     #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
   podStatus:
     enabled: false
     runInterval: 5m
@@ -187,6 +209,10 @@ check:
     #  operator: "Equal"
     #  value: "value"
     #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
   storage:
   # external check from registry
   # https://github.com/ChrisHirsch/kuberhealthy-storage-check
@@ -209,6 +235,10 @@ check:
     #  operator: "Equal"
     #  value: "value"
     #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
   networkConnection:
     enabled: false
     runInterval: 30m
@@ -225,6 +255,10 @@ check:
     #  operator: "Equal"
     #  value: "value"
     #  effect: "NoSchedule"
+    resources:
+      requests:
+        memory: 5Mi
+        cpu: 10m
 
 checkReaper:
   enabled: true # Don't disable checkReaper, this flag exist to make e2e tests easier.
@@ -241,3 +275,7 @@ checkReaper:
   # startingDeadlineSeconds:
   maxPodsThreshold: "4"
   jobDeleteTimeDuration: 15m
+  resources:
+    requests:
+      cpu: 10m
+      memory: 50Mi

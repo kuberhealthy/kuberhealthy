@@ -34,8 +34,17 @@ spec:
         name: main
         resources:
           requests:
-            cpu: 10m
-            memory: 50Mi
+            cpu: {{ .Values.check.podRestarts.resources.requests.cpu }}
+            memory: {{ .Values.check.podRestarts.resources.requests.memory }}
+          {{- if .Values.check.podRestarts.resources.limits }}
+          limits:
+            {{- if .Values.check.podRestarts.resources.limits.cpu }}
+            cpu: {{ .Values.check.podRestarts.resources.limits.cpu }}
+            {{- end }}
+            {{- if .Values.check.podRestarts.resources.limits.memory }}
+            memory: {{ .Values.check.podRestarts.resources.limits.memory }}
+            {{- end }}
+          {{- end }}
         {{- if .Values.securityContext.enabled }}
         securityContext:
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}

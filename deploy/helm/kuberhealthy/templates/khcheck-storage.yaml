@@ -43,8 +43,17 @@ spec:
 {{- end }}
       resources:
         requests:
-          cpu: 10m
-          memory: 50Mi
+          cpu: {{ .Values.check.storage.resources.requests.cpu }}
+          memory: {{ .Values.check.storage.resources.requests.memory }}
+        {{- if .Values.check.storage.resources.limits }}
+        limits:
+          {{- if .Values.check.storage.resources.limits.cpu }}
+          cpu: {{ .Values.check.storage.resources.limits.cpu }}
+          {{- end }}
+          {{- if .Values.check.storage.resources.limits.memory }}
+          memory: {{ .Values.check.storage.resources.limits.memory }}
+          {{- end }}
+        {{- end }}
         {{- if $.Values.securityContext.enabled }}
         securityContext:
           allowPrivilegeEscalation: {{ $.Values.securityContext.allowPrivilegeEscalation }}

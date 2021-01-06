@@ -35,8 +35,17 @@ spec:
         name: main
         resources:
           requests:
-            cpu: 10m
-            memory: 50Mi
+            cpu: {{ .Values.check.dnsInternal.resources.requests.cpu }}
+            memory: {{ .Values.check.dnsInternal.resources.requests.memory }}
+          {{- if .Values.check.dnsInternal.resources.limits }}
+          limits:
+            {{- if .Values.check.dnsInternal.resources.limits.cpu }}
+            cpu: {{ .Values.check.dnsInternal.resources.limits.cpu }}
+            {{- end }}
+            {{- if .Values.check.dnsInternal.resources.limits.memory }}
+            memory: {{ .Values.check.dnsInternal.resources.limits.memory }}
+            {{- end }}
+          {{- end }}
         {{- if .Values.securityContext.enabled }}
         securityContext:
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
