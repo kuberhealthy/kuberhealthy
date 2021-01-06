@@ -116,6 +116,6 @@ checkReaper:
   enabled: false
   image:
     repository: kuberhealthy/check-reaper
-    tag: v1.4.0
+    tag: v1.5.1
   nodeSelector: {}
   

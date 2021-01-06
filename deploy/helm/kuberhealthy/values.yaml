@@ -268,7 +268,7 @@ checkReaper:
   image:
     registry: {}
     repository: kuberhealthy/check-reaper
-    tag: v1.5.0
+    tag: v1.5.1
   nodeSelector: {}
   tolerations: []
     #- key: "key"
