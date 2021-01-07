@@ -96,7 +96,7 @@ func sendReport(s status.Report) error {
 		return err
 	}, exponentialBackoff)
 	if err != nil {
-		writeLog("ERROR: got an error sending POST to kuberhealthy:", err)
+		writeLog("ERROR: got an error sending POST to kuberhealthy:", err.Error())
 		return fmt.Errorf("bad POST request to kuberhealthy status reporting url: %w", err)
 	}
 
