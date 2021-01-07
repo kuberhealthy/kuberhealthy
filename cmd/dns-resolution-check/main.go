@@ -23,8 +23,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	// required for oidc kubectl testing
+	v1 "k8s.io/api/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
@@ -46,6 +48,12 @@ var Hostname string
 
 // NodeName is a variable for the node where the container/pod is created
 var NodeName string
+
+// Namespace where dns pods live
+var namespace string
+
+// Label selector used for dns pods
+var labelSelector string
 
 var now time.Time
 
@@ -80,6 +88,16 @@ func init() {
 		return
 	}
 	log.Infoln("Check pod is running on node:", NodeName)
+
+	namespace = os.Getenv("NAMESPACE")
+	if len(namespace) > 0 {
+		log.Infoln("Looking for DNS pods in namespace:", namespace)
+	}
+
+	labelSelector = os.Getenv("DNS_POD_SELECTOR")
+	if len(labelSelector) > 0 {
+		log.Infoln("Looking for DNS pods with label:", labelSelector)
+	}
 
 	now = time.Now()
 }
@@ -157,17 +175,111 @@ func (dc *Checker) Run(client *kubernetes.Clientset) error {
 	}
 }
 
+// create a Resolver object to use for DNS queries
+func createResolver(ip string) (*net.Resolver, error) {
+	r := &net.Resolver{}
+	// if we're supplied a null string, return an error
+	if len(ip) < 1 {
+		return r, errors.New("Need a valid ip to create Resolver")
+	}
+	// attempt to create the resolver based on the string
+	r = &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address2 string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: time.Millisecond * time.Duration(10000),
+			}
+			return d.DialContext(ctx, "udp", ip+":53")
+		},
+	}
+	return r, nil
+}
+
+func getIpsFromEndpoint(endpoints *v1.EndpointsList) ([]string, error) {
+	var ipList []string
+	if len(endpoints.Items) == 0 {
+		return ipList, errors.New("No endpoints found")
+	}
+	// loop through endpoint list, subsets, and finally addresses to get backend DNS ip's to query
+	for ep := 0; ep < len(endpoints.Items); ep++ {
+		for sub := 0; sub < len(endpoints.Items[ep].Subsets); sub++ {
+			for address := 0; address < len(endpoints.Items[ep].Subsets[sub].Addresses); address++ {
+				// create resolver based on backends found in the dns endpoint
+				ipList = append(ipList, endpoints.Items[ep].Subsets[sub].Addresses[address].IP)
+			}
+		}
+	}
+	if len(ipList) != 0 {
+		return ipList, nil
+	}
+	return ipList, errors.New("No Ip's found in endpoints list")
+}
+
+func dnsLookup(r *net.Resolver, host string) error {
+	_, err := r.LookupHost(context.Background(), host)
+	if err != nil {
+		errorMessage := "DNS Status check determined that " + host + " is DOWN: " + err.Error()
+		return errors.New(errorMessage)
+	}
+	return nil
+}
+
+func (dc *Checker) checkEndpoints() error {
+	endpoints, err := dc.client.CoreV1().Endpoints(namespace).List(context.Background(), metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		message := "DNS status check unable to get dns endpoints from cluster: " + err.Error()
+		log.Errorln(message)
+		return errors.New(message)
+	}
+
+	//get ips from endpoint list to check
+	ips, err := getIpsFromEndpoint(endpoints)
+	if err != nil {
+		return err
+	}
+
+	//given that we got valid ips from endpoint list, parse them
+	if len(ips) > 0 {
+		for ip := 0; ip < len(ips); ip++ {
+			//create a resolver for each ip and return any error
+			r, err := createResolver(ips[ip])
+			if err != nil {
+				return err
+			}
+			//run a lookup for each ip if we successfully created a resolver, return error
+			err = dnsLookup(r, dc.Hostname)
+			if err != nil {
+				return err
+			}
+		}
+		log.Infoln("DNS Status check from service endpoint determined that", dc.Hostname, "was OK.")
+		return nil
+	}
+	return errors.New("No ips found in endpoint with label: " + labelSelector)
+}
+
 // doChecks does validations on the DNS call to the endpoint
 func (dc *Checker) doChecks() error {
 
 	log.Infoln("DNS Status check testing hostname:", dc.Hostname)
+
+	// if there's a label selector, do checks against endpoints
+	if len(labelSelector) > 0 {
+		err := dc.checkEndpoints()
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	// otherwise do lookup against service endpoint
 	_, err := net.LookupHost(dc.Hostname)
 	if err != nil {
 		errorMessage := "DNS Status check determined that " + dc.Hostname + " is DOWN: " + err.Error()
 		log.Errorln(errorMessage)
 		return errors.New(errorMessage)
 	}
-	log.Infoln("DNS Status check determined that", dc.Hostname, "was OK.")
+	log.Infoln("DNS Status check from service endpoint determined that", dc.Hostname, "was OK.")
 	return nil
 }
 

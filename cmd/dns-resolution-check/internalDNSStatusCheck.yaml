@@ -11,6 +11,10 @@ spec:
       - env:
           - name: HOSTNAME
             value: "kubernetes.default"
+          - name: NAMESPACE
+            value: "kube-system"
+          - name: DNS_NODE_SELECTOR
+            value: apps=k8s-dns
           - name: NODE_NAME
             valueFrom:
               fieldRef:
