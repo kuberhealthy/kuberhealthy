@@ -61,6 +61,8 @@ const (
 // createDeploymentConfig creates and configures a k8s deployment and returns the struct (ready to apply with client).
 func createDeploymentConfig(image string) *v1.Deployment {
 
+	var podSpec corev1.PodSpec
+
 	// Make a k8s deployment.
 	deployment := &v1.Deployment{}
 
@@ -84,21 +86,28 @@ func createDeploymentConfig(image string) *v1.Deployment {
 	container = createContainerConfig(checkImage)
 	containers = append(containers, container)
 
-	//
-	var toleration corev1.Toleration
-	toleration = createToleration(tolerationValue)
-	tolerations = append(tolerations, toleration)
-
 	// Check for given node selector values.
 	// Set the map to the default of nil (<none>) if there are no selectors given.
 	if len(checkDeploymentNodeSelectors) == 0 {
 		checkDeploymentNodeSelectors = nil
 	}
 
+	// Check for given node toleration values.
+	// Set the map to the default of nil (<none>) if there are no selectors given.
+	if len(tolerationValue) == 0 {
+		tolerations = nil
+	} else {
+		toleration, err := createToleration(tolerationValue)
+		if err != nil {
+			log.Error(err)
+		}
+		tolerations = append(tolerations, toleration)
+	}
+
 	graceSeconds := int64(1)
 
 	// Make and define a pod spec with containers.
-	podSpec := corev1.PodSpec{
+	podSpec = corev1.PodSpec{
 		Containers:                    containers,
 		NodeSelector:                  checkDeploymentNodeSelectors,
 		RestartPolicy:                 corev1.RestartPolicyAlways,
@@ -259,24 +268,58 @@ func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan
 }
 
 // createToleration creates a container resource spec and returns it.
-func createToleration(t string) corev1.Toleration {
+func createToleration(toleration string) (corev1.Toleration, error) {
 
-	// return blank tolerations if no value provided in yaml file
-	if len(t) == 0 {
-		tolerations := corev1.Toleration{
-			Operator: corev1.TolerationOpExists,
+	t := corev1.Toleration{}
+
+	splitKV := strings.Split(toleration, "=")
+	//does toleration has a value provided
+	if len(splitKV) > 1 {
+		//make sure there's real values on both sides of the split
+		if len(splitKV[0]) < 1 {
+			return t, errors.New("Empty key after split on =")
 		}
-		return tolerations
+		// try to get value and effect by splitting on :
+		tValue, tEffect, err := findValEffect(splitKV[1])
+		if err != nil {
+			log.Errorln(err)
+			return t, err
+		}
+		// create toleration based on returned value/effect
+		t = corev1.Toleration{
+			Key:      splitKV[0],
+			Operator: corev1.TolerationOpEqual,
+			Value:    tValue,
+			Effect:   corev1.TaintEffect(tEffect),
+		}
+		return t, nil
 	}
+	// if no split can be done, just create a toleration based on the supplied string
+	t = corev1.Toleration{
+		Key:      toleration,
+		Operator: corev1.TolerationOpExists,
+	}
+	return t, nil
+}
 
-	// Create toleration Key
-	tolerations := corev1.Toleration{
-		Key:      t,
-		Operator: corev1.TolerationOpEqual,
-		Value:    "kuberhealthy",
-		Effect:   corev1.TaintEffectNoSchedule,
+// findValEffect splits the value and effect
+func findValEffect(find string) (string, string, error) {
+	//Is the find string not null?
+	if len(find) < 1 {
+		return "", "", errors.New("Empty string in findValEffect")
 	}
-	return tolerations
+	findTe := strings.Split(find, ":")
+	if len(findTe) > 1 {
+		//if we split the string, and the value isn't null (we don't have ":something"), return the values
+		tValue := findTe[0]
+		tEffect := findTe[1]
+		if len(tValue) < 1 {
+			return "", "", errors.New("Empty value after split on :")
+		}
+		return tValue, tEffect, nil
+	}
+	// if we couldn't split the string, just return it back as the value
+	return find, "", nil
 }
 
 // createContainerConfig creates a container resource spec and returns it.
