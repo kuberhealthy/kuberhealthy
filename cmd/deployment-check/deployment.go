@@ -101,13 +101,15 @@ func createDeploymentConfig(image string) *v1.Deployment {
 		splitEnvVars := strings.Split(tolerationsEnv, ",")
 		//do we have multiple tolerations
 		if len(splitEnvVars) > 1 {
-			multiTolerations, err := multipleTolerationsCheck(splitEnvVars)
+			multiTolerations, err := multipleTolerations(splitEnvVars)
 			if err != nil {
 				log.Errorln("Failure to parse tolerations with error:", err)
+				ReportFailureAndExit(err)
 			}
 			for _, t := range multiTolerations {
 				tolerations = append(tolerations, t)
 			}
+
 		} else {
 
 			//parse single toleration and append to slice
@@ -115,6 +117,7 @@ func createDeploymentConfig(image string) *v1.Deployment {
 			if err != nil {
 				// if we can't create a toleration, error out and return
 				log.Errorln(err)
+				ReportFailureAndExit(err)
 			}
 			tolerations = append(tolerations, tol)
 			// if we parsed tolerations, log them
@@ -287,8 +290,12 @@ func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan
 	return createChan
 }
 
-func multipleTolerationsCheck(splitEnvVars []string) ([]corev1.Toleration, error) {
+func multipleTolerations(splitEnvVars []string) ([]corev1.Toleration, error) {
 
+	if splitEnvVars == nil {
+		err := errors.New("nil was entered into multiple toleration parser")
+		ReportFailureAndExit(err)
+	}
 	for _, toleration := range splitEnvVars {
 		//parse each toleration, create a corev1.Toleration object, and append to tolerations slice
 		tol, err := createToleration(toleration)
