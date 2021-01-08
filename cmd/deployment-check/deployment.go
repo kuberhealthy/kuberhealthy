@@ -94,14 +94,34 @@ func createDeploymentConfig(image string) *v1.Deployment {
 
 	// Check for given node toleration values.
 	// Set the map to the default of nil (<none>) if there are no selectors given.
-	if len(tolerationValue) == 0 {
+	if len(tolerations) == 0 {
 		tolerations = nil
 	} else {
-		toleration, err := createToleration(tolerationValue)
-		if err != nil {
-			log.Error(err)
+
+		splitEnvVars := strings.Split(tolerationsEnv, ",")
+		//do we have multiple tolerations
+		if len(splitEnvVars) > 1 {
+			multiTolerations, err := multipleTolerationsCheck(splitEnvVars)
+			if err != nil {
+				log.Errorln("Failure to parse tolerations with error:", err)
+			}
+			for _, t := range multiTolerations {
+				tolerations = append(tolerations, t)
+			}
+		} else {
+
+			//parse single toleration and append to slice
+			tol, err := createToleration(tolerationsEnv)
+			if err != nil {
+				// if we can't create a toleration, error out and return
+				log.Errorln(err)
+			}
+			tolerations = append(tolerations, tol)
+			// if we parsed tolerations, log them
+			if len(tolerations) > 1 {
+				log.Infoln("Parsed TOLERATIONS:", tolerations)
+			}
 		}
-		tolerations = append(tolerations, toleration)
 	}
 
 	graceSeconds := int64(1)
@@ -265,6 +285,23 @@ func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan
 	}()
 
 	return createChan
+}
+
+func multipleTolerationsCheck(splitEnvVars []string) ([]corev1.Toleration, error) {
+
+	for _, toleration := range splitEnvVars {
+		//parse each toleration, create a corev1.Toleration object, and append to tolerations slice
+		tol, err := createToleration(toleration)
+		if err != nil {
+			// if we can't get a toleration based on that string, skip it and go on to the next one
+			log.Errorln(err)
+			continue
+		}
+		tolerations = append(tolerations, tol)
+	}
+
+	log.Infoln("Parsed TOLERATIONS:", tolerations)
+	return tolerations, nil
 }
 
 // createToleration creates a container resource spec and returns it.
