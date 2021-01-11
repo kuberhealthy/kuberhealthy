@@ -94,7 +94,7 @@ func createDeploymentConfig(image string) *v1.Deployment {
 
 	// Check for given node toleration values.
 	// Set the map to the default of nil (<none>) if there are no selectors given.
-	if len(tolerations) == 0 {
+	if len(tolerationsEnv) == 0 {
 		tolerations = nil
 	} else {
 
