@@ -97,33 +97,12 @@ func createDeploymentConfig(image string) *v1.Deployment {
 	if len(tolerationsEnv) == 0 {
 		tolerations = nil
 	} else {
-
-		splitEnvVars := strings.Split(tolerationsEnv, ",")
-		//do we have multiple tolerations
-		if len(splitEnvVars) > 1 {
-			multiTolerations, err := multipleTolerations(splitEnvVars)
-			if err != nil {
-				log.Errorln("Failure to parse tolerations with error:", err)
-				ReportFailureAndExit(err)
-			}
-			for _, t := range multiTolerations {
-				tolerations = append(tolerations, t)
-			}
-
-		} else {
-
-			//parse single toleration and append to slice
-			tol, err := createToleration(tolerationsEnv)
-			if err != nil {
-				// if we can't create a toleration, error out and return
-				log.Errorln(err)
-				ReportFailureAndExit(err)
-			}
-			tolerations = append(tolerations, tol)
-			// if we parsed tolerations, log them
-			if len(tolerations) > 1 {
-				log.Infoln("Parsed TOLERATIONS:", tolerations)
-			}
+		tol, err := tolerationHandler(tolerationsEnv)
+		if err != nil {
+			ReportFailureAndExit(err)
+		}
+		for _, t := range tol {
+			tolerations = append(tolerations, t)
 		}
 	}
 
@@ -201,6 +180,45 @@ func createDeploymentConfig(image string) *v1.Deployment {
 type DeploymentResult struct {
 	Deployment *v1.Deployment
 	Err        error
+}
+
+// tolerationHandler finds single or multiple tolerations and appends them to corev1.[]tolerations for deployment
+func tolerationHandler(tolerationsEnv string) ([]corev1.Toleration, error) {
+
+	// check to make sure tolerationsEnv is not null
+	if len(tolerationsEnv) == 0 {
+		err := errors.New("null tolerationsEnv entered into toleration function")
+		return []corev1.Toleration{}, err
+	}
+
+	splitEnvVars := strings.Split(tolerationsEnv, ",")
+	//do we have multiple tolerations
+	if len(splitEnvVars) > 1 {
+		multiTolerations, err := multipleTolerations(splitEnvVars)
+		if err != nil {
+			log.Errorln("Failure to parse tolerations with error:", err)
+			return []corev1.Toleration{}, err
+		}
+		for _, t := range multiTolerations {
+			tolerations = append(tolerations, t)
+		}
+
+	} else {
+
+		//parse single toleration and append to slice
+		tol, err := createToleration(tolerationsEnv)
+		if err != nil {
+			// if we can't create a toleration, error out and return
+			log.Errorln(err)
+			return []corev1.Toleration{}, err
+		}
+		tolerations = append(tolerations, tol)
+		// if we parsed tolerations, log them
+		if len(tolerations) > 1 {
+			log.Infoln("Parsed TOLERATIONS:", tolerations)
+		}
+	}
+	return tolerations, nil
 }
 
 // createDeployment creates a deployment in the cluster with a given deployment specification.
@@ -290,6 +308,7 @@ func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan
 	return createChan
 }
 
+// multipleToelrations splits multiple toleration values entered from spec file as a string
 func multipleTolerations(splitEnvVars []string) ([]corev1.Toleration, error) {
 
 	if splitEnvVars == nil {
