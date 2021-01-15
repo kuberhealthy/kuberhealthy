@@ -74,7 +74,7 @@ spec:
   podSpec:
     containers:
       - name: deployment
-        image: kuberhealthy/deployment-check:v1.8.1
+        image: kuberhealthy/deployment-check:v1.8.2
         imagePullPolicy: Always
         env:
           - name: CHECK_DEPLOYMENT_REPLICAS
@@ -110,7 +110,7 @@ spec:
   podSpec:
     containers:
       - name: deployment
-        image: kuberhealthy/deployment-check:v1.8.1
+        image: kuberhealthy/deployment-check:v1.8.2
         imagePullPolicy: Always
         env:
           - name: CHECK_DEPLOYMENT_REPLICAS
