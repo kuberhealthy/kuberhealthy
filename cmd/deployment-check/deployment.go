@@ -93,18 +93,11 @@ func createDeploymentConfig(image string) *v1.Deployment {
 	}
 
 	// Check for given node toleration values.
-	// Set the map to the default of nil (<none>) if there are no selectors given.
-	if len(tolerationsEnv) == 0 {
-		tolerations = nil
-	} else {
-		tol, err := tolerationHandler(tolerationsEnv)
-		if err != nil {
-			ReportFailureAndExit(err)
-		}
-		for _, t := range tol {
-			tolerations = append(tolerations, t)
-		}
+	tol, err := tolerationHandler(tolerationsEnv)
+	if err != nil {
+		log.Errorln("Failure checking tolerations with error:", err, "defaulting to no tolerations!")
 	}
+	tolerations = tol
 
 	graceSeconds := int64(1)
 
@@ -187,8 +180,8 @@ func tolerationHandler(tolerationsEnv string) ([]corev1.Toleration, error) {
 
 	// check to make sure tolerationsEnv is not null
 	if len(tolerationsEnv) == 0 {
-		err := errors.New("null tolerationsEnv entered into toleration function")
-		return []corev1.Toleration{}, err
+		log.Infoln("No tolerations requested")
+		return nil, nil
 	}
 
 	splitEnvVars := strings.Split(tolerationsEnv, ",")
@@ -197,27 +190,24 @@ func tolerationHandler(tolerationsEnv string) ([]corev1.Toleration, error) {
 		multiTolerations, err := multipleTolerations(splitEnvVars)
 		if err != nil {
 			log.Errorln("Failure to parse tolerations with error:", err)
-			return []corev1.Toleration{}, err
+			return nil, err
 		}
 		for _, t := range multiTolerations {
 			tolerations = append(tolerations, t)
-		}
-
-	} else {
-
-		//parse single toleration and append to slice
-		tol, err := createToleration(tolerationsEnv)
-		if err != nil {
-			// if we can't create a toleration, error out and return
-			log.Errorln(err)
-			return []corev1.Toleration{}, err
-		}
-		tolerations = append(tolerations, tol)
-		// if we parsed tolerations, log them
-		if len(tolerations) > 1 {
-			log.Infoln("Parsed TOLERATIONS:", tolerations)
+			log.Infoln("Multiple tolerations requested:", tolerations)
+			return tolerations, nil
 		}
 	}
+
+	//parse single toleration and append to slice
+	tol, err := createToleration(tolerationsEnv)
+	if err != nil {
+		// if we can't create a toleration, error out and return
+		log.Errorln(err)
+		return nil, err
+	}
+	tolerations = append(tolerations, tol)
+	log.Infoln("One toleration requested:", tolerations)
 	return tolerations, nil
 }
 
