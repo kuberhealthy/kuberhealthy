@@ -67,6 +67,10 @@ func init() {
 	// Check that the EXPECTED_STATUS_CODE environment variable is valid.
 	if len(expectedStatusCode) == 0 {
 		expectedStatusCode = "200"
+	
+	// Check that the PASSING_PERCENT environment variable is valid.
+	if len(passing) == 0 {
+		passing = "100"
 	}
 
 	// If the URL does not begin with HTTP, exit.
