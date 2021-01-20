@@ -433,6 +433,13 @@ func findAllUniqueTolerations(client *kubernetes.Clientset) ([]apiv1.Toleration,
 	// get a list of all taints
 	for _, n := range nodes.Items {
 		for _, t := range n.Spec.Taints {
+
+			// Don't tolerate cordoned nodes
+			// Taints: node.kubernetes.io/unschedulable:NoSchedule
+			if t.Key == "node.kubernetes.io/unschedulable" && t.Value == "NoSchedule" {
+				continue
+			}
+
 			// only add unique entries to the slice
 			if _, value := keys[t.Value]; !value {
 				keys[t.Value] = true
