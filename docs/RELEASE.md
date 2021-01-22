@@ -14,7 +14,6 @@ To release a new version of Kuberhealthy:
 1. Create a PR updating the project with the latest Kuberhealthy tag:
     - [Makefile](../cmd/kuberhealthy/Makefile)
     - Helm [values.yaml](../deploy/helm/kuberhealthy/values.yaml)
-    - Integration test values [values.yaml](../.ci/values.yaml)
 1. Once the PR is merged, make sure the automatic `Build Flat Spec Files from Helm Chart` PR is also merged
 1. Create a `Release` draft on GitHub named with the release version (such as `v2.3.4`)
 1. Write up and publish release notes, giving an update / latest changes from the last release: new *Kuberhealthy Checks* (if any), new *Features*, and *Bug Fixes*
