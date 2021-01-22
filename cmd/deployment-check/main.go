@@ -63,13 +63,13 @@ var (
 	checkDeploymentReplicasEnv = os.Getenv("CHECK_DEPLOYMENT_REPLICAS")
 	checkDeploymentReplicas    int
 
+	// Toleration values for the deployment check
+	checkDeploymentTolerationsEnv = os.Getenv("TOLERATIONS")
+	checkDeploymentTolerations    []apiv1.Toleration
+
 	// Node selectors for the deployment check
 	checkDeploymentNodeSelectorsEnv = os.Getenv("NODE_SELECTOR")
 	checkDeploymentNodeSelectors    = make(map[string]string)
-
-	// Toleration value to be set in deployment pod
-	tolerationsEnv = os.Getenv("TOLERATION_VALUE")
-	tolerations    []apiv1.Toleration
 
 	// ServiceAccount that will deploy the test deployment [default = default]
 	checkServiceAccountEnv = os.Getenv("CHECK_SERVICE_ACCOUNT")
@@ -273,16 +273,4 @@ func reportToKuberhealthy(ok bool, errs []string) {
 		log.Fatalln("error reporting to kuberhealthy:", err.Error())
 	}
 	return
-}
-
-// ReportFailureAndExit logs and reports an error to kuberhealthy and then exits the program.
-// If a error occurs when reporting to kuberhealthy, the program fatals.
-func ReportFailureAndExit(err error) {
-	// log.Errorln(err)
-	err2 := kh.ReportFailure([]string{err.Error()})
-	if err2 != nil {
-		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
-	}
-	log.Infoln("Succesfully reported error to kuberhealthy")
-	os.Exit(0)
 }
