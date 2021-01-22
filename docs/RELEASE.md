@@ -8,8 +8,8 @@ To release a new version of Kuberhealthy:
 1. If the release looks good, tag it with the new upcoming version and push it to docker hub:
     ```
     docker pull kuberhealthy/kuberhealthy:latest
-    docker tag kuberhealthy/kuberhealthy:latest kuberhealthy/kuberhealthy:v2.3.4
-    docker push kuberhealthy/kuberhealthy:v2.3.4
+    docker tag kuberhealthy/kuberhealthy:latest kuberhealthy/kuberhealthy:v[version]
+    docker push kuberhealthy/kuberhealthy:v[version]
     ```
 1. Create a PR updating the project with the latest Kuberhealthy tag:
     - [Makefile](../cmd/kuberhealthy/Makefile)
