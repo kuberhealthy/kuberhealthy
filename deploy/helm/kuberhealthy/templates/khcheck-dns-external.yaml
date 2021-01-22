@@ -1,0 +1,62 @@
+{{- if .Values.check.dnsExternal.enabled }}
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: dns-status-external
+  namespace: {{ .Release.Namespace }}
+spec:
+  runInterval: {{ .Values.check.dnsExternal.runInterval }}
+  timeout: {{ .Values.check.dnsExternal.timeout }}
+  podSpec:
+    {{- if .Values.securityContext.enabled }}
+    securityContext:
+      runAsUser: {{ .Values.securityContext.runAsUser }}
+      fsGroup: {{ .Values.securityContext.fsGroup }}
+    {{- end}}
+    containers:
+      - env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+{{- range $key, $value := .Values.check.dnsExternal.extraEnvs }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+{{- end }}
+        {{- if .Values.imageRegistry }}
+        image: {{- .Values.imageRegistry }}/{{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}
+        {{- else if .Values.check.dnsExternal.image.registry }}
+        image: {{ .Values.check.dnsExternal.image.registry }}/{{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}
+        {{- else }}
+        image: {{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}
+        {{- end }}
+        imagePullPolicy: IfNotPresent
+        name: main
+        resources:
+          requests:
+            cpu: {{ .Values.check.dnsExternal.resources.requests.cpu }}
+            memory: {{ .Values.check.dnsExternal.resources.requests.memory }}
+          {{- if .Values.check.dnsExternal.resources.limits }}
+          limits:
+            {{- if .Values.check.dnsExternal.resources.limits.cpu }}
+            cpu: {{ .Values.check.dnsExternal.resources.limits.cpu }}
+            {{- end }}
+            {{- if .Values.check.dnsExternal.resources.limits.memory }}
+            memory: {{ .Values.check.dnsExternal.resources.limits.memory }}
+            {{- end }}
+          {{- end }}
+        {{- if .Values.securityContext.enabled }}
+        securityContext:
+          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+        {{- end }}
+    {{- if .Values.check.dnsExternal.nodeSelector }}
+    nodeSelector:
+{{- toYaml .Values.check.dnsExternal.nodeSelector | nindent 6 }}
+    {{- end }}
+    {{- if .Values.check.dnsExternal.tolerations }}
+    tolerations:
+{{- toYaml .Values.check.dnsExternal.tolerations | nindent 6 }}
+    {{- end }}
+{{- end }}

@@ -10,13 +10,17 @@ spec:
   podSpec:
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.5.1
+      image: kuberhealthy/deployment-check:v1.7.1
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
           value: "4"
         - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
           value: "true"
+        - name: TOLERATION_VALUE
+          value: "dedicated"
+        - name: NODE_SELECTOR
+          value: "dedicated=kuberhealthy"
       resources:
         requests:
           cpu: 25m

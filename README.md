@@ -38,10 +38,13 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer`.  This is done for security.  Options are available in the Helm chart to bypass this and deploy with `Type: LoadBalancer` directly.
 
-Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.15.x`.
+Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.18.x`.
 
-More installation options, including static yaml files are available in the [/deploy](/deploy) directory.  To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/Comcast/kuberhealthy/blob/config-readme/docs/CONFIGURATION.md).
+To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/Comcast/kuberhealthy/blob/config-readme/docs/CONFIGURATION.md).
 
+The Helm installation of Kuberhealthy is automatically updated to use the latest [Kuberhealthy release](https://github.com/Comcast/kuberhealthy/releases).
+
+More installation options, including static yaml files are available in the [/deploy](/deploy) directory. These flat spec files contain the most recent changes to Kuberhealthy, or the master branch. Use this if you would like to test master branch updates.
 
 ### Why Are Synthetic Tests Important?
 
@@ -127,12 +130,12 @@ Using Kuberhealthy with prometheus can help capture useful synthetic KPIs. Check
 
 By default, Kuberhealthy exposes an insecure (non-HTTPS) JSON status endpoint without authentication. You should never expose this endpoint to the public internet. Exposing Kuberhealthy's status page to the public internet could result in private cluster information being exposed to the public internet when errors occur and are displayed on the page.
 
-Vulnerabilities or other security related issues should be logged as git issues in this project and immediately reported to The Security Incident Response Team (SIRT) via email at NETO_SIRT@comcast.com.  Please do not post sensitive information in git issues.
+Vulnerabilities or other security related issues should be logged as Github issues in this project.  All new issues are reviewed regularly.  Please be careful not to post any sensitive information in your report!
 
 
 ## Contributing
 
-If you're interesting in contributing to this project:
+If you're interested in contributing to this project:
 - Check out the [Contributing Guide](CONTRIBUTING.md).
 - If you use Kuberhealthy in a production environment, add yourself to the list of [Kuberhealthy adopters](docs/KUBERHEALTHY_ADOPTERS.md)!
 - Check out [open issues](https://github.com/Comcast/kuberhealthy/issues). If you're new to the project, look for the `good first issue` tag.

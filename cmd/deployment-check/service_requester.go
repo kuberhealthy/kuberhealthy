@@ -12,6 +12,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -29,7 +30,7 @@ type RequestResult struct {
 
 // makeRequestToDeploymentCheckService attempts to make an HTTP request to the service
 // hostname and returns a boolean value. Returns a chan of errors.
-func makeRequestToDeploymentCheckService(hostname string) chan error {
+func makeRequestToDeploymentCheckService(ctx context.Context, hostname string) chan error {
 
 	requestChan := make(chan error)
 

@@ -24,7 +24,7 @@ import (
 // runDeploymentCheck sets up a deployment and applies it to the cluster.
 // Sets up a deployment and service and uses the client to deploy the test deployment and service.
 // Attempts to hit the service hostname endpoint, looking for a 200 and reports a success if able to retrieve a 200.
-func runDeploymentCheck() {
+func runDeploymentCheck(ctx context.Context) {
 
 	log.Infoln("Waiting for node to become ready before starting check.")
 	waitForNodeToJoin(ctx)
@@ -66,7 +66,7 @@ func runDeploymentCheck() {
 	// Apply the deployment struct manifest to the cluster.
 	var deploymentResult DeploymentResult
 	select {
-	case deploymentResult = <-createDeployment(deploymentConfig):
+	case deploymentResult = <-createDeployment(ctx, deploymentConfig):
 		// Handle errors when the deployment creation process completes.
 		if deploymentResult.Err != nil {
 			log.Errorln("error occurred creating deployment in cluster:", deploymentResult.Err)
@@ -93,7 +93,7 @@ func runDeploymentCheck() {
 	// Apply the service struct manifest to the cluster.
 	var serviceResult ServiceResult
 	select {
-	case serviceResult = <-createService(serviceConfig):
+	case serviceResult = <-createService(ctx, serviceConfig):
 		// Handle errors when the service creation process completes.
 		if serviceResult.Err != nil {
 			log.Errorln("error occurred creating service in cluster:", serviceResult.Err)
@@ -119,9 +119,7 @@ func runDeploymentCheck() {
 		return
 	}
 
-	// Get an ingress hostname associated with the service.
-	// hostname := getServiceLoadBalancerHostname()
-	ipAddress := getServiceClusterIP()
+	ipAddress := getServiceClusterIP(ctx)
 	if len(ipAddress) == 0 {
 		// If the retrieved address is empty or nil, clean up and exit.
 		log.Infoln("Cleaning up check and exiting because the cluster IP is nil: ", ipAddress)
@@ -143,7 +141,7 @@ func runDeploymentCheck() {
 	// Utilize a backoff loop for the request, the hostname needs to be allotted enough time
 	// for the hostname to resolve and come up.
 	select {
-	case err := <-makeRequestToDeploymentCheckService(ipAddress):
+	case err := <-makeRequestToDeploymentCheckService(ctx, ipAddress):
 		if err != nil {
 			// Handle errors when the HTTP request process completes.
 			log.Errorln("error occurred making request to service in cluster:", err)
@@ -181,7 +179,7 @@ func runDeploymentCheck() {
 		// Apply the deployment struct manifest to the cluster.
 		var updateDeploymentResult DeploymentResult
 		select {
-		case updateDeploymentResult = <-updateDeployment(rolledUpdateConfig):
+		case updateDeploymentResult = <-updateDeployment(ctx, rolledUpdateConfig):
 			// Handle errors when the deployment creation process completes.
 			if updateDeploymentResult.Err != nil {
 				log.Errorln("error occurred applying rolling-update to deployment in cluster:", updateDeploymentResult.Err)
@@ -209,7 +207,7 @@ func runDeploymentCheck() {
 
 		// Hit the service again, looking for a 200.
 		select {
-		case err := <-makeRequestToDeploymentCheckService(ipAddress):
+		case err := <-makeRequestToDeploymentCheckService(ctx, ipAddress):
 			// Handle errors when the HTTP request process completes.
 			if err != nil {
 				log.Errorln("error occurred creating service in cluster:", err)
@@ -290,12 +288,12 @@ func cleanUpOrphanedResources(ctx context.Context) chan error {
 
 	cleanUpChan := make(chan error)
 
-	go func(c context.Context) {
+	go func() {
 		log.Infoln("Wiping all found orphaned resources belonging to this check.")
 
 		defer close(cleanUpChan)
 
-		svcExists, err := findPreviousService()
+		svcExists, err := findPreviousService(ctx)
 		if err != nil {
 			log.Warnln("Failed to find previous service:", err.Error())
 		}
@@ -303,7 +301,7 @@ func cleanUpOrphanedResources(ctx context.Context) chan error {
 			log.Infoln("Found previous service.")
 		}
 
-		deploymentExists, err := findPreviousDeployment()
+		deploymentExists, err := findPreviousDeployment(ctx)
 		if err != nil {
 			log.Warnln("Failed to find previous deployment:", err.Error())
 		}
@@ -312,11 +310,11 @@ func cleanUpOrphanedResources(ctx context.Context) chan error {
 		}
 
 		if svcExists || deploymentExists {
-			cleanUpChan <- cleanUp(c)
+			cleanUpChan <- cleanUp(ctx)
 		} else {
 			cleanUpChan <- nil
 		}
-	}(ctx)
+	}()
 
 	return cleanUpChan
 }
@@ -324,14 +322,8 @@ func cleanUpOrphanedResources(ctx context.Context) chan error {
 // waitForNodeToJoin waits for the node to join the worker pool.
 // Waits for kube-proxy to be ready and that Kuberhealthy is reachable.
 func waitForNodeToJoin(ctx context.Context) {
-	// Wait for node to be at least 2m old.
-	err := nodeCheck.WaitForNodeAge(ctx, client, checkNamespace, time.Minute*2)
-	if err != nil {
-		log.Errorln("Failed to check node age:", err.Error())
-	}
-
 	// Check if Kuberhealthy is reachable.
-	err = nodeCheck.WaitForKuberhealthy(ctx)
+	err := nodeCheck.WaitForKuberhealthy(ctx)
 	if err != nil {
 		log.Errorln("Failed to reach Kuberhealthy:", err.Error())
 	}

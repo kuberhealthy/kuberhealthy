@@ -1,27 +1,38 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
 	// Environment Variables fetched from spec file
-	checkURL = os.Getenv("CHECK_URL")
-	count    = os.Getenv("COUNT")
-	seconds  = os.Getenv("SECONDS")
-	passing  = os.Getenv("PASSING_PERCENT")
+	checkURL           = os.Getenv("CHECK_URL")
+	count              = os.Getenv("COUNT")
+	seconds            = os.Getenv("SECONDS")
+	passing            = os.Getenv("PASSING_PERCENT")
+	requestType        = os.Getenv("REQUEST_TYPE")
+	requestBody        = os.Getenv("REQUEST_BODY")
+	expectedStatusCode = os.Getenv("EXPECTED_STATUS_CODE")
 )
+
+type APIRequest struct {
+	URL  string
+	Type string
+	Body io.Reader
+}
 
 func init() {
 	// set debug mode for nodeCheck pkg
@@ -43,6 +54,26 @@ func init() {
 		seconds = "0"
 	}
 
+	// Check that the PASSING_PERCENT environment variable is valid.
+	if len(passing) == 0 {
+		passing = "100" //or 80 or whatever the default passing percent value
+	}
+
+	// Check that the REQUEST_TYPE environment variable is valid.
+	if len(requestType) == 0 {
+		requestType = "GET"
+	}
+
+	// Check that the REQUEST_BODY environment variable is valid.
+	if len(requestBody) == 0 {
+		requestBody = "{}"
+	}
+
+	// Check that the EXPECTED_STATUS_CODE environment variable is valid.
+	if len(expectedStatusCode) == 0 {
+		expectedStatusCode = "200"
+	}
+
 	// If the URL does not begin with HTTP, exit.
 	if !strings.HasPrefix(checkURL, "http") {
 		err := fmt.Errorf("given URL does not declare a supported protocol. (http | https)")
@@ -55,22 +86,10 @@ func main() {
 	checkTimeLimit := time.Minute * 1
 	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
 
-	// create kubernetes client
-	kubernetesClient, err := kubeClient.Create("")
-	if err != nil {
-		log.Errorln("Error creating kubeClient with error" + err.Error())
-	}
-
 	// hits kuberhealthy endpoint to see if node is ready
-	err = nodeCheck.WaitForKuberhealthy(ctx)
+	err := nodeCheck.WaitForKuberhealthy(ctx)
 	if err != nil {
 		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
-	}
-
-	// fetches kube proxy to see if it is ready
-	err = nodeCheck.WaitForKubeProxy(ctx, kubernetesClient, "kuberhealthy", "kube-system")
-	if err != nil {
-		log.Errorln("Error waiting for kube proxy to be ready and running on the node with error:" + err.Error())
 	}
 
 	countInt, err := strconv.Atoi(count)
@@ -89,6 +108,17 @@ func main() {
 	if err != nil {
 		err = fmt.Errorf("Error converting PASSING_PERCENT to int: " + err.Error())
 		ReportFailureAndExit(err)
+	}
+
+	expectedStatusCodeInt, err := strconv.Atoi(expectedStatusCode)
+	if err != nil {
+		err = fmt.Errorf("Error converting EXPECTED_STATUS_CODE to int: " + err.Error())
+		ReportFailureAndExit(err)
+	}
+
+	// if the expected status code is empty, then default to 200
+	if expectedStatusCodeInt == 0 {
+		expectedStatusCodeInt = 200
 	}
 
 	// if the passing count is empty, then default to 100%
@@ -118,7 +148,11 @@ func main() {
 	// This for loop makes a http GET request to a known internet address, address can be changed in deployment spec yaml
 	// and returns a http status every second.
 	for checksRan < countInt {
-		r, err := http.Get(checkURL)
+		r, err := callAPI(APIRequest{
+			URL:  checkURL,
+			Type: requestType,
+			Body: bytes.NewBuffer([]byte(requestBody)),
+		})
 		checksRan++
 
 		if err != nil {
@@ -127,7 +161,7 @@ func main() {
 			continue
 		}
 
-		if r.StatusCode != http.StatusOK {
+		if r.StatusCode != expectedStatusCodeInt {
 			log.Errorln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
 			checksFailed++
 			continue
@@ -148,7 +182,7 @@ func main() {
 
 	// Check to see if the number of requests passed at passingPercent and reports to Kuberhealthy accordingly
 	if checksPassed < passInt {
-		reportErr := fmt.Errorf("unable to retrieve a valid response from " + checkURL + "check failed " + strconv.Itoa(checksFailed) + " out of " + strconv.Itoa(checksRan) + " attempts")
+		reportErr := fmt.Errorf("unable to retrieve a valid response (expected status: %d) from %s %s checks failed %d out of %d attempts", expectedStatusCodeInt, requestType, checkURL, checksFailed, checksRan)
 		ReportFailureAndExit(reportErr)
 	}
 
@@ -168,4 +202,32 @@ func ReportFailureAndExit(err error) {
 		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
 	}
 	os.Exit(0)
+}
+
+// callAPI performs an API call on the basis of the request type, body and URL provided to it.
+// It returns the response corresponding to the request.
+func callAPI(request APIRequest) (*http.Response, error) {
+	var response *http.Response
+	switch request.Type {
+	case "GET":
+		resp, err := http.Get(request.URL)
+		if err != nil {
+			return nil, fmt.Errorf("error occurred while calling %s: %w", request.URL, err)
+		}
+		response = resp
+	case "POST", "PUT", "DELETE", "PATCH":
+		req, err := http.NewRequest(string(request.Type), request.URL, request.Body)
+		if err != nil {
+			return nil, fmt.Errorf("error occurred while calling %s: %w", request.URL, err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("error occurred while calling %s: %w", request.URL, err)
+		}
+		response = resp
+	default:
+		return nil, fmt.Errorf("error occurred while calling %s: wrong request type found", request.URL)
+	}
+
+	return response, nil
 }

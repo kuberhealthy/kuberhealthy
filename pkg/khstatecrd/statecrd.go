@@ -14,17 +14,18 @@ package khstatecrd
 import (
 	"encoding/json"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/Comcast/kuberhealthy/v2/pkg/health"
 )
 
 // KuberhealthyState struct containing meta objects and health state in spec
 type KuberhealthyState struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              health.CheckDetails `json:"spec"`
+	Spec              health.WorkloadDetails `json:"spec"`
 }
 
 // String satisfies the stringer interface for cleaner output when printing
@@ -53,7 +54,7 @@ func (h KuberhealthyState) DeepCopyObject() runtime.Object {
 
 // NewKuberhealthyState creates a KuberhealthyState struct which represents
 // the data inside a KuberHealthyCheck resource
-func NewKuberhealthyState(name string, spec health.CheckDetails) KuberhealthyState {
+func NewKuberhealthyState(name string, spec health.WorkloadDetails) KuberhealthyState {
 	state := KuberhealthyState{}
 	state.SetName(name)
 	state.Spec = spec

@@ -36,7 +36,7 @@ spec:
             value: "kuberhealthy"
           - name: NODE_SELECTOR # Schedules daemonsets only to nodes with this label
             value: "kubernetes.io/os=linux"
-        image: kuberhealthy/daemonset-check:v3.1.0
+        image: kuberhealthy/daemonset-check:v3.2.3
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -53,7 +53,10 @@ spec:
 |PAUSE_CONTAINER_IMAGE|"gcr.io/google-containers/pause:3.1"|
 |SHUTDOWN_GRACE_PERIOD|1m|
 |CHECK_DAEMONSET_NAME|"daemonset"|
+|DAEMONSET_PRIORITY_CLASS_NAME|""|
 |NODE_SELECTOR|`<none>`|
+|TOLERATIONS|""|
+|ALLOWED_TAINTS|"node.kubernetes.io/unschedulable:NoSchedule"|
 
 #### Daemonset Check Diagram
 
@@ -64,9 +67,9 @@ spec:
 
 To implement the Daemonset Check with Kuberhealthy, run:
 
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/daemonset-check/daemonset-check.yaml`
+`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.3.1/cmd/daemonset-check/daemonset-check.yaml`
 
-Make sure you are using the latest release of Kuberhealthy 2.0.0.
+Make sure you are using the latest release of Kuberhealthy 2.3.1.
 
 The configuration file contains:
 - KuberhealthyCheck

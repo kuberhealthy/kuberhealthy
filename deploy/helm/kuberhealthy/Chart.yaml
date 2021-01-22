@@ -1,9 +1,9 @@
 apiVersion: v2
 name: kuberhealthy
-appVersion: 2.2.0
-version: 2.2.0
+appVersion: v2.3.1
+version: 33
 home: https://comcast.github.io/kuberhealthy/
-description: "An operator for synthetic test and monitoring.  Works great with Prometheus."
+description: "An operator for synthetic test and monitoring. Works great with Prometheus."
 type: application
 maintainers:
   - name: integrii
@@ -28,5 +28,5 @@ keywords:
 - prometheus
 sources:
 - https://github.com/Comcast/kuberhealthy
-- https://github.com/helm/charts/tree/master/stable/kuberhealthy
+- https://github.com/Comcast/kuberhealthy/tree/master/deploy/helm/kuberhealthy
 icon: https://raw.githubusercontent.com/Comcast/kuberhealthy/master/images/logo-square.png

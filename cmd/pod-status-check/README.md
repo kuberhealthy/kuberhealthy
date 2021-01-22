@@ -45,10 +45,32 @@ Note: This check assumes that a pod is unhealthy if it is over 10 minutes old an
 - Failed:  All Containers in the Pod have terminated, and at least one Container has terminated in failure. That is, the Container either exited with non-zero status or was terminated by the system.
 - Unknown:  For some reason the state of the Pod could not be obtained, typically due to an error in communicating with the host of the Pod.
 
+#### Options
+
+By default, `Pod Status Check` will check pods in the same namespace it is installed into.  This means the RBAC requirements for the service account the check runs with can be limited to a single namespace scope.
+
+It is possible to configure `Pod Status Check` to check pods from all namespaces in a cluster, this requires cluster wide permissions for the service account and is not recommended for multi-tenant setups.
 
 #### How-to
+
+##### kubectl apply
 To implement the Pod Status Check with Kuberhealthy, apply the configuration file [pod-status-check.yaml](pod-status-check.yaml)
 
 `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/pod-status-check/pod-status-check.yaml`
 
 to your Kubernetes Cluster.  Make sure that you are using the latest release of Kuberhealthy 2.0.0.
+
+If you want to enable the cluster wide option described above then __instead__ apply with cluster permissions [pod-status-check-clusterscope.yaml](pod-status-check-clusterscope.yaml).
+
+##### Helm
+
+```
+helm repo add kuberhealthy https://comcast.github.io/kuberhealthy/helm-repos
+
+helm install kuberhealthy kuberhealthy/kuberhealthy --set check.podStatus.enabled=true
+```
+
+To enable cluster wide check with cluster permissions
+```
+helm install kuberhealthy kuberhealthy/kuberhealthy --set check.podStatus.enabled=true --set check.podStatus.allNamespaces=true
+```

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -43,7 +44,7 @@ func createDaemonset(daemonsetSpec *appsv1.DaemonSet) error {
 
 	err := backoff.Retry(func() error {
 		var err error
-		_, err = getDSClient().Create(daemonsetSpec)
+		_, err = getDSClient().Create(context.TODO(), daemonsetSpec, metav1.CreateOptions{})
 		return err
 	}, exponentialBackoff)
 	if err != nil {
@@ -59,7 +60,7 @@ func listDaemonsets(more string) (*appsv1.DaemonSetList, error) {
 	var dsList *appsv1.DaemonSetList
 	err := backoff.Retry(func() error {
 		var err error
-		dsList, err = getDSClient().List(metav1.ListOptions{
+		dsList, err = getDSClient().List(context.TODO(), metav1.ListOptions{
 			Continue: more,
 		})
 		return err
@@ -76,7 +77,7 @@ func deleteDaemonset(dsName string) error {
 
 	err := backoff.Retry(func() error {
 		var err error
-		err = getDSClient().Delete(dsName, &metav1.DeleteOptions{})
+		err = getDSClient().Delete(context.TODO(), dsName, metav1.DeleteOptions{})
 		return err
 	}, exponentialBackoff)
 	if err != nil {
@@ -92,8 +93,8 @@ func listPods() (*v13.PodList, error) {
 	var podList *v13.PodList
 	err := backoff.Retry(func() error {
 		var err error
-		podList, err = getPodClient().List(metav1.ListOptions{
-			LabelSelector: "app=" + daemonSetName + ",source=kuberhealthy,khcheck=daemonset",
+		podList, err = getPodClient().List(context.TODO(), metav1.ListOptions{
+			LabelSelector: "kh-app=" + daemonSetName + ",source=kuberhealthy,khcheck=daemonset",
 		})
 		return err
 	}, exponentialBackoff)
@@ -109,8 +110,8 @@ func deletePods(dsName string) error {
 
 	err := backoff.Retry(func() error {
 		var err error
-		err = getPodClient().DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{
-			LabelSelector: "app=" + dsName + ",source=kuberhealthy,khcheck=daemonset",
+		err = getPodClient().DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{
+			LabelSelector: "kh-app=" + dsName + ",source=kuberhealthy,khcheck=daemonset",
 		})
 		return err
 	}, exponentialBackoff)
@@ -127,7 +128,7 @@ func listNodes() (*v13.NodeList, error) {
 	var nodeList *v13.NodeList
 	err := backoff.Retry(func() error {
 		var err error
-		nodeList, err = getNodeClient().List(metav1.ListOptions{})
+		nodeList, err = getNodeClient().List(context.TODO(), metav1.ListOptions{})
 		return err
 	}, exponentialBackoff)
 	if err != nil {

@@ -47,7 +47,7 @@ func getAllDaemonsets() ([]appsv1.DaemonSet, error) {
 	// fetch the ds objects created by kuberhealthy
 	for {
 		var dsList *appsv1.DaemonSetList
-		dsList, err = getDSClient().List(metav1.ListOptions{
+		dsList, err = getDSClient().List(context.TODO(), metav1.ListOptions{
 			LabelSelector: "source=kuberhealthy,khcheck=daemonset",
 		})
 		if err != nil {

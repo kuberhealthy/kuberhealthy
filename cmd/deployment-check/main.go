@@ -66,6 +66,9 @@ var (
 	checkDeploymentNodeSelectorsEnv = os.Getenv("NODE_SELECTOR")
 	checkDeploymentNodeSelectors    = make(map[string]string)
 
+	// Toleration value to be set in deployment pod
+	tolerationValue = os.Getenv("TOLERATION_VALUE")
+
 	// ServiceAccount that will deploy the test deployment [default = default]
 	checkServiceAccountEnv = os.Getenv("CHECK_SERVICE_ACCOUNT")
 	checkServiceAccount    string
@@ -120,11 +123,11 @@ const (
 	defaultCheckContainerName = "deployment-container"
 
 	// Default images used for check.
-	defaultCheckImageURL  = "nginx:1.17.8"
-	defaultCheckImageURLB = "nginx:1.17.9"
+	defaultCheckImageURL  = "nginxinc/nginx-unprivileged:1.17.8"
+	defaultCheckImageURLB = "nginxinc/nginx-unprivileged:1.17.9"
 
 	// Default container port used for check.
-	defaultCheckContainerPort = int32(80)
+	defaultCheckContainerPort = int32(8080)
 
 	// Default load balancer port used for check.
 	defaultCheckLoadBalancerPort = int32(80)
@@ -178,7 +181,7 @@ func main() {
 	log.Infoln("Kubernetes client created.")
 
 	// Start listening to interrupts.
-	go listenForInterrupts(ctx)
+	go listenForInterrupts(ctx, ctxCancel)
 
 	// Catch panics.
 	var r interface{}
@@ -191,11 +194,11 @@ func main() {
 	}()
 
 	// Start deployment check.
-	runDeploymentCheck()
+	runDeploymentCheck(ctx)
 }
 
 // listenForInterrupts watches the signal and done channels for termination.
-func listenForInterrupts(ctx context.Context) {
+func listenForInterrupts(ctx context.Context, cancel context.CancelFunc) {
 
 	// Relay incoming OS interrupt signals to the signalChan.
 	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT)
@@ -204,7 +207,7 @@ func listenForInterrupts(ctx context.Context) {
 	log.Debugln("Signal received was:", sig.String())
 
 	log.Debugln("Cancelling context.")
-	ctxCancel() // Causes all functions within the check to return without error and abort. NOT an error
+	cancel() // Causes all functions within the check to return without error and abort. NOT an error
 	// condition; this is a response to an external shutdown signal.
 
 	// Clean up pods here.

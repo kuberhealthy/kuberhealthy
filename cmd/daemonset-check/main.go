@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 )
 
@@ -41,14 +42,21 @@ var (
 	checkDSNameEnv = os.Getenv("CHECK_DAEMONSET_NAME")
 	checkDSName    string
 
+	// The priority class to use for the daemonset
+	podPriorityClassNameEnv = os.Getenv("DAEMONSET_PRIORITY_CLASS_NAME")
+	podPriorityClassName    string
+
 	// Check deadline from injected env variable KH_CHECK_RUN_DEADLINE
 	khDeadline    time.Time
 	checkDeadline time.Time
 
 	// Daemonset check configurations
 	hostName      string
+	tolerationsEnv = os.Getenv("TOLERATIONS")
 	tolerations   []apiv1.Toleration
 	daemonSetName string
+	allowedTaintsEnv = os.Getenv("ALLOWED_TAINTS")
+	allowedTaints map[string]apiv1.TaintEffect
 
 	// Time object used for the check.
 	now time.Time
@@ -70,9 +78,14 @@ const (
 	defaultCheckDeadline = time.Duration(time.Minute * 15)
 	// Default user
 	defaultUser = int64(1000)
+	// Default priority class name
+	defaultPodPriorityClassName = ""
 )
 
 func init() {
+	// set debug mode for nodeCheck pkg
+	nodeCheck.EnableDebugOutput()
+
 	// Create a timestamp reference for the daemonset;
 	// also to reference against daemonsets that should be cleaned up.
 	now = time.Now()
@@ -85,6 +98,20 @@ func init() {
 }
 
 func main() {
+	// Create a kubernetes client.
+	var err error
+	client, err = kubeClient.Create(kubeConfigFile)
+	if err != nil {
+		log.Fatalln("Unable to create kubernetes client:" + err.Error())
+	}
+	log.Infoln("Kubernetes client created.")
+
+	// this check runs all the nodechecks to ensure node is ready before running the daemonset chek
+	err = checksNodeReady()
+	if err != nil {
+		log.Errorln("Error running when doing the nodechecks :", err)
+	}
+
 	// Catch panics.
 	defer func() {
 		r := recover()
@@ -100,16 +127,6 @@ func main() {
 	// any of the timeouts are given the chance to report their timeout errors.
 	log.Debugln("Setting check ctx cancel with timeout", khDeadline.Sub(now))
 	ctx, ctxCancel := context.WithTimeout(context.Background(), khDeadline.Sub(now))
-
-	// Create a kubernetes client.
-	var err error
-	client, err = kubeClient.Create(kubeConfigFile)
-	if err != nil {
-		errorMessage := "failed to create a kubernetes client with error: " + err.Error()
-		reportErrorsToKuberhealthy([]string{"kuberhealthy/daemonset: " + errorMessage})
-		return
-	}
-	log.Infoln("Kubernetes client created.")
 
 	// Start listening to interrupts.
 	signalChan := make(chan os.Signal, 5)
@@ -161,6 +178,21 @@ func main() {
 	case <-time.After(time.Duration(shutdownGracePeriod)):
 		log.Errorln("Shutdown took too long. Shutting down forcefully!")
 	}
+}
+
+// checksNodeReady checks whether node is ready or not before running the check
+func checksNodeReady() error {
+	// create context
+	checkTimeLimit := time.Minute * 1
+	nctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
+
+	// hits kuberhealthy endpoint to see if node is ready
+	err := nodeCheck.WaitForKuberhealthy(nctx)
+	if err != nil {
+		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
+	}
+
+	return nil
 }
 
 // setCheckConfigurations sets Daemonset configurations

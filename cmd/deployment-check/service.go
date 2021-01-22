@@ -15,16 +15,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"strconv"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	watchpkg "k8s.io/apimachinery/pkg/watch"
 )
 
 // createServiceConfig creates and configures a k8s service and returns the struct (ready to apply with client).
@@ -69,7 +66,7 @@ type ServiceResult struct {
 }
 
 // createService creates a deployment in the cluster with a given deployment specification.
-func createService(serviceConfig *corev1.Service) chan ServiceResult {
+func createService(ctx context.Context, serviceConfig *corev1.Service) chan ServiceResult {
 
 	createChan := make(chan ServiceResult)
 
@@ -80,7 +77,7 @@ func createService(serviceConfig *corev1.Service) chan ServiceResult {
 
 		result := ServiceResult{}
 
-		service, err := client.CoreV1().Services(checkNamespace).Create(serviceConfig)
+		service, err := client.CoreV1().Services(checkNamespace).Create(ctx, serviceConfig, metav1.CreateOptions{})
 		if err != nil {
 			log.Infoln("Failed to create a service in the cluster:", err)
 			result.Err = err
@@ -98,7 +95,7 @@ func createService(serviceConfig *corev1.Service) chan ServiceResult {
 			log.Infoln("Watching for service to exist.")
 
 			// Watch that it is up.
-			watch, err := client.CoreV1().Services(checkNamespace).Watch(metav1.ListOptions{
+			watch, err := client.CoreV1().Services(checkNamespace).Watch(ctx, metav1.ListOptions{
 				Watch:         true,
 				FieldSelector: "metadata.name=" + service.Name,
 				// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
@@ -130,7 +127,7 @@ func createService(serviceConfig *corev1.Service) chan ServiceResult {
 					createChan <- result
 					return
 				}
-			case s := <-serviceHasClusterIP():
+			case s := <-serviceHasClusterIP(ctx):
 				log.Debugln("A cluster IP belonging to the created service has been found:")
 				result.Service = s
 				createChan <- result
@@ -178,7 +175,7 @@ func deleteServiceAndWait(ctx context.Context) error {
 			time.Sleep(time.Second * 5)
 
 			// Watch that it is gone by listing repeatedly.
-			serviceList, err := client.CoreV1().Services(checkNamespace).List(metav1.ListOptions{
+			serviceList, err := client.CoreV1().Services(checkNamespace).List(ctx, metav1.ListOptions{
 				FieldSelector: "metadata.name=" + checkServiceName,
 				// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
 			})
@@ -193,7 +190,7 @@ func deleteServiceAndWait(ctx context.Context) error {
 				// If the service exists, try to delete it.
 				if svc.GetName() == checkServiceName {
 					serviceExists = true
-					err = deleteService()
+					err = deleteService(ctx)
 					if err != nil {
 						log.Errorln("Error when running a delete on service", checkServiceName+":", err.Error())
 					}
@@ -211,7 +208,7 @@ func deleteServiceAndWait(ctx context.Context) error {
 	}()
 
 	// Send a delete on the service.
-	err := deleteService()
+	err := deleteService(ctx)
 	if err != nil {
 		log.Infoln("Could not delete service:", checkServiceName)
 	}
@@ -220,7 +217,7 @@ func deleteServiceAndWait(ctx context.Context) error {
 }
 
 // deleteService issues a foreground delete for the check test service name.
-func deleteService() error {
+func deleteService(ctx context.Context) error {
 	log.Infoln("Attempting to delete service", checkServiceName, "in", checkNamespace, "namespace.")
 	// Make a delete options object to delete the service.
 	deletePolicy := metav1.DeletePropagationForeground
@@ -231,77 +228,16 @@ func deleteService() error {
 	}
 
 	// Delete the service and return the result.
-	return client.CoreV1().Services(checkNamespace).Delete(checkServiceName, &deleteOpts)
-}
-
-// cleanUpOrphanedService cleans up services created from previous checks.
-func cleanUpOrphanedService() error {
-
-	cleanUpChan := make(chan error)
-
-	go func() {
-		defer close(cleanUpChan)
-
-		// Watch that it is gone.
-		watch, err := client.CoreV1().Services(checkNamespace).Watch(metav1.ListOptions{
-			Watch:         true,
-			FieldSelector: "metadata.name=" + checkServiceName,
-			// LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
-		})
-		if err != nil {
-			log.Infoln("Error creating watch client.")
-			cleanUpChan <- err
-			return
-		}
-		defer watch.Stop()
-
-		// Watch for a DELETED event.
-		for event := range watch.ResultChan() {
-			log.Debugln("Received an event watching for service changes:", event.Type)
-
-			s, ok := event.Object.(*corev1.Service)
-			if !ok {
-				log.Debugln("Got a watch event for a non-service object -- ignoring.")
-				continue
-			}
-
-			log.Debugln("Received an event watching for service changes:", s.Name, "got event", event.Type)
-
-			// We want an event type of DELETED here.
-			if event.Type == watchpkg.Deleted {
-				log.Infoln("Received a", event.Type, "while watching for service with name ["+s.Name+"] to be deleted.")
-				cleanUpChan <- nil
-				return
-			}
-		}
-	}()
-
-	log.Infoln("Removing previous service in", checkNamespace, "namespace.")
-
-	// Make a delete options object to delete the service.
-	deletePolicy := metav1.DeletePropagationForeground
-	graceSeconds := int64(1)
-	deleteOpts := metav1.DeleteOptions{
-		GracePeriodSeconds: &graceSeconds,
-		PropagationPolicy:  &deletePolicy,
-	}
-
-	// Send the delete request.
-	err := client.CoreV1().Services(checkNamespace).Delete(checkServiceName, &deleteOpts)
-	if err != nil {
-		return errors.New("failed to delete previous service: " + err.Error())
-	}
-
-	return <-cleanUpChan
+	return client.CoreV1().Services(checkNamespace).Delete(ctx, checkServiceName, deleteOpts)
 }
 
 // findPreviousService lists services and checks their names and labels to determine if there should
 // be an old service belonging to this check that should be deleted.
-func findPreviousService() (bool, error) {
+func findPreviousService(ctx context.Context) (bool, error) {
 
 	log.Infoln("Attempting to find previously created service(s) belonging to this check.")
 
-	serviceList, err := client.CoreV1().Services(checkNamespace).List(metav1.ListOptions{})
+	serviceList, err := client.CoreV1().Services(checkNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		log.Infoln("Error listing services:", err)
 		return false, err
@@ -344,27 +280,10 @@ func findPreviousService() (bool, error) {
 	return false, nil
 }
 
-// getServiceLoadBalancerHostname retrieves the hostname for the load balancer utilized for the service.
-func getServiceLoadBalancerHostname() string {
-
-	svc, err := client.CoreV1().Services(checkNamespace).Get(checkServiceName, metav1.GetOptions{})
-	if err != nil {
-		log.Infoln("Error occurred attempting to list service while retrieving service hostname:", err)
-		return ""
-	}
-
-	log.Debugln("Retrieving a load balancer hostname belonging to:", svc.Name)
-	if len(svc.Status.LoadBalancer.Ingress) != 0 {
-		log.Infoln("Found service load balancer ingress hostname:", svc.Status.LoadBalancer.Ingress[0].Hostname)
-		return svc.Status.LoadBalancer.Ingress[0].Hostname
-	}
-	return ""
-}
-
 // getServiceClusterIP retrieves the cluster IP address utilized for the service
-func getServiceClusterIP() string {
+func getServiceClusterIP(ctx context.Context) string {
 
-	svc, err := client.CoreV1().Services(checkNamespace).Get(checkServiceName, metav1.GetOptions{})
+	svc, err := client.CoreV1().Services(checkNamespace).Get(ctx, checkServiceName, metav1.GetOptions{})
 	if err != nil {
 		log.Errorln("Error occurred attempting to list service while retrieving service cluster IP:", err)
 		return ""
@@ -382,31 +301,6 @@ func getServiceClusterIP() string {
 	return ""
 }
 
-// waitForServiceToDelete waits for the service to be deleted.
-func waitForServiceToDelete() chan bool {
-
-	// Make and return a channel while we check that the service is gone in the background.
-	deleteChan := make(chan bool)
-
-	go func() {
-		defer close(deleteChan)
-		for {
-			_, err := client.CoreV1().Services(checkNamespace).Get(checkServiceName, metav1.GetOptions{})
-			if err != nil {
-				log.Debugln("error from Services().Get():", err.Error())
-				if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
-					log.Debugln("Service deleted.")
-					deleteChan <- true
-					return
-				}
-			}
-			time.Sleep(time.Millisecond * 250)
-		}
-	}()
-
-	return deleteChan
-}
-
 // serviceAvailable checks the amount of ingress endpoints associated to the service.
 // This will return a true if there is at least 1 hostname endpoint.
 func serviceAvailable(service *corev1.Service) bool {
@@ -422,7 +316,7 @@ func serviceAvailable(service *corev1.Service) bool {
 
 // serviceHasClusterIP checks the service object to see if a cluster IP has been
 // allocated to it yet and returns when a cluster IP exists.
-func serviceHasClusterIP() chan *corev1.Service {
+func serviceHasClusterIP(ctx context.Context) chan *corev1.Service {
 
 	resultChan := make(chan *corev1.Service)
 
@@ -430,7 +324,7 @@ func serviceHasClusterIP() chan *corev1.Service {
 		defer close(resultChan)
 
 		for {
-			svc, err := client.CoreV1().Services(checkNamespace).Get(checkServiceName, metav1.GetOptions{})
+			svc, err := client.CoreV1().Services(checkNamespace).Get(ctx, checkServiceName, metav1.GetOptions{})
 			if err != nil {
 				time.Sleep(time.Second)
 				continue

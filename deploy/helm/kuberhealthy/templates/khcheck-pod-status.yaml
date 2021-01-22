@@ -17,21 +17,38 @@ spec:
       - env:
           - name: SKIP_DURATION
             value: "10m"
+          {{- if not .Values.check.podStatus.allNamespaces }}
           - name: TARGET_NAMESPACE
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          {{- end }}
 {{- range $key, $value := .Values.check.podStatus.extraEnvs }}
           - name: {{ $key }}
             value: {{ $value | quote }}
 {{- end }}
+        {{- if .Values.imageRegistry }}
+        image: {{- .Values.imageRegistry }}/{{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
+        {{- else if .Values.check.podStatus.image.registry }}
+        image: {{ .Values.check.podStatus.image.registry }}/{{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
+        {{- else }}
         image: {{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
+        {{- end }}
         imagePullPolicy: IfNotPresent
         name: main
         resources:
           requests:
-            cpu: 10m
-            memory: 50Mi
+            cpu: {{ .Values.check.podStatus.resources.requests.cpu }}
+            memory: {{ .Values.check.podStatus.resources.requests.memory }}
+          {{- if .Values.check.podStatus.resources.limits }}
+          limits:
+            {{- if .Values.check.podStatus.resources.limits.cpu }}
+            cpu: {{ .Values.check.podStatus.resources.limits.cpu }}
+            {{- end }}
+            {{- if .Values.check.podStatus.resources.limits.memory }}
+            memory: {{ .Values.check.podStatus.resources.limits.memory }}
+            {{- end }}
+          {{- end }}
         {{- if .Values.securityContext.enabled }}
         securityContext:
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
@@ -42,7 +59,42 @@ spec:
     nodeSelector:
 {{- toYaml .Values.check.podStatus.nodeSelector | nindent 6 }}
     {{- end }}
+    {{- if .Values.check.podStatus.tolerations }}
+    tolerations:
+{{- toYaml .Values.check.podStatus.tolerations | nindent 6 }}
+    {{- end }}
     serviceAccountName: pod-status-sa
+---
+{{- if .Values.check.podStatus.allNamespaces }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pod-status-check-rb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pod-status-role
+subjects:
+  - kind: ServiceAccount
+    name: pod-status-sa
+    namespace: kuberhealthy
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-status-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+{{- end }}
+{{- if not .Values.check.podStatus.allNamespaces }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -72,10 +124,15 @@ rules:
       - get
       - list
       - watch
+{{- end }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: pod-status-sa
+{{- if .Values.check.podStatus.allNamespaces }}
+  namespace: kuberhealthy
+{{- else }}
   namespace: {{ .Release.Namespace }}
+{{- end}}
 {{- end}}

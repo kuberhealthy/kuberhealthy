@@ -11,7 +11,13 @@ spec:
   podSpec:
     containers:
     - name: deployment
+      {{- if .Values.imageRegistry }}
+      image: {{- .Values.imageRegistry }}/{{ .Values.check.networkConnection.image.repository }}:{{ .Values.check.networkConnection.image.tag }}
+      {{- else if .Values.check.networkConnection.image.registry }}
+      image: {{ .Values.check.networkConnection.image.registry }}/{{ .Values.check.networkConnection.image.repository }}:{{ .Values.check.networkConnection.image.tag }}
+      {{- else }}
       image: {{ .Values.check.networkConnection.image.repository }}:{{ .Values.check.networkConnection.image.tag }}
+      {{- end }}
       imagePullPolicy: IfNotPresent
       env:
 {{- range $key, $value := .Values.check.networkConnection.extraEnvs }}
@@ -20,11 +26,25 @@ spec:
 {{- end }}
       resources:
         requests:
-          memory: 5Mi
+          cpu: {{ .Values.check.networkConnection.resources.requests.cpu }}
+          memory: {{ .Values.check.networkConnection.resources.requests.memory }}
+        {{- if .Values.check.networkConnection.resources.limits }}
+        limits:
+          {{- if .Values.check.networkConnection.resources.limits.cpu }}
+          cpu: {{ .Values.check.networkConnection.resources.limits.cpu }}
+          {{- end }}
+          {{- if .Values.check.networkConnection.resources.limits.memory }}
+          memory: {{ .Values.check.networkConnection.resources.limits.memory }}
+          {{- end }}
+        {{- end }}
       restartPolicy: Never
     {{- if .Values.check.networkConnection.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.networkConnection.nodeSelector | nindent 6 }}
+    {{- end }}
+    {{- if .Values.check.networkConnection.tolerations }}
+    tolerations:
+{{- toYaml .Values.check.networkConnection.tolerations | nindent 6 }}
     {{- end }}
 {{- end }}
 

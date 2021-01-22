@@ -11,10 +11,10 @@ echo "Creating flat kuberhealthy.yaml"
 $HELM template --namespace kuberhealthy kuberhealthy > ../kuberhealthy.yaml
 
 echo "Creating flat kuberhealthy-prometheus.yaml"
-$HELM template --namespace kuberhealthy kuberhealthy kuberhealthy --set prometheus.enabled=true --set prometheus.enableScraping=true --set prometheus.enableAlerting=true > ../kuberhealthy-prometheus.yaml
+$HELM template --namespace kuberhealthy kuberhealthy kuberhealthy --set prometheus.enabled=true  --set prometheus.enableAlerting=true > ../kuberhealthy-prometheus.yaml
 
 echo "Creating flat kuberhealthy-prometheus-operator.yaml"
-$HELM template --namespace kuberhealthy kuberhealthy kuberhealthy --set prometheus.enabled=true --set prometheus.enableScraping=true --set prometheus.enableAlerting=true --set prometheus.serviceMonitor=true > ../kuberhealthy-prometheus-operator.yaml
+$HELM template --namespace kuberhealthy kuberhealthy kuberhealthy --set prometheus.enabled=true  --set prometheus.enableAlerting=true --set prometheus.serviceMonitor.enabled=true > ../kuberhealthy-prometheus-operator.yaml
 
 
 # temp helm fix described in issue #279:

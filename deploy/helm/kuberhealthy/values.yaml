@@ -6,9 +6,21 @@ prometheus:
   enabled: false
   name: "prometheus"
   release: prometheus-operator
-  enableScraping: false
-  serviceMonitor: false
+  additionalLabels: {}
+    #- env: "dev"
+    #  app: "appName"
+
+  serviceMonitor:
+    enabled: false
+    endpoints:
+      interval: 15s
+      bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+
   enableAlerting: false
+
+# imageRegistry can be used to globally override where check images are pulled from. Individual checks can be overridden below. 
+# By default if no overrides are specified, all images are pulled from Docker Hub.  Do not include a trailing '/'.
+imageRegistry: {}
 
 image:
   repository: kuberhealthy/kuberhealthy
@@ -22,6 +34,13 @@ resources:
     cpu: 2
     memory: 1Gi
 
+## Only minAvailable or maxUnavailable can be set at the same time.
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  maxUnavailable:
+
+
 tolerations:
   # change to true to tolerate and deploy to masters
   master: false
@@ -33,6 +52,11 @@ deployment:
   imagePullPolicy: IfNotPresent
   nodeSelector: {}
   podAnnotations: {}
+  # tolerations:
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
   env: {}
   command:
   - /app/kuberhealthy
@@ -49,6 +73,11 @@ securityContext:
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
 
+# When enabled kuberhealthy will create a PodSecurityPolicy, Role and Binding to match the specified securityContext
+# In case you use your own images for tests, you might need to add other PSPs as well on your own
+podSecurityPolicy:
+  enabled: false
+
 # Please remember that changing the service type to LoadBalancer
 # will expose Kuberhealthy to the internet, which could cause
 # error messages shown by Kuberhealthy to be exposed to the
@@ -63,69 +92,193 @@ service:
 
 check:
   daemonset:
+    # leave blank for the default service account name
+    serviceAccountName:
     enabled: true
     runInterval: 15m
     timeout: 12m
     image:
+      registry: {}
       repository: kuberhealthy/daemonset-check
-      tag: v3.1.0
+      tag: v3.2.3
     extraEnvs:
     nodeSelector: {}
+    tolerations:
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi    
   deployment:
     enabled: true
     runInterval: 10m
     timeout: 15m
     image:
+      registry: {}
       repository: kuberhealthy/deployment-check
-      tag: v1.5.1
+      tag: v1.7.1
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
       CHECK_SERVICE_ACCOUNT: "default"
     nodeSelector: {}
+    tolerations: 
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 25m
+        memory: 15Mi
+      limits:
+        cpu: 40m
   dnsInternal:
     enabled: true
     runInterval: 2m
     timeout: 15m
     image:
+      registry: {}
       repository: kuberhealthy/dns-resolution-check
-      tag: v1.4.0
+      tag: v1.4.2
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
+    tolerations: 
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
+  dnsExternal:
+    enabled: false
+    runInterval: 2m
+    timeout: 15m
+    image:
+      registry: {}
+      repository: kuberhealthy/dns-resolution-check
+      tag: v1.4.2
+    extraEnvs:
+      HOSTNAME: "google.com"
+    nodeSelector: {}
+    tolerations: 
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
   podRestarts:
     enabled: false
     runInterval: 5m
     timeout: 10m
     image:
+      registry: {}
       repository: kuberhealthy/pod-restarts-check
-      tag: v2.3.0
+      tag: v2.3.1
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
+    tolerations: []
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
   podStatus:
     enabled: false
     runInterval: 5m
     timeout: 15m
     image:
+      registry: {}
       repository: kuberhealthy/pod-status-check
-      tag: v1.2.2
+      tag: v1.2.3
+    allNamespaces: false
     extraEnvs:
     nodeSelector: {}
+    tolerations: []
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
+  storage:
+  # external check from registry
+  # https://github.com/ChrisHirsch/kuberhealthy-storage-check
+    enabled: false
+    # empty string indicate default storage class
+    # kubectl get storageclass
+    # or put storage class names into list
+    storageClass: [""]
+    runInterval: 5m
+    timeout: 10m
+    image:
+      repository: chrishirsch/kuberhealthy-storage-check
+      tag: v0.0.1
+    extraEnvs:
+      CHECK_STORAGE_IMAGE: bitnami/nginx:1.19
+      CHECK_STORAGE_INIT_IMAGE: bitnami/nginx:1.19
+    nodeSelector: {}
+    tolerations: []
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
   networkConnection:
     enabled: false
     runInterval: 30m
     timeout: 10m
     image:
+      registry: {}
       repository: kuberhealthy/network-connection-check
-      tag: v0.1.0
+      tag: v0.1.2
     extraEnvs:
       CONNECTION_TARGET: "tcp://github.com:443"
     nodeSelector: {}
+    tolerations: []
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
+    resources:
+      requests:
+        memory: 5Mi
+        cpu: 10m
 
 checkReaper:
   enabled: true # Don't disable checkReaper, this flag exist to make e2e tests easier.
   image:
+    registry: {}
     repository: kuberhealthy/check-reaper
-    tag: v1.4.0
+    tag: v1.5.1
   nodeSelector: {}
+  tolerations: []
+    #- key: "key"
+    #  operator: "Equal"
+    #  value: "value"
+    #  effect: "NoSchedule"
+  # startingDeadlineSeconds:
+  maxPodsThreshold: "4"
+  jobDeleteTimeDuration: 15m
+  resources:
+    requests:
+      cpu: 10m
+      memory: 50Mi

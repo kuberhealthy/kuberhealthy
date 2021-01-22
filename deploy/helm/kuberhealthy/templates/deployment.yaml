@@ -39,7 +39,7 @@ spec:
       priorityClassName: {{ .Values.deployment.priorityClassName }}
       {{- end}}
       containers:
-      - image: {{ .Values.image.repository }}:v{{ .Chart.AppVersion }}
+      - image: {{ .Values.image.repository }}:{{ .Chart.AppVersion }}
         command: {{ .Values.deployment.command }}
         {{- if .Values.deployment.args }}
         args:
@@ -90,15 +90,23 @@ spec:
           requests:
             cpu: {{ .Values.resources.requests.cpu }}
             memory: {{ .Values.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
       {{- if .Values.deployment.nodeSelector }}
       nodeSelector:
 {{- toYaml .Values.deployment.nodeSelector | nindent 8 }}
       {{- end }}
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
-{{- if .Values.tolerations.master }}
+{{- if or .Values.tolerations.master .Values.deployment.tolerations }}
       tolerations:
+{{- end }}
+{{- if .Values.tolerations.master }}
       - effect: NoSchedule
         key: node-role.kubernetes.io/master
         operator: Exists
-{{- end -}}
+{{- end }}
+{{- if .Values.deployment.tolerations }}
+      {{- toYaml .Values.deployment.tolerations | nindent 6 }}
+{{- end }}

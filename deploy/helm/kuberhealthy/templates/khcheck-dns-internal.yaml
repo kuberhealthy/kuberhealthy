@@ -24,13 +24,28 @@ spec:
           - name: {{ $key }}
             value: {{ $value | quote }}
 {{- end }}
+        {{- if .Values.imageRegistry }}
+        image: {{- .Values.imageRegistry }}/{{ .Values.check.dnsInternal.image.repository }}:{{ .Values.check.dnsInternal.image.tag }}
+        {{- else if .Values.check.dnsInternal.image.registry }}
+        image: {{ .Values.check.dnsInternal.image.registry }}/{{ .Values.check.dnsInternal.image.repository }}:{{ .Values.check.dnsInternal.image.tag }}
+        {{- else }}
         image: {{ .Values.check.dnsInternal.image.repository }}:{{ .Values.check.dnsInternal.image.tag }}
+        {{- end }}
         imagePullPolicy: IfNotPresent
         name: main
         resources:
           requests:
-            cpu: 10m
-            memory: 50Mi
+            cpu: {{ .Values.check.dnsInternal.resources.requests.cpu }}
+            memory: {{ .Values.check.dnsInternal.resources.requests.memory }}
+          {{- if .Values.check.dnsInternal.resources.limits }}
+          limits:
+            {{- if .Values.check.dnsInternal.resources.limits.cpu }}
+            cpu: {{ .Values.check.dnsInternal.resources.limits.cpu }}
+            {{- end }}
+            {{- if .Values.check.dnsInternal.resources.limits.memory }}
+            memory: {{ .Values.check.dnsInternal.resources.limits.memory }}
+            {{- end }}
+          {{- end }}
         {{- if .Values.securityContext.enabled }}
         securityContext:
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
@@ -39,5 +54,9 @@ spec:
     {{- if .Values.check.dnsInternal.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.dnsInternal.nodeSelector | nindent 6 }}
+    {{- end }}
+    {{- if .Values.check.dnsInternal.tolerations }}
+    tolerations:
+{{- toYaml .Values.check.dnsInternal.tolerations | nindent 6 }}
     {{- end }}
 {{- end }}

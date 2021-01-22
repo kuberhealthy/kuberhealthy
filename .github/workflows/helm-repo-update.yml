@@ -1,0 +1,69 @@
+# This workflow updates the helm repo index.yaml & .tgz files when a release created.
+# ***Please note that it will trigger if the published release is draft or official***
+
+name: Update Helm Repo Files
+on:
+  release:
+    types: [published]
+  push:
+    branches:
+      - master
+    paths:
+      - 'deploy/helm/kuberhealthy/**'
+      - '!deploy/helm/kuberhealthy/Chart.yaml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/Checkout@v2.0.0
+      with:
+        ref: master 
+
+# script with "helm repo" cmds and Chart.yaml modifications
+    - name: update with version tag
+      uses: stefanprodan/kube-tools@v1
+      with:
+        helmv3: 3.2.1
+        command: | 
+          helmv3 version
+          alias helm="helmv3"
+          ./deploy/helm/helm-repo-update.sh
+#
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v3.4.1
+      with:
+        # GITHUB_TOKEN or a repo scoped PAT
+        token: ${{ secrets.GITHUB_TOKEN }}
+        # Relative path under $GITHUB_WORKSPACE to the repository.
+        #path: # optional
+        # The message to use when committing changes.
+        commit-message: "Package and Index for Helm Repo"
+        # The committer name and email address.
+        #author: "GitHub Automatic Template Render Job"
+        # The author name and email address.
+        committer: "Github Actions <action@github.com>"
+        # The title of the pull request.
+        title: "Package and Index for Helm Repo"
+        # The body of the pull request.
+        body: "An automatic PR for updating of the Helm Repo based on releases tag."
+        # A comma separated list of labels.
+        #labels: # optional
+        # A comma separated list of assignees (GitHub usernames).
+        #assignees: # optional
+        # A comma separated list of reviewers (GitHub usernames) to request a review from.
+        #reviewers: # optional
+        # A comma separated list of GitHub teams to request a review from.
+        #team-reviewers: # optional
+        # The number of the milestone to associate this pull request with.
+        #milestone: # optional
+        # The name of the project for which a card should be created.
+        #project: # optional
+        # The name of the project column under which a card should be created.
+        #project-column: # optional
+        # The pull request branch name.
+        branch: helm_repo_update
+        # The pull request base branch.
+        base: master
+        # The branch suffix type.
+        #branch-suffix: # optional

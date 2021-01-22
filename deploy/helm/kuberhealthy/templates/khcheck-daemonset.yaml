@@ -9,6 +9,9 @@ spec:
   runInterval:  {{ .Values.check.daemonset.runInterval }}
   timeout: {{ .Values.check.daemonset.timeout }}
   podSpec:
+    {{- if .Values.check.daemonset.serviceAccountName }}
+    serviceAccountName: {{ .Values.check.daemonset.serviceAccountName }}
+    {{- end}}
     {{- if .Values.securityContext.enabled }}
     securityContext:
       runAsUser: {{ .Values.securityContext.runAsUser }}
@@ -26,13 +29,28 @@ spec:
           - name: {{ $key }}
             value: {{ $value | quote }}
 {{- end }}
+        {{- if .Values.imageRegistry }}
+        image: {{- .Values.imageRegistry }}/{{ .Values.check.daemonset.image.repository }}:{{ .Values.check.daemonset.image.tag }}
+        {{- else if .Values.check.daemonset.image.registry }}
+        image: {{ .Values.check.daemonset.image.registry }}/{{ .Values.check.daemonset.image.repository }}:{{ .Values.check.daemonset.image.tag }}
+        {{- else }}
         image: {{ .Values.check.daemonset.image.repository }}:{{ .Values.check.daemonset.image.tag }}
+        {{- end }}
         imagePullPolicy: IfNotPresent
         name: main
         resources:
           requests:
-            cpu: 10m
-            memory: 50Mi
+            cpu: {{ .Values.check.daemonset.resources.requests.cpu }}
+            memory: {{ .Values.check.daemonset.resources.requests.memory }}
+          {{- if .Values.check.daemonset.resources.limits }}
+          limits:
+            {{- if .Values.check.daemonset.resources.limits.cpu }}
+            cpu: {{ .Values.check.daemonset.resources.limits.cpu }}
+            {{- end }}
+            {{- if .Values.check.daemonset.resources.limits.memory }}
+            memory: {{ .Values.check.daemonset.resources.limits.memory }}
+            {{- end }}
+          {{- end }}
         {{- if .Values.securityContext.enabled }}
         securityContext:
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
@@ -41,6 +59,10 @@ spec:
     {{- if .Values.check.daemonset.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.daemonset.nodeSelector | nindent 6 }}
+    {{- end }}
+    {{- if .Values.check.daemonset.tolerations }}
+    tolerations:
+{{- toYaml .Values.check.daemonset.tolerations | nindent 6 }}
     {{- end }}
     serviceAccountName: daemonset-khcheck
 ---

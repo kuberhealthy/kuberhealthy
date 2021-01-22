@@ -59,9 +59,16 @@ func Client(GroupName string, GroupVersion string, kubeConfig string, namespace 
 	config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: GroupName, Version: GroupVersion}
 	config.APIPath = "/apis"
 	// config.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	config.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
 	config.UserAgent = rest.DefaultKubernetesUserAgent()
 
 	client, err := rest.RESTClientFor(&config)
 	return &KuberhealthyCheckClient{restClient: client}, err
+}
+
+// CreateClient returns a Kuberhealthy Check client using an existing rest client
+func CreateClient(client rest.Interface) *KuberhealthyCheckClient {
+	return &KuberhealthyCheckClient{
+		restClient: client,
+	}
 }

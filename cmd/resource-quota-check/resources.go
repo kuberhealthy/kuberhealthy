@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -19,7 +20,7 @@ type Job struct {
 func runResourceQuotaCheck() {
 
 	// List all namespaces in the cluster.
-	allNamespaces, err := client.CoreV1().Namespaces().List(metav1.ListOptions{})
+	allNamespaces, err := client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		err = fmt.Errorf("error occurred listing namespaces from the cluster: %v", err)
 		reportErr := kh.ReportFailure([]string{err.Error()})
@@ -136,7 +137,7 @@ func createWorkerForNamespaceResourceQuotaCheck(namespace string, quotasChan cha
 // examineResouceQuotasForNamespace looks at resource quotas and sends error messages on threshold violations.
 func examineResouceQuotasForNamespace(namespace string, c chan<- string) {
 	log.Infoln("Looking at resource quotas for", namespace, "namespace.")
-	quotas, err := client.CoreV1().ResourceQuotas(namespace).List(metav1.ListOptions{})
+	quotas, err := client.CoreV1().ResourceQuotas(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		err = fmt.Errorf("error occurred listing resource quotas for %s namespace %v", namespace, err)
 		c <- err.Error()
