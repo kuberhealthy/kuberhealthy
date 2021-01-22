@@ -54,6 +54,11 @@ func init() {
 		seconds = "0"
 	}
 
+	// Check that the PASSING_PERCENT environment variable is valid.
+	if len(passing) == 0 {
+		passing = "100" //or 80 or whatever the default passing percent value
+	}
+
 	// Check that the REQUEST_TYPE environment variable is valid.
 	if len(requestType) == 0 {
 		requestType = "GET"
