@@ -9,6 +9,7 @@ The check will exit without sending a request if the specified URL is not prefix
 ### Example HTTP Check Specs
 
 **GET check**
+
 ```yaml
 ---
 apiVersion: comcast.github.io/v1
@@ -22,7 +23,7 @@ spec:
   podSpec:
     containers:
       - name: http
-        image: kuberhealthy/http-check:v1.4.0
+        image: kuberhealthy/http-check:v1.4.1
         imagePullPolicy: IfNotPresent
         env:
           - name: CHECK_URL
@@ -38,6 +39,7 @@ spec:
 ```
 
 **POST check**
+
 ```yaml
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
@@ -50,20 +52,20 @@ spec:
   podSpec:
     containers:
       - name: https
-        image: kuberhealthy/http-check:v1.4.0
+        image: kuberhealthy/http-check:v1.4.1
         imagePullPolicy: IfNotPresent
         env:
           - name: CHECK_URL
             value: "https://reqres.in/api/users"
-          - name: COUNT                #### default: "0"
+          - name: COUNT #### default: "0"
             value: "1"
-          - name: SECONDS              #### default: "0"
+          - name: SECONDS #### default: "0"
             value: "1"
-          - name: PASSING_PERCENT      #### default: "100"
+          - name: PASSING_PERCENT #### default: "100"
             value: "100"
-          - name: REQUEST_TYPE         #### default: "GET"
+          - name: REQUEST_TYPE #### default: "GET"
             value: "POST"
-          - name: REQUEST_BODY         #### default: "{}"
+          - name: REQUEST_BODY #### default: "{}"
             value: '{"name": "morpheus", "job": "leader"}'
           - name: EXPECTED_STATUS_CODE #### default: "200"
             value: "201"
