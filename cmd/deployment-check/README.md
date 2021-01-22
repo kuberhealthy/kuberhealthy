@@ -53,10 +53,8 @@ This check follows the list of actions in order during the run of the check:
 - `ADDITIONAL_ENV_VARS`: Comma separated list of `key=value` variables passed into the pod's containers.
 - `SHUTDOWN_GRACE_PERIOD`: Amount of time in seconds the shutdown will allow itself to clean up after an interrupt signal (default=`30s`).
 - `DEBUG`: Verbose debug logging.
-- `TOLERATION_VALUE`: toleration(s) values to be set to schedule on tainted nodes.
-  (default= "")
-- `NODE_SELECTOR`: node selector label to be passed in to range for when scheduling on dedicated node.
-  (default= "")
+- `TOLERATION_VALUE`: Toleration values to respect on the deployment. (default=`nil`)
+- `NODE_SELECTOR`: Node selector labels to respect on the deployment. (default=`nil`)
 
 #### Example KuberhealthyCheck Spec
 
@@ -81,10 +79,6 @@ spec:
             value: "4"
           - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
             value: "true"
-          - name: TOLERATION_VALUE
-            value: ""
-          - name: NODE_SELECTOR
-            value: ""
         resources:
           requests:
             cpu: 25m
@@ -117,10 +111,6 @@ spec:
             value: "6"
           - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
             value: "true"
-          - name: TOLERATION_VALUE
-            value: ""
-          - name: NODE_SELECTOR
-            value: ""
         resources:
           requests:
             cpu: 25m

@@ -61,8 +61,6 @@ const (
 // createDeploymentConfig creates and configures a k8s deployment and returns the struct (ready to apply with client).
 func createDeploymentConfig(image string) *v1.Deployment {
 
-	var podSpec corev1.PodSpec
-
 	// Make a k8s deployment.
 	deployment := &v1.Deployment{}
 
@@ -73,7 +71,6 @@ func createDeploymentConfig(image string) *v1.Deployment {
 
 	// Make a slice for containers for the pods in the deployment.
 	containers := make([]corev1.Container, 0)
-	tolerations := make([]corev1.Toleration, 0)
 
 	if len(checkImage) == 0 {
 		err := errors.New("check image url for container is empty: " + checkImage)
@@ -92,23 +89,16 @@ func createDeploymentConfig(image string) *v1.Deployment {
 		checkDeploymentNodeSelectors = nil
 	}
 
-	// Check for given node toleration values.
-	tol, err := tolerationHandler(tolerationsEnv)
-	if err != nil {
-		log.Errorln("Failure checking tolerations with error:", err, "defaulting to no tolerations!")
-	}
-	tolerations = tol
-
 	graceSeconds := int64(1)
 
 	// Make and define a pod spec with containers.
-	podSpec = corev1.PodSpec{
+	podSpec := corev1.PodSpec{
 		Containers:                    containers,
 		NodeSelector:                  checkDeploymentNodeSelectors,
 		RestartPolicy:                 corev1.RestartPolicyAlways,
 		TerminationGracePeriodSeconds: &graceSeconds,
 		ServiceAccountName:            checkServiceAccount,
-		Tolerations:                   tolerations,
+		Tolerations:                   checkDeploymentTolerations,
 	}
 
 	// Make labels for pod and deployment.
@@ -173,42 +163,6 @@ func createDeploymentConfig(image string) *v1.Deployment {
 type DeploymentResult struct {
 	Deployment *v1.Deployment
 	Err        error
-}
-
-// tolerationHandler finds single or multiple tolerations and appends them to corev1.[]tolerations for deployment
-func tolerationHandler(tolerationsEnv string) ([]corev1.Toleration, error) {
-
-	// check to make sure tolerationsEnv is not null
-	if len(tolerationsEnv) == 0 {
-		log.Infoln("No tolerations requested")
-		return nil, nil
-	}
-
-	splitEnvVars := strings.Split(tolerationsEnv, ",")
-	//do we have multiple tolerations
-	if len(splitEnvVars) > 1 {
-		multiTolerations, err := multipleTolerations(splitEnvVars)
-		if err != nil {
-			log.Errorln("Failure to parse tolerations with error:", err)
-			return nil, err
-		}
-		for _, t := range multiTolerations {
-			tolerations = append(tolerations, t)
-			log.Infoln("Multiple tolerations requested:", tolerations)
-			return tolerations, nil
-		}
-	}
-
-	//parse single toleration and append to slice
-	tol, err := createToleration(tolerationsEnv)
-	if err != nil {
-		// if we can't create a toleration, error out and return
-		log.Errorln(err)
-		return nil, err
-	}
-	tolerations = append(tolerations, tol)
-	log.Infoln("One toleration requested:", tolerations)
-	return tolerations, nil
 }
 
 // createDeployment creates a deployment in the cluster with a given deployment specification.
@@ -296,83 +250,6 @@ func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan
 	}()
 
 	return createChan
-}
-
-// multipleToelrations splits multiple toleration values entered from spec file as a string
-func multipleTolerations(splitEnvVars []string) ([]corev1.Toleration, error) {
-
-	if splitEnvVars == nil {
-		err := errors.New("nil was entered into multiple toleration parser")
-		ReportFailureAndExit(err)
-	}
-	for _, toleration := range splitEnvVars {
-		//parse each toleration, create a corev1.Toleration object, and append to tolerations slice
-		tol, err := createToleration(toleration)
-		if err != nil {
-			// if we can't get a toleration based on that string, skip it and go on to the next one
-			log.Errorln(err)
-			continue
-		}
-		tolerations = append(tolerations, tol)
-	}
-
-	log.Infoln("Parsed TOLERATIONS:", tolerations)
-	return tolerations, nil
-}
-
-// createToleration creates a container resource spec and returns it.
-func createToleration(toleration string) (corev1.Toleration, error) {
-
-	t := corev1.Toleration{}
-
-	splitKV := strings.Split(toleration, "=")
-	//does toleration has a value provided
-	if len(splitKV) > 1 {
-		//make sure there's real values on both sides of the split
-		if len(splitKV[0]) < 1 {
-			return t, errors.New("Empty key after split on =")
-		}
-		// try to get value and effect by splitting on :
-		tValue, tEffect, err := findValEffect(splitKV[1])
-		if err != nil {
-			log.Errorln(err)
-			return t, err
-		}
-		// create toleration based on returned value/effect
-		t = corev1.Toleration{
-			Key:      splitKV[0],
-			Operator: corev1.TolerationOpEqual,
-			Value:    tValue,
-			Effect:   corev1.TaintEffect(tEffect),
-		}
-		return t, nil
-	}
-	// if no split can be done, just create a toleration based on the supplied string
-	t = corev1.Toleration{
-		Key:      toleration,
-		Operator: corev1.TolerationOpExists,
-	}
-	return t, nil
-}
-
-// findValEffect splits the value and effect
-func findValEffect(find string) (string, string, error) {
-	//Is the find string not null?
-	if len(find) < 1 {
-		return "", "", errors.New("Empty string in findValEffect")
-	}
-	findTe := strings.Split(find, ":")
-	if len(findTe) > 1 {
-		//if we split the string, and the value isn't null (we don't have ":something"), return the values
-		tValue := findTe[0]
-		tEffect := findTe[1]
-		if len(tValue) < 1 {
-			return "", "", errors.New("Empty value after split on :")
-		}
-		return tValue, tEffect, nil
-	}
-	// if we couldn't split the string, just return it back as the value
-	return find, "", nil
 }
 
 // createContainerConfig creates a container resource spec and returns it.
