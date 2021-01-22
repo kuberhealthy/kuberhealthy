@@ -67,6 +67,47 @@ func createToleration(toleration string) (*corev1.Toleration, error) {
 	return &t, nil
 }
 
+func createTaintMap(taintMap map[string]corev1.TaintEffect, taint string) error {
+
+	splitKV := strings.Split(taint, "=")
+	// does toleration has a value provided
+	if len(splitKV) > 1 {
+		//make sure there's real values on both sides of the split
+		if len(splitKV[0]) < 1 {
+			return errors.New("Empty key after split on =")
+		}
+
+		// try to get effect by splitting on :
+		_, tEffect, err := findValEffect(splitKV[1])
+		if err != nil {
+			log.Errorln(err)
+			return err
+		}
+
+		tKey := splitKV[0]
+		taintMap[tKey] = corev1.TaintEffect(tEffect)
+		return nil
+	}
+
+	// Taint sometimes only has KEY and EFFECT but no VALUE provided -- which is normally the case for cordoned nodes
+	// eg. node.kubernetes.io/unschedulable:NoSchedule
+	if len(splitKV) == 1 {
+		splitKE := strings.Split(taint, ":")
+
+		// make sure Taint has key and effect
+		if len(splitKE[0]) < 1 {
+			return errors.New("Empty key after split on :")
+		}
+
+		tKey := splitKE[0]
+		tEffect := splitKE[1]
+		taintMap[tKey] = corev1.TaintEffect(tEffect)
+		return nil
+	}
+
+	return nil
+}
+
 // parseInputValues parses and sets global vars from env variables and other inputs
 func parseInputValues() {
 
@@ -171,6 +212,24 @@ func parseInputValues() {
 		// if we parsed tolerations, log them
 		if len(tolerations) > 1 {
 			log.Infoln("Parsed TOLERATIONS:", tolerations)
+		}
+	}
+
+	if len(allowedTaintsEnv) != 0 {
+		allowedTaints = make(map[string]corev1.TaintEffect)
+		splitEnvVars := strings.Split(allowedTaintsEnv, ",")
+		for _, taint := range splitEnvVars {
+
+			err = createTaintMap(allowedTaints, taint)
+			if err != nil {
+				// if we can't get a taint based on that string, skip it and go on to the next one
+				log.Errorln(err)
+				continue
+			}
+		}
+
+		if len(allowedTaints) != 0 {
+			log.Infoln("Parsed ALLOWED_TAINTS:", allowedTaints)
 		}
 	}
 }

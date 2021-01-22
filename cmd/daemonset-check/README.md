@@ -55,6 +55,8 @@ spec:
 |CHECK_DAEMONSET_NAME|"daemonset"|
 |DAEMONSET_PRIORITY_CLASS_NAME|""|
 |NODE_SELECTOR|`<none>`|
+|TOLERATIONS|""|
+|ALLOWED_TAINTS|"node.kubernetes.io/unschedulable:NoSchedule"|
 
 #### Daemonset Check Diagram
 
