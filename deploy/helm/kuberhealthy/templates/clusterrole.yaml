@@ -48,6 +48,7 @@ rules:
     resources:
     - khstates
     - khchecks
+    - khjobs
     verbs:
     - "*"
   - apiGroups:
@@ -66,6 +67,17 @@ rules:
     - pods/eviction
     verbs:
     - create
+{{- if .Values.podSecurityPolicy.enabled }}
+  - apiGroups:
+      - extensions
+    resourceNames:
+      - {{ template "kuberhealthy.name" . }}-psp
+    resources:
+      - podsecuritypolicies
+    verbs:
+      - use
+{{- end }}
+
 ---
 apiVersion: {{ template "rbac.apiVersion" . }}
 kind: ClusterRole
@@ -78,3 +90,30 @@ rules:
   - nodes
   verbs:
   - list
+---
+apiVersion: {{ template "rbac.apiVersion" . }}
+kind: ClusterRole
+metadata:
+  name: {{ template "kuberhealthy.name" . }}-check-reaper
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - delete
+      - list
+  - apiGroups:
+      - comcast.github.io
+    resources:
+      - khchecks
+      - khjobs
+    verbs:
+      - delete
+      - list

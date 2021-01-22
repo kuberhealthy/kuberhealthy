@@ -16,7 +16,13 @@ spec:
     {{- end}}
     containers:
     - name: deployment
+      {{- if .Values.imageRegistry }}
+      image: {{- .Values.imageRegistry }}/{{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
+      {{- else if .Values.check.deployment.image.registry }}
+      image: {{ .Values.check.deployment.image.registry }}/{{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
+      {{- else }}
       image: {{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
+      {{- end }}
       imagePullPolicy: IfNotPresent
       env:
 {{- range $key, $value := .Values.check.deployment.extraEnvs }}
@@ -25,10 +31,17 @@ spec:
 {{- end }}
       resources:
         requests:
-          cpu: 25m
-          memory: 15Mi
+          cpu: {{ .Values.check.deployment.resources.requests.cpu }}
+          memory: {{ .Values.check.deployment.resources.requests.memory }}
+        {{- if .Values.check.deployment.resources.limits }}
         limits:
-          cpu: 40m
+          {{- if .Values.check.deployment.resources.limits.cpu }}
+          cpu: {{ .Values.check.deployment.resources.limits.cpu }}
+          {{- end }}
+          {{- if .Values.check.deployment.resources.limits.memory }}
+          memory: {{ .Values.check.deployment.resources.limits.memory }}
+          {{- end }}
+        {{- end }}
 {{- if .Values.securityContext.enabled }}
       securityContext:
         allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
@@ -38,6 +51,10 @@ spec:
     {{- if .Values.check.deployment.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.deployment.nodeSelector | nindent 6 }}
+    {{- end }}
+    {{- if .Values.check.deployment.tolerations }}
+    tolerations:
+{{- toYaml .Values.check.deployment.tolerations | nindent 6 }}
     {{- end }}
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60

@@ -8,12 +8,15 @@ import (
 	"regexp"
 	"strconv"
 	"syscall"
+	"time"
 
-	awsutil "github.com/Comcast/kuberhealthy/v2/pkg/aws"
-	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/aws/aws-sdk-go/aws/session"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
+
+	awsutil "github.com/Comcast/kuberhealthy/v2/pkg/aws"
+	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 )
 
 var (
@@ -109,6 +112,16 @@ func init() {
 func main() {
 
 	var err error
+
+	// create context
+	checkTimeLimit := time.Minute * 1
+	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
+
+	// hits kuberhealthy endpoint to see if node is ready
+	err = nodeCheck.WaitForKuberhealthy(ctx)
+	if err != nil {
+		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
+	}
 
 	// Create an AWS session.
 	awsSess = awsutil.CreateAWSSession()

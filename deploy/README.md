@@ -2,7 +2,7 @@
 
 This directory contains several ways to deploy Kuberhealthy to your cluster.  You do not need all of the specs in this directory.
 
-Each flat spec file here requires you to first create the `kuberhealthy` namespace with `kubectl create ns kuberhealthy` before application.  Then, simply use `kubectl apply -f` on the file to deploy Kuberhealthy and some basic checks into your cluster.
+Each flat spec file here requires you to first create the `kuberhealthy` namespace with `kubectl create ns kuberhealthy` before application.  Then, simply use `kubectl apply -f` on the file to deploy Kuberhealthy and some basic checks into your cluster.  These flat spec files are automatically updated to install the most recent changes to Kuberhealthy, or everything currently in the master branch.  Use this to test the latest changes to Kuberhealthy.
 
 ### Prometheus Operator
 
@@ -32,7 +32,7 @@ A flat file that includes everything but a namespace for clusters *without* Prom
 
 `helm/kuberhealthy`
 
-A helm chart for deploying Kuberhealthy.  This is the same helm chart published in our Helm registry.  Install this chart with the following steps:
+A helm chart for deploying Kuberhealthy.  This is the same helm chart published in our Helm registry.  The helm chart installs the latest [Kuberhealthy release](https://github.com/Comcast/kuberhealthy/releases). Install this chart with the following steps:
 
 - Create namespace "kuberhealthy" in the desired Kubernetes cluster/context:
 `kubectl create namespace kuberhealthy`
@@ -47,12 +47,12 @@ A helm chart for deploying Kuberhealthy.  This is the same helm chart published 
 
   - Without Prometheus:
   `helm install kuberhealthy kuberhealthy/kuberhealthy`
-  
+
   - With Prometheus:
-  `helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true --set prometheus.enableScraping=true --set prometheus.enableAlerting=true`
- 
- - With Prometheus Operator:
-  `helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true --set prometheus.enableScraping=true --set prometheus.enableAlerting=true --set prometheus.serviceMonitor=true`
+  `helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true  --set prometheus.enableAlerting=true`
+
+  - With Prometheus Operator:
+  `helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true  --set prometheus.enableAlerting=true --set prometheus.serviceMonitor.enabled=true`
 
 
 ### Helm

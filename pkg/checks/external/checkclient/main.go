@@ -14,12 +14,22 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cenkalti/backoff"
+
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/status"
 )
 
 // Debug can be used to enable output logging from the checkClient
 var Debug bool
+
+// Use exponential backoff for retries
+var exponentialBackoff = backoff.NewExponentialBackOff()
+const maxElapsedTime = time.Second * 30
+
+func init() {
+	exponentialBackoff.MaxElapsedTime = maxElapsedTime
+}
 
 // ReportSuccess reports a successful check run to the Kuberhealthy service. We
 // do not return an error here because failures will cause the managing
@@ -78,8 +88,13 @@ func sendReport(s status.Report) error {
 	writeLog("INFO: Using kuberhealthy reporting URL:", url)
 
 	// send to the server
-	// TODO - retry logic?  Maybe we want this to be sensitive on a failure...
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(b))
+	var resp *http.Response
+	err = backoff.Retry(func() error {
+		var err error
+		writeLog("DEBUG: Making POST request to kuberhealthy:")
+		resp, err = http.Post(url, "application/json", bytes.NewBuffer(b))
+		return err
+	}, exponentialBackoff)
 	if err != nil {
 		writeLog("ERROR: got an error sending POST to kuberhealthy:", err.Error())
 		return fmt.Errorf("bad POST request to kuberhealthy status reporting url: %w", err)

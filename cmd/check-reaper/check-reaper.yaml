@@ -10,15 +10,49 @@ spec:
       template:
         spec:
           containers:
-            - name: check-reaper
-              image: kuberhealthy/check-reaper:v1.4.0
+            - image: kuberhealthy/check-reaper:v1.5.1
               imagePullPolicy: IfNotPresent
-#              env:
-#                - name: SINGLE_NAMESPACE
-#                  value: kuberhealthy
+              name: check-reaper
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 50Mi
+              env:
+                - name: SINGLE_NAMESPACE
+                  value: ""
+                - name: MAX_PODS_THRESHOLD
+                  value: "4"
+                - name: JOB_DELETE_TIME_DURATION
+                  value: 15m
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kuberhealthy-check-reaper
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - delete
+      - list
+  - apiGroups:
+      - comcast.github.io
+    resources:
+      - khjobs
+    verbs:
+      - delete
+      - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -27,7 +61,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: admin
+  name: kuberhealthy-check-reaper
 subjects:
   - kind: ServiceAccount
     name: check-reaper

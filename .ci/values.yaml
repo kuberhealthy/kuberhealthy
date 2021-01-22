@@ -6,8 +6,12 @@ prometheus:
   enabled: false
   name: "prometheus"
   release: prometheus-operator
-  enableScraping: false
-  serviceMonitor: false
+  serviceMonitor:
+    enabled: false
+    endpoints:
+      interval: 15s
+      bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      
   enableAlerting: false
 
 image:
@@ -63,7 +67,7 @@ check:
     timeout: 12m
     image:
       repository: kuberhealthy/daemonset-check
-      tag: v3.1.0
+      tag: v3.2.1
     extraEnvs:
     nodeSelector: {}
   deployment:
@@ -72,7 +76,7 @@ check:
     timeout: 15m
     image:
       repository: kuberhealthy/deployment-check
-      tag: v1.5.1
+      tag: v1.7.0
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
@@ -84,7 +88,7 @@ check:
     timeout: 15m
     image:
       repository: kuberhealthy/dns-resolution-check
-      tag: v1.3.0
+      tag: v1.4.1
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
@@ -94,7 +98,7 @@ check:
     timeout: 10m
     image:
       repository: kuberhealthy/pod-restarts-check
-      tag: v2.3.0
+      tag: v2.3.1
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
@@ -104,7 +108,7 @@ check:
     timeout: 15m
     image:
       repository: kuberhealthy/pod-status-check
-      tag: v1.2.2
+      tag: v1.2.3
     extraEnvs:
     nodeSelector: {}
 
@@ -112,5 +116,6 @@ checkReaper:
   enabled: false
   image:
     repository: kuberhealthy/check-reaper
-    tag: v1.4.0
+    tag: v1.5.1
   nodeSelector: {}
+  

@@ -23,7 +23,8 @@ import (
 type State struct {
 	OK            bool
 	Errors        []string
-	CheckDetails  map[string]CheckDetails // map of check names to last run timestamp
+	CheckDetails  map[string]WorkloadDetails // map of check names to last run timestamp
+	JobDetails    map[string]WorkloadDetails  // map of job names to last run timestamp
 	CurrentMaster string
 }
 
@@ -68,6 +69,7 @@ func NewState() State {
 	s := State{}
 	s.OK = true
 	s.Errors = []string{}
-	s.CheckDetails = make(map[string]CheckDetails)
+	s.CheckDetails = make(map[string]WorkloadDetails)
+	s.JobDetails = make(map[string]WorkloadDetails)
 	return s
 }

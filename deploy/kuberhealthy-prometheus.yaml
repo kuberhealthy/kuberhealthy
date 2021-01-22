@@ -17,6 +17,21 @@ spec:
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  name: khjobs.comcast.github.io
+spec:
+  group: comcast.github.io
+  version: v1
+  scope: Namespaced
+  names:
+    plural: khjobs
+    singular: khjob
+    kind: KuberhealthyJob
+    shortNames:
+      - khj
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
   name: khstates.comcast.github.io
 spec:
   group: comcast.github.io
@@ -42,34 +57,6 @@ spec:
       app: kuberhealthy
 ---
 # Source: kuberhealthy/templates/configmap.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  labels:
-    app: "prometheus"
-    prometheus: prometheus
-    role: alert-rules
-  name: kuberhealthy
-  namespace: kuberhealthy
-data:
-  kuberhealthy.rules: |-
-    groups:
-    - name: ./kuberhealthy.rules
-      rules:
-      - alert: KuberhealthyError
-        expr: kuberhealthy_running < 1
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          description: Kuberhealthy is not healthy
-      - alert: ClusterUnhealthy
-        expr: kuberhealthy_cluster_state < 1
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          description: Kuberhealthy shows that the cluster is not healthy---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -163,6 +150,7 @@ rules:
     resources:
     - khstates
     - khchecks
+    - khjobs
     verbs:
     - "*"
   - apiGroups:
@@ -186,6 +174,34 @@ rules:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRole
 metadata:
+  name: kuberhealthy-check-reaper
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - delete
+      - list
+  - apiGroups:
+      - comcast.github.io
+    resources:
+      - khchecks
+      - khjobs
+    verbs:
+      - delete
+      - list
+---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
   name: kuberhealthy-daemonset-khcheck
 rules:
 - apiGroups:
@@ -204,25 +220,11 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: admin
+  name: kuberhealthy-check-reaper
 subjects:
   - kind: ServiceAccount
     name: check-reaper
     namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/clusterrolebinding.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRoleBinding
-metadata:
-  name: kuberhealthy
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kuberhealthy
-subjects:
-- kind: ServiceAccount
-  name: kuberhealthy
-  namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/clusterrolebinding.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -236,6 +238,20 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: daemonset-khcheck
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/clusterrolebinding.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRoleBinding
+metadata:
+  name: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kuberhealthy
+subjects:
+- kind: ServiceAccount
+  name: kuberhealthy
   namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
@@ -383,7 +399,7 @@ spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
       containers:
-      - image: kuberhealthy/kuberhealthy:v2.2.0
+      - image: kuberhealthy/kuberhealthy:v2.3.1
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
@@ -426,6 +442,9 @@ spec:
           requests:
             cpu: 400m
             memory: 300Mi
+          limits:
+            cpu: 2
+            memory: 1Gi
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
 ---
@@ -443,8 +462,23 @@ spec:
         spec:
           containers:
             - name: check-reaper
-              image: kuberhealthy/check-reaper:v1.4.0
+              image: kuberhealthy/check-reaper:v1.5.1
               imagePullPolicy: IfNotPresent
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 50Mi
+              env:
+                - name: SINGLE_NAMESPACE
+                  value: ""
+                - name: MAX_PODS_THRESHOLD
+                  value: 4
+                - name: JOB_DELETE_TIME_DURATION
+                  value: 15m
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 999
+                allowPrivilegeEscalation: false
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
   concurrencyPolicy: Forbid
@@ -470,7 +504,7 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-        image: kuberhealthy/daemonset-check:v3.1.0
+        image: kuberhealthy/daemonset-check:v3.2.3
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -497,7 +531,7 @@ spec:
       fsGroup: 999
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.5.1
+      image: kuberhealthy/deployment-check:v1.7.1
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
@@ -519,7 +553,7 @@ spec:
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
 ---
-# Source: kuberhealthy/templates/khcheck-dns.yaml
+# Source: kuberhealthy/templates/khcheck-dns-internal.yaml
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
@@ -540,7 +574,7 @@ spec:
                 fieldPath: spec.nodeName
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.4.0
+        image: kuberhealthy/dns-resolution-check:v1.4.2
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -550,3 +584,31 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
+---
+# Source: kuberhealthy/templates/prometheusrule.yml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: prometheus
+    role: alert-rules
+  name: kuberhealthy
+  namespace: kuberhealthy
+spec:
+  groups:
+    - name: ./kuberhealthy.rules
+      rules:
+        - alert: KuberhealthyError
+          expr: kuberhealthy_running < 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            description: Kuberhealthy is not healthy
+        - alert: ClusterUnhealthy
+          expr: kuberhealthy_cluster_state < 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            description: Kuberhealthy shows that the cluster is not healthy

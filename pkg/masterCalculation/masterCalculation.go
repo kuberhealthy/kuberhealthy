@@ -14,6 +14,7 @@
 package masterCalculation // import "github.com/Comcast/kuberhealthy/v2/pkg/masterCalculation"
 
 import (
+	"context"
 	"errors"
 	"os"
 	"sort"
@@ -58,7 +59,7 @@ func CalculateMaster(client *kubernetes.Clientset) (string, error) {
 	log.Debugln("Calculating current master...")
 
 	// get a list of all kuberhealthy pods
-	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{
+	pods, err := client.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: "app=kuberhealthy", FieldSelector: "status.phase=Running",
 	})
 	if err != nil {

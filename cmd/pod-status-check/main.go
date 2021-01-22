@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"time"
@@ -25,19 +26,23 @@ var namespace string
 var skipDurationEnv string
 
 func init() {
-	skipDurationEnv = os.Getenv("SKIP_DURATION")
-	namespace = os.Getenv("TARGET_NAMESPACE")
 	checkclient.Debug = true
 }
 
+type Options struct {
+	client kubernetes.Interface
+}
+
 func main() {
-	client, err := kubeClient.Create(KubeConfigFile)
+	var err error
+	o := Options{}
+	o.client, err = kubeClient.Create(KubeConfigFile)
 	if err != nil {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
 
 	// get our list of failed pods, if there are any errors, report failures to Kuberhealthy servers.
-	failures, err := findPodsNotRunning(client)
+	failures, err := o.findPodsNotRunning()
 	if err != nil {
 		err = checkclient.ReportFailure([]string{err.Error()})
 		if err != nil {
@@ -66,11 +71,21 @@ func main() {
 }
 
 // finds pods that are older than 10 minutes and are in an unhealthy lifecycle phase
-func findPodsNotRunning(client *kubernetes.Clientset) ([]string, error) {
+func (o Options) findPodsNotRunning() ([]string, error) {
 
 	var failures []string
 
-	pods, err := client.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: "app!=kuberhealthy-check,source!=kuberhealthy"})
+	skipDurationEnv = os.Getenv("SKIP_DURATION")
+	namespace = os.Getenv("TARGET_NAMESPACE")
+	if namespace == "" {
+		log.Println("looking for pods across all namespaces, this requires a cluster role")
+		// it is the same value but we are being explicit that we are listing pods in all namespaces
+		namespace = v1.NamespaceAll
+	} else {
+		log.Printf("looking for pods in namespace %s", namespace)
+	}
+
+	pods, err := o.client.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "app!=kuberhealthy-check,source!=kuberhealthy"})
 	if err != nil {
 		return failures, err
 	}

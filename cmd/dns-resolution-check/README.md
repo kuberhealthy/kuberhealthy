@@ -33,6 +33,43 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
+        image: kuberhealthy/dns-resolution-check:v1.4.2
+        imagePullPolicy: IfNotPresent
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
+```
+
+### Checking endpoints behind DNS Service
+
+In order to check endpoints behind the DNS service, add a `DNS_NODE_SELECTOR` and `NAMESPACE` variable to the spec file denoting where your DNS pods are.  
+
+`DNS_NODE_SELECTOR` is a label selector which will be used to select the DNS endpoints to query against.
+
+```yaml
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: dns-status-internal
+  namespace: kuberhealthy
+spec:
+  runInterval: 2m
+  timeout: 15m
+  podSpec:
+    containers:
+      - env:
+          - name: HOSTNAME
+            value: "kubernetes.default"
+          - name: NAMESPACE
+            value: "kube-system"
+          - name: DNS_NODE_SELECTOR
+            value: apps=k8s-dns
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
         image: kuberhealthy/dns-resolution-check:v1.4.0
         imagePullPolicy: IfNotPresent
         name: main
