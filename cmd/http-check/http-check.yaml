@@ -15,11 +15,11 @@ spec:
           - name: CHECK_URL
             value: "https://reqres.in/api/users"
           - name: COUNT            #### default: "0"
-            value: "1"
+            value: "5"
           - name: SECONDS          #### default: "0"
             value: "1"
           - name: PASSING_PERCENT  #### default: "100"
-            value: "100"
+            value: "80"
           - name: REQUEST_TYPE     #### default: "GET"
             value: "POST"
           - name: REQUEST_BODY     #### default: "{}"
