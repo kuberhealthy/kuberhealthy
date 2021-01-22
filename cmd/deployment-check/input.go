@@ -133,11 +133,25 @@ func parseInputValues() {
 			parsedEnvVarKeyValuePair := strings.Split(splitEnvVarKeyValuePair, "=")
 			if len(parsedEnvVarKeyValuePair) != 2 {
 				log.Warnln("Unable to parse key value pair:", splitEnvVarKeyValuePair)
+				log.Warnln("Setting operator to", corev1.TolerationOpExists)
+				t := corev1.Toleration{
+					Key:      parsedEnvVarKeyValuePair[0],
+					Operator: corev1.TolerationOpExists,
+				}
+				log.Infoln("Adding toleration to deployment:", t)
+				checkDeploymentTolerations = append(checkDeploymentTolerations, t)
 				continue
 			}
 			parsedEnvVarValueEffect := strings.Split(parsedEnvVarKeyValuePair[1], ":")
 			if len(parsedEnvVarValueEffect) != 2 {
-				log.Warnln("Unable to parse toleration value and effect:", parsedEnvVarValueEffect)
+				log.Warnln("Unable to parse complete toleration value and effect:", parsedEnvVarValueEffect)
+				t := corev1.Toleration{
+					Key:      parsedEnvVarKeyValuePair[0],
+					Operator: corev1.TolerationOpEqual,
+					Value:    parsedEnvVarKeyValuePair[1],
+				}
+				log.Infoln("Adding toleration to deployment:", t)
+				checkDeploymentTolerations = append(checkDeploymentTolerations, t)
 				continue
 			}
 			t := corev1.Toleration{
@@ -146,6 +160,7 @@ func parseInputValues() {
 				Value:    parsedEnvVarValueEffect[0],
 				Effect:   corev1.TaintEffect(parsedEnvVarValueEffect[1]),
 			}
+			log.Infoln("Adding toleration to deployment:", t)
 			checkDeploymentTolerations = append(checkDeploymentTolerations, t)
 		}
 		log.Infoln("Parsed TOLERATIONS:", checkDeploymentTolerations)
