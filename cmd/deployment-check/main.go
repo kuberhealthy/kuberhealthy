@@ -63,13 +63,13 @@ var (
 	checkDeploymentReplicasEnv = os.Getenv("CHECK_DEPLOYMENT_REPLICAS")
 	checkDeploymentReplicas    int
 
-	// Toleration values for the deployment check
-	checkDeploymentTolerationsEnv = os.Getenv("TOLERATIONS")
-	checkDeploymentTolerations    []apiv1.Toleration
-
 	// Node selectors for the deployment check
 	checkDeploymentNodeSelectorsEnv = os.Getenv("NODE_SELECTOR")
 	checkDeploymentNodeSelectors    = make(map[string]string)
+
+	// Toleration value to be set in deployment pod
+	tolerationsEnv = os.Getenv("TOLERATION_VALUE")
+	tolerations    []apiv1.Toleration
 
 	// ServiceAccount that will deploy the test deployment [default = default]
 	checkServiceAccountEnv = os.Getenv("CHECK_SERVICE_ACCOUNT")
