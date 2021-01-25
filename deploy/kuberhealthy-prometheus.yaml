@@ -399,7 +399,7 @@ spec:
       serviceAccountName: kuberhealthy
       automountServiceAccountToken: true
       containers:
-      - image: kuberhealthy/kuberhealthy:v2.3.1
+      - image: kuberhealthy/kuberhealthy:v2.3.2
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
