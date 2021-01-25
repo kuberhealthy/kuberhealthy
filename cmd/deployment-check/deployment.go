@@ -61,8 +61,6 @@ const (
 // createDeploymentConfig creates and configures a k8s deployment and returns the struct (ready to apply with client).
 func createDeploymentConfig(image string) *v1.Deployment {
 
-	var podSpec corev1.PodSpec
-
 	// Make a k8s deployment.
 	deployment := &v1.Deployment{}
 
@@ -73,7 +71,6 @@ func createDeploymentConfig(image string) *v1.Deployment {
 
 	// Make a slice for containers for the pods in the deployment.
 	containers := make([]corev1.Container, 0)
-	tolerations := make([]corev1.Toleration, 0)
 
 	if len(checkImage) == 0 {
 		err := errors.New("check image url for container is empty: " + checkImage)
@@ -92,23 +89,16 @@ func createDeploymentConfig(image string) *v1.Deployment {
 		checkDeploymentNodeSelectors = nil
 	}
 
-	// Check for given node toleration values.
-	tol, err := tolerationHandler(tolerationsEnv)
-	if err != nil {
-		log.Errorln("Failure checking tolerations with error:", err, "defaulting to no tolerations!")
-	}
-	tolerations = tol
-
 	graceSeconds := int64(1)
 
 	// Make and define a pod spec with containers.
-	podSpec = corev1.PodSpec{
+	podSpec := corev1.PodSpec{
 		Containers:                    containers,
 		NodeSelector:                  checkDeploymentNodeSelectors,
 		RestartPolicy:                 corev1.RestartPolicyAlways,
 		TerminationGracePeriodSeconds: &graceSeconds,
 		ServiceAccountName:            checkServiceAccount,
-		Tolerations:                   tolerations,
+		Tolerations:                   checkDeploymentTolerations,
 	}
 
 	// Make labels for pod and deployment.
@@ -173,42 +163,6 @@ func createDeploymentConfig(image string) *v1.Deployment {
 type DeploymentResult struct {
 	Deployment *v1.Deployment
 	Err        error
-}
-
-// tolerationHandler finds single or multiple tolerations and appends them to corev1.[]tolerations for deployment
-func tolerationHandler(tolerationsEnv string) ([]corev1.Toleration, error) {
-
-	// check to make sure tolerationsEnv is not null
-	if len(tolerationsEnv) == 0 {
-		log.Infoln("No tolerations requested")
-		return nil, nil
-	}
-
-	splitEnvVars := strings.Split(tolerationsEnv, ",")
-	//do we have multiple tolerations
-	if len(splitEnvVars) > 1 {
-		multiTolerations, err := multipleTolerations(splitEnvVars)
-		if err != nil {
-			log.Errorln("Failure to parse tolerations with error:", err)
-			return nil, err
-		}
-		for _, t := range multiTolerations {
-			tolerations = append(tolerations, t)
-			log.Infoln("Multiple tolerations requested:", tolerations)
-			return tolerations, nil
-		}
-	}
-
-	//parse single toleration and append to slice
-	tol, err := createToleration(tolerationsEnv)
-	if err != nil {
-		// if we can't create a toleration, error out and return
-		log.Errorln(err)
-		return nil, err
-	}
-	tolerations = append(tolerations, tol)
-	log.Infoln("One toleration requested:", tolerations)
-	return tolerations, nil
 }
 
 // createDeployment creates a deployment in the cluster with a given deployment specification.
