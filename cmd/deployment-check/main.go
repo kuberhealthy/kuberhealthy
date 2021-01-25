@@ -274,15 +274,3 @@ func reportToKuberhealthy(ok bool, errs []string) {
 	}
 	return
 }
-
-// ReportFailureAndExit logs and reports an error to kuberhealthy and then exits the program.
-// If a error occurs when reporting to kuberhealthy, the program fatals.
-func ReportFailureAndExit(err error) {
-	// log.Errorln(err)
-	err2 := kh.ReportFailure([]string{err.Error()})
-	if err2 != nil {
-		log.Fatalln("error when reporting to kuberhealthy:", err.Error())
-	}
-	log.Infoln("Succesfully reported error to kuberhealthy")
-	os.Exit(0)
-}

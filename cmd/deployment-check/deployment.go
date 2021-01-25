@@ -303,7 +303,7 @@ func multipleTolerations(splitEnvVars []string) ([]corev1.Toleration, error) {
 
 	if splitEnvVars == nil {
 		err := errors.New("nil was entered into multiple toleration parser")
-		ReportFailureAndExit(err)
+		return []corev1.Toleration{}, err
 	}
 	for _, toleration := range splitEnvVars {
 		//parse each toleration, create a corev1.Toleration object, and append to tolerations slice
