@@ -336,6 +336,17 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 	if err != nil {
 		log.Errorln("Error getting ownerReference:", err)
 	}
+	if len(ownerRef) == 0 {
+		log.Errorln("Error the length of ownerReference is 0")
+	}
+
+	ownerPod, err := client.CoreV1().Pods(checkNamespace).Get(context.Background(), ownerRef[0].Name, metav1.GetOptions{})
+	if err != nil {
+		log.Errorln("Error getting ownerReference POD", err)
+	}
+
+	var daemonSetAnnotations = ownerPod.Annotations
+	daemonSetAnnotations["cluster-autoscaler.kubernetes.io/safe-to-evict"] = "true"
 
 	// Check for given node selector values.
 	// Set the map to the default of nil (<none>) if there are no selectors given.
@@ -377,10 +388,8 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 						"creatingInstance": hostName,
 						"checkRunTime":     checkRunTime,
 					},
-					Name: daemonSetName,
-					Annotations: map[string]string{
-						"cluster-autoscaler.kubernetes.io/safe-to-evict": "true",
-					},
+					Name:            daemonSetName,
+					Annotations:     daemonSetAnnotations,
 					OwnerReferences: ownerRef,
 				},
 				Spec: apiv1.PodSpec{
