@@ -20,6 +20,7 @@ import (
 
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // parseDebugSettings parses debug settings and fatals on errors.
@@ -123,6 +124,46 @@ func parseInputValues() {
 		}
 		checkDeploymentReplicas = reps
 		log.Infoln("Parsed CHECK_DEPLOYMENT_REPLICAS:", checkDeploymentReplicas)
+	}
+
+	// Parse incpoming deployment tolerations
+	if len(checkDeploymentTolerationsEnv) > 0 {
+		splitEnvVars := strings.Split(checkDeploymentTolerationsEnv, ",")
+		for _, splitEnvVarKeyValuePair := range splitEnvVars {
+			parsedEnvVarKeyValuePair := strings.Split(splitEnvVarKeyValuePair, "=")
+			if len(parsedEnvVarKeyValuePair) != 2 {
+				log.Warnln("Unable to parse key value pair:", splitEnvVarKeyValuePair)
+				log.Warnln("Setting operator to", corev1.TolerationOpExists)
+				t := corev1.Toleration{
+					Key:      parsedEnvVarKeyValuePair[0],
+					Operator: corev1.TolerationOpExists,
+				}
+				log.Infoln("Adding toleration to deployment:", t)
+				checkDeploymentTolerations = append(checkDeploymentTolerations, t)
+				continue
+			}
+			parsedEnvVarValueEffect := strings.Split(parsedEnvVarKeyValuePair[1], ":")
+			if len(parsedEnvVarValueEffect) != 2 {
+				log.Warnln("Unable to parse complete toleration value and effect:", parsedEnvVarValueEffect)
+				t := corev1.Toleration{
+					Key:      parsedEnvVarKeyValuePair[0],
+					Operator: corev1.TolerationOpEqual,
+					Value:    parsedEnvVarKeyValuePair[1],
+				}
+				log.Infoln("Adding toleration to deployment:", t)
+				checkDeploymentTolerations = append(checkDeploymentTolerations, t)
+				continue
+			}
+			t := corev1.Toleration{
+				Key:      parsedEnvVarKeyValuePair[0],
+				Operator: corev1.TolerationOpEqual,
+				Value:    parsedEnvVarValueEffect[0],
+				Effect:   corev1.TaintEffect(parsedEnvVarValueEffect[1]),
+			}
+			log.Infoln("Adding toleration to deployment:", t)
+			checkDeploymentTolerations = append(checkDeploymentTolerations, t)
+		}
+		log.Infoln("Parsed TOLERATIONS:", checkDeploymentTolerations)
 	}
 
 	// Parse incoming deployment node selectors
