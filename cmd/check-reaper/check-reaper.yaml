@@ -22,7 +22,7 @@ spec:
                   value: ""
                 - name: MAX_PODS_THRESHOLD
                   value: "4"
-                - name: JOB_DELETE_TIME_DURATION
+                - name: CHECK_DELETE_TIME_DURATION
                   value: 15m
           restartPolicy: OnFailure
           serviceAccountName: check-reaper
