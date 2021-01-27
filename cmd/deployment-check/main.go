@@ -22,6 +22,7 @@ import (
 	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
+	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -62,12 +63,13 @@ var (
 	checkDeploymentReplicasEnv = os.Getenv("CHECK_DEPLOYMENT_REPLICAS")
 	checkDeploymentReplicas    int
 
+	// Toleration values for the deployment check
+	checkDeploymentTolerationsEnv = os.Getenv("TOLERATIONS")
+	checkDeploymentTolerations    []apiv1.Toleration
+
 	// Node selectors for the deployment check
 	checkDeploymentNodeSelectorsEnv = os.Getenv("NODE_SELECTOR")
 	checkDeploymentNodeSelectors    = make(map[string]string)
-
-	// Toleration value to be set in deployment pod
-	tolerationValue = os.Getenv("TOLERATION_VALUE")
 
 	// ServiceAccount that will deploy the test deployment [default = default]
 	checkServiceAccountEnv = os.Getenv("CHECK_SERVICE_ACCOUNT")
