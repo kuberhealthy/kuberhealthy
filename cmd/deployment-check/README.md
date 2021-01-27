@@ -54,7 +54,6 @@ This check follows the list of actions in order during the run of the check:
 - `SHUTDOWN_GRACE_PERIOD`: Amount of time in seconds the shutdown will allow itself to clean up after an interrupt signal (default=`30s`).
 - `DEBUG`: Verbose debug logging.
 - `TOLERATIONS`: Toleration values to respect on the deployment. (default=`nil`)
-- `NODE_SELECTOR`: Node selector labels to respect on the deployment. (default=`nil`)
 
 #### Example KuberhealthyCheck Spec
 
@@ -83,7 +82,7 @@ spec:
             cpu: 25m
             memory: 15Mi
           limits:
-            cpu: 40m
+            cpu: 1
         restartPolicy: Never
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
@@ -114,7 +113,7 @@ spec:
             cpu: 25m
             memory: 15Mi
           limits:
-            cpu: 40m
+            cpu: 1
         restartPolicy: Never
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
