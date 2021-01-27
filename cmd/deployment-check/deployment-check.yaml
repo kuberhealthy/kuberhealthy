@@ -22,7 +22,7 @@ spec:
           cpu: 25m
           memory: 15Mi
         limits:
-          cpu: 40m
+          cpu: 1
       restartPolicy: Never
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
