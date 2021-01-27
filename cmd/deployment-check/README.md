@@ -73,7 +73,6 @@ spec:
     containers:
       - name: deployment
         image: kuberhealthy/deployment-check:v1.8.0
-        imagePullPolicy: Always
         env:
           - name: CHECK_DEPLOYMENT_REPLICAS
             value: "4"
@@ -105,7 +104,6 @@ spec:
     containers:
       - name: deployment
         image: kuberhealthy/deployment-check:v1.8.0
-        imagePullPolicy: Always
         env:
           - name: CHECK_DEPLOYMENT_REPLICAS
             value: "6"
