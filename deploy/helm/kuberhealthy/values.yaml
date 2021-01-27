@@ -2,6 +2,10 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+checkReaper:
+  checkCleanupDuration: 15m # the maximum age of check pods before being reaped
+  maxCheckPods: 4 # the maximum number of check pods in Completed state before being reaped
+
 prometheus:
   enabled: false
   name: "prometheus"
