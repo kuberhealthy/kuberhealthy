@@ -148,7 +148,7 @@ func getRequestBackoff(hostname string) chan RequestResult {
 				return
 			}
 
-			if !strings.Contains(err.Error(), "no such host") {
+			if err != nil && !strings.Contains(err.Error(), "no such host") {
 				log.Debugln("An error occurred making a", http.MethodGet, "request:", err)
 			}
 
