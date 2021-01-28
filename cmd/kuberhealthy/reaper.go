@@ -28,18 +28,10 @@ import (
 // ReapCheckerPods is a variable mapping all reaper pods
 var ReapCheckerPods map[string]v1.Pod
 
-const (
-	// MaxPodsThresholdDefault is the default number of pods we leave around if
-	// no configuration is supplied
-	MaxPodsThresholdDefault = 4
-
-	// JobDeleteTimeDurationDefault is the default amount of time we wait before
-	// deleting a job if no configuration is upplied
-	JobDeleteTimeDurationDefault = time.Minute * 15
-)
-
 // reaper runs until the supplied context expires and reaps khjobs and khchecks
 func reaper(ctx context.Context) {
+
+	log.Infoln("checkReaper: starting up...")
 
 	// start a new ticker
 	t := time.NewTicker(time.Minute * 3)
