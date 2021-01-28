@@ -38,7 +38,7 @@ spec:
                 - name: SINGLE_NAMESPACE
                   value: ""
                 - name: MAX_PODS_THRESHOLD
-                  value: {{ .Values.checkReaper.maxPodsThreshold | toString }}
+                  value: {{ quote .Values.checkReaper.maxPodsThreshold }}
                 - name: JOB_DELETE_TIME_DURATION
                   value: {{ .Values.checkReaper.jobDeleteTimeDuration }}
               securityContext:
