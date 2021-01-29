@@ -17,9 +17,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	khjobcrd "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	khjobcrd "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
 
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
@@ -28,10 +29,28 @@ import (
 // ReapCheckerPods is a variable mapping all reaper pods
 var ReapCheckerPods map[string]v1.Pod
 
+// Default values for reaper configurations
+const maxCheckerPodsDefault = 4
+const jobCleanupDurationDefault = time.Minute * 15
+
+func init() {
+
+	// Set default MaxCheckPods and JobCleanupDuration if its not set in the Kuberhealthy ConfigMap
+	if cfg.MaxCheckPods == 0 {
+		cfg.MaxCheckPods = maxCheckerPodsDefault
+	}
+
+	if cfg.JobCleanupDuration == 0 {
+		cfg.JobCleanupDuration = jobCleanupDurationDefault
+	}
+}
+
 // reaper runs until the supplied context expires and reaps khjobs and khchecks
 func reaper(ctx context.Context) {
 
 	log.Infoln("checkReaper: starting up...")
+	log.Infoln("checkReaper: job cleanup duration:", cfg.JobCleanupDuration)
+	log.Infoln("checkReaper: max checker pods:", cfg.MaxCheckPods)
 
 	// start a new ticker
 	t := time.NewTicker(time.Minute * 3)
@@ -259,7 +278,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 
 	// Range over list and delete khjobs
 	for _, j := range list.Items {
-		if jobConditions(j, cfg.CheckCleanupDuration, "Completed") {
+		if jobConditions(j, cfg.JobCleanupDuration, "Completed") {
 			log.Infoln("checkReaper: Deleting khjob", j.Name)
 			err := client.KuberhealthyJobs(j.Namespace).Delete(j.Name, &del)
 			if err != nil {
