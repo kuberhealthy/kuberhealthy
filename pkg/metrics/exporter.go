@@ -36,17 +36,11 @@ func GenerateMetrics(state health.State) string {
 	metricsOutput += "# HELP kuberhealthy_cluster_state Shows the status of the cluster\n"
 	metricsOutput += "# TYPE kuberhealthy_cluster_state gauge\n"
 	metricsOutput += fmt.Sprintf("kuberhealthy_cluster_state %s\n", healthStatus)
-	// Kuberhealthy check metrics
-	metricsOutput += "# HELP kuberhealthy_check Shows the status of a Kuberhealthy check\n"
-	metricsOutput += "# TYPE kuberhealthy_check gauge\n"
-	metricsOutput += "# HELP kuberhealthy_check_duration_seconds Shows the check run duration of a Kuberhealthy check\n"
-	metricsOutput += "# TYPE kuberhealthy_check_duration_seconds gauge\n"
-	// Kuberhealthy job metrics
-	metricsOutput += "# HELP kuberhealthy_job Shows the status of a Kuberhealthy job\n"
-	metricsOutput += "# TYPE kuberhealthy_job gauge\n"
-	metricsOutput += "# HELP kuberhealthy_job_duration_seconds Shows the job run duration of a Kuberhealthy job\n"
-	metricsOutput += "# TYPE kuberhealthy_job_duration_seconds gauge\n"
-	metricState := map[string]string{}
+
+	metricCheckState := map[string]string{}
+	metricCheckDuration := map[string]string{}
+	metricJobState := map[string]string{}
+	metricJobDuration := map[string]string{}
 
 	// Parse through all check details and append to metricState
 	for c, d := range state.CheckDetails {
@@ -63,12 +57,12 @@ func GenerateMetrics(state health.State) string {
 		errors = strings.ReplaceAll(errors, "\"", "'")
 		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\",namespace=\"%s\",status=\"%s\",error=\"%s\"}", c, d.Namespace, checkStatus, errors)
 		metricDurationName := fmt.Sprintf("kuberhealthy_check_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
-		metricState[metricName] = checkStatus
+		metricCheckState[metricName] = checkStatus
 		runDuration, err := time.ParseDuration(d.RunDuration)
 		if err != nil {
 			log.Errorln("Error parsing run duration", err)
 		}
-		metricState[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
+		metricCheckDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
 	}
 
 	// Parse through all job details and append to metricState
@@ -85,17 +79,39 @@ func GenerateMetrics(state health.State) string {
 		}
 		metricName := fmt.Sprintf("kuberhealthy_job{check=\"%s\",namespace=\"%s\",status=\"%s\",error=\"%s\"}", c, d.Namespace, jobStatus, errors)
 		metricDurationName := fmt.Sprintf("kuberhealthy_job_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
-		metricState[metricName] = jobStatus
+		metricJobState[metricName] = jobStatus
 		runDuration, err := time.ParseDuration(d.RunDuration)
 		if err != nil {
 			log.Errorln("Error parsing run duration", err)
 		}
-		metricState[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
+		metricJobDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
 	}
 
-	for m, v := range metricState {
+	// Add each metric format individually. This addresses issue https://github.com/Comcast/kuberhealthy/issues/813.
+	// Unless metric help and type are followed by the metric, datadog cannot process Kuberhealthy metrics.
+	// Kuberhealthy check metrics
+	metricsOutput += "# HELP kuberhealthy_check Shows the status of a Kuberhealthy check\n"
+	metricsOutput += "# TYPE kuberhealthy_check gauge\n"
+	for m, v := range metricCheckState {
 		metricsOutput += fmt.Sprintf("%s %s\n", m, v)
 	}
+	metricsOutput += "# HELP kuberhealthy_check_duration_seconds Shows the check run duration of a Kuberhealthy check\n"
+	metricsOutput += "# TYPE kuberhealthy_check_duration_seconds gauge\n"
+	for m, v := range metricCheckDuration {
+		metricsOutput += fmt.Sprintf("%s %s\n", m, v)
+	}
+	// Kuberhealthy job metrics
+	metricsOutput += "# HELP kuberhealthy_job Shows the status of a Kuberhealthy job\n"
+	metricsOutput += "# TYPE kuberhealthy_job gauge\n"
+	for m, v := range metricJobState {
+		metricsOutput += fmt.Sprintf("%s %s\n", m, v)
+	}
+	metricsOutput += "# HELP kuberhealthy_job_duration_seconds Shows the job run duration of a Kuberhealthy job\n"
+	metricsOutput += "# TYPE kuberhealthy_job_duration_seconds gauge\n"
+	for m, v := range metricJobDuration {
+		metricsOutput += fmt.Sprintf("%s %s\n", m, v)
+	}
+
 	return metricsOutput
 }
 
