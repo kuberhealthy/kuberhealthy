@@ -37,10 +37,10 @@ func GenerateMetrics(state health.State) string {
 	metricsOutput += "# TYPE kuberhealthy_cluster_state gauge\n"
 	metricsOutput += fmt.Sprintf("kuberhealthy_cluster_state %s\n", healthStatus)
 
-	metricCheckState := map[string]string{}
-	metricCheckDuration := map[string]string{}
-	metricJobState := map[string]string{}
-	metricJobDuration := map[string]string{}
+	metricCheckState := make(map[string]string)
+	metricCheckDuration := make(map[string]string)
+	metricJobState := make(map[string]string)
+	metricJobDuration := make(map[string]string)
 
 	// Parse through all check details and append to metricState
 	for c, d := range state.CheckDetails {
@@ -61,6 +61,7 @@ func GenerateMetrics(state health.State) string {
 		runDuration, err := time.ParseDuration(d.RunDuration)
 		if err != nil {
 			log.Errorln("Error parsing run duration", err)
+			continue
 		}
 		metricCheckDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
 	}
@@ -83,6 +84,7 @@ func GenerateMetrics(state health.State) string {
 		runDuration, err := time.ParseDuration(d.RunDuration)
 		if err != nil {
 			log.Errorln("Error parsing run duration", err)
+			continue
 		}
 		metricJobDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
 	}
