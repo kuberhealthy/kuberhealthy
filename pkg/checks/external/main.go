@@ -42,8 +42,8 @@ const KHRunUUID = "KH_RUN_UUID"
 // KHDeadline is the environment variable name for when checks must finish their runs by in unixtime
 const KHDeadline = "KH_CHECK_RUN_DEADLINE"
 
-// KH_CHECK_NAME_ANNOTATION_KEY is the annotation which holds the check's name for later validation when the pod calls in
-const KH_CHECK_NAME_ANNOTATION_KEY = "comcast.github.io/check-name"
+// KHCheckNameAnnotationKey is the annotation which holds the check's name for later validation when the pod calls in
+const KHCheckNameAnnotationKey = "comcast.github.io/check-name"
 
 // KHPodNamespace is the namespace variable used to tell external checks their namespace to perform
 // checks in.
@@ -119,7 +119,7 @@ type Checker struct {
 	wg                       sync.WaitGroup     // used to track background workers and processes
 	hostname                 string             // hostname cache
 	checkPodName             string             // the current unique checker pod name
-	KHWorkload 				 health.KHWorkload
+	KHWorkload               health.KHWorkload
 }
 
 func init() {
@@ -155,7 +155,7 @@ func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckcrd.Kuberhealthy
 		OriginalPodSpec:          checkConfig.Spec.PodSpec,
 		PodSpec:                  checkConfig.Spec.PodSpec,
 		KubeClient:               client,
-		KHWorkload:				  health.KHCheck,
+		KHWorkload:               health.KHCheck,
 	}
 }
 
@@ -178,7 +178,7 @@ func NewJob(client *kubernetes.Clientset, jobConfig *khjobcrd.KuberhealthyJob, k
 		OriginalPodSpec:          jobConfig.Spec.PodSpec,
 		PodSpec:                  jobConfig.Spec.PodSpec,
 		KubeClient:               client,
-		KHWorkload:				  health.KHJob,
+		KHWorkload:               health.KHJob,
 	}
 }
 
@@ -254,7 +254,7 @@ func (ext *Checker) Timeout() time.Duration {
 
 // Run executes the checker.  This is ran on each "tick" of
 // the RunInterval and is executed by the Kuberhealthy checker
-func (ext *Checker) Run(client *kubernetes.Clientset) error {
+func (ext *Checker) Run(ctx context.Context, client *kubernetes.Clientset) error {
 
 	// store the client in the checker
 	ext.KubeClient = client
@@ -267,7 +267,7 @@ func (ext *Checker) Run(client *kubernetes.Clientset) error {
 
 	// run a check iteration
 	ext.log("Running external check iteration")
-	err = ext.RunOnce()
+	err = ext.RunOnce(ctx)
 
 	// if the pod was removed, we skip this run gracefully
 	if err != nil && err.Error() == ErrPodRemovedExpectedly.Error() {
@@ -568,10 +568,10 @@ func (ext *Checker) newError(s string) error {
 
 // RunOnce runs one check loop.  This creates a checker pod and ensures it starts,
 // then ensures it changes to Running properly
-func (ext *Checker) RunOnce() error {
+func (ext *Checker) RunOnce(ctx context.Context) error {
 
 	// create a context for this run
-	ext.shutdownCTX, ext.shutdownCTXFunc = context.WithCancel(context.Background())
+	ext.shutdownCTX, ext.shutdownCTXFunc = context.WithCancel(ctx)
 	defer ext.shutdownCTXFunc()
 	defer ext.cleanup()
 
@@ -634,7 +634,7 @@ func (ext *Checker) RunOnce() error {
 	// and continue on to the next interval because deletes normally occur from admin intervention.  We create
 	// a unique context here because we want to cancel this watch before the check times out, but before
 	// the end of this checker pod run.
-	podShutdownWatchCtx, podShutdownWatchCtxCancel := context.WithCancel(context.Background())
+	podShutdownWatchCtx, podShutdownWatchCtxCancel := context.WithCancel(ctx)
 	podDeletedChan := ext.watchForCheckerPodDelete(podShutdownWatchCtx)
 	defer podShutdownWatchCtxCancel()
 
@@ -1202,7 +1202,7 @@ func (ext *Checker) addKuberhealthyLabels(pod *apiv1.Pod) {
 	}
 
 	// overwrite the check name annotation for use with calling pod validation
-	pod.ObjectMeta.Annotations[KH_CHECK_NAME_ANNOTATION_KEY] = ext.CheckName
+	pod.ObjectMeta.Annotations[KHCheckNameAnnotationKey] = ext.CheckName
 
 }
 
@@ -1255,7 +1255,8 @@ func (ext *Checker) Shutdown() error {
 	}
 
 	// make a context to track pod removal and cleanup
-	ctx, _ := context.WithTimeout(context.Background(), ext.Timeout())
+	ctx, ctxCancel := context.WithTimeout(context.Background(), ext.Timeout())
+	defer ctxCancel()
 
 	log.Debugln("Waiting for pod", ext.podName(), "to shutdown")
 

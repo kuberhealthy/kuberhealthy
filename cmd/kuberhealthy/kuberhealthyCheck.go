@@ -12,6 +12,7 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -39,7 +40,7 @@ type KuberhealthyCheck interface {
 	// ticker ticks.  Results of the error are stored within the check
 	// and not tracked from the upstream worker that ticks.  Results should
 	// show up when CurrentStatus() is invoked.
-	Run(c *kubernetes.Clientset) error
+	Run(ctx context.Context, c *kubernetes.Clientset) error
 	// Shutdown is called when Kuberhealthy needs to close.  The check has up
 	// to 30 seconds to clean up anything in progress and begin shutdown.
 	// When the check completes and returns, we assume it is done shutting

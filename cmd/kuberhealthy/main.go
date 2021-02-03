@@ -63,6 +63,9 @@ const KHCheckNameAnnotationKey = "comcast.github.io/check-name"
 // var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
 var khStateClient *khstatecrd.KuberhealthyStateClient
 
+// khJobClient is a client for khjob custom resources
+var khJobClient *khjobcrd.KHJobV1Client
+
 // constants for using the kuberhealthy status CRD
 const stateCRDGroup = "comcast.github.io"
 const stateCRDVersion = "v1"
@@ -74,9 +77,6 @@ var khCheckClient *khcheckcrd.KuberhealthyCheckClient
 const checkCRDGroup = "comcast.github.io"
 const checkCRDVersion = "v1"
 const checkCRDResource = "khchecks"
-
-// instantiate kuberhealthy job client CRD
-var khJobClient *khjobcrd.KHJobV1Client
 
 // the global kubernetes client
 var kubernetesClient *kubernetes.Clientset
@@ -162,7 +162,7 @@ func main() {
 	go listenForInterrupts(kuberhealthy)
 
 	// tell Kuberhealthy to restart if configmap has been changed
-	go configReloader(kuberhealthy)
+	go configReloader(khRunCtx, kuberhealthy)
 
 	// tell Kuberhealthy to start all checks and master change monitoring
 	kuberhealthy.Start(khRunCtx)
