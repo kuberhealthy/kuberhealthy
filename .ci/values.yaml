@@ -11,11 +11,11 @@ prometheus:
     endpoints:
       interval: 15s
       bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
-      
   enableAlerting: false
 
 image:
-  repository: kuberhealthy/kuberhealthy
+  registry: kuberhealthy
+  repository: kuberhealthy
   tag: latest
 
 resources:
@@ -66,7 +66,8 @@ check:
     runInterval: 20m
     timeout: 12m
     image:
-      repository: kuberhealthy/daemonset-check
+      registry: kuberhealthy
+      repository: daemonset-check
       tag: v3.2.1
     extraEnvs:
     nodeSelector: {}
@@ -75,7 +76,8 @@ check:
     runInterval: 20m
     timeout: 15m
     image:
-      repository: kuberhealthy/deployment-check
+      registry: kuberhealthy
+      repository: deployment-check
       tag: v1.7.0
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
@@ -87,7 +89,8 @@ check:
     runInterval: 20m
     timeout: 15m
     image:
-      repository: kuberhealthy/dns-resolution-check
+      registry: kuberhealthy
+      repository: dns-resolution-check
       tag: v1.4.1
     extraEnvs:
       HOSTNAME: "kubernetes.default"
@@ -97,7 +100,8 @@ check:
     runInterval: 20m
     timeout: 10m
     image:
-      repository: kuberhealthy/pod-restarts-check
+      registry: kuberhealthy
+      repository: pod-restarts-check
       tag: v2.3.1
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
@@ -107,7 +111,8 @@ check:
     runInterval: 20m
     timeout: 15m
     image:
-      repository: kuberhealthy/pod-status-check
+      registry: kuberhealthy
+      repository: pod-status-check
       tag: v1.2.3
     extraEnvs:
     nodeSelector: {}
