@@ -68,6 +68,7 @@ type Kuberhealthy struct {
 	MetricForwarder    metrics.Client
 	overrideKubeClient *kubernetes.Clientset
 	cancelChecksFunc   context.CancelFunc // invalidates the context of all running checks
+	cancelReaperFunc   context.CancelFunc // invalidates the context of the reaper
 	wg                 sync.WaitGroup     // used to track running checks
 	shutdownCtxFunc    context.CancelFunc // used to shutdown the main control select
 	stateReflector     *StateReflector    // a reflector that can cache the current state of the khState resources
@@ -237,26 +238,49 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 		case <-becameMasterChan: // we have become the current master instance and should run checks
 			// reset checks and re-add from configuration settings
 			log.Infoln("control: Became master. Reconfiguring and starting checks.")
-			k.StartChecks()
+			k.StartChecks(ctx)
+			k.StartReaper(ctx)
 		case <-lostMasterChan: // we are no longer master
 			log.Infoln("control: Lost master. Stopping checks.")
 			k.StopChecks()
+			k.StopReaper()
 		case <-externalChecksUpdateChanLimited: // external check change detected
 			log.Infoln("control: Witnessed a khcheck resource change...")
 
 			// if we are master, stop, reconfigure our khchecks, and start again with the new configuration
 			if isMaster {
 				log.Infoln("control: Reloading external check configurations due to khcheck update")
-				k.RestartChecks()
+				k.RestartChecks(ctx)
+				k.RestartReaper(ctx)
 			}
 		}
 	}
 }
 
+// StartReaper starts the check reaper
+func (k *Kuberhealthy) StartReaper(ctx context.Context) {
+	reaperCtx, reaperCtxCancel := context.WithCancel(ctx)
+	k.cancelReaperFunc = reaperCtxCancel
+	go reaper(reaperCtx)
+}
+
+// StopReaper stops the check reaper
+func (k *Kuberhealthy) StopReaper() {
+	if k.cancelReaperFunc != nil {
+		k.cancelReaperFunc()
+	}
+}
+
+// RestartReaper resrtarts the check reaper
+func (k *Kuberhealthy) RestartReaper(ctx context.Context) {
+	k.StopReaper()
+	k.StartReaper(ctx)
+}
+
 // RestartChecks does a stop and start on all kuberhealthy checks
-func (k *Kuberhealthy) RestartChecks() {
+func (k *Kuberhealthy) RestartChecks(ctx context.Context) {
 	k.StopChecks()
-	k.StartChecks()
+	k.StartChecks(ctx)
 }
 
 // khStateResourceReaper runs reapKHStateResources on an interval until the context for it is canceled
@@ -728,7 +752,7 @@ func (k *Kuberhealthy) triggerKHJob(ctx context.Context, job khjob.KuberhealthyJ
 }
 
 // StartChecks starts all checks concurrently and ensures they stay running
-func (k *Kuberhealthy) StartChecks() {
+func (k *Kuberhealthy) StartChecks(ctx context.Context) {
 	// wait for all check wg to be done, just in case
 	k.wg.Wait()
 
@@ -739,14 +763,14 @@ func (k *Kuberhealthy) StartChecks() {
 	log.Infoln("control:", len(k.Checks), "checks starting!")
 
 	// create a context for checks to abort with
-	ctx, cancelFunc := context.WithCancel(context.Background())
+	checkGroupCtx, cancelFunc := context.WithCancel(ctx)
 	k.cancelChecksFunc = cancelFunc
 
 	// start each check with this check group's context
 	for _, c := range k.Checks {
 		k.wg.Add(1)
 		// start the check in its own routine
-		go k.runCheck(ctx, c)
+		go k.runCheck(checkGroupCtx, c)
 	}
 
 	// spin up the khState reaper with a context after checks have been configured and started
@@ -885,7 +909,7 @@ func (k *Kuberhealthy) runJob(ctx context.Context, job khjob.KuberhealthyJob) {
 		log.Errorln("Error setting job phase:", err)
 	}
 
-	err = j.Run(kubernetesClient)
+	err = j.Run(ctx, kubernetesClient)
 	if err != nil {
 		log.Errorln("Error running job:", j.Name(), "in namespace", j.CheckNamespace()+":", err)
 		if strings.Contains(err.Error(), "pod deleted expectedly") {
@@ -987,7 +1011,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 		log.Infoln("Running check:", c.Name())
 		// Record check run start time
 		checkStartTime := time.Now()
-		err := c.Run(kubernetesClient)
+		err := c.Run(ctx, kubernetesClient)
 		if err != nil {
 			log.Errorln("Error running check:", c.Name(), "in namespace", c.CheckNamespace()+":", err)
 			if strings.Contains(err.Error(), "pod deleted expectedly") {

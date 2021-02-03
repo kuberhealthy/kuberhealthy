@@ -1,6 +1,7 @@
 package external
 
 import (
+	"context"
 	"errors"
 	"log"
 	"testing"
@@ -75,7 +76,7 @@ func TestExternalChecker(t *testing.T) {
 	checker.KubeClient = client
 
 	// run the checker with the kube client
-	err = checker.RunOnce()
+	err = checker.RunOnce(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +107,7 @@ func TestExternalCheckerSanitation(t *testing.T) {
 	checker.CheckName = ""
 
 	// run the checker with the kube client
-	err = checker.RunOnce()
+	err = checker.RunOnce(context.Background())
 	if err == nil {
 		t.Fatal("Expected pod name blank validation check failure but did not hit it")
 	}
@@ -117,7 +118,7 @@ func TestExternalCheckerSanitation(t *testing.T) {
 	checker.Namespace = ""
 
 	// run the checker with the kube client
-	err = checker.RunOnce()
+	err = checker.RunOnce(context.Background())
 	if err == nil {
 		t.Fatal("Expected namespace blank validation check failure but did not hit it")
 	}
@@ -128,7 +129,7 @@ func TestExternalCheckerSanitation(t *testing.T) {
 	checker.PodSpec = apiv1.PodSpec{}
 
 	// run the checker with the kube client
-	err = checker.RunOnce()
+	err = checker.RunOnce(context.Background())
 	if err == nil {
 		t.Fatal("Expected pod validation check failure but did not hit it")
 	}

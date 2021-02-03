@@ -12,6 +12,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -51,7 +52,7 @@ func (fc *FakeCheck) CurrentStatus() (bool, []string) {
 	return fc.OK, fc.Errors
 }
 
-func (fc *FakeCheck) Run(c *kubernetes.Clientset) error {
+func (fc *FakeCheck) Run(ctx context.Context, c *kubernetes.Clientset) error {
 	if fc.ShouldHaveRunError {
 		return errors.New(fc.FakeError)
 	}
