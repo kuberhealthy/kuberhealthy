@@ -22,7 +22,7 @@ type Config struct {
 	InfluxDB                  string        `yaml:"influxDB,omitempty"`
 	EnableInflux              bool          `yaml:"enableInflux,omitempty"`
 	ExternalCheckReportingURL string        `yaml:"externalCheckReportingURL,omitempty"`
-	CheckCleanupDuration      time.Duration `yaml:"checkCleanupDuration,omitempty"`
+	JobCleanupDuration      time.Duration 	`yaml:"jobCleanupDuration,omitempty"`
 	MaxCheckPods              int           `yaml:"maxCheckPods,omitempty"`
 }
 

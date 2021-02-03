@@ -13,5 +13,5 @@ data:
     influxURL: "" # Address for the InfluxDB instance
     influxDB: "http://localhost:8086" # Name of the InfluxDB database
     enableInflux: false # Set to true to enable metric forwarding to Infux DB
-    checkCleanupDuration: {{ .Values.checkReaper.checkCleanupDuration }}
+    jobCleanupDuration: {{ .Values.checkReaper.jobCleanupDuration }}
     maxCheckPods: {{ .Values.checkReaper.maxCheckPods }}

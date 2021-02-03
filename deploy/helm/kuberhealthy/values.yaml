@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 
 checkReaper:
-  checkCleanupDuration: 15m # the maximum age of check pods before being reaped
+  jobCleanupDuration: 15m # the maximum age of khjobs before being reaped
   maxCheckPods: 4 # the maximum number of check pods in Completed state before being reaped
 
 prometheus:
@@ -267,22 +267,3 @@ check:
         memory: 5Mi
         cpu: 10m
 
-checkReaper:
-  enabled: true # Don't disable checkReaper, this flag exist to make e2e tests easier.
-  image:
-    registry: {}
-    repository: kuberhealthy/check-reaper
-    tag: v1.5.1
-  nodeSelector: {}
-  tolerations: []
-    #- key: "key"
-    #  operator: "Equal"
-    #  value: "value"
-    #  effect: "NoSchedule"
-  # startingDeadlineSeconds:
-  maxPodsThreshold: "4"
-  jobDeleteTimeDuration: 15m
-  resources:
-    requests:
-      cpu: 10m
-      memory: 50Mi
