@@ -1,6 +1,7 @@
 package external
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -97,12 +98,12 @@ func TestShutdown(t *testing.T) {
 
 	// run the checker with the kube client
 	t.Log("Starting check...")
-	go func() {
-		err := checker.RunOnce()
+	go func(t *testing.T) {
+		err := checker.RunOnce(context.Background())
 		if err != nil {
 			t.Fatal("Failure when running check:", err)
 		}
-	}()
+	}(t)
 
 	// give the check a few seconds to start
 	t.Log("Waiting for check to get started...")
