@@ -14,7 +14,7 @@ spec:
           containers:
             - name: check-reaper
               {{- if .Values.imageRegistry }}
-              image: {{- .Values.imageRegistry }}/{{ .Values.checkReaper.image.repository }}:{{ .Values.checkReaper.image.tag }}
+              image: {{ .Values.imageRegistry }}/{{ .Values.checkReaper.image.repository }}:{{ .Values.checkReaper.image.tag }}
               {{- else if .Values.checkReaper.image.registry }}
               image: {{ .Values.checkReaper.image.registry }}/{{ .Values.checkReaper.image.repository }}:{{ .Values.checkReaper.image.tag }}
               {{- else }}
