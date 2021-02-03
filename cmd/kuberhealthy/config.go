@@ -13,15 +13,17 @@ import (
 // Config holds all configurable options
 type Config struct {
 	kubeConfigFile            string
-	ListenAddress             string `yaml:"listenAddress,omitempty"`
-	EnableForceMaster         bool   `yaml:"enableForceMaster,omitempty"`
-	LogLevel                  string `yaml:"logLevel,omitempty"`
-	InfluxUsername            string `yaml:"influxUsername,omitempty"`
-	InfluxPassword            string `yaml:"influxPassword,omitempty"`
-	InfluxURL                 string `yaml:"influxURL,omitempty"`
-	InfluxDB                  string `yaml:"influxDB,omitempty"`
-	EnableInflux              bool   `yaml:"enableInflux,omitempty"`
-	ExternalCheckReportingURL string `yaml:"externalCheckReportingURL,omitempty"`
+	ListenAddress             string        `yaml:"listenAddress,omitempty"`
+	EnableForceMaster         bool          `yaml:"enableForceMaster,omitempty"`
+	LogLevel                  string        `yaml:"logLevel,omitempty"`
+	InfluxUsername            string        `yaml:"influxUsername,omitempty"`
+	InfluxPassword            string        `yaml:"influxPassword,omitempty"`
+	InfluxURL                 string        `yaml:"influxURL,omitempty"`
+	InfluxDB                  string        `yaml:"influxDB,omitempty"`
+	EnableInflux              bool          `yaml:"enableInflux,omitempty"`
+	ExternalCheckReportingURL string        `yaml:"externalCheckReportingURL,omitempty"`
+	JobCleanupDuration      time.Duration 	`yaml:"jobCleanupDuration,omitempty"`
+	MaxCheckPods              int           `yaml:"maxCheckPods,omitempty"`
 }
 
 // Load loads file from disk
@@ -151,7 +153,7 @@ func startConfigReloadMonitoringWithSmoothing(filePath string, scrapeInterval ti
 }
 
 // configReloader watchers for events in file and restarts kuberhealhty checks
-func configReloader(kh *Kuberhealthy) {
+func configReloader(ctx context.Context, kh *Kuberhealthy) {
 
 	outChan, cancelFunc, err := startConfigReloadMonitoring(configPath)
 	if err != nil {
@@ -179,7 +181,7 @@ func configReloader(kh *Kuberhealthy) {
 		}
 
 		// reload checks
-		kh.RestartChecks()
+		kh.RestartChecks(ctx)
 		log.Infoln("configReloader: Kuberhealthy restarted!")
 	}
 	log.Infoln("configReloader: shutting down because no more signals are coming from outChan")

@@ -48,7 +48,8 @@ func makeTestKuberhealthy(t *testing.T) *Kuberhealthy {
 // TestWebServer tests the web server status page functionality
 func TestWebServer(t *testing.T) {
 
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
 
 	if testing.Short() {
 		t.Skip()
@@ -103,7 +104,8 @@ func TestWebServer(t *testing.T) {
 // TestWebServerNotOK tests the web server status when things are not OK
 func TestWebServerNotOK(t *testing.T) {
 
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
 
 	// create a new kuberhealthy
 	kh := makeTestKuberhealthy(t)
