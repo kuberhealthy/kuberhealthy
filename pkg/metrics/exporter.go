@@ -60,7 +60,7 @@ func GenerateMetrics(state health.State) string {
 		metricCheckState[metricName] = checkStatus
 		runDuration, err := time.ParseDuration(d.RunDuration)
 		if err != nil {
-			log.Errorln("Error parsing run duration", err)
+			log.Errorln("Error parsing run duration:", d.RunDuration, "for metric:", metricName, "error:", err)
 			continue
 		}
 		metricCheckDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
@@ -83,7 +83,7 @@ func GenerateMetrics(state health.State) string {
 		metricJobState[metricName] = jobStatus
 		runDuration, err := time.ParseDuration(d.RunDuration)
 		if err != nil {
-			log.Errorln("Error parsing run duration", err)
+			log.Errorln("Error parsing run duration:", d.RunDuration, "for metric:", metricName, "error:", err)
 			continue
 		}
 		metricJobDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
