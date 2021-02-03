@@ -17,8 +17,6 @@ spec:
               image: {{ .Values.imageRegistry }}/{{ .Values.checkReaper.image.repository }}:{{ .Values.checkReaper.image.tag }}
               {{- else if .Values.checkReaper.image.registry }}
               image: {{ .Values.checkReaper.image.registry }}/{{ .Values.checkReaper.image.repository }}:{{ .Values.checkReaper.image.tag }}
-              {{- else }}
-              image: {{ .Values.checkReaper.image.repository }}:{{ .Values.checkReaper.image.tag }}
               {{- end }}
               imagePullPolicy: IfNotPresent
               resources:
