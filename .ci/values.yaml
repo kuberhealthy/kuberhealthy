@@ -112,10 +112,4 @@ check:
     extraEnvs:
     nodeSelector: {}
 
-checkReaper:
-  enabled: false
-  image:
-    repository: kuberhealthy/check-reaper
-    tag: v1.5.1
-  nodeSelector: {}
   
