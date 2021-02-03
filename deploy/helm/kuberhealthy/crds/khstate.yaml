@@ -13,3 +13,16 @@ spec:
     kind: KuberhealthyState
     shortNames:
       - khs
+  additionalPrinterColumns:
+    - description: OK status
+      JSONPath: .spec.OK
+      name: OK
+      type: string
+    - description: Last Run
+      JSONPath: .spec.LastRun
+      name: Age LastRun
+      type: date
+    - description: Age
+      JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
