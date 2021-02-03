@@ -27,7 +27,8 @@ prometheus:
 imageRegistry: {}
 
 image:
-  repository: kuberhealthy/kuberhealthy
+  registry: kuberhealthy
+  repository: kuberhealthy
   tag: v2.3.2
 
 resources:
@@ -102,8 +103,8 @@ check:
     runInterval: 15m
     timeout: 12m
     image:
-      registry: {}
-      repository: kuberhealthy/daemonset-check
+      registry: kuberhealthy
+      repository: daemonset-check
       tag: v3.2.3
     extraEnvs:
     nodeSelector: {}
@@ -121,8 +122,8 @@ check:
     runInterval: 10m
     timeout: 15m
     image:
-      registry: {}
-      repository: kuberhealthy/deployment-check
+      registry: kuberhealthy
+      repository: deployment-check
       tag: v1.7.1
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
@@ -145,8 +146,8 @@ check:
     runInterval: 2m
     timeout: 15m
     image:
-      registry: {}
-      repository: kuberhealthy/dns-resolution-check
+      registry: kuberhealthy
+      repository: dns-resolution-check
       tag: v1.4.2
     extraEnvs:
       HOSTNAME: "kubernetes.default"
@@ -165,8 +166,8 @@ check:
     runInterval: 2m
     timeout: 15m
     image:
-      registry: {}
-      repository: kuberhealthy/dns-resolution-check
+      registry: kuberhealthy
+      repository: dns-resolution-check
       tag: v1.4.2
     extraEnvs:
       HOSTNAME: "google.com"
@@ -185,8 +186,8 @@ check:
     runInterval: 5m
     timeout: 10m
     image:
-      registry: {}
-      repository: kuberhealthy/pod-restarts-check
+      registry: kuberhealthy
+      repository: pod-restarts-check
       tag: v2.3.1
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
@@ -205,8 +206,8 @@ check:
     runInterval: 5m
     timeout: 15m
     image:
-      registry: {}
-      repository: kuberhealthy/pod-status-check
+      registry: kuberhealthy
+      repository: pod-status-check
       tag: v1.2.3
     allNamespaces: false
     extraEnvs:
@@ -231,7 +232,8 @@ check:
     runInterval: 5m
     timeout: 10m
     image:
-      repository: chrishirsch/kuberhealthy-storage-check
+      registry: chrishirsch
+      repository: kuberhealthy-storage-check
       tag: v0.0.1
     extraEnvs:
       CHECK_STORAGE_IMAGE: bitnami/nginx:1.19
@@ -251,8 +253,8 @@ check:
     runInterval: 30m
     timeout: 10m
     image:
-      registry: {}
-      repository: kuberhealthy/network-connection-check
+      registry: kuberhealthy
+      repository: network-connection-check
       tag: v0.1.2
     extraEnvs:
       CONNECTION_TARGET: "tcp://github.com:443"
