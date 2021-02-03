@@ -28,11 +28,9 @@ spec:
             value: {{ $value | quote }}
 {{- end }}
         {{- if .Values.imageRegistry }}
-        image: {{- .Values.imageRegistry }}/{{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
+        image: {{ .Values.imageRegistry }}/{{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
         {{- else if .Values.check.podStatus.image.registry }}
         image: {{ .Values.check.podStatus.image.registry }}/{{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
-        {{- else }}
-        image: {{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
         {{- end }}
         imagePullPolicy: IfNotPresent
         name: main
