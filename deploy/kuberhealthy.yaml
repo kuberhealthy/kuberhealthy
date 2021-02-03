@@ -71,13 +71,8 @@ data:
     influxURL: "" # Address for the InfluxDB instance
     influxDB: "http://localhost:8086" # Name of the InfluxDB database
     enableInflux: false # Set to true to enable metric forwarding to Infux DB
----
-# Source: kuberhealthy/templates/check-reaper.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: check-reaper
-  namespace: kuberhealthy
+    jobCleanupDuration: 15m
+    maxCheckPods: 4
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
 apiVersion: v1
@@ -174,6 +169,19 @@ rules:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRole
 metadata:
+  name: kuberhealthy-daemonset-khcheck
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
+---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
   name: kuberhealthy-check-reaper
 rules:
   - apiGroups:
@@ -197,34 +205,6 @@ rules:
     verbs:
       - delete
       - list
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
----
-# Source: kuberhealthy/templates/check-reaper.yaml
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  name: check-reaper
-  namespace: kuberhealthy
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kuberhealthy-check-reaper
-subjects:
-  - kind: ServiceAccount
-    name: check-reaper
-    namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/clusterrolebinding.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -443,41 +423,6 @@ spec:
             memory: 1Gi
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
----
-# Source: kuberhealthy/templates/check-reaper.yaml
-apiVersion: batch/v1beta1
-kind: CronJob
-metadata:
-  name: check-reaper
-  namespace: kuberhealthy
-spec:
-  schedule: "*/3 * * * *"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-            - name: check-reaper
-              image: kuberhealthy/check-reaper:v1.5.1
-              imagePullPolicy: IfNotPresent
-              resources:
-                requests:
-                  cpu: 10m
-                  memory: 50Mi
-              env:
-                - name: SINGLE_NAMESPACE
-                  value: ""
-                - name: MAX_PODS_THRESHOLD
-                  value: "4"
-                - name: JOB_DELETE_TIME_DURATION
-                  value: 15m
-              securityContext:
-                runAsNonRoot: true
-                runAsUser: 999
-                allowPrivilegeEscalation: false
-          restartPolicy: OnFailure
-          serviceAccountName: check-reaper
-  concurrencyPolicy: Forbid
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
 apiVersion: comcast.github.io/v1
