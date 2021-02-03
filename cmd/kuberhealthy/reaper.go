@@ -66,7 +66,7 @@ func reaper(ctx context.Context) {
 func runCheckReap(ctx context.Context) {
 
 	// list checker pods in all namespaces
-	podList, err := listCheckerPods(ctx, kubernetesClient, "")
+	podList, err := listCheckerPods(ctx, kubernetesClient, listenNamespace)
 	if err != nil {
 		log.Errorln("checkReaper: Failed to list and delete old checker pods", err)
 	}
@@ -249,7 +249,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 	del := metav1.DeleteOptions{}
 
 	// list khjobs in Namespace
-	list, err := client.KuberhealthyJobs("").List(opts)
+	list, err := client.KuberhealthyJobs(listenNamespace).List(opts)
 	if err != nil {
 		log.Errorln("checkReaper: Error: failed to retrieve khjob list with error", err)
 		return err
