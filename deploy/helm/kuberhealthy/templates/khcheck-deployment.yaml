@@ -20,8 +20,6 @@ spec:
       image: {{ .Values.imageRegistry }}/{{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
       {{- else if .Values.check.deployment.image.registry }}
       image: {{ .Values.check.deployment.image.registry }}/{{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
-      {{- else }}
-      image: {{ .Values.check.deployment.image.repository }}:{{ .Values.check.deployment.image.tag }}
       {{- end }}
       imagePullPolicy: IfNotPresent
       env:

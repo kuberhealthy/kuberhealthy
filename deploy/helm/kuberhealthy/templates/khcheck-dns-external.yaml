@@ -28,8 +28,6 @@ spec:
         image: {{ .Values.imageRegistry }}/{{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}
         {{- else if .Values.check.dnsExternal.image.registry }}
         image: {{ .Values.check.dnsExternal.image.registry }}/{{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}
-        {{- else }}
-        image: {{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}
         {{- end }}
         imagePullPolicy: IfNotPresent
         name: main
