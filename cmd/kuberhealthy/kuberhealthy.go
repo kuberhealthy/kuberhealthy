@@ -82,11 +82,11 @@ func NewKuberhealthy() *Kuberhealthy {
 
 // setCheckExecutionError sets an execution error for a check name in
 // its crd status
-func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace string, exErr error) {
+func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace string, exErr error) error {
 	details := health.NewWorkloadDetails(health.KHCheck)
 	check, err := k.getCheck(checkName, checkNamespace)
 	if err != nil {
-		log.Errorln(err)
+		return err
 	}
 	if check != nil {
 		details.Namespace = check.CheckNamespace()
@@ -97,29 +97,30 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace s
 	// we need to maintain the current UUID, which means fetching it first
 	khc, err := k.getCheck(checkName, checkNamespace)
 	if err != nil {
-		log.Errorln("Error when setting execution error on check", checkName, checkNamespace, err)
+		return fmt.Errorf("Error when setting execution error on check %s %s %w", checkName, checkNamespace, err)
 	}
+
 	checkState, err := getCheckState(khc)
 	if err != nil {
-		log.Errorln("Error when setting execution error on check (getting check state for current UUID)", checkName, checkNamespace, err)
+		return fmt.Errorf("Error when setting execution error on check (getting check state for current UUID) %s %s %w", checkName, checkNamespace, err)
 	}
 	details.CurrentUUID = checkState.CurrentUUID
-
 	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors, details.CurrentUUID, details.GetKHWorkload())
 
 	// store the check state with the CRD
 	err = k.storeCheckState(checkName, checkNamespace, details)
 	if err != nil {
-		log.Errorln("Was unable to write an execution error to the CRD status with error:", err)
+		return fmt.Errorf("Was unable to write an execution error to the CRD status with error: %w", err)
 	}
+	return nil
 }
 
 // setJobExecutionError sets an execution error for a job name in its crd status
-func (k *Kuberhealthy) setJobExecutionError(jobName string, jobNamespace string, exErr error) {
+func (k *Kuberhealthy) setJobExecutionError(jobName string, jobNamespace string, exErr error) error {
 	details := health.NewWorkloadDetails(health.KHJob)
 	job, err := k.getJob(jobName, jobNamespace)
 	if err != nil {
-		log.Errorln(err)
+		return err
 	}
 	if job != nil {
 		details.Namespace = job.CheckNamespace()
@@ -130,11 +131,11 @@ func (k *Kuberhealthy) setJobExecutionError(jobName string, jobNamespace string,
 	// we need to maintain the current UUID, which means fetching it first
 	khj, err := k.getJob(jobName, jobNamespace)
 	if err != nil {
-		log.Errorln("Error when setting execution error on job", jobName, jobNamespace, err)
+		return fmt.Errorf("Error when setting execution error on job %s %s %w", jobName, jobNamespace, err)
 	}
 	jobState, err := getJobState(khj)
 	if err != nil {
-		log.Errorln("Error when setting execution error on job (getting job state for current UUID)", jobName, jobNamespace, err)
+		return fmt.Errorf("Error when setting execution error on job (getting job state for current UUID) %s %s %w", jobName, jobNamespace, err)
 	}
 	details.CurrentUUID = jobState.CurrentUUID
 
@@ -143,8 +144,9 @@ func (k *Kuberhealthy) setJobExecutionError(jobName string, jobNamespace string,
 	// store the check state with the CRD
 	err = k.storeCheckState(jobName, jobNamespace, details)
 	if err != nil {
-		log.Errorln("Was unable to write an execution error to the CRD status with error:", err)
+		return fmt.Errorf("Was unable to write an execution error to the CRD status with error: %w", err)
 	}
+	return nil
 }
 
 // AddCheck adds a check to Kuberhealthy.  Must be done before Start or StartChecks
@@ -890,7 +892,10 @@ func (k *Kuberhealthy) runJob(ctx context.Context, job khjob.KuberhealthyJob) {
 			log.Infoln("Skipping this job due to expected pod removal before completion")
 		}
 		// set any job run errors in the CRD
-		k.setJobExecutionError(j.Name(), j.CheckNamespace(), err)
+		err = k.setJobExecutionError(j.Name(), j.CheckNamespace(), err)
+		if err != nil {
+			log.Errorln("Error setting job execution error:", err)
+		}
 		// exit out of this runJob
 		return
 	}
@@ -990,7 +995,10 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c KuberhealthyCheck) {
 				<-ticker.C
 			}
 			// set any check run errors in the CRD
-			k.setCheckExecutionError(c.Name(), c.CheckNamespace(), err)
+			err = k.setCheckExecutionError(c.Name(), c.CheckNamespace(), err)
+			if err != nil {
+				log.Errorln("Error setting check execution error:", err)
+			}
 			<-ticker.C
 			continue
 		}
@@ -1533,8 +1541,7 @@ func (k *Kuberhealthy) getJob(name string, namespace string) (KuberhealthyCheck,
 		return kjob, err
 	}
 
-	kjob = k.configureJob(j)
-	return kjob, fmt.Errorf("could not find Kuberhealthy job with name %s", name)
+	return k.configureJob(j), nil
 }
 
 // configureChecks removes all checks set in Kuberhealthy and reloads them
