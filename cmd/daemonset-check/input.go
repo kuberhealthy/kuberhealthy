@@ -91,20 +91,16 @@ func createTaintMap(taintMap map[string]corev1.TaintEffect, taint string) error 
 
 	// Taint sometimes only has KEY and EFFECT but no VALUE provided -- which is normally the case for cordoned nodes
 	// eg. node.kubernetes.io/unschedulable:NoSchedule
-	if len(splitKV) == 1 {
-		splitKE := strings.Split(taint, ":")
+	splitKE := strings.Split(taint, ":")
 
-		// make sure Taint has key and effect
-		if len(splitKE[0]) < 1 {
-			return errors.New("Empty key after split on :")
-		}
-
-		tKey := splitKE[0]
-		tEffect := splitKE[1]
-		taintMap[tKey] = corev1.TaintEffect(tEffect)
-		return nil
+	// make sure Taint has key and effect
+	if len(splitKE[0]) < 1 {
+		return errors.New("Empty key after split on :")
 	}
 
+	tKey := splitKE[0]
+	tEffect := splitKE[1]
+	taintMap[tKey] = corev1.TaintEffect(tEffect)
 	return nil
 }
 
