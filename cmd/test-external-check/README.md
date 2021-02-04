@@ -38,7 +38,7 @@ spec:
         value: "false"
       - name: REPORT_DELAY
         value: "10s"
-      image: kuberhealthy/test-external-check:v1.1.0
+      image: kuberhealthy/test-external-check:v1.3.2
       name: main
       resources:
         requests:
