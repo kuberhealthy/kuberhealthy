@@ -29,7 +29,7 @@ imageRegistry: {}
 image:
   registry: kuberhealthy
   repository: kuberhealthy
-  tag: v2.4.0-rc.1
+  tag: v2.4.0
 
 resources:
   requests:
