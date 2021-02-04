@@ -71,7 +71,7 @@ spec:
   podSpec:
     containers:
       - name: deployment
-        image: kuberhealthy/deployment-check:v1.8.0
+        image: kuberhealthy/deployment-check:v1.8.1
         env:
           - name: CHECK_DEPLOYMENT_REPLICAS
             value: "4"

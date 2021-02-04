@@ -11,7 +11,7 @@ spec:
   podSpec:
     containers:
     - name: kiam
-      image: kuberhealthy/kiam-check:v1.1.2
+      image: kuberhealthy/kiam-check:v1.2.4
       imagePullPolicy: IfNotPresent
       env:
       - name: AWS_REGION

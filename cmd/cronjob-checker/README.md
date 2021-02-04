@@ -17,7 +17,7 @@ spec:
     serviceAccountName: cronjob-checker
     containers:
       - name: cronjob-checker
-        image: kuberhealthy/cronjob-checker:v2.0.1
+        image: kuberhealthy/cronjob-checker:v2.0.2
         env:
           - name: NAMESPACE
             valueFrom:

@@ -2,7 +2,7 @@
 
 The *Network Connection Check* checks for successful/unsuccessful connections to network targets (via `tcp` or `udp`).
 Each check connect to one network target. Default KHCheck configurations applied are:
-- [successedNetworkConnectionCheck.yaml](successedNetworkConnectionCheck.yaml)
+- [successfulNetworkConnectionCheck.yaml](successfulNetworkConnectionCheck.yaml)
     - Target: tcp://github.com:443
     - Target should be reachable: false
     - Check Name: kuberhealthy-github-reachable
@@ -36,7 +36,7 @@ spec:
       - env:
           - name: CONNECTION_TARGET
             value: "tcp://github.com:443"
-        image: kuberhealthy/network-connection-check:v0.1.2
+        image: kuberhealthy/network-connection-check:v0.1.3
         name: kuberhealthy-github-reachable
 ```
 

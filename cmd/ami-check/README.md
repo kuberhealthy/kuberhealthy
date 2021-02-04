@@ -39,7 +39,7 @@ spec:
   podSpec:
     containers:
       - name: ami
-        image: kuberhealthy/ami-check:v1.3.1
+        image: kuberhealthy/ami-check:v1.3.2
         imagePullPolicy: IfNotPresent
         env:
           - name: AWS_REGION
