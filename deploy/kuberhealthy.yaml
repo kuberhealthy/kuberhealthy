@@ -430,7 +430,7 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-        image: kuberhealthy/daemonset-check:v3.2.3
+        image: kuberhealthy/daemonset-check:v3.2.5
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -457,7 +457,7 @@ spec:
       fsGroup: 999
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.7.1
+      image: kuberhealthy/deployment-check:v1.8.1
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
