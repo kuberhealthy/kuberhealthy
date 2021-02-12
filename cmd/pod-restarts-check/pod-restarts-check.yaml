@@ -55,6 +55,13 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - list
+
 ---
 # Source: kuberhealthy/templates/khcheck-pod-restarts.yaml
 apiVersion: rbac.authorization.k8s.io/v1
