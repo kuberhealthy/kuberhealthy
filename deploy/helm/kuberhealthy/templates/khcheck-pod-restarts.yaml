@@ -88,6 +88,12 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - list
 ---
 apiVersion: v1
 kind: ServiceAccount

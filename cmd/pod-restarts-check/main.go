@@ -143,6 +143,10 @@ func (prc *Checker) Run() error {
 	case err := <-doneChan:
 		if len(prc.BadPods) != 0 || err != nil {
 			var errorMessages []string
+			if err != nil {
+				log.Error(err)
+				errorMessages = append(errorMessages, err.Error())
+			}
 			for _, msg := range prc.BadPods {
 				errorMessages = append(errorMessages, msg)
 			}
