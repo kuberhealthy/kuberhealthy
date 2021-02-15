@@ -25,3 +25,36 @@ spec:
           cpu: 50m
       restartPolicy: Never
     terminationGracePeriodSeconds: 30
+    serviceAccountName: kuberhealthy-resource-quota
+---
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRoleBinding
+metadata:
+  name: kuberhealthy-resource-quota
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kuberhealthy-resource-quota
+subjects:
+  - kind: ServiceAccount
+    name: kuberhealthy-resource-quota
+    namespace: kuberhealthy
+---
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
+  name: kuberhealthy-resource-quota
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - resourcequotas
+    verbs:
+      - list
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kuberhealthy-resource-quota
+  namespace: kuberhealthy
