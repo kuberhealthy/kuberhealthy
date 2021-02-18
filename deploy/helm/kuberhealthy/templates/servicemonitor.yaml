@@ -7,7 +7,7 @@ metadata:
   labels:
     app: {{ template "kuberhealthy.name" . }}
     prometheus: {{ .Values.prometheus.name }}
-    release: {{ .Values.prometheus.release }}
+    release: {{ .Values.prometheus.serviceMonitor.release }}
     {{- if .Values.prometheus.additionalLabels}} 
     additionalLabels: {{ .Values.prometheus.additionalLabels | nindent 6}} 
     {{- end }}
