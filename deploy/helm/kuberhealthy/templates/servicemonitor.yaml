@@ -12,7 +12,7 @@ metadata:
     additionalLabels: {{ .Values.prometheus.additionalLabels | nindent 6}} 
     {{- end }}
   name: {{ template "kuberhealthy.name" . }}
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.prometheus.serviceMonitor.namespace }}
 spec:
   jobLabel: component
   selector:
