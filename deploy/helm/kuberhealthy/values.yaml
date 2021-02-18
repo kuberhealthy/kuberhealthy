@@ -9,16 +9,17 @@ checkReaper:
 prometheus:
   enabled: false
   name: "prometheus"
-  release: prometheus-operator
-  additionalLabels: {}
-    #- env: "dev"
-    #  app: "appName"
 
   serviceMonitor:
     enabled: false
+    release: prometheus-operator
+    additionalLabels: {}
+    #- env: "dev"
+    #  app: "appName"
     endpoints:
       interval: 15s
       bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    namespace: kuberhealthy # prometheus operator must be allowed to scrape serviceMonitor metrics from kuberhealthy namespace or set to namespace of prometheus operator
 
   enableAlerting: false
 
