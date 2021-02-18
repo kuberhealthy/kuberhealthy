@@ -19,7 +19,7 @@ prometheus:
     endpoints:
       interval: 15s
       bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
-    namespace: kuberhealthy # prometheus operator must be allowed to scrape servicemonitor metrics from kuberhealthy namespace
+    namespace: kuberhealthy # prometheus operator must be allowed to scrape serviceMonitor metrics from kuberhealthy namespace or set to namespace of prometheus operator
 
   enableAlerting: false
 
