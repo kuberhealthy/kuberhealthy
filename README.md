@@ -40,7 +40,7 @@ After installation, Kuberhealthy will only be available from within the cluster 
 
 Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.18.x`.
 
-To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/Comcast/kuberhealthy/blob/config-readme/docs/CONFIGURATION.md).
+To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/Comcast/kuberhealthy/blob/master/docs/CONFIGURATION.md).
 
 The Helm installation of Kuberhealthy is automatically updated to use the latest [Kuberhealthy release](https://github.com/Comcast/kuberhealthy/releases).
 
