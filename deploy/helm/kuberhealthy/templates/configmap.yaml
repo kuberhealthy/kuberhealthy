@@ -15,3 +15,4 @@ data:
     enableInflux: false # Set to true to enable metric forwarding to Infux DB
     jobCleanupDuration: {{ .Values.checkReaper.jobCleanupDuration }}
     maxCheckPods: {{ .Values.checkReaper.maxCheckPods }}
+    failedPodCleanupDuration: {{ .Values.checkReaper.failedPodCleanupDuration }}
