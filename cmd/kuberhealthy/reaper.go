@@ -32,6 +32,14 @@ var ReapCheckerPods map[string]v1.Pod
 // Default values for reaper configurations
 const maxCheckerPodsDefault = 4
 const jobCleanupDurationDefault = time.Minute * 15
+const failedPodCleanupDurationDefault = time.Hour * 120
+
+// Parse duration configs into time.Duration. The way we supply the duration configs in the Kuberhealthy config, ie 15m, is interpreted
+// as a string instead of time.Duration when we unmarshal the json in the config reloader. This fails since since Go marshals time.Duration
+// as an int64 and not string.
+var jobCleanupDuration = jobCleanupDurationDefault
+var failedPodCleanupDuration = failedPodCleanupDurationDefault
+
 
 func init() {
 
@@ -40,8 +48,23 @@ func init() {
 		cfg.MaxCheckPods = maxCheckerPodsDefault
 	}
 
-	if cfg.JobCleanupDuration == 0 {
-		cfg.JobCleanupDuration = jobCleanupDurationDefault
+}
+
+func parseDuration() {
+
+	var err error
+	if len(cfg.JobCleanupDuration) != 0 {
+		jobCleanupDuration, err = time.ParseDuration(cfg.JobCleanupDuration)
+		if err != nil {
+			log.Errorln("error occurred attempting to parse JobCleanupDuration:", err, "Using default value:", jobCleanupDuration)
+		}
+	}
+
+	if len(cfg.FailedPodCleanupDuration) != 0 {
+		failedPodCleanupDuration, err = time.ParseDuration(cfg.FailedPodCleanupDuration)
+		if err != nil {
+			log.Errorln("error occurred attempting to parse FailedPodCleanupDuratiion:", err, "Using default value:", failedPodCleanupDuration)
+		}
 	}
 }
 
@@ -51,6 +74,7 @@ func reaper(ctx context.Context) {
 	log.Infoln("checkReaper: starting up...")
 	log.Infoln("checkReaper: job cleanup duration:", cfg.JobCleanupDuration)
 	log.Infoln("checkReaper: max checker pods:", cfg.MaxCheckPods)
+	log.Infoln("checkReaper: failed pod cleanup duration:", cfg.FailedPodCleanupDuration )
 
 	// start a new ticker
 	t := time.NewTicker(time.Minute * 3)
@@ -61,6 +85,8 @@ func reaper(ctx context.Context) {
 	for keepGoing {
 		<-t.C
 
+		// Parse duration on every run since configuration supplies a string that must be parsed into time.Duration
+		parseDuration()
 		// create a context for this run that times out
 		runCtx, runCtxCancel := context.WithTimeout(ctx, time.Minute*3)
 		defer runCtxCancel()
@@ -163,9 +189,9 @@ func deleteFilteredCheckerPods(ctx context.Context, client *kubernetes.Clientset
 			delete(reapCheckerPods, k)
 		}
 
-		// Delete failed pods (status Failed) older than 5 days (120 hours)
-		if time.Now().Sub(v.CreationTimestamp.Time).Hours() > 120 && v.Status.Phase == v1.PodFailed {
-			log.Infoln("checkReaper: Found pod older than 5 days in status `Failed`. Deleting pod:", k)
+		// Delete failed pods (status Failed) older than failedPodCleanupDuration
+		if time.Now().Sub(v.CreationTimestamp.Time) > failedPodCleanupDuration  && v.Status.Phase == v1.PodFailed {
+			log.Infoln("checkReaper: Found pod older than:", failedPodCleanupDuration, "in status `Failed`. Deleting pod:", k)
 
 			err = deletePod(ctx, client, v)
 			if err != nil {
@@ -278,7 +304,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 
 	// Range over list and delete khjobs
 	for _, j := range list.Items {
-		if jobConditions(j, cfg.JobCleanupDuration, "Completed") {
+		if jobConditions(j, jobCleanupDuration, "Completed") {
 			log.Infoln("checkReaper: Deleting khjob", j.Name)
 			err := client.KuberhealthyJobs(j.Namespace).Delete(j.Name, &del)
 			if err != nil {

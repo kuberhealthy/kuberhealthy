@@ -22,8 +22,9 @@ type Config struct {
 	InfluxDB                  string        `yaml:"influxDB,omitempty"`
 	EnableInflux              bool          `yaml:"enableInflux,omitempty"`
 	ExternalCheckReportingURL string        `yaml:"externalCheckReportingURL,omitempty"`
-	JobCleanupDuration      time.Duration 	`yaml:"jobCleanupDuration,omitempty"`
+	JobCleanupDuration        string		`yaml:"jobCleanupDuration,omitempty"`
 	MaxCheckPods              int           `yaml:"maxCheckPods,omitempty"`
+	FailedPodCleanupDuration  string		`yaml:"failedPodCleanupDuration,omitempty"`
 }
 
 // Load loads file from disk
