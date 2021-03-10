@@ -34,9 +34,7 @@ const maxCheckerPodsDefault = 4
 const jobCleanupDurationDefault = time.Minute * 15
 const failedPodCleanupDurationDefault = time.Hour * 120
 
-// Parse duration configs into time.Duration. The way we supply the duration configs in the Kuberhealthy config, ie 15m, is interpreted
-// as a string instead of time.Duration when we unmarshal the json in the config reloader. This fails since since Go marshals time.Duration
-// as an int64 and not string.
+
 var jobCleanupDuration = jobCleanupDurationDefault
 var failedPodCleanupDuration = failedPodCleanupDurationDefault
 
@@ -49,6 +47,9 @@ func init() {
 
 }
 
+// parseDuration parses checkReaper duration configs into time.Duration. Go parses time.Duration from int64 and not from
+// string, which is how the config reloader unmarshals the config json. This way we can still supply time.Duration type
+// values in the config, instead of an int64 that doesn't allow users to specify the duration type.
 func parseDuration() {
 
 	var err error
