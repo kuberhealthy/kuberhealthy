@@ -34,7 +34,6 @@ const maxCheckerPodsDefault = 4
 const jobCleanupDurationDefault = time.Minute * 15
 const failedPodCleanupDurationDefault = time.Hour * 120
 
-
 var jobCleanupDuration = jobCleanupDurationDefault
 var failedPodCleanupDuration = failedPodCleanupDurationDefault
 
