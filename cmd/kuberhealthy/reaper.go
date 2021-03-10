@@ -40,7 +40,6 @@ const failedPodCleanupDurationDefault = time.Hour * 120
 var jobCleanupDuration = jobCleanupDurationDefault
 var failedPodCleanupDuration = failedPodCleanupDurationDefault
 
-
 func init() {
 
 	// Set default MaxCheckPods and JobCleanupDuration if its not set in the Kuberhealthy ConfigMap
@@ -74,7 +73,7 @@ func reaper(ctx context.Context) {
 	log.Infoln("checkReaper: starting up...")
 	log.Infoln("checkReaper: job cleanup duration:", cfg.JobCleanupDuration)
 	log.Infoln("checkReaper: max checker pods:", cfg.MaxCheckPods)
-	log.Infoln("checkReaper: failed pod cleanup duration:", cfg.FailedPodCleanupDuration )
+	log.Infoln("checkReaper: failed pod cleanup duration:", cfg.FailedPodCleanupDuration)
 
 	// start a new ticker
 	t := time.NewTicker(time.Minute * 3)
@@ -190,7 +189,7 @@ func deleteFilteredCheckerPods(ctx context.Context, client *kubernetes.Clientset
 		}
 
 		// Delete failed pods (status Failed) older than failedPodCleanupDuration
-		if time.Now().Sub(v.CreationTimestamp.Time) > failedPodCleanupDuration  && v.Status.Phase == v1.PodFailed {
+		if time.Now().Sub(v.CreationTimestamp.Time) > failedPodCleanupDuration && v.Status.Phase == v1.PodFailed {
 			log.Infoln("checkReaper: Found pod older than:", failedPodCleanupDuration, "in status `Failed`. Deleting pod:", k)
 
 			err = deletePod(ctx, client, v)
