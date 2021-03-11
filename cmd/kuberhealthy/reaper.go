@@ -34,37 +34,36 @@ const maxCheckerPodsDefault = 4
 const jobCleanupDurationDefault = time.Minute * 15
 const failedPodCleanupDurationDefault = time.Hour * 120
 
-var jobCleanupDuration = jobCleanupDurationDefault
-var failedPodCleanupDuration = failedPodCleanupDurationDefault
+var jobCleanupDuration time.Duration
+var failedPodCleanupDuration time.Duration
 
 func init() {
 
-	// Set default MaxCheckPods and JobCleanupDuration if its not set in the Kuberhealthy ConfigMap
+	// Set default MaxCheckPods if its not set in the Kuberhealthy ConfigMap
 	if cfg.MaxCheckPods == 0 {
 		cfg.MaxCheckPods = maxCheckerPodsDefault
 	}
-
 }
 
 // parseDuration parses checkReaper duration configs into time.Duration. Go parses time.Duration from int64 and not from
 // string, which is how the config reloader unmarshals the config json. This way we can still supply time.Duration type
 // values in the config, instead of an int64 that doesn't allow users to specify the duration type.
-func parseDuration() {
+func (c *Config) parseDuration() error {
 
 	var err error
-	if len(cfg.JobCleanupDuration) != 0 {
-		jobCleanupDuration, err = time.ParseDuration(cfg.JobCleanupDuration)
+	if len(c.JobCleanupDuration) != 0 {
+		jobCleanupDuration, err = time.ParseDuration(c.JobCleanupDuration)
 		if err != nil {
-			log.Errorln("error occurred attempting to parse JobCleanupDuration:", err, "Using default value:", jobCleanupDuration)
+			return err
 		}
 	}
-
-	if len(cfg.FailedPodCleanupDuration) != 0 {
-		failedPodCleanupDuration, err = time.ParseDuration(cfg.FailedPodCleanupDuration)
+	if len(c.FailedPodCleanupDuration) != 0 {
+		failedPodCleanupDuration, err = time.ParseDuration(c.FailedPodCleanupDuration)
 		if err != nil {
-			log.Errorln("error occurred attempting to parse FailedPodCleanupDuratiion:", err, "Using default value:", failedPodCleanupDuration)
+			return err
 		}
 	}
+	return nil
 }
 
 // reaper runs until the supplied context expires and reaps khjobs and khchecks
@@ -85,7 +84,12 @@ func reaper(ctx context.Context) {
 		<-t.C
 
 		// Parse duration on every run since configuration supplies a string that must be parsed into time.Duration
-		parseDuration()
+		err := cfg.parseDuration()
+		if err != nil {
+			log.Errorln("checkReaper: Error occurred attempting to parse duration:", err, "Using default duration values.")
+			jobCleanupDuration = jobCleanupDurationDefault
+			failedPodCleanupDuration = failedPodCleanupDurationDefault
+		}
 		// create a context for this run that times out
 		runCtx, runCtxCancel := context.WithTimeout(ctx, time.Minute*3)
 		defer runCtxCancel()
