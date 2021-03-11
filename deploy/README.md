@@ -1,6 +1,6 @@
 ### Deployment Specs
 
-This directory contains several ways to deploy Kuberhealthy to your cluster.  You do not need all of the specs in this directory.
+This directory contains several ways to deploy Kuberhealthy to your cluster.  You do not need all of the specs in this directory.  Older releases are available by browing to the release tag on Github, then checking the files in this directory at that tagged revision.
 
 Each flat spec file here requires you to first create the `kuberhealthy` namespace with `kubectl create ns kuberhealthy` before application.  Then, simply use `kubectl apply -f` on the file to deploy Kuberhealthy and some basic checks into your cluster.  These flat spec files are automatically updated to install the most recent changes to Kuberhealthy, or everything currently in the master branch.  Use this to test the latest changes to Kuberhealthy.
 
