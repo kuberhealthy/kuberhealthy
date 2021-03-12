@@ -34,9 +34,6 @@ const maxCheckerPodsDefault = 4
 const jobCleanupDurationDefault = time.Minute * 15
 const failedPodCleanupDurationDefault = time.Hour * 120
 
-var jobCleanupDuration time.Duration
-var failedPodCleanupDuration time.Duration
-
 func init() {
 
 	// Set default MaxCheckPods if its not set in the Kuberhealthy ConfigMap
@@ -48,22 +45,43 @@ func init() {
 // parseDuration parses checkReaper duration configs into time.Duration. Go parses time.Duration from int64 and not from
 // string, which is how the config reloader unmarshals the config json. This way we can still supply time.Duration type
 // values in the config, instead of an int64 that doesn't allow users to specify the duration type.
-func (c *Config) parseDuration() error {
+func (c *Config) parseDuration() {
 
 	var err error
-	if len(c.JobCleanupDuration) != 0 {
-		jobCleanupDuration, err = time.ParseDuration(c.JobCleanupDuration)
-		if err != nil {
-			return err
-		}
+	c.jobCleanupDuration, err = parseStringDuration(c.JobCleanupDuration, jobCleanupDurationDefault)
+	if err != nil {
+		log.Errorln("checkReaper: Error occurred attempting to parse JobCleanupDuration:", err)
+		log.Infoln("checkReaper: Using default JobCleanupDuration:", c.jobCleanupDuration)
 	}
-	if len(c.FailedPodCleanupDuration) != 0 {
-		failedPodCleanupDuration, err = time.ParseDuration(c.FailedPodCleanupDuration)
-		if err != nil {
-			return err
-		}
+
+	c.failedPodCleanupDuration, err = parseStringDuration(c.FailedPodCleanupDuration, failedPodCleanupDurationDefault)
+	if err != nil {
+		log.Errorln("checkReaper: Error occurred attempting to parse FailedPodCleanupDuration:", err)
+		log.Infoln("checkReaper: Using default FailedPodCleanupDuration:", c.failedPodCleanupDuration)
 	}
-	return nil
+}
+
+// parseTimeDuration parses a string duration into a time.Duration. If string is empty, return the defaultDuration.
+// If the parsed time.Duration is 0, return defaultDuration.
+func parseStringDuration(d string, defaultDuration time.Duration) (time.Duration, error) {
+
+	if len(d) == 0 {
+		return defaultDuration, nil
+	}
+
+	duration, err := time.ParseDuration(d)
+	if err != nil {
+		return defaultDuration, err
+	}
+
+	if duration == 0 {
+		log.Errorln("checkReaper: duration value 0 is not valid")
+		log.Infoln("checkReaper: Using default duration:", defaultDuration)
+		return defaultDuration, nil
+	}
+
+	return duration, nil
+
 }
 
 // reaper runs until the supplied context expires and reaps khjobs and khchecks
@@ -84,12 +102,8 @@ func reaper(ctx context.Context) {
 		<-t.C
 
 		// Parse duration on every run since configuration supplies a string that must be parsed into time.Duration
-		err := cfg.parseDuration()
-		if err != nil {
-			log.Errorln("checkReaper: Error occurred attempting to parse duration:", err, "Using default duration values.")
-			jobCleanupDuration = jobCleanupDurationDefault
-			failedPodCleanupDuration = failedPodCleanupDurationDefault
-		}
+		cfg.parseDuration()
+
 		// create a context for this run that times out
 		runCtx, runCtxCancel := context.WithTimeout(ctx, time.Minute*3)
 		defer runCtxCancel()
@@ -193,8 +207,8 @@ func deleteFilteredCheckerPods(ctx context.Context, client *kubernetes.Clientset
 		}
 
 		// Delete failed pods (status Failed) older than failedPodCleanupDuration
-		if time.Now().Sub(v.CreationTimestamp.Time) > failedPodCleanupDuration && v.Status.Phase == v1.PodFailed {
-			log.Infoln("checkReaper: Found pod older than:", failedPodCleanupDuration, "in status `Failed`. Deleting pod:", k)
+		if time.Now().Sub(v.CreationTimestamp.Time) > cfg.failedPodCleanupDuration && v.Status.Phase == v1.PodFailed {
+			log.Infoln("checkReaper: Found pod older than:", cfg.failedPodCleanupDuration, "in status `Failed`. Deleting pod:", k)
 
 			err = deletePod(ctx, client, v)
 			if err != nil {
@@ -307,7 +321,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 
 	// Range over list and delete khjobs
 	for _, j := range list.Items {
-		if jobConditions(j, jobCleanupDuration, "Completed") {
+		if jobConditions(j, cfg.jobCleanupDuration, "Completed") {
 			log.Infoln("checkReaper: Deleting khjob", j.Name)
 			err := client.KuberhealthyJobs(j.Namespace).Delete(j.Name, &del)
 			if err != nil {
