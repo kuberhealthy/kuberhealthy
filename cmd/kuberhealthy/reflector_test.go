@@ -25,6 +25,7 @@ func (t *testLW) Watch(options metav1.ListOptions) (watch.Interface, error) {
 	return t.WatchFunc(options)
 }
 
+// makeTestStateReflector creates a test StateReflector object
 func makeTestStateReflector(fakeWatcher *watch.FakeWatcher) *StateReflector {
 	sr := StateReflector{}
 	sr.reflectorSigChan = make(chan struct{})
@@ -46,6 +47,7 @@ func makeTestStateReflector(fakeWatcher *watch.FakeWatcher) *StateReflector {
 	return &sr
 }
 
+// TestStart ensures that the KuberhealthyStateReflector starts properly
 func TestStart(t *testing.T) {
 
 	fw := watch.NewFake()
@@ -66,6 +68,7 @@ func TestStart(t *testing.T) {
 
 }
 
+// TestStop ensures that the KuberhealthyStateReflector stops properly after it starts
 func TestStop(t *testing.T) {
 	fw := watch.NewFake()
 	khStateReflector := makeTestStateReflector(fw)
@@ -73,7 +76,7 @@ func TestStop(t *testing.T) {
 	// Run watch for 5 seconds
 	go khStateReflector.Start()
 	fw.Add(&khstatecrd.KuberhealthyState{ObjectMeta: metav1.ObjectMeta{Name: "bar"}})
-	time.Sleep(time.Second*5)
+	time.Sleep(time.Second*2)
 
 	// Stop watch.
 	khStateReflector.Stop()

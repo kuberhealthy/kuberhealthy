@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
+// TestParseConfigs ensures that all checkReaper configs are properly parsed and that there are no 0 values
 func TestParseConfigs(t *testing.T) {
 
 	testConfig1 := &Config{
@@ -95,6 +96,7 @@ func TestParseDurationOrUseDefault(t *testing.T) {
 	}
 }
 
+// TestListCheckerPods ensures that only completed (Successful or Failed) kuberhealthy checker pods are listed / returned
 func TestListCheckerPods(t *testing.T) {
 	validKHPod := v1.Pod{
 		ObjectMeta: v12.ObjectMeta{
@@ -118,7 +120,7 @@ func TestListCheckerPods(t *testing.T) {
 			},
 		},
 		Status: v1.PodStatus{
-			Phase: v1.PodPhase("Succeeded"),
+			Phase: v1.PodPhase("Failed"),
 		},
 	}
 
@@ -180,6 +182,7 @@ func TestListCheckerPods(t *testing.T) {
 	t.Logf("listCheckerPods successfully listed only completed Kuberhealthy pods")
 }
 
+// TestGetAllPodsWithCheckName tests that only pods from the same khcheck get listed
 func TestGetAllPodsWithCheckName(t *testing.T) {
 
 	khCheck := v1.Pod{
