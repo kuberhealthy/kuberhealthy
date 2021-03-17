@@ -5,7 +5,7 @@ COPY . /build
 WORKDIR /build/cmd/kuberhealthy
 ENV CGO_ENABLED=0
 RUN go version
-#RUN go test -v -short -- --debug --forceMaster
+RUN go test -v -short -- --debug --forceMaster
 RUN mkdir /app
 RUN groupadd -g 999 user && \
     useradd -r -u 999 -g user user

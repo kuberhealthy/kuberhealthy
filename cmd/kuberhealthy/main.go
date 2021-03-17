@@ -14,16 +14,18 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	khjobcrd "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
 	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
@@ -36,8 +38,6 @@ import (
 var cfg *Config
 var configPath = "/etc/config/kuberhealthy.yaml"
 
-var configPathDir = "/etc/config/"
-var podCheckNamespaces = "kube-system"
 var podNamespace = os.Getenv("POD_NAMESPACE")
 var isMaster bool                  // indicates this instance is the master and should be running checks
 var upcomingMasterState bool       // the upcoming master state on next interval
@@ -48,8 +48,6 @@ var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes 
 
 // the hostname of this pod
 var podHostname string
-var enablePodStatusChecks = determineCheckStateFromEnvVar("POD_STATUS_CHECK")
-var enableExternalChecks = true
 
 // KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
 const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"
@@ -81,12 +79,11 @@ const checkCRDResource = "khchecks"
 // the global kubernetes client
 var kubernetesClient *kubernetes.Clientset
 
-func init() {
+// Set dynamicClient that represents the client used to watch and list unstructured khchecks
+var dynamicClient dynamic.Interface
 
-	cfg = &Config{
-		kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),
-		LogLevel:       "info",
-	}
+// setUp loads, parses, and sets various Kuberhealthy configurations -- from flags, config values and env vars.
+func setUp() error {
 
 	var useDebugMode bool
 
@@ -95,6 +92,11 @@ func init() {
 	flaggy.String(&configPath, "c", "config", "(optional) absolute path to the kuberhealthy config file")
 	flaggy.Bool(&useDebugMode, "d", "debug", "Set to true to enable debug.")
 	flaggy.Parse()
+
+	cfg = &Config{
+		kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),
+		LogLevel:       "info",
+	}
 
 	// attempt to load config file from disk
 	err := cfg.Load(configPath)
@@ -106,7 +108,7 @@ func init() {
 	externalCheckURL, err := getEnvVar(KHExternalReportingURL)
 	if err != nil {
 		if len(podNamespace) == 0 {
-			log.Fatalln("KH_EXTERNAL_REPORTING_URL environment variable not set and POD_NAMESPACE environment variable was blank.  Could not determine Kuberhealthy callback URL.")
+			return errors.New("KH_EXTERNAL_REPORTING_URL environment variable not set and POD_NAMESPACE environment variable was blank.  Could not determine Kuberhealthy callback URL.")
 		}
 		log.Infoln("KH_EXTERNAL_REPORTING_URL environment variable not set, using default value")
 		externalCheckURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local/externalCheckStatus"
@@ -117,7 +119,8 @@ func init() {
 	// parse and set logging level
 	parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
 	if err != nil {
-		log.Fatalln("Unable to parse log-level flag: ", err)
+		log.Errorln("Unable to parse log-level flag: ", err)
+		return err
 	}
 
 	// log to stdout and set the level to info by default
@@ -140,17 +143,27 @@ func init() {
 	// determine the name of this pod from the POD_NAME environment variable
 	podHostname, err = getEnvVar("POD_NAME")
 	if err != nil {
-		log.Fatalln("Failed to determine my hostname!")
+		log.Errorln("Failed to determine my hostname!")
+		return err
 	}
 
 	// setup all clients
 	err = initKubernetesClients()
 	if err != nil {
-		log.Fatalln("Failed to bootstrap kubernetes clients:", err)
+		log.Errorln("Failed to bootstrap kubernetes clients:", err)
+		return err
 	}
+
+	return nil
 }
 
 func main() {
+
+	// Initial setup before starting Kuberhealthy. Loading, parsing, and setting flags, config values and environment vars.
+	err := setUp()
+	if err != nil {
+		log.Fatalln("Error setting up Kuberhealthy:", err)
+	}
 
 	// Create a new Kuberhealthy struct
 	kuberhealthy := NewKuberhealthy()
@@ -205,17 +218,6 @@ func listenForInterrupts(k *Kuberhealthy) {
 	}
 }
 
-// determineCheckStateFromEnvVar determines a check's enabled state based on
-// the supplied environment variable
-func determineCheckStateFromEnvVar(envVarName string) bool {
-	enabledState, err := strconv.ParseBool(os.Getenv(envVarName))
-	if err != nil {
-		log.Debugln("Had an error parsing the environment variable", envVarName, err)
-		return true // by default, the check is on
-	}
-	return enabledState
-}
-
 // initKubernetesClients creates the appropriate CRD clients and kubernetes client to be used in all cases. Issue #181
 func initKubernetesClients() error {
 
@@ -246,6 +248,17 @@ func initKubernetesClients() error {
 		return err
 	}
 	khJobClient = jobClient
+
+	// make a dynamicClient for kubernetes unstructured checks
+	restConfig, err := clientcmd.BuildConfigFromFlags("", configPath)
+	if err != nil {
+		log.Fatalln("Failed to build kubernetes configuration from configuration flags:", err)
+	}
+
+	dynamicClient, err = dynamic.NewForConfig(restConfig)
+	if err != nil {
+		log.Fatalln("Failed to create kubernetes dynamic client configuration")
+	}
 
 	return nil
 }
