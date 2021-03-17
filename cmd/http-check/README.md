@@ -34,12 +34,6 @@ spec:
             value: "1"
           - name: PASSING_PERCENT #### default: "100"
             value: "80"
-          - name: REQUEST_TYPE #### default: "GET"
-            value: "POST"
-          - name: REQUEST_BODY #### default: "{}"
-            value: '{"name": "morpheus", "job": "leader"}'
-          - name: EXPECTED_STATUS_CODE #### default: "200"
-            value: "201"
         resources:
           requests:
             cpu: 15m
