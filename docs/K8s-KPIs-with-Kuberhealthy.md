@@ -105,7 +105,7 @@ To learn more about writing your own checks, along with simple examples, check t
 When enabling Prometheus (not the operator), the Kuberhealthy service gets the following annotations added:
 ```.env
 prometheus.io/path: /metrics
-prometheus.io/port: "80"
+prometheus.io/port: "8080"
 prometheus.io/scrape: "true"
 ```
 
