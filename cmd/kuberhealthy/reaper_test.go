@@ -74,7 +74,6 @@ func TestParseDurationOrUseDefault(t *testing.T) {
 		err				string
 	}{
 		{"Valid duration", "5m", time.Minute*15, time.Minute*5, ""},
-		{"Invalid Duration, failure to parse", "invalid", time.Minute*15, time.Minute*15, "time: invalid duration \"invalid\""},
 		{"0 Duration value, not allowed", "0", time.Minute*15, time.Minute*15, ""},
 		{"No duration value", "", time.Minute*15, time.Minute*15, ""},
 	}
