@@ -15,6 +15,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -119,7 +120,7 @@ func setUp() error {
 	// parse and set logging level
 	parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
 	if err != nil {
-		log.Errorln("Unable to parse log-level flag: ", err)
+		err := fmt.Errorf("unable to parse log-level flag: %s", err)
 		return err
 	}
 
@@ -143,14 +144,14 @@ func setUp() error {
 	// determine the name of this pod from the POD_NAME environment variable
 	podHostname, err = getEnvVar("POD_NAME")
 	if err != nil {
-		log.Errorln("Failed to determine my hostname!")
+		err := fmt.Errorf("failed to determine my hostname: %s", err)
 		return err
 	}
 
 	// setup all clients
 	err = initKubernetesClients()
 	if err != nil {
-		log.Errorln("Failed to bootstrap kubernetes clients:", err)
+		err := fmt.Errorf("failed to bootstrap kubernetes clients: %s", err)
 		return err
 	}
 
