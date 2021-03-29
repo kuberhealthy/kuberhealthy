@@ -10,7 +10,7 @@ metadata:
   annotations:
   {{- if and .Values.prometheus.enabled (not .Values.prometheus.serviceMonitor.enabled) }}
     prometheus.io/scrape: "true"
-    prometheus.io/port: "80"
+    prometheus.io/port: "8080"
     prometheus.io/path: "/metrics"
   {{- end }}
   {{- range $key, $value := .Values.service.annotations }}
