@@ -1,4 +1,4 @@
-### External Checks Registry
+### `khcheck` Registry
 
 Here is a list of external checks you can apply to your kubernetes cluster once you have Kuberhealthy installed. For convenient addition directly from the web, ensure you have Kuberhealthy installed in your cluster and run `kubectl apply -f` on the `khcheck` resource URL of your choice below. For easy cleanup, just run `kubectl delete -f` on the same URL.
 
