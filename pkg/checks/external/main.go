@@ -793,9 +793,9 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time) chan error 
 	// make the output channel we will return and close it whenever we are done
 	outChan := make(chan error, 50)
 
+	ext.wg.Add(1)
 	go func() {
 
-		ext.wg.Add(1)
 		defer ext.wg.Done()
 
 		// watch events and return when the pod is in state running
