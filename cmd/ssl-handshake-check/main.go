@@ -173,7 +173,7 @@ func reportKHFailure(errorMessage string) error {
 		return err
 	}
 	log.Info("Successfully reported failure status to Kuberhealthy servers")
-	return err
+	return nil
 }
 
 func waitForNodeToJoin(ctx context.Context) {
