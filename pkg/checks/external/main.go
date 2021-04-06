@@ -1221,14 +1221,14 @@ func (ext *Checker) setNewCheckUUID() error {
 		}
 		ext.log("Failed to write new UUID for check because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
 
-		// double the delay between checks (exponential backoff)
+		// sleep and double the delay between checks (exponential backoff)
 		time.Sleep(delay)
 		delay = delay + delay
 
-		// try the check again
+		// try the UUID set again
 		err = ext.setUUID(ext.currentCheckUUID)
 
-		// count how many times we're tried
+		// count how many times we're tried to set the UUID
 		tries++
 	}
 
