@@ -13,17 +13,20 @@ import (
 // Config holds all configurable options
 type Config struct {
 	kubeConfigFile            string
-	ListenAddress             string        `yaml:"listenAddress,omitempty"`
-	EnableForceMaster         bool          `yaml:"enableForceMaster,omitempty"`
-	LogLevel                  string        `yaml:"logLevel,omitempty"`
-	InfluxUsername            string        `yaml:"influxUsername,omitempty"`
-	InfluxPassword            string        `yaml:"influxPassword,omitempty"`
-	InfluxURL                 string        `yaml:"influxURL,omitempty"`
-	InfluxDB                  string        `yaml:"influxDB,omitempty"`
-	EnableInflux              bool          `yaml:"enableInflux,omitempty"`
-	ExternalCheckReportingURL string        `yaml:"externalCheckReportingURL,omitempty"`
-	JobCleanupDuration      time.Duration 	`yaml:"jobCleanupDuration,omitempty"`
-	MaxCheckPods              int           `yaml:"maxCheckPods,omitempty"`
+	ListenAddress             string `yaml:"listenAddress,omitempty"`
+	EnableForceMaster         bool   `yaml:"enableForceMaster,omitempty"`
+	LogLevel                  string `yaml:"logLevel,omitempty"`
+	InfluxUsername            string `yaml:"influxUsername,omitempty"`
+	InfluxPassword            string `yaml:"influxPassword,omitempty"`
+	InfluxURL                 string `yaml:"influxURL,omitempty"`
+	InfluxDB                  string `yaml:"influxDB,omitempty"`
+	EnableInflux              bool   `yaml:"enableInflux,omitempty"`
+	ExternalCheckReportingURL string `yaml:"externalCheckReportingURL,omitempty"`
+	JobCleanupDuration        string `yaml:"jobCleanupDuration,omitempty"`
+	jobCleanupDuration        time.Duration
+	MaxCheckPods              int    `yaml:"maxCheckPods,omitempty"`
+	FailedPodCleanupDuration  string `yaml:"failedPodCleanupDuration,omitempty"`
+	failedPodCleanupDuration  time.Duration
 }
 
 // Load loads file from disk

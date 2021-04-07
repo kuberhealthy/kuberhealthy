@@ -3,8 +3,10 @@
 # Declare variables to be passed into your templates.
 
 checkReaper:
-  jobCleanupDuration: 15m # the maximum age of khjobs before being reaped
   maxCheckPods: 4 # the maximum number of check pods in Completed state before being reaped
+  ## Valid time units for duration configurations below: "ns", "us" (or "µs"), "ms", "s", "m", "h".
+  jobCleanupDuration: 15m # the maximum age of khjobs before being reaped
+  failedPodCleanupDuration: 120h # the maximum age of failed khcheck/khjob pods before being reaped
 
 prometheus:
   enabled: false
@@ -149,7 +151,7 @@ check:
     image:
       registry: kuberhealthy
       repository: dns-resolution-check
-      tag: v1.4.2
+      tag: v1.4.3
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
