@@ -403,17 +403,6 @@ func (ext *Checker) setUUID(uuid string) error {
 	ext.log("Updating khstate", checkState.Name, checkState.Namespace, "to setUUID:", checkState.Spec.CurrentUUID)
 	_, err = ext.KHStateClient.Update(checkState, stateCRDResource, ext.Name(), ext.CheckNamespace())
 
-	// We commonly see a race here with the following type of error:
-	// "Check execution error: Operation cannot be fulfilled on khchecks.comcast.github.io \"pod-restarts\": the object
-	// has been modified; please apply your changes to the latest version and try again"
-	//
-	// If we see this error, we try again.
-	for err != nil && strings.Contains(err.Error(), "the object has been modified") {
-		ext.log("Failed to write new UUID for check because object was modified by another process.  Retrying in 5s")
-		time.Sleep(time.Second * 5)
-		_, err = ext.KHStateClient.Update(checkState, stateCRDResource, ext.Name(), ext.CheckNamespace())
-	}
-
 	// Sometimes a race condition occurs when a pod has to verify uuid with kh server. If the pod happens to check the
 	// uuid before it shows as updated on kube-apiserver, the pod will not be allowed to report its status.
 	// This for-loop is to verify the pod uuid is properly set with the api server before the checker pod is started.
@@ -1214,7 +1203,37 @@ func (ext *Checker) setNewCheckUUID() error {
 
 	// set whitelist in check configuration CRD so only this
 	// currently running pod can report-in with a status update
-	return ext.setUUID(ext.currentCheckUUID)
+	err := ext.setUUID(ext.currentCheckUUID)
+
+	// We commonly see a race here with the following type of error:
+	// "Check execution error: Operation cannot be fulfilled on khchecks.comcast.github.io \"pod-restarts\": the object
+	// has been modified; please apply your changes to the latest version and try again"
+	//
+	// If we see this error, we fetch the updated object, re-apply our changes, and try again
+	delay := time.Duration(time.Second * 1)
+	maxTries := 7
+	tries := 0
+	for err != nil && strings.Contains(err.Error(), "the object has been modified") {
+
+		// if too many retires have occcured, we fail up the stack further
+		if tries > maxTries {
+			return fmt.Errorf("failed to updated UUID for check %s in namespace %s after %d with error %w", ext.CheckName, ext.CheckNamespace(), maxTries, err)
+		}
+		ext.log("Failed to write new UUID for check because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
+
+		// sleep and double the delay between checks (exponential backoff)
+		time.Sleep(delay)
+		delay = delay + delay
+
+		// try the UUID set again
+		err = ext.setUUID(ext.currentCheckUUID)
+
+		// count how many times we're tried to set the UUID
+		tries++
+	}
+
+	return err
+
 }
 
 // waitForShutdown waits for the external pod to shut down
