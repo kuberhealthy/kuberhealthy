@@ -7,9 +7,10 @@ package ssl_util
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -19,157 +20,153 @@ import (
 
 var TimeoutSeconds = 10
 
-// fileUploaded returns 'true' if the pem formatted cert has been mounted at /etc/ssl/selfsign/certificate.crt
-func fileUploaded() bool {
-	var certUploaded bool
-	if _, err := os.Stat("/etc/ssl/selfsign/certificate.crt"); err == nil {
-		log.Info("Certificate file uploaded from spec")
-		certUploaded = true
-	}
-	return certUploaded
+const kubernetesCAFileLocation = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+const selfSignedCertLocation = "/etc/ssl/selfsign/certificate.crt"
+
+// kubernetesCAPresent returns 'true' if the included Kubernetes CA is available
+func KubernetesCAPresent() bool {
+	return filePresent(kubernetesCAFileLocation)
 }
 
-// certFromHost makes an insecure connection to the host specified and returns the SSL cert that matches the hostname
-func certFromHost(host, port string) (*x509.Certificate, error) {
-	var hostCert *x509.Certificate
-	d := &net.Dialer{
-		Timeout: time.Duration(TimeoutSeconds) * time.Second,
-	}
-
-	// Connect insecurely to the host, range through all certificates found, find the cert that matches the host name for the check, and return it
-	conn, err := tls.DialWithDialer(d, "tcp", host+":"+port, &tls.Config{
-		InsecureSkipVerify: true,
-		MinVersion:         tls.VersionTLS12,
-	})
-
-	if err != nil {
-		log.Error("Error retrieving host certificate: ", []*x509.Certificate{&x509.Certificate{}}, "", err)
-		return hostCert, err
-	}
-
-	defer conn.Close()
-	cert := conn.ConnectionState().PeerCertificates
-
-	for _, clientCert := range cert {
-		for _, certDNS := range clientCert.DNSNames {
-			if certDNS == host {
-				hostCert = clientCert
-			}
-		}
-	}
-
-	if hostCert == nil {
-		err = errors.New("Empty certificate returned")
-	}
-	return hostCert, err
+// SelfSignedCAPresent determines if the user has uploaded a custom CA to use for certificate validation
+func SelfSignedCAPresent() bool {
+	return filePresent(selfSignedCertLocation)
 }
 
-// poolFromHost checks for a pem certificate mounted by the check config map, and if one is not present it creates a new cert pool using the CertFromHost function
-func poolFromHost(host, port string) (*x509.CertPool, error) {
-	rootCAs, err := x509.SystemCertPool()
-	if err != nil {
-		log.Warn("Unable to retrieve system certificate pool: ", err)
+// filePresent returns 'true' if the specified file exists
+func filePresent(filePath string) bool {
+	if _, err := os.Stat(filePath); err == nil {
+		return true
 	}
-
-	if rootCAs == nil {
-		rootCAs = x509.NewCertPool()
-	}
-
-	hostCert, err := certFromHost(host, port)
-	if hostCert == nil {
-		err = errors.New("Empty certificate returned")
-	}
-
-	if hostCert != nil {
-		rootCAs.AddCert(hostCert)
-		log.Info("Certificate from host successfully appended to cert pool")
-	}
-	return rootCAs, err
+	return false
 }
 
-// poolFromFile checks for a pem certificate mounted by the check config map, and appends it to the system cert pool
-func poolFromFile(host, port string) (*x509.CertPool, error) {
-	var selfsignCert string
-	rootCAs, err := x509.SystemCertPool()
+// certPoolFromFile creates a cert pool from the specified CA file and returns it
+func certPoolFromFile(filePath string) (*x509.CertPool, error) {
 
-	if rootCAs == nil {
-		rootCAs = x509.NewCertPool()
+	// read the file bytes from disk
+	b, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, err
 	}
 
-	selfsignCert = "/etc/ssl/selfsign/certificate.crt"
-	certs, err := ioutil.ReadFile(selfsignCert)
-	if err != nil {
-		log.Error("Error reading certificate file: ", selfsignCert, err)
+	// make a new cert pool and append certs from file
+	certPool := x509.NewCertPool()
+	ok := certPool.AppendCertsFromPEM(b)
+	if !ok {
+		return nil, fmt.Errorf("error parsing certs from file %s", filePath)
 	}
 
 	// append the user cert to the system cert pool
-	if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
-		log.Error("Failed to import cert from file: ", selfsignCert)
-		return rootCAs, err
-	}
 	log.Info("Certificate file successfully appended to cert pool")
-
-	return rootCAs, err
-}
-
-// selfSignPool determines if an SSL cert has been provided via configmap, and returns an error and a certificate map to check against
-func selfSignPool(host, port string) (*x509.CertPool, error) {
-	certProvided := fileUploaded()
-	if certProvided {
-		certPool, err := poolFromFile(host, port)
-		return certPool, err
-	}
-	certPool, err := poolFromHost(host, port)
 
 	return certPool, err
 }
 
-// SSLHandshake imports a certificate pool, a
-func CertHandshake(host, port string, selfSigned bool) error {
-	var certPool *x509.CertPool
-	var err error
-
-	// Check if the check is being run for a self-signed cert. If so, check to see if the file has been uploaded
-	if selfSigned {
-		certPool, err = selfSignPool(host, port)
-		if err != nil {
-			log.Error("Error generating self-signed certificate pool: ", err)
-			return err
-		}
+// FetchKubernetesSelfSignedCertFromDisk fetches the kubernetes self-signed cert placed on disk within pods as an
+// *x509.Certificate.
+func FetchKubernetesSelfSignedCertFromDisk() ([]byte, error) {
+	certs, err := ioutil.ReadFile(kubernetesCAFileLocation)
+	if err != nil {
+		return nil, fmt.Errorf("error reading kubernetes certificate authority file: %w", err)
 	}
 
-	// Generaete a default system cert pool if the check is not for a self-signed certificate
-	if !selfSigned {
-		certPool, err = x509.SystemCertPool()
-		if err != nil {
-			log.Warn("Unable to retrieve system certificate pool: ", err)
-		}
+	return certs, nil
+}
+
+// fetchSelfSignedCertFromDisk fetches the self-signed cert placed on disk within pods as an
+// *x509.Certificate.
+func fetchSelfSignedCertFromDisk() ([]byte, error) {
+	certs, err := ioutil.ReadFile(selfSignedCertLocation)
+	if err != nil {
+		return nil, fmt.Errorf("error reading custom certificate file: %w", err)
 	}
 
+	return certs, nil
+}
+
+// AppendKubernetesCertsToPool appends the kubernetes certificates on disk (in the pod) to the
+// supplied cert pool.
+func AppendKubernetesCertsToPool(pool *x509.CertPool) error {
+	certData, err := FetchKubernetesSelfSignedCertFromDisk()
+	if err != nil {
+		return fmt.Errorf("error fetching cert data from disk: %w", err)
+	}
+	ok := pool.AppendCertsFromPEM(certData)
+	if !ok {
+		log.Warningln("failed to append cert to pem when appending kubernetes certs to cert pool")
+	}
+	return nil
+}
+
+// CreatePool creates a cert pool depending on if a Kubernetes CA is found or a custom CA cert is mounted
+// at /etc/ssl/selfsign/certificate.crt
+func CreatePool() (*x509.CertPool, error) {
+	if SelfSignedCAPresent() {
+		log.Infoln("Using self signed CA mounted from ", selfSignedCertLocation)
+		return certPoolFromFile(selfSignedCertLocation)
+	}
+
+	log.Infoln("Using default certs plus Kubernetes cluster CA mounted from ", kubernetesCAFileLocation)
+	defaultPool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, err
+	}
+
+	// append kubernetes certs to system default certs
+	log.Infoln("Appending Kubernetes SSL certificate authority to cert pool...")
+	err = AppendKubernetesCertsToPool(defaultPool)
+	if err != nil {
+		return nil, err
+	}
+
+	return defaultPool, nil
+}
+
+// SSLHandshakeWithCertPool does an SSL handshake with the spciefied cert pool instead of
+// the default system certificate pool
+func SSLHandshakeWithCertPool(url *url.URL, certPool *x509.CertPool) error {
+
+	// ensure an https url was passed
+	if url.Scheme != "https" {
+		return fmt.Errorf("error doing SSL handshake.  The url specified %s was not an https URL", url.String())
+	}
+
+	// create our dialer
 	d := &net.Dialer{
 		Timeout: time.Duration(TimeoutSeconds) * time.Second,
 	}
 
-	conn, err := tls.DialWithDialer(d, "tcp", host+":"+port, &tls.Config{
+	// dial to the TCP endpoint
+	conn, err := tls.DialWithDialer(d, "tcp", url.Hostname()+":"+url.Port(), &tls.Config{
 		InsecureSkipVerify: false,
 		MinVersion:         tls.VersionTLS12,
 		RootCAs:            certPool,
 	})
-
 	if err != nil {
-		log.Error("Error performing TLS handshake: ", []*x509.Certificate{&x509.Certificate{}}, "", err)
-		return err
+		return fmt.Errorf("error making connection to perform TLS handshake: %w", err)
 	}
-
 	defer conn.Close()
 
+	// do the SSL handshake
 	err = conn.Handshake()
 	if err != nil {
-		log.Warn("Unable to complete SSL handshake with host ", host+": ", err)
+		return fmt.Errorf("unable to perform TLS handshake: %w", err)
+	}
+
+	return nil
+}
+
+// SSLHandshake does an https handshake and returns any errors encountered
+func SSLHandshake(siteURL *url.URL) error {
+
+	certPool, err := x509.SystemCertPool()
+	if err != nil {
 		return err
 	}
-	log.Info("SSL handshake to host ", host, " completed successfully")
-	return err
+
+	return SSLHandshakeWithCertPool(siteURL, certPool)
+
 }
 
 // CertExpiry returns bool values indicating if the cert on a given host and port are currently exiring or if the expiration is the specified number of days away, and any errors
@@ -189,7 +186,7 @@ func CertExpiry(host, port, days string, overrideTLS bool) (bool, bool, error) {
 	})
 
 	if err != nil {
-		log.Warnln([]*x509.Certificate{&x509.Certificate{}}, "", err)
+		log.Warnln([]*x509.Certificate{}, "", err)
 		return certExpired, expireWarning, err
 	}
 	defer conn.Close()

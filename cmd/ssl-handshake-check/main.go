@@ -16,6 +16,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -131,6 +133,7 @@ func (shc *Checker) runHandshake(ctx context.Context, cancel context.CancelFunc,
 	case err := <-doneChan:
 		cancel()
 		if err != nil {
+			log.Errorln("Error when doing SSL handshake:", err)
 			return reportKHFailure(err.Error())
 		}
 		return reportKHSuccess()
@@ -138,8 +141,18 @@ func (shc *Checker) runHandshake(ctx context.Context, cancel context.CancelFunc,
 }
 
 func (shc *Checker) doChecks() error {
-	err := ssl_util.CertHandshake(domainName, portNum, selfSignedBool)
-	return err
+	siteURL, err := url.Parse("https://" + domainName + ":" + portNum)
+	if err != nil {
+		return err
+	}
+
+	// create a cert pool for this check
+	certPool, err := ssl_util.CreatePool()
+	if err != nil {
+		return fmt.Errorf("error creating cert pool for ssl checks: %w", err)
+	}
+
+	return ssl_util.SSLHandshakeWithCertPool(siteURL, certPool)
 }
 
 // reportKHSuccess reports success to Kuberhealthy servers and verifies the report successfully went through
@@ -161,7 +174,7 @@ func reportKHFailure(errorMessage string) error {
 		return err
 	}
 	log.Info("Successfully reported failure status to Kuberhealthy servers")
-	return err
+	return nil
 }
 
 func waitForNodeToJoin(ctx context.Context) {
