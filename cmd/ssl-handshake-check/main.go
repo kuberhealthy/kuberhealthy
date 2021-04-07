@@ -146,9 +146,10 @@ func (shc *Checker) doChecks() error {
 		return err
 	}
 
+	// create a cert pool for this check
 	certPool, err := ssl_util.CreatePool()
 	if err != nil {
-		return fmt.Errorf("error creating pool: %w", err)
+		return fmt.Errorf("error creating cert pool for ssl checks: %w", err)
 	}
 
 	return ssl_util.SSLHandshakeWithCertPool(siteURL, certPool)
