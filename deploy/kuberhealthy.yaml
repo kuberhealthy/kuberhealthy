@@ -86,6 +86,7 @@ data:
     enableInflux: false # Set to true to enable metric forwarding to Infux DB
     jobCleanupDuration: 15m
     maxCheckPods: 4
+    failedPodCleanupDuration: 120h
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
 apiVersion: v1
@@ -107,19 +108,6 @@ kind: ServiceAccount
 metadata:
   name: kuberhealthy
   namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
 ---
 # Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -191,19 +179,18 @@ rules:
     verbs:
     - create
 ---
-# Source: kuberhealthy/templates/clusterrolebinding.yaml
+# Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRoleBinding
+kind: ClusterRole
 metadata:
   name: kuberhealthy-daemonset-khcheck
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kuberhealthy-daemonset-khcheck
-subjects:
-- kind: ServiceAccount
-  name: daemonset-khcheck
-  namespace: kuberhealthy
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
 ---
 # Source: kuberhealthy/templates/clusterrolebinding.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -217,6 +204,20 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kuberhealthy
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/clusterrolebinding.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRoleBinding
+metadata:
+  name: kuberhealthy-daemonset-khcheck
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kuberhealthy-daemonset-khcheck
+subjects:
+- kind: ServiceAccount
+  name: daemonset-khcheck
   namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
@@ -500,7 +501,7 @@ spec:
                 fieldPath: spec.nodeName
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.4.2
+        image: kuberhealthy/dns-resolution-check:v1.4.3
         imagePullPolicy: IfNotPresent
         name: main
         resources:
