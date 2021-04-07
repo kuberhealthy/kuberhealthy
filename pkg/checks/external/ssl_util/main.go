@@ -63,9 +63,9 @@ func certPoolFromFile(filePath string) (*x509.CertPool, error) {
 	return certPool, err
 }
 
-// fetchKubernetesSelfSignedCertFromDisk fetches the kubernetes self-signed cert placed on disk within pods as an
+// FetchKubernetesSelfSignedCertFromDisk fetches the kubernetes self-signed cert placed on disk within pods as an
 // *x509.Certificate.
-func fetchKubernetesSelfSignedCertFromDisk() ([]byte, error) {
+func FetchKubernetesSelfSignedCertFromDisk() ([]byte, error) {
 	certs, err := ioutil.ReadFile(kubernetesCAFileLocation)
 	if err != nil {
 		return nil, fmt.Errorf("error reading kubernetes certificate authority file: %w", err)
@@ -88,7 +88,7 @@ func fetchSelfSignedCertFromDisk() ([]byte, error) {
 // AppendKubernetesCertsToPool appends the kubernetes certificates on disk (in the pod) to the
 // supplied cert pool.
 func AppendKubernetesCertsToPool(pool *x509.CertPool) error {
-	certData, err := fetchKubernetesSelfSignedCertFromDisk()
+	certData, err := FetchKubernetesSelfSignedCertFromDisk()
 	if err != nil {
 		return fmt.Errorf("error fetching cert data from disk: %w", err)
 	}
