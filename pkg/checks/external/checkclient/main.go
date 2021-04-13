@@ -85,14 +85,29 @@ func sendReport(s status.Report) error {
 	if err != nil {
 		return fmt.Errorf("failed to fetch the kuberhealthy url: %w", err)
 	}
-	writeLog("INFO: Using kuberhealthy reporting URL:", url)
+	writeLog("INFO: Using kuberhealthy reporting URL: ", url)
+
+	// fetch the kh run UUID
+	uuid, err := getKuberhealthyRunUUID()
+	if err != nil {
+		return fmt.Errorf("failed to fetch the kuberhealthy run uuid: %w", err)
+	}
+	writeLog("INFO: Using kuberhealthy run UUID: ", uuid)
+
+	// create the Kuberhealthy post request with the kh-run-uuid header
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(b))
+	if err != nil {
+		return fmt.Errorf("error creating http request: %w", err)
+	}
+	req.Header.Set("kh-run-uuid", uuid)
+	req.Header.Set("Content-Type", "application/json")
 
 	// send to the server
 	var resp *http.Response
 	err = backoff.Retry(func() error {
 		var err error
 		writeLog("DEBUG: Making POST request to kuberhealthy:")
-		resp, err = http.Post(url, "application/json", bytes.NewBuffer(b))
+		resp, err = http.DefaultClient.Do(req)
 		return err
 	}, exponentialBackoff)
 	if err != nil {
@@ -123,6 +138,21 @@ func getKuberhealthyURL() (string, error) {
 	}
 
 	return reportingURL, nil
+}
+
+// getKuberhealthyRunUUID fetches the kuberheathy checker pod run UUID to send to our external checker
+// status to report to from the environment variable
+func getKuberhealthyRunUUID() (string, error) {
+
+	khRunUUID := os.Getenv(external.KHRunUUID)
+
+	// check the length of the UUID to make sure we pulled one properly
+	if len(khRunUUID) < 1 {
+		writeLog("ERROR: kuberhealthy run UUID from environment variable", external.KHRunUUID, "was blank")
+		return "", fmt.Errorf("fetched %s environment variable but it was blank", external.KHRunUUID)
+	}
+
+	return khRunUUID, nil
 }
 
 // GetDeadline fetches the KH_CHECK_RUN_DEADLINE environment variable and returns it.

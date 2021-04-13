@@ -1124,33 +1124,26 @@ func (k *Kuberhealthy) StartWebServer() {
 }
 
 // PodReportIPInfo holds info about an incoming IP to the external check reporting endpoint
-type PodReportIPInfo struct {
+type PodReportInfo struct {
 	Name      string
 	UUID      string
 	Namespace string
 }
 
-// validateExternalRequest calls the Kubernetes API to fetch details about a pod by it's source IP
-// and then validates that the pod is allowed to report the status of a check.  The pod is expected
-// to have the environment variables KH_CHECK_NAME and KH_RUN_UUID
-func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIPInfo, error) {
+// validateExternalRequest calls the Kubernetes API to fetch details about a pod by it's environment variable
+// KH_RUN_UUID. It validates that the pod is allowed to report the status of a check. The pod is also expected
+// to have the environment variable KH_CHECK_NAME
+func (k *Kuberhealthy) validateExternalRequest(uuid string) (PodReportInfo, error) {
 
 	var podUUID string
 	var podCheckName string
 	var podCheckNamespace string
 
-	reportInfo := PodReportIPInfo{}
+	reportInfo := PodReportInfo{}
 
-	// break the port off the remoteIPPort incoming string
-	ipPortString := strings.Split(remoteIPPort, ":")
-	if len(ipPortString) == 0 {
-		return reportInfo, errors.New("remote ip:port was blank")
-	}
-	ip := ipPortString[0]
-
-	// fetch the pod from the api using its ip.  We keep retrying for some time to avoid kubernetes control plane
-	// api race conditions wherein fast reporting pods are not found in pod listings
-	pod, err := k.fetchPodByIPForDuration(ip, time.Minute)
+	// fetch the pod from the api using its kh run uuid. We keep retrying for some time to avoid kubernetes control
+	// plane api race conditions wherein fast reporting pods are not found in pod listings
+	pod, err := k.fetchPodByKHRunUUIDForDuration(uuid, time.Minute)
 	if err != nil {
 		return reportInfo, err
 	}
@@ -1158,7 +1151,7 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	// set the pod namespace and name from the returned metadata
 	podCheckName = pod.Annotations[KHCheckNameAnnotationKey]
 	if len(podCheckName) == 0 {
-		return reportInfo, errors.New("error finding check name annotation on calling pod with ip: " + ip)
+		return reportInfo, errors.New("error finding check name annotation on calling pod with kh run uuid: " + uuid)
 	}
 
 	podCheckNamespace = pod.GetNamespace()
@@ -1171,7 +1164,7 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 		envVars = append(envVars, container.Env...)
 	}
 
-	log.Debugln("Env vars found on pod with IP", ip, envVars)
+	log.Debugln("Env vars found on pod with kh run uuid", uuid, envVars)
 
 	// validate that the environment variables we expect are in place based on the check's name and UUID
 	// compared to what is in the khcheck custom resource
@@ -1179,7 +1172,7 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	for _, e := range envVars {
 		log.Debugln("Checking environment variable on calling pod:", e.Name, e.Value)
 		if e.Name == external.KHRunUUID {
-			log.Debugln("Found value on calling pod", ip, "value:", external.KHRunUUID, e.Value)
+			log.Debugln("Found value on calling pod", uuid, "value:", external.KHRunUUID, e.Value)
 			podUUID = e.Value
 			foundUUID = true
 		}
@@ -1219,19 +1212,20 @@ func (k *Kuberhealthy) validateExternalRequest(remoteIPPort string) (PodReportIP
 	return reportInfo, nil
 }
 
-// fetchPodByIPForDuration attempts to fetch a pod by its IP repeatedly for the supplied duration.  If the pod is found,
-// then we return it.  If the pod is not found after the duration, we return an error
-func (k *Kuberhealthy) fetchPodByIPForDuration(remoteIP string, d time.Duration) (v1.Pod, error) {
+// fetchPodByKHRunUUIDForDuration attempts to fetch a pod by the uuid set on its label `kuberhealthy-run-id` repeatedly
+// for the supplied duration. If the pod is found, then we return it.  If the pod is not found after the duration,
+// we return an error
+func (k *Kuberhealthy) fetchPodByKHRunUUIDForDuration(uuid string, d time.Duration) (v1.Pod, error) {
 	endTime := time.Now().Add(d)
 
 	for {
 		if time.Now().After(endTime) {
-			return v1.Pod{}, errors.New("Failed to fetch source pod with IP " + remoteIP + " after trying for " + d.String())
+			return v1.Pod{}, errors.New("Failed to fetch source pod with the label kuberhealthy-run-id=" + uuid + " after trying for " + d.String())
 		}
 
-		p, err := k.fetchPodByIP(remoteIP)
+		p, err := k.fetchPodByKHRunUUID(uuid)
 		if err != nil {
-			log.Warningln("was unable to find calling pod with remote IP ", remoteIP, " while watching for duration. Error: "+err.Error())
+			log.Warningln("was unable to find calling pod with the label kuberhealthy-run-id=", uuid, " while watching for duration. Error: "+err.Error())
 			time.Sleep(time.Second)
 			continue
 		}
@@ -1240,18 +1234,18 @@ func (k *Kuberhealthy) fetchPodByIPForDuration(remoteIP string, d time.Duration)
 	}
 }
 
-// fetchPodByIP fetches the pod by it's IP address.
-func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
+// fetchPodByKHRunUUID fetches the pod by it's kuberhealthy-run-id label
+func (k *Kuberhealthy) fetchPodByKHRunUUID(uuid string) (v1.Pod, error) {
 	var pod v1.Pod
 
 	// find the pod by its IP address
 	podClient := kubernetesClient.CoreV1().Pods("")
 	listOptions := metav1.ListOptions{
-		FieldSelector: "status.podIP==" + remoteIP + ",status.phase==Running",
+		LabelSelector: "kuberhealthy-run-id=" + uuid,
 	}
 	podList, err := podClient.List(context.TODO(), listOptions)
 	if err != nil {
-		return pod, errors.New("failed to fetch pod with remote ip " + remoteIP + " with error: " + err.Error())
+		return pod, errors.New("failed to fetch pod with the label kuberhealthy-run-id=" + uuid + " with error: " + err.Error())
 	}
 
 	// log the fetched pod DEBUG
@@ -1264,15 +1258,15 @@ func (k *Kuberhealthy) fetchPodByIP(remoteIP string) (v1.Pod, error) {
 	// ensure that we only got back one pod, because two means something awful has happened and 0 means we
 	// didnt find one
 	if len(podList.Items) == 0 {
-		return pod, errors.New("failed to find a pod with the remote ip " + remoteIP)
+		return pod, errors.New("failed to find a pod with the label kuberhealthy-run-id=" + uuid)
 	}
 	if len(podList.Items) > 1 {
-		return pod, errors.New("failed to fetch pod with remote ip " + remoteIP + " - found two or more with same ip")
+		return pod, errors.New("failed to fetch pod with label kuberhealthy-run-id=" + uuid + " - found two or more with same label")
 	}
 
 	// check if the pod has containers
 	if len(podList.Items[0].Spec.Containers) == 0 {
-		return pod, errors.New("failed to fetch environment variables from pod with remote ip " + remoteIP + " - pod had no containers")
+		return pod, errors.New("failed to fetch environment variables from pod with label kuberhealthy-run-id=" + uuid + " - pod had no containers")
 	}
 
 	return podList.Items[0], nil
@@ -1292,20 +1286,28 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	// make a request ID for tracking this request
 	requestID := "web: " + uuid.New().String()
 
-	k.externalCheckReportHandlerLog(requestID, "Client connected to check report handler from", r.RemoteAddr, r.UserAgent())
+	k.externalCheckReportHandlerLog(requestID, "Client connected to check report handler from", r.UserAgent())
 
-	// validate the calling pod to ensure that it has a proper KH_CHECK_NAME and KH_RUN_UUID
-	k.externalCheckReportHandlerLog(requestID, "validating external check status report from: ", r.RemoteAddr)
-	ipReport, err := k.validateExternalRequest(r.RemoteAddr)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by IP:", r.RemoteAddr, err)
+	// Get kh-run-uuid from the request header and verify it exists. If the kh-run-uuid doesn't exist, it's most likely
+	// due to the check needing to update and rebuild using the latest `checkClient` package with the update that
+	// sets the kh-run-uuid header using the KH_RUN_UUID environment variable.
+	reportingKHRunUUID := r.Header.Get("kh-run-uuid")
+	if len(reportingKHRunUUID) == 0 {
+		k.externalCheckReportHandlerLog(requestID, "Received blank kh-run-uuid header from external request")
 		return nil
 	}
-	k.externalCheckReportHandlerLog(requestID, "Calling pod is", ipReport.Name, "in namespace", ipReport.Namespace)
+	// validate the calling pod to ensure that it has a proper KH_CHECK_NAME and KH_RUN_UUID
+	k.externalCheckReportHandlerLog(requestID, "validating external check status report from its reporting kuberhealthy run uuid:", reportingKHRunUUID)
+	podReport, err := k.validateExternalRequest(reportingKHRunUUID)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by its kh run uuid:", reportingKHRunUUID, err)
+		return nil
+	}
+	k.externalCheckReportHandlerLog(requestID, "Calling pod is", podReport.Name, "in namespace", podReport.Namespace)
 
 	// append pod info to request id for easy check tracing in logs
-	requestID = requestID + " (" + ipReport.Namespace + "/" + ipReport.Name + ")"
+	requestID = requestID + " (" + podReport.Namespace + "/" + podReport.Name + ")"
 
 	// ensure the client is sending a valid payload in the request body
 	b, err := ioutil.ReadAll(r.Body)
@@ -1343,15 +1345,15 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	}
 
 	checkRunDuration := time.Duration(0).String()
-	khWorkload := determineKHWorkload(ipReport.Name, ipReport.Namespace)
+	khWorkload := determineKHWorkload(podReport.Name, podReport.Namespace)
 
 	switch khWorkload {
 	case health.KHCheck:
 		checkDetails := k.stateReflector.CurrentStatus().CheckDetails
-		checkRunDuration = checkDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
+		checkRunDuration = checkDetails[podReport.Namespace+"/"+podReport.Name].RunDuration
 	case health.KHJob:
 		jobDetails := k.stateReflector.CurrentStatus().JobDetails
-		checkRunDuration = jobDetails[ipReport.Namespace+"/"+ipReport.Name].RunDuration
+		checkRunDuration = jobDetails[podReport.Namespace+"/"+podReport.Name].RunDuration
 	}
 
 	// create a details object from our incoming status report before storing it as a khstate custom resource
@@ -1360,16 +1362,16 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	details.Errors = state.Errors
 	details.OK = state.OK
 	details.RunDuration = checkRunDuration
-	details.Namespace = ipReport.Namespace
-	details.CurrentUUID = ipReport.UUID
+	details.Namespace = podReport.Namespace
+	details.CurrentUUID = podReport.UUID
 
 	// since the check is validated, we can proceed to update the status now
-	k.externalCheckReportHandlerLog(requestID, "Setting check with name", ipReport.Name, "in namespace", ipReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID, details.GetKHWorkload())
-	err = k.storeCheckState(ipReport.Name, ipReport.Namespace, details)
+	k.externalCheckReportHandlerLog(requestID, "Setting check with name", podReport.Name, "in namespace", podReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID, details.GetKHWorkload())
+	err = k.storeCheckState(podReport.Name, podReport.Namespace, details)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		k.externalCheckReportHandlerLog(requestID, "failed to store check state for %s: %w", ipReport.Name, err)
-		return fmt.Errorf("failed to store check state for %s: %w", ipReport.Name, err)
+		k.externalCheckReportHandlerLog(requestID, "failed to store check state for %s: %w", podReport.Name, err)
+		return fmt.Errorf("failed to store check state for %s: %w", podReport.Name, err)
 	}
 
 	// write ok back to caller

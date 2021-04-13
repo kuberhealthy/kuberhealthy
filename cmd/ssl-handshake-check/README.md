@@ -36,7 +36,7 @@ spec:
           # For internal, self-signed certs, set to "true" and the handshake check will attempt to automatically retrieve the host certificate
           - name: SELF_SIGNED
             value: "true"
-        image: kuberhealthy/ssl-handshake-check:v3.1.3
+        image: kuberhealthy/ssl-handshake-check:v3.1.11
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -67,7 +67,7 @@ spec:
           # For internal, self-signed certificates, set to "true" and copy and paste the .pem formatted certificate in the config map below 
           - name: SELF_SIGNED
             value: "true"
-        image: kuberhealthy/ssl-handshake-check:v3.1.3
+        image: kuberhealthy/ssl-handshake-check:v3.1.11
         imagePullPolicy: IfNotPresent
         name: main
         volumeMounts:
