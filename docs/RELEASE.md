@@ -11,13 +11,9 @@ To release a new version of Kuberhealthy:
     docker tag kuberhealthy/kuberhealthy:latest kuberhealthy/kuberhealthy:v[version]
     docker push kuberhealthy/kuberhealthy:v[version]
     ```
-1. Create a PR updating the project with the latest Kuberhealthy tag:
-    - [Makefile](../cmd/kuberhealthy/Makefile)
-    - Helm [values.yaml](../deploy/helm/kuberhealthy/values.yaml)
-    - Helm [Chart.yaml](../deploy/helm/kuberhealthy/Chart.yaml) appVersion
-1. Once the PR is merged, make sure the automatic `Build Flat Spec Files from Helm Chart` PR is also merged
 1. Create a `Release` draft on GitHub named with the release version (such as `v2.3.4`)
 1. Write up and publish release notes, giving an update / latest changes from the last release: new *Kuberhealthy Checks* (if any), new *Features*, and *Bug Fixes*
     1. Tag the issue and pr as well as the contributor to the release notes
+1. Merge auto-generated `Flat Spec File Regeneration ` and `Package and Index for Helm Repo` PRs
 1. Close the GitHub milestone and create a new milestone version for the next release
 1 Celebrate!
