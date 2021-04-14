@@ -86,6 +86,7 @@ data:
     enableInflux: false # Set to true to enable metric forwarding to Infux DB
     jobCleanupDuration: 15m
     maxCheckPods: 4
+    failedPodCleanupDuration: 120h
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
 apiVersion: v1
@@ -504,7 +505,7 @@ spec:
                 fieldPath: spec.nodeName
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.4.2
+        image: kuberhealthy/dns-resolution-check:v1.4.3
         imagePullPolicy: IfNotPresent
         name: main
         resources:
