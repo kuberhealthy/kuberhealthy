@@ -1,6 +1,7 @@
 module github.com/Comcast/kuberhealthy/v2
 
 require (
+	github.com/Bplotka/go-httpt v0.0.0-20170916130655-531231517216 // indirect
 	github.com/Pallinder/go-randomdata v1.1.0
 	github.com/aws/aws-sdk-go v1.25.24
 	github.com/blang/semver v3.5.1+incompatible // indirect
