@@ -20,16 +20,14 @@ import (
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/status"
 )
 
-// Debug can be used to enable output logging from the checkClient
-var Debug bool
+var (
+	Client = http.Client{}
+	// Debug can be used to enable output logging from the checkClient
+	Debug bool
+)
 
 // Use exponential backoff for retries
-var exponentialBackoff = backoff.NewExponentialBackOff()
 const maxElapsedTime = time.Second * 30
-
-func init() {
-	exponentialBackoff.MaxElapsedTime = maxElapsedTime
-}
 
 // ReportSuccess reports a successful check run to the Kuberhealthy service. We
 // do not return an error here because failures will cause the managing
@@ -102,14 +100,17 @@ func sendReport(s status.Report) error {
 	req.Header.Set("kh-run-uuid", uuid)
 	req.Header.Set("Content-Type", "application/json")
 
+	exponentialBackOff := backoff.NewExponentialBackOff()
+	exponentialBackOff.MaxElapsedTime = maxElapsedTime
+
 	// send to the server
 	var resp *http.Response
 	err = backoff.Retry(func() error {
 		var err error
 		writeLog("DEBUG: Making POST request to kuberhealthy:")
-		resp, err = http.DefaultClient.Do(req)
+		resp, err = Client.Do(req)
 		return err
-	}, exponentialBackoff)
+	}, exponentialBackOff)
 	if err != nil {
 		writeLog("ERROR: got an error sending POST to kuberhealthy:", err)
 		return fmt.Errorf("bad POST request to kuberhealthy status reporting url: %w", err)
