@@ -1225,7 +1225,7 @@ func (k *Kuberhealthy) fetchPodBySelectorForDuration(selector string, d time.Dur
 
 		p, err := k.fetchPodBySelector(selector)
 		if err != nil {
-			log.Warningln("was unable to find calling pod with selector " + selector + " while watching for duration. Error: "+err.Error())
+			log.Warningln("was unable to find calling pod with selector " + selector + " while watching for duration. Error: " + err.Error())
 			time.Sleep(time.Second)
 			continue
 		}
@@ -1280,12 +1280,11 @@ func (k *Kuberhealthy) fetchPodBySelector(selector string) (v1.Pod, error) {
 
 // requestUsesUUIDHeader checks if external request has the kh-run-uuid header set
 func requestUsesUUIDHeader(r *http.Request) bool {
-	if len(r.Header.Get("kh-run-uuid")) != 0  {
+	if len(r.Header.Get("kh-run-uuid")) != 0 {
 		return true
 	}
 	return false
 }
-
 
 func (k *Kuberhealthy) externalCheckReportHandlerLog(s ...interface{}) {
 	log.Infoln(s...)
