@@ -29,7 +29,6 @@ import (
 var ReapCheckerPods map[string]v1.Pod
 
 // Default values for reaper configurations
-const maxCheckerPodsDefault = 4
 const jobCleanupDurationDefault = time.Minute * 15
 const failedPodCleanupDurationDefault = time.Hour * 120
 
@@ -41,11 +40,6 @@ type KubernetesAPI struct {
 // and not from string, which is what the config reloader unmarshals the config json. This way we can still supply
 // time.Duration type values in the config, instead of an int64 that doesn't allow users to specify the duration type.
 func (c *Config) parseConfigs() {
-
-	// Set default MaxCheckPods if its not set in the Kuberhealthy ConfigMap
-	if c.MaxCheckPods == 0 {
-		c.MaxCheckPods = maxCheckerPodsDefault
-	}
 
 	var err error
 	c.jobCleanupDuration, err = parseDurationOrUseDefault(c.JobCleanupDuration, jobCleanupDurationDefault)
@@ -89,11 +83,11 @@ func reaper(ctx context.Context) {
 
 	log.Infoln("checkReaper: starting up...")
 	log.Infoln("checkReaper: job cleanup duration:", cfg.JobCleanupDuration)
-	log.Infoln("checkReaper: max checker pods:", cfg.MaxCheckPods)
+	log.Infoln("checkReaper: max completed checker pods:", cfg.MaxCompletedCheckPods)
 	log.Infoln("checkReaper: failed pod cleanup duration:", cfg.FailedPodCleanupDuration)
 
 	// start a new ticker
-	t := time.NewTicker(time.Minute * 3)
+	t := time.NewTicker(time.Second * 30)
 	defer t.Stop()
 
 	// iterate until our context expires and run reaper operations
@@ -224,7 +218,7 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 		// Delete if there are more than MaxPodsThreshold checker pods with the same name in status Succeeded that were created more recently
 		// Delete if the checker pod is Failed and there are more than MaxPodsThreshold Failed checker pods of the same type which were created more recently
 		allCheckPods := getAllPodsWithCheckName(reapCheckerPods, v)
-		if len(allCheckPods) > cfg.MaxCheckPods {
+		if len(allCheckPods) > cfg.MaxCompletedCheckPods {
 
 			failOldCount := 0
 			failCount := 0
@@ -246,8 +240,8 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 			}
 
 			// Delete if there are more than MaxPodsThreshold checker pods with the same name in status Succeeded that were created more recently
-			if v.Status.Phase == v1.PodSucceeded && successOldCount > cfg.MaxCheckPods && successCount > cfg.MaxCheckPods {
-				log.Infoln("checkReaper: Found more than", cfg.MaxCheckPods, "checker pods with the same name in status `Succeeded` that were created more recently. Deleting pod:", n)
+			if v.Status.Phase == v1.PodSucceeded && successOldCount > cfg.MaxCompletedCheckPods && successCount > cfg.MaxCompletedCheckPods {
+				log.Infoln("checkReaper: Found more than", cfg.MaxCompletedCheckPods, "checker pods with the same name in status `Succeeded` that were created more recently. Deleting pod:", n)
 
 				err = k.deletePod(ctx, v)
 				if err != nil {
@@ -258,8 +252,8 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 			}
 
 			// Delete if there are more than MaxPodsThreshold checker pods with the same name in status Failed that were created more recently
-			if v.Status.Phase == v1.PodFailed && failOldCount > cfg.MaxCheckPods && failCount > cfg.MaxCheckPods {
-				log.Infoln("checkReaper: Found more than", cfg.MaxCheckPods, "checker pods with the same name in status Failed` that were created more recently. Deleting pod:", n)
+			if v.Status.Phase == v1.PodFailed && failOldCount > cfg.MaxCompletedCheckPods && failCount > cfg.MaxCompletedCheckPods {
+				log.Infoln("checkReaper: Found more than", cfg.MaxCompletedCheckPods, "checker pods with the same name in status Failed` that were created more recently. Deleting pod:", n)
 
 				err = k.deletePod(ctx, v)
 				if err != nil {

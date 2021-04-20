@@ -24,7 +24,7 @@ type Config struct {
 	ExternalCheckReportingURL string `yaml:"externalCheckReportingURL,omitempty"`
 	JobCleanupDuration        string `yaml:"jobCleanupDuration,omitempty"`
 	jobCleanupDuration        time.Duration
-	MaxCheckPods              int    `yaml:"maxCheckPods,omitempty"`
+	MaxCompletedCheckPods     int    `yaml:"maxCompletedCheckPods,omitempty"`
 	FailedPodCleanupDuration  string `yaml:"failedPodCleanupDuration,omitempty"`
 	failedPodCleanupDuration  time.Duration
 }
