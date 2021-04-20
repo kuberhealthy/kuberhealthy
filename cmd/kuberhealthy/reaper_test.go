@@ -16,19 +16,19 @@ func TestParseConfigs(t *testing.T) {
 
 	testConfig1 := &Config{
 		FailedPodCleanupDuration: "10m",
-		JobCleanupDuration: "100h",
-		MaxCompletedCheckPods: 4,
+		JobCleanupDuration:       "100h",
+		MaxCompletedCheckPods:    4,
 	}
 
 	testConfig2 := &Config{
 		FailedPodCleanupDuration: "10m",
-		JobCleanupDuration: "100h",
-		MaxCompletedCheckPods: 0,
+		JobCleanupDuration:       "100h",
+		MaxCompletedCheckPods:    0,
 	}
 
 	var testCases = []struct {
-		description 	string
-		cfg         	*Config
+		description string
+		cfg         *Config
 	}{
 		{"Valid config", testConfig1},
 		{"0 MaxCheckPods", testConfig2},
@@ -59,15 +59,15 @@ func TestParseConfigs(t *testing.T) {
 func TestParseDurationOrUseDefault(t *testing.T) {
 
 	var testCases = []struct {
-		description 	string
-		stringDuration	string
-		defaultDuration	time.Duration
-		expected    	time.Duration
-		err				string
+		description     string
+		stringDuration  string
+		defaultDuration time.Duration
+		expected        time.Duration
+		err             string
 	}{
-		{"Valid duration", "5m", time.Minute*15, time.Minute*5, ""},
-		{"0 Duration value, not allowed", "0", time.Minute*15, time.Minute*15, ""},
-		{"No duration value", "", time.Minute*15, time.Minute*15, ""},
+		{"Valid duration", "5m", time.Minute * 15, time.Minute * 5, ""},
+		{"0 Duration value, not allowed", "0", time.Minute * 15, time.Minute * 15, ""},
+		{"No duration value", "", time.Minute * 15, time.Minute * 15, ""},
 	}
 
 	for _, test := range testCases {

@@ -12,11 +12,11 @@ import (
 func TestGetKuberhealthyURL(t *testing.T) {
 
 	var testCases = []struct {
-		input 		string
-		err			string
+		input string
+		err   string
 	}{
 		{"http://kuberhealthy.kuberhealthy.svc.cluster.local/externalCheckStatus", ""},
-		{"http://anotherurl.com/externalCheckStatus",  ""},
+		{"http://anotherurl.com/externalCheckStatus", ""},
 		{"", "fetched KH_REPORTING_URL environment variable but it was blank"},
 	}
 
@@ -43,11 +43,11 @@ func TestGetKuberhealthyURL(t *testing.T) {
 func TestGetKuberhealthyRunUUID(t *testing.T) {
 
 	var testCases = []struct {
-		input 		string
-		err			string
+		input string
+		err   string
 	}{
 		{"some-random-uuid", ""},
-		{"another-random-uuid, not allowed",  ""},
+		{"another-random-uuid, not allowed", ""},
 		{"", "fetched KH_RUN_UUID environment variable but it was blank"},
 	}
 
@@ -74,14 +74,14 @@ func TestGetKuberhealthyRunUUID(t *testing.T) {
 func TestGetDeadline(t *testing.T) {
 
 	var testCases = []struct {
-		input 		string
-		inputTime	time.Time
-		err			string
+		input     string
+		inputTime time.Time
+		err       string
 	}{
 		{"1618336810", time.Unix(int64(1618336810), 0), ""},
-		{"1618346824",  time.Unix(int64(1618346824), 0), ""},
-		{"bad-input", time.Time{},"unable to parse KH_CHECK_RUN_DEADLINE: strconv.Atoi: parsing \"bad-input\": invalid syntax"},
-		{"", time.Time{},"fetched KH_CHECK_RUN_DEADLINE environment variable but it was blank"},
+		{"1618346824", time.Unix(int64(1618346824), 0), ""},
+		{"bad-input", time.Time{}, "unable to parse KH_CHECK_RUN_DEADLINE: strconv.Atoi: parsing \"bad-input\": invalid syntax"},
+		{"", time.Time{}, "fetched KH_CHECK_RUN_DEADLINE environment variable but it was blank"},
 	}
 
 	for _, tc := range testCases {

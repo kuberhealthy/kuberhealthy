@@ -33,7 +33,7 @@ const jobCleanupDurationDefault = time.Minute * 15
 const failedPodCleanupDurationDefault = time.Hour * 120
 
 type KubernetesAPI struct {
-	Client  kubernetes.Interface
+	Client kubernetes.Interface
 }
 
 // parseConfigs parses checkReaper config values. For checkReaper duration values, Go parses time.Duration from int64

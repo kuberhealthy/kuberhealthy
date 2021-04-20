@@ -76,7 +76,7 @@ func TestStop(t *testing.T) {
 	// Run watch for 5 seconds
 	go khStateReflector.Start()
 	fw.Add(&khstatecrd.KuberhealthyState{ObjectMeta: metav1.ObjectMeta{Name: "bar"}})
-	time.Sleep(time.Second*2)
+	time.Sleep(time.Second * 2)
 
 	// Stop watch.
 	khStateReflector.Stop()
