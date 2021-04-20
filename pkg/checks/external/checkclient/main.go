@@ -21,7 +21,6 @@ import (
 )
 
 var (
-	Client = http.Client{}
 	// Debug can be used to enable output logging from the checkClient
 	Debug bool
 )
@@ -103,12 +102,13 @@ func sendReport(s status.Report) error {
 	exponentialBackOff := backoff.NewExponentialBackOff()
 	exponentialBackOff.MaxElapsedTime = maxElapsedTime
 
+	client := &http.Client{}
 	// send to the server
 	var resp *http.Response
 	err = backoff.Retry(func() error {
 		var err error
 		writeLog("DEBUG: Making POST request to kuberhealthy:")
-		resp, err = Client.Do(req)
+		resp, err = client.Do(req)
 		return err
 	}, exponentialBackOff)
 	if err != nil {

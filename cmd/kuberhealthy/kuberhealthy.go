@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"reflect"
 	"strings"
@@ -1123,7 +1124,7 @@ func (k *Kuberhealthy) StartWebServer() {
 	}
 }
 
-// PodReportIPInfo holds info about an incoming IP to the external check reporting endpoint
+// PodReportInfo holds info about an incoming IP to the external check reporting endpoint
 type PodReportInfo struct {
 	Name      string
 	UUID      string
@@ -1277,6 +1278,15 @@ func (k *Kuberhealthy) fetchPodBySelector(selector string) (v1.Pod, error) {
 	return podList.Items[0], nil
 }
 
+// requestUsesUUIDHeader checks if external request has the kh-run-uuid header set
+func requestUsesUUIDHeader(r *http.Request) bool {
+	if len(r.Header.Get("kh-run-uuid")) != 0  {
+		return true
+	}
+	return false
+}
+
+
 func (k *Kuberhealthy) externalCheckReportHandlerLog(s ...interface{}) {
 	log.Infoln(s...)
 }
@@ -1293,37 +1303,40 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 
 	k.externalCheckReportHandlerLog(requestID, "Client connected to check report handler from", r.UserAgent())
 
-	// Get kh-run-uuid from the request header and verify it exists. If the kh-run-uuid doesn't exist, verify request by
-	// validating using the pod's remote IP.
-	reportingKHRunUUID := r.Header.Get("kh-run-uuid")
+	// Validate request using the kh-run-uuid header. If the header doesn't exist, or there's an error with validation,
+	// validate using the pod's remote IP.
+	var reportValidated bool
 	var podReport PodReportInfo
 	var err error
-	if len(reportingKHRunUUID) == 0 {
-		k.externalCheckReportHandlerLog(requestID, "Received blank kh-run-uuid header from external request. Validating external check status report from the pod's remote IP.")
+	if requestUsesUUIDHeader(r) {
+		k.externalCheckReportHandlerLog(requestID, "validating external check status report from its reporting kuberhealthy run uuid:", r.Header.Get("kh-run-uuid"))
 
-		// break the port off the RemoteAddr incoming string
-		ipPortString := strings.Split(r.RemoteAddr, ":")
-		if len(ipPortString) == 0 {
+		selector := "kuberhealthy-run-id=" + r.Header.Get("kh-run-uuid")
+		podReport, err = k.validateExternalRequest(selector)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by its kh run uuid:", r.Header.Get("kh-run-uuid"), err)
+			return nil
+		} else {
+			reportValidated = true
+		}
+	}
+
+	if !reportValidated {
+		k.externalCheckReportHandlerLog(requestID, "validating external check status report from the pod's remote IP:", r.RemoteAddr)
+
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by IP:", r.RemoteAddr, "remote ip:port was blank")
 			return nil
 		}
-		ip := ipPortString[0]
+
 		selector := "status.podIP==" + ip + ",status.phase==Running"
 		podReport, err = k.validateExternalRequest(selector)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by IP:", r.RemoteAddr, err)
-			return nil
-		}
-	} else {
-		// validate the calling pod to ensure that it has a proper KH_CHECK_NAME and KH_RUN_UUID
-		k.externalCheckReportHandlerLog(requestID, "validating external check status report from its reporting kuberhealthy run uuid:", reportingKHRunUUID)
-		selector := "kuberhealthy-run-id=" + reportingKHRunUUID
-		podReport, err = k.validateExternalRequest(selector)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by its kh run uuid:", reportingKHRunUUID, err)
+			k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by IP:", ip, err)
 			return nil
 		}
 	}

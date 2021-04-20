@@ -11,22 +11,20 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-// TestParseConfigs ensures that all checkReaper configs are properly parsed and that there are no 0 values
+// TestParseConfigs ensures that all checkReaper configs are properly parsed and that there are no 0 duration values
 func TestParseConfigs(t *testing.T) {
 
 	testConfig1 := &Config{
 		FailedPodCleanupDuration: "10m",
 		JobCleanupDuration: "100h",
-		MaxCheckPods: 4,
+		MaxCompletedCheckPods: 4,
 	}
 
 	testConfig2 := &Config{
 		FailedPodCleanupDuration: "10m",
 		JobCleanupDuration: "100h",
-		MaxCheckPods: 0,
+		MaxCompletedCheckPods: 0,
 	}
-
-	testConfig2.parseConfigs()
 
 	var testCases = []struct {
 		description 	string
@@ -51,12 +49,6 @@ func TestParseConfigs(t *testing.T) {
 			t.Fatalf("jobCleanupDuration config not set")
 		}
 		t.Logf("parseConfigs parsed jobCleanupDuration correctly: %s", test.cfg.jobCleanupDuration)
-
-		if test.cfg.MaxCheckPods == 0 {
-			t.Fatalf("MaxCheckPods config not set")
-		}
-		t.Logf("parseConfigs parsed MaxCheckPods correctly: %d", test.cfg.MaxCheckPods)
-
 	}
 
 }
