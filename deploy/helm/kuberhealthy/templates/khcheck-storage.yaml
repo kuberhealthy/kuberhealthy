@@ -18,8 +18,8 @@ spec:
     {{- end }}
     containers:
     - name: main
-      {{- if .Values.imageRegistry }}
-      image: {{ .Values.imageRegistry }}/{{ .Values.check.storage.image.repository }}:{{ .Values.check.storage.image.tag }}
+      {{- if $.Values.imageRegistry }}
+      image: {{ $.Values.imageRegistry }}/{{ .Values.check.storage.image.repository }}:{{ .Values.check.storage.image.tag }}
       {{- else if .Values.check.storage.image.registry }}
       image: {{ .Values.check.storage.image.registry }}/{{ .Values.check.storage.image.repository }}:{{ .Values.check.storage.image.tag }}
       {{- end }}
