@@ -1,5 +1,5 @@
 IMAGE="kuberhealthy/kuberhealthy"
-TAG="crds-update"
+TAG="latest"
 
 build:
 	docker build --no-cache --pull -t ${IMAGE}:${TAG} -f Dockerfile ../../
