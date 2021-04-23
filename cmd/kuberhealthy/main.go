@@ -45,6 +45,9 @@ var upcomingMasterState bool       // the upcoming master state on next interval
 var lastMasterChangeTime time.Time // indicates the last time a master change was seen
 var listenNamespace string         // namespace to listen (watch/get) `khcheck` resources on.  If blank, all namespaces will be monitored.
 
+// Interval for how often check pods should get reaped. Default is 30s.
+var checkReaperRunInterval = os.Getenv("CHECK_REAPER_RUN_INTERVAL")
+
 var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
 // the hostname of this pod
