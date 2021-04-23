@@ -54,12 +54,6 @@ func (c *Config) parseConfigs() {
 		log.Errorln("checkReaper: Error occurred attempting to parse FailedPodCleanupDuration:", err)
 		log.Infoln("checkReaper: Using default FailedPodCleanupDuration:", c.failedPodCleanupDuration)
 	}
-
-	c.checkReaperRunInterval, err = parseDurationOrUseDefault(c.CheckReaperRunInterval, checkReaperRunIntervalDefault)
-	if err != nil {
-		log.Errorln("checkReaper: Error occurred attempting to parse CheckReaperRunInterval:", err)
-		log.Infoln("checkReaper: Using default CheckReaperRunInterval:", c.checkReaperRunInterval)
-	}
 }
 
 // parseDurationOrUseDefault parses a string duration into a time.Duration. If string is empty, return the defaultDuration.
@@ -88,14 +82,21 @@ func parseDurationOrUseDefault(d string, defaultDuration time.Duration) (time.Du
 // reaper runs until the supplied context expires and reaps khjobs and khchecks
 func reaper(ctx context.Context) {
 
+	reaperRunInterval, err := parseDurationOrUseDefault(checkReaperRunInterval, checkReaperRunIntervalDefault)
+	if err != nil {
+		log.Errorln("checkReaper: Error occurred attempting to parse checkReaperRunInterval:", err)
+		log.Infoln("checkReaper: Using default checkReaperRunInterval:", checkReaperRunIntervalDefault)
+	}
+
+	// Parse configs when reaper starts up.
 	log.Infoln("checkReaper: starting up...")
-	log.Infoln("checkReaper: run interval:", cfg.CheckReaperRunInterval)
+	log.Infoln("checkReaper: run interval:", reaperRunInterval)
 	log.Infoln("checkReaper: job cleanup duration:", cfg.JobCleanupDuration)
 	log.Infoln("checkReaper: max completed checker pods:", cfg.MaxCompletedCheckPods)
 	log.Infoln("checkReaper: failed pod cleanup duration:", cfg.FailedPodCleanupDuration)
 
 	// start a new ticker
-	t := time.NewTicker(cfg.checkReaperRunInterval)
+	t := time.NewTicker(reaperRunInterval)
 	defer t.Stop()
 
 	// iterate until our context expires and run reaper operations

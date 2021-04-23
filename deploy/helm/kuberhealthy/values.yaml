@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 
 checkReaper:
-  maxCheckPods: 4 # the maximum number of check pods in Completed state before being reaped
+  maxCompletedCheckPods: 4 # Maximum number of check pods in Completed state before being reaped, excludes pod from the most recent check run. If not set or set to 0, only the most recent check pod will remain.
   ## Valid time units for duration configurations below: "ns", "us" (or "µs"), "ms", "s", "m", "h".
   jobCleanupDuration: 15m # the maximum age of khjobs before being reaped
   failedPodCleanupDuration: 120h # the maximum age of failed khcheck/khjob pods before being reaped
@@ -65,7 +65,8 @@ deployment:
   #   operator: "Equal"
   #   value: "value"
   #   effect: "NoSchedule"
-  env: {}
+  env:
+    CHECK_REAPER_RUN_INTERVAL: "30s" # Interval for how often check pods should get reaped. Default is 30s
   command:
   - /app/kuberhealthy
   # args:
