@@ -18,10 +18,10 @@ spec:
     {{- end }}
     containers:
     - name: main
-      {{- if .Values.imageRegistry }}
-      image: {{ .Values.imageRegistry }}/{{ .Values.check.storage.image.repository }}:{{ .Values.check.storage.image.tag }}
-      {{- else if .Values.check.storage.image.registry }}
-      image: {{ .Values.check.storage.image.registry }}/{{ .Values.check.storage.image.repository }}:{{ .Values.check.storage.image.tag }}
+      {{- if $.Values.imageRegistry }}
+      image: {{ $.Values.imageRegistry }}/{{ $.Values.check.storage.image.repository }}:{{ $.Values.check.storage.image.tag }}
+      {{- else if $.Values.check.storage.image.registry }}
+      image: {{ $.Values.check.storage.image.registry }}/{{ $.Values.check.storage.image.repository }}:{{ $.Values.check.storage.image.tag }}
       {{- end }}
       imagePullPolicy: IfNotPresent
       env:
@@ -41,15 +41,15 @@ spec:
 {{- end }}
       resources:
         requests:
-          cpu: {{ .Values.check.storage.resources.requests.cpu }}
-          memory: {{ .Values.check.storage.resources.requests.memory }}
-        {{- if .Values.check.storage.resources.limits }}
+          cpu: {{ $.Values.check.storage.resources.requests.cpu }}
+          memory: {{ $.Values.check.storage.resources.requests.memory }}
+        {{- if $.Values.check.storage.resources.limits }}
         limits:
-          {{- if .Values.check.storage.resources.limits.cpu }}
-          cpu: {{ .Values.check.storage.resources.limits.cpu }}
+          {{- if $.Values.check.storage.resources.limits.cpu }}
+          cpu: {{ $.Values.check.storage.resources.limits.cpu }}
           {{- end }}
-          {{- if .Values.check.storage.resources.limits.memory }}
-          memory: {{ .Values.check.storage.resources.limits.memory }}
+          {{- if $.Values.check.storage.resources.limits.memory }}
+          memory: {{ $.Values.check.storage.resources.limits.memory }}
           {{- end }}
         {{- end }}
         {{- if $.Values.securityContext.enabled }}
