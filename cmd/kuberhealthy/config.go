@@ -27,6 +27,8 @@ type Config struct {
 	MaxCompletedCheckPods     int    `yaml:"maxCompletedCheckPods,omitempty"`
 	FailedPodCleanupDuration  string `yaml:"failedPodCleanupDuration,omitempty"`
 	failedPodCleanupDuration  time.Duration
+	CheckReaperRunInterval    string `yaml:"checkReaperRunInterval,omitempty"`
+	checkReaperRunInterval    time.Duration
 }
 
 // Load loads file from disk

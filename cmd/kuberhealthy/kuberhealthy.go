@@ -1314,13 +1314,13 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 		podReport, err = k.validateExternalRequest(selector)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by its kh run uuid:", r.Header.Get("kh-run-uuid"), err)
-			return nil
+			k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by its kh-run-uuid header:", r.Header.Get("kh-run-uuid"), err)
 		} else {
 			reportValidated = true
 		}
 	}
 
+	// Validate using pod's remote IP
 	if !reportValidated {
 		k.externalCheckReportHandlerLog(requestID, "validating external check status report from the pod's remote IP:", r.RemoteAddr)
 
