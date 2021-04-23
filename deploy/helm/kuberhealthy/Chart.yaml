@@ -1,7 +1,7 @@
 apiVersion: v2
 name: kuberhealthy
 appVersion: v2.4.1
-version: 58
+version: 59
 home: https://comcast.github.io/kuberhealthy/
 description: "An operator for synthetic test and monitoring. Works great with Prometheus."
 type: application
