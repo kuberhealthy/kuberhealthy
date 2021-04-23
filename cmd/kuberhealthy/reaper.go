@@ -31,6 +31,7 @@ var ReapCheckerPods map[string]v1.Pod
 // Default values for reaper configurations
 const jobCleanupDurationDefault = time.Minute * 15
 const failedPodCleanupDurationDefault = time.Hour * 120
+const checkReaperRunIntervalDefault = time.Second * 30
 
 type KubernetesAPI struct {
 	Client kubernetes.Interface
@@ -52,6 +53,12 @@ func (c *Config) parseConfigs() {
 	if err != nil {
 		log.Errorln("checkReaper: Error occurred attempting to parse FailedPodCleanupDuration:", err)
 		log.Infoln("checkReaper: Using default FailedPodCleanupDuration:", c.failedPodCleanupDuration)
+	}
+
+	c.checkReaperRunInterval, err = parseDurationOrUseDefault(c.CheckReaperRunInterval, checkReaperRunIntervalDefault)
+	if err != nil {
+		log.Errorln("checkReaper: Error occurred attempting to parse CheckReaperRunInterval:", err)
+		log.Infoln("checkReaper: Using default CheckReaperRunInterval:", c.checkReaperRunInterval)
 	}
 }
 
@@ -82,12 +89,13 @@ func parseDurationOrUseDefault(d string, defaultDuration time.Duration) (time.Du
 func reaper(ctx context.Context) {
 
 	log.Infoln("checkReaper: starting up...")
+	log.Infoln("checkReaper: run interval:", cfg.CheckReaperRunInterval)
 	log.Infoln("checkReaper: job cleanup duration:", cfg.JobCleanupDuration)
 	log.Infoln("checkReaper: max completed checker pods:", cfg.MaxCompletedCheckPods)
 	log.Infoln("checkReaper: failed pod cleanup duration:", cfg.FailedPodCleanupDuration)
 
 	// start a new ticker
-	t := time.NewTicker(time.Second * 30)
+	t := time.NewTicker(cfg.checkReaperRunInterval)
 	defer t.Stop()
 
 	// iterate until our context expires and run reaper operations

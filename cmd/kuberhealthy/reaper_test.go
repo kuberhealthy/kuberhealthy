@@ -18,12 +18,14 @@ func TestParseConfigs(t *testing.T) {
 		FailedPodCleanupDuration: "10m",
 		JobCleanupDuration:       "100h",
 		MaxCompletedCheckPods:    4,
+		CheckReaperRunInterval:   "60s",
 	}
 
 	testConfig2 := &Config{
 		FailedPodCleanupDuration: "10m",
 		JobCleanupDuration:       "100h",
 		MaxCompletedCheckPods:    0,
+		CheckReaperRunInterval:   "30s",
 	}
 
 	var testCases = []struct {
@@ -49,6 +51,11 @@ func TestParseConfigs(t *testing.T) {
 			t.Fatalf("jobCleanupDuration config not set")
 		}
 		t.Logf("parseConfigs parsed jobCleanupDuration correctly: %s", test.cfg.jobCleanupDuration)
+
+		if test.cfg.checkReaperRunInterval == 0 {
+			t.Fatalf("checkReaperRunInterval config not set")
+		}
+		t.Logf("parseConfigs parsed checkReaperRunInterval correctly: %s", test.cfg.checkReaperRunInterval)
 	}
 
 }

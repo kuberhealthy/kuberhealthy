@@ -60,11 +60,10 @@ func GenerateMetrics(state health.State) string {
 		metricCheckState[metricName] = checkStatus
 		runDuration, err := time.ParseDuration(d.RunDuration)
 		if err != nil {
-			if d.RunDuration != "" {
-				log.Errorln("Error parsing run duration:", d.RunDuration, "for metric:", metricName, "error:", err)
-				continue
-			}
-			// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
+			log.Errorln("Error parsing run duration:", d.RunDuration, "for metric:", metricName, "error:", err)
+		}
+		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
+		if d.RunDuration == "" {
 			runDuration = 0
 		}
 		metricCheckDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
@@ -87,11 +86,10 @@ func GenerateMetrics(state health.State) string {
 		metricJobState[metricName] = jobStatus
 		runDuration, err := time.ParseDuration(d.RunDuration)
 		if err != nil {
-			if d.RunDuration != "" {
-				log.Errorln("Error parsing run duration:", d.RunDuration, "for metric:", metricName, "error:", err)
-				continue
-			}
-			// if runDuration hasn't been set yet, ie. khchecker pod never ran or failed to provision, set runDuration to 0
+			log.Errorln("Error parsing run duration:", d.RunDuration, "for metric:", metricName, "error:", err)
+		}
+		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
+		if d.RunDuration == "" {
 			runDuration = 0
 		}
 		metricJobDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
