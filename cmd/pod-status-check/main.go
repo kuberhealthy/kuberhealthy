@@ -121,13 +121,13 @@ func (o Options) findPodsNotRunning() ([]string, error) {
 		case pod.Status.Phase == v1.PodSucceeded:
 			continue
 		case pod.Status.Phase == v1.PodPending:
-			failures = append(failures, pod.Name+" is in pod status phase "+string(pod.Status.Phase)+" ")
+			failures = append(failures, "pod: "+pod.Name+" in namespace: "+pod.Namespace+" is in pod status phase "+string(pod.Status.Phase)+" ")
 		case pod.Status.Phase == v1.PodFailed:
-			failures = append(failures, pod.Name+" is in pod status phase "+string(pod.Status.Phase)+" ")
+			failures = append(failures, "pod: "+pod.Name+" in namespace: "+pod.Namespace+" is in pod status phase "+string(pod.Status.Phase)+" ")
 		case pod.Status.Phase == v1.PodUnknown:
-			failures = append(failures, pod.Name+" is in pod status phase "+string(pod.Status.Phase)+" ")
+			failures = append(failures, "pod: "+pod.Name+" in namespace: "+pod.Namespace+" is in pod status phase "+string(pod.Status.Phase)+" ")
 		default:
-			log.Info(pod.Name + " is not in one of the five possible pod status phases " + string(pod.Status.Phase) + " ")
+			log.Info("pod: " + pod.Name + " in namespace: " + pod.Namespace + " is not in one of the five possible pod status phases " + string(pod.Status.Phase) + " ")
 		}
 	}
 
