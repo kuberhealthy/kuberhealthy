@@ -27,10 +27,10 @@ func Test_findPodsNotRunning(t *testing.T) {
 	}{
 		{name: "single_namespace", fields: fields{
 			namespace: "foo",
-		}, want: []string{"foo-pod is in pod status phase Pending "}, wantErr: false},
+		}, want: []string{"pod: foo-pod in namespace: foo is in pod status phase Pending "}, wantErr: false},
 		{name: "multi_namespace", fields: fields{
 			namespace: "",
-		}, want: []string{"bar-pod is in pod status phase Pending ", "foo-pod is in pod status phase Pending "}, wantErr: false},
+		}, want: []string{"pod: bar-pod in namespace: bar is in pod status phase Pending ", "pod: foo-pod in namespace: foo is in pod status phase Pending "}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
