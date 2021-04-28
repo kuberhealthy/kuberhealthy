@@ -213,7 +213,7 @@ check:
     image:
       registry: kuberhealthy
       repository: pod-status-check
-      tag: v1.2.4
+      tag: v1.2.5
     allNamespaces: false
     extraEnvs:
     nodeSelector: {}
