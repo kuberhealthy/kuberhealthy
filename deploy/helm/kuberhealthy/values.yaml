@@ -192,6 +192,7 @@ check:
       registry: kuberhealthy
       repository: pod-restarts-check
       tag: v2.3.3
+    allNamespaces: false
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
