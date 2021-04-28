@@ -96,8 +96,7 @@ rules:
       - events
     verbs:
       - list
-{{- end }}
-{{- if not .Values.check.podRestarts.allNamespaces }}
+{{ else }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
