@@ -15,15 +15,17 @@ import (
 func TestParseConfigs(t *testing.T) {
 
 	testConfig1 := &Config{
-		FailedPodCleanupDuration: "10m",
-		JobCleanupDuration:       "100h",
-		MaxCompletedCheckPods:    4,
+		MaxCheckPodAge:       "10m",
+		MaxKHJobAge:          "100h",
+		MaxCompletedPodCount: 4,
+		MaxErrorPodCount:     4,
 	}
 
 	testConfig2 := &Config{
-		FailedPodCleanupDuration: "10m",
-		JobCleanupDuration:       "100h",
-		MaxCompletedCheckPods:    0,
+		MaxCheckPodAge:       "",
+		MaxKHJobAge:          "",
+		MaxCompletedPodCount: 0,
+		MaxErrorPodCount:     0,
 	}
 
 	var testCases = []struct {
@@ -40,15 +42,15 @@ func TestParseConfigs(t *testing.T) {
 
 		test.cfg.parseConfigs()
 
-		if test.cfg.failedPodCleanupDuration == 0 {
-			t.Fatalf("failedPodCleanupDuration config not set")
+		if test.cfg.maxKHJobAge == 0 {
+			t.Fatalf("maxKHJobAge config not set")
 		}
-		t.Logf("parseConfigs parsed failedPodCleanupDuration correctly: %s", test.cfg.failedPodCleanupDuration)
+		t.Logf("parseConfigs parsed maxKHJobAge correctly: %s", test.cfg.maxKHJobAge)
 
-		if test.cfg.jobCleanupDuration == 0 {
-			t.Fatalf("jobCleanupDuration config not set")
+		if test.cfg.maxCheckPodAge == 0 {
+			t.Fatalf("maxCheckPodAge config not set")
 		}
-		t.Logf("parseConfigs parsed jobCleanupDuration correctly: %s", test.cfg.jobCleanupDuration)
+		t.Logf("parseConfigs parsed maxCheckPodAge correctly: %s", test.cfg.maxCheckPodAge)
 	}
 
 }
