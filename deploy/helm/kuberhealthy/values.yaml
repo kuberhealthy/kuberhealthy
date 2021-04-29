@@ -3,10 +3,10 @@
 # Declare variables to be passed into your templates.
 
 checkReaper:
-  maxCompletedCheckPods: 4 # Maximum number of check pods in Completed state before being reaped, excludes pod from the most recent check run. If not set or set to 0, only the most recent check pod will remain.
-  ## Valid time units for duration configurations below: "ns", "us" (or "µs"), "ms", "s", "m", "h".
-  jobCleanupDuration: 15m # the maximum age of khjobs before being reaped
-  failedPodCleanupDuration: 120h # the maximum age of failed khcheck/khjob pods before being reaped
+  maxKHJobAge: 15m # Maximum age of the khjob resource before being reaped. Valid time units: "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  maxCheckPodAge: 72h # Maximum age of khcheck/khjob pods before being reaped. Valid time units: "ns", "us" (or "µs"), "ms", "s", "m", "h"
+  maxCompletedPodCount: 4 # Maximum number of khcheck/khjob pods in Completed state before being reaped. If not set or set to 0, no completed khjob/khcheck pod will remain.
+  maxErrorPodCount: 4 # Maximum number of khcheck/khjob pods in Error state before being reaped. If not set or set to 0, no completed khjob/khcheck pod will remain.
 
 prometheus:
   enabled: false

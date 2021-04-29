@@ -1299,7 +1299,6 @@ func (k *Kuberhealthy) validateUsingRequestHeader(r *http.Request) (PodReportInf
 	return podReport, true, nil
 }
 
-
 // validatePodReportBySourceIP parses the remoteAddr from the request and forms a selector with the remote IP to
 // validate that the request is coming from a kuberhealthy check pod
 func (k *Kuberhealthy) validatePodReportBySourceIP(r *http.Request) (PodReportInfo, error) {
