@@ -63,7 +63,7 @@ spec:
                 - key: app
                   operator: In
                   values:
-                - {{ template "kuberhealthy.name" . }}
+                  - {{ template "kuberhealthy.name" . }}
               topologyKey: "kubernetes.io/hostname"
 {{- end }}
 {{- end }}
