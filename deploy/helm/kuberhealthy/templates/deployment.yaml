@@ -38,6 +38,35 @@ spec:
       {{- if .Values.deployment.priorityClassName }}
       priorityClassName: {{ .Values.deployment.priorityClassName }}
       {{- end}}
+{{- if or .Values.deployment.affinity  .Values.deployment.podAntiAffinity }}
+      affinity:
+{{- if .Values.deployment.affinity }}
+{{ toYaml .Values.deployment.affinity | indent 8 }}
+{{- end }}
+{{- if eq .Values.deployment.podAntiAffinity "hard"}}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - {{ template "kuberhealthy.name" . }}
+            topologyKey: "kubernetes.io/hostname"
+{{else if eq .Values.deployment.podAntiAffinity "soft"}}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                - {{ template "kuberhealthy.name" . }}
+              topologyKey: "kubernetes.io/hostname"
+{{- end }}
+{{- end }}
       containers:
       {{- if .Values.imageRegistry }}
       - image: {{ .Values.imageRegistry }}/{{ .Values.image.repository }}:{{ .Chart.AppVersion }}
