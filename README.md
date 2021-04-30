@@ -1,4 +1,4 @@
-## ATTN: Kuberhealthy Organization Migration, Wednesday, May 12th
+## ATTN: Kuberhealthy Organization Migration - Wednesday, May 12th
 
 We're super excited to share that Kuberhealthy has been accepted into the CNCF Sandbox and with it, we're transferring the project from the Comcast github organization to its own [Kuberhealthy](https://github.com/kuberhealthy) github organization.
 
