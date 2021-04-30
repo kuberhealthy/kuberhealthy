@@ -10,6 +10,9 @@ Known Breaking Changes:
 
 Resources:
 - Flat spec files for deploying Kuberhealthy will still be available in the [/deploy](/deploy) directory
+
+Questions:
+- Ping us in the Kubernetes slack channel #kuberhealthy with questions and please submit any issues!
 _____________
 
 <center><img src="https://github.com/Comcast/kuberhealthy/blob/master/images/kuberhealthy.png?raw=true"></center><br />
