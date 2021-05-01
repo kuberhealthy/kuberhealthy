@@ -7,27 +7,25 @@ import (
 
 	"github.com/codingsince1985/checksum"
 	log "github.com/sirupsen/logrus"
-	"sigs.k8s.io/yaml"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // Config holds all configurable options
 type Config struct {
 	kubeConfigFile            string
-	ListenAddress             string `yaml:"listenAddress,omitempty"`
-	EnableForceMaster         bool   `yaml:"enableForceMaster,omitempty"`
-	LogLevel                  string `yaml:"logLevel,omitempty"`
-	InfluxUsername            string `yaml:"influxUsername,omitempty"`
-	InfluxPassword            string `yaml:"influxPassword,omitempty"`
-	InfluxURL                 string `yaml:"influxURL,omitempty"`
-	InfluxDB                  string `yaml:"influxDB,omitempty"`
-	EnableInflux              bool   `yaml:"enableInflux,omitempty"`
-	ExternalCheckReportingURL string `yaml:"externalCheckReportingURL,omitempty"`
-	MaxKHJobAge               string `yaml:"maxKHJobAge,omitempty"`
-	maxKHJobAge               time.Duration
-	MaxCheckPodAge            string `yaml:"maxCheckPodAge,omitempty"`
-	maxCheckPodAge            time.Duration
-	MaxCompletedPodCount      int `yaml:"maxCompletedPodCount,omitempty"`
-	MaxErrorPodCount          int `yaml:"maxErrorPodCount,omitempty"`
+	ListenAddress             string        `yaml:"listenAddress,omitempty"`
+	EnableForceMaster         bool          `yaml:"enableForceMaster,omitempty"`
+	LogLevel                  string        `yaml:"logLevel,omitempty"`
+	InfluxUsername            string        `yaml:"influxUsername,omitempty"`
+	InfluxPassword            string        `yaml:"influxPassword,omitempty"`
+	InfluxURL                 string        `yaml:"influxURL,omitempty"`
+	InfluxDB                  string        `yaml:"influxDB,omitempty"`
+	EnableInflux              bool          `yaml:"enableInflux,omitempty"`
+	ExternalCheckReportingURL string        `yaml:"externalCheckReportingURL,omitempty"`
+	MaxKHJobAge               time.Duration `yaml:"maxKHJobAge,omitempty"`
+	MaxCheckPodAge            time.Duration `yaml:"maxCheckPodAge,omitempty"`
+	MaxCompletedPodCount      int           `yaml:"maxCompletedPodCount,omitempty"`
+	MaxErrorPodCount          int           `yaml:"maxErrorPodCount,omitempty"`
 }
 
 // Load loads file from disk

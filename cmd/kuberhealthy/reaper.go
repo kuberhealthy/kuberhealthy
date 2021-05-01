@@ -37,25 +37,6 @@ type KubernetesAPI struct {
 	Client kubernetes.Interface
 }
 
-// parseConfigs parses checkReaper config values. For checkReaper duration values, Go parses time.Duration from int64
-// and not from string, which is what the config reloader unmarshals the config json. This way we can still supply
-// time.Duration type values in the config, instead of an int64 that doesn't allow users to specify the duration type.
-func (c *Config) parseConfigs() {
-
-	var err error
-	c.maxKHJobAge, err = parseDurationOrUseDefault(c.MaxKHJobAge, maxKHJobAgeDefault)
-	if err != nil {
-		log.Errorln("checkReaper: Error occurred attempting to parse MaxKHJobAge:", err)
-		log.Infoln("checkReaper: Using default MaxKHJobAge:", c.maxKHJobAge)
-	}
-
-	c.maxCheckPodAge, err = parseDurationOrUseDefault(c.MaxCheckPodAge, maxCheckPodAgeDefault)
-	if err != nil {
-		log.Errorln("checkReaper: Error occurred attempting to parse MaxCheckPodAge:", err)
-		log.Infoln("checkReaper: Using default MaxCheckPodAge:", c.maxCheckPodAge)
-	}
-}
-
 // parseDurationOrUseDefault parses a string duration into a time.Duration. If string is empty, return the defaultDuration.
 // If the parsed time.Duration is 0, return defaultDuration.
 func parseDurationOrUseDefault(d string, defaultDuration time.Duration) (time.Duration, error) {
@@ -91,8 +72,8 @@ func reaper(ctx context.Context) {
 	// Parse configs when reaper starts up.
 	log.Infoln("checkReaper: starting up...")
 	log.Infoln("checkReaper: run interval:", reaperRunInterval)
-	log.Infoln("checkReaper: max khjob age:", cfg.maxKHJobAge)
-	log.Infoln("checkReaper: max khcheck pod age:", cfg.maxCheckPodAge)
+	log.Infoln("checkReaper: max khjob age:", cfg.MaxKHJobAge)
+	log.Infoln("checkReaper: max khcheck pod age:", cfg.MaxCheckPodAge)
 	log.Infoln("checkReaper: max completed check pod count:", cfg.MaxCompletedPodCount)
 	log.Infoln("checkReaper: max error check pod count:", cfg.MaxErrorPodCount)
 
@@ -104,9 +85,6 @@ func reaper(ctx context.Context) {
 	keepGoing := true
 	for keepGoing {
 		<-t.C
-
-		// Parse duration on every run since configuration supplies a string that must be parsed into time.Duration
-		cfg.parseConfigs()
 
 		// create a context for this run that times out
 		runCtx, runCtxCancel := context.WithTimeout(ctx, time.Minute*3)
@@ -202,8 +180,8 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 	for n, v := range reapCheckerPods {
 
 		// Delete pods older than maxCheckPodAge and is in status Succeeded
-		if time.Now().Sub(v.CreationTimestamp.Time) > cfg.maxCheckPodAge && v.Status.Phase == v1.PodSucceeded {
-			log.Infoln("checkReaper: Found pod older than:", cfg.maxCheckPodAge, "in status `Succeeded`. Deleting pod:", n)
+		if time.Now().Sub(v.CreationTimestamp.Time) > cfg.MaxCheckPodAge && v.Status.Phase == v1.PodSucceeded {
+			log.Infoln("checkReaper: Found pod older than:", cfg.MaxCheckPodAge, "in status `Succeeded`. Deleting pod:", n)
 
 			err = k.deletePod(ctx, v)
 			if err != nil {
@@ -214,8 +192,8 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 		}
 
 		// Delete failed pods (status Failed) older than maxCheckPodAge
-		if time.Now().Sub(v.CreationTimestamp.Time) > cfg.maxCheckPodAge && v.Status.Phase == v1.PodFailed {
-			log.Infoln("checkReaper: Found pod older than:", cfg.maxCheckPodAge, "in status `Failed`. Deleting pod:", n)
+		if time.Now().Sub(v.CreationTimestamp.Time) > cfg.MaxCheckPodAge && v.Status.Phase == v1.PodFailed {
+			log.Infoln("checkReaper: Found pod older than:", cfg.MaxCheckPodAge, "in status `Failed`. Deleting pod:", n)
 
 			err = k.deletePod(ctx, v)
 			if err != nil {
@@ -328,7 +306,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 
 	// Range over list and delete khjobs
 	for _, j := range list.Items {
-		if jobConditions(j, cfg.maxKHJobAge, "Completed") {
+		if jobConditions(j, cfg.MaxKHJobAge, "Completed") {
 			log.Infoln("checkReaper: Deleting khjob", j.Name)
 			err := client.KuberhealthyJobs(j.Namespace).Delete(j.Name, &del)
 			if err != nil {

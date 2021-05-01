@@ -10,7 +10,7 @@ import (
 	v13 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/apps/v1"
-	v12 "k8s.io/client-go/kubernetes/typed/core/v1"
+	metav1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 // Use exponential backoff for retries
@@ -29,13 +29,13 @@ func getDSClient() v1.DaemonSetInterface {
 }
 
 // getPodClient returns a pod client, useful for interacting with pods
-func getPodClient() v12.PodInterface {
+func getPodClient() metav1.PodInterface {
 	log.Debug("Creating Pod client.")
 	return client.CoreV1().Pods(checkNamespace)
 }
 
 // getNodeClient returns a node client, useful for interacting with nodes
-func getNodeClient() v12.NodeInterface {
+func getNodeClient() metav1.NodeInterface {
 	log.Debug("Creating Node client.")
 	return client.CoreV1().Nodes()
 }
