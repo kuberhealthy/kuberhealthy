@@ -1,3 +1,20 @@
+## ATTN: Kuberhealthy Organization Migration - Wednesday, May 12th
+
+We're super excited to share that Kuberhealthy has been accepted into the CNCF Sandbox and with it, we're transferring the project from the Comcast github organization to its own [Kuberhealthy](https://github.com/kuberhealthy) github organization.
+
+Known Breaking Changes:
+- Helm chart
+- Kuberhealthy go modules
+- [checkClient](https://github.com/Comcast/kuberhealthy/tree/master/pkg/checks/external/checkclient) pkg - for external checks reporting to Kuberhealthy
+- More to be uncovered on May 12th!
+
+Resources:
+- Flat spec files for deploying Kuberhealthy will still be available in the [/deploy](/deploy) directory
+
+Questions:
+- Ping us in the Kubernetes slack channel #kuberhealthy with questions and please submit any issues!
+_____________
+
 <center><img src="https://github.com/Comcast/kuberhealthy/blob/master/images/kuberhealthy.png?raw=true"></center><br />
 
 An operator for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_monitoring) on [Kubernetes](https://kubernetes.io).  Write your own tests in your own container and Kuberhealthy will manage everything else.  Automatically creates and sends metrics to [Prometheus](https://prometheus.io) and [InfluxDB](https://www.influxdata.com/).  Included simple JSON status page. Supplements other solutions like [Prometheus](https://prometheus.io/) very nicely!
