@@ -29,7 +29,7 @@ func TestConfigReloadNotificatons(t *testing.T) {
 
 	// begin watching for changes
 	t.Log("using test file:", testFile)
-	outChan, cancelFunc, err := startConfigReloadMonitoringWithSmoothing(testFile, time.Second*1, time.Second*2)
+	outChan, cancelFunc, err := startConfigReloadMonitoringWithSmoothing(testFile, time.Second*1, time.Second*5)
 	if err != nil {
 		t.Fatal(err)
 	}
