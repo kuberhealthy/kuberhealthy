@@ -70,6 +70,11 @@ deployment:
   - /app/kuberhealthy
   # args:
   # priorityClassName:
+  affinity: {}
+  ## Acceptable values for podAntiAffinity:
+  ## soft: specifies preferences that the scheduler will try to enforce but will not guarantee (Default)
+  ## hard: specifies rules that must be met for a pod to be scheduled onto a node
+  podAntiAffinity: "soft"
 
 # When enabled equals to true, runAsUser and fsGroup will be
 # included to all khchecks as specified below.
@@ -191,7 +196,8 @@ check:
     image:
       registry: kuberhealthy
       repository: pod-restarts-check
-      tag: v2.3.3
+      tag: v2.4.0
+    allNamespaces: false
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
@@ -211,7 +217,7 @@ check:
     image:
       registry: kuberhealthy
       repository: pod-status-check
-      tag: v1.2.4
+      tag: v1.2.5
     allNamespaces: false
     extraEnvs:
     nodeSelector: {}

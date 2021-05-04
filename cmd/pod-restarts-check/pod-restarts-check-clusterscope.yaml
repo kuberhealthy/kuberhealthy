@@ -1,24 +1,22 @@
+---
+# Source: kuberhealthy/templates/khcheck-pod-restarts.yaml
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: pod-status
+  name: pod-restarts
   namespace: kuberhealthy
 spec:
   runInterval: 5m
-  timeout: 15m
+  timeout: 10m
   podSpec:
     securityContext:
       runAsUser: 999
       fsGroup: 999
     containers:
       - env:
-          - name: SKIP_DURATION
-            value: "10m"
-          - name: TARGET_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-        image: kuberhealthy/pod-status-check:v1.2.5
+          - name: MAX_FAILURES_ALLOWED
+            value: "10"
+        image: kuberhealthy/pod-restarts-check:v2.4.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -28,42 +26,50 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
-    serviceAccountName: pod-status-sa
+    restartPolicy: Never
+    serviceAccountName: pod-restart-sa
 ---
-# Source: kuberhealthy/templates/khcheck-pod-status.yaml
+# Source: kuberhealthy/templates/khcheck-pod-restarts.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: pod-status-sa
+  name: pod-restart-sa
   namespace: kuberhealthy
 ---
-# Source: kuberhealthy/templates/khcheck-pod-status.yaml
+# Source: kuberhealthy/templates/khcheck-pod-restarts.yaml
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
-  name: pod-status-role
-  namespace: kuberhealthy
+  name: pod-restart-role
 rules:
   - apiGroups:
       - ""
     resources:
-      - namespaces
       - pods
     verbs:
+      - create
+      - delete
       - get
       - list
       - watch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - list
+
 ---
-# Source: kuberhealthy/templates/khcheck-pod-status.yaml
+# Source: kuberhealthy/templates/khcheck-pod-restarts.yaml
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
-  name: pod-status-rb
-  namespace: kuberhealthy
+  name: pod-restart-rb
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: pod-status-role
+  kind: ClusterRole
+  name: pod-restart-role
 subjects:
   - kind: ServiceAccount
-    name: pod-status-sa
+    name: pod-restart-sa
+    namespace: kuberhealthy

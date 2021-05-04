@@ -29,7 +29,7 @@ spec:
             value: "kube-system"
           - name: MAX_FAILURES_ALLOWED
             value: "10"
-        image: kuberhealthy/pod-restarts-check:v2.3.3
+        image: kuberhealthy/pod-restarts-check:v2.4.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -37,11 +37,33 @@ spec:
             cpu: 10m
             memory: 50Mi
 ```
+#### Options
+
+By default, `Pod Restarts Check` will check pods in the same namespace it is installed into.  This means the RBAC requirements for the service account the check runs with can be limited to a single namespace scope.
+
+It is possible to configure `Pod Restarts Check` to check pods from all namespaces in a cluster, this requires cluster wide permissions for the service account and is not recommended for multi-tenant setups.
 
 #### How-to
+
+##### kubectl apply
 
 To implement the Pod Restarts Check with Kuberhealthy, run:
 
 `kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/pod-restarts-check/pod-restarts-check.yaml`
+
+
+If you want to enable the cluster wide option described above then __instead__ apply with cluster permissions [pod-restarts-check-clusterscope.yaml](pod-restarts-check-clusterscope.yaml).
+
+##### Helm
+
+```
+helm repo add kuberhealthy https://comcast.github.io/kuberhealthy/helm-repos
+helm install kuberhealthy kuberhealthy/kuberhealthy --set check.podRestarts.enabled=true
+```
+
+To enable cluster wide check with cluster permissions
+```
+helm install kuberhealthy kuberhealthy/kuberhealthy --set check.podRestarts.enabled=true --set check.podRestarts.allNamespaces=true
+```
 
 Make sure you are using the latest release of Kuberhealthy 2.0.0.

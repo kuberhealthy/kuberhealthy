@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
+
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
@@ -57,12 +59,14 @@ type Checker struct {
 }
 
 func init() {
-
 	// Grab and verify environment variables and set them as global vars
 	Namespace = os.Getenv("POD_NAMESPACE")
-	if len(Namespace) == 0 {
-		log.Errorln("ERROR: The POD_NAMESPACE environment variable has not been set.")
-		return
+	if Namespace == "" {
+		log.Infoln("Looking for pods across all namespaces, this requires a cluster role")
+		// it is the same value but we are being explicit that we are listing pods in all namespaces
+		Namespace = v1.NamespaceAll
+	} else {
+		log.Infoln("Looking for pods in namespace:", Namespace)
 	}
 
 	// Set check time limit to default
@@ -176,11 +180,12 @@ func (prc *Checker) doChecks() error {
 
 			// Checks for pods with BackOff events greater than the MaxFailuresAllowed
 			if event.InvolvedObject.Kind == "Pod" && event.Reason == "BackOff" && event.Count > prc.MaxFailuresAllowed {
-				errorMessage := "Found: " + strconv.FormatInt(int64(event.Count), 10) + " `BackOff` events for pod: " + event.InvolvedObject.Name + " in namespace: " + prc.Namespace
+				errorMessage := "Found: " + strconv.FormatInt(int64(event.Count), 10) + " `BackOff` events for pod: " + event.InvolvedObject.Name + " in namespace: " + event.Namespace
 
 				log.Infoln(errorMessage)
 
-				prc.BadPods[event.InvolvedObject.Name] = errorMessage
+				// We could be checking for pods in all namespaces so prefix the namespace
+				prc.BadPods[event.InvolvedObject.Namespace+"/"+event.InvolvedObject.Name] = errorMessage
 			}
 		}
 	}
@@ -191,14 +196,18 @@ func (prc *Checker) doChecks() error {
 			return err
 		}
 	}
-
 	return err
 }
 
 // verifyBadPodRestartExists removes the bad pod found from the events list if the pod no longer exists
-func (prc *Checker) verifyBadPodRestartExists(podName string) error {
+func (prc *Checker) verifyBadPodRestartExists(pod string) error {
 
-	_, err := prc.client.CoreV1().Pods(prc.Namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	// Pod is in the form namespace/pod_name
+	parts := strings.Split(pod, "/")
+	namespace := parts[0]
+	podName := parts[1]
+
+	_, err := prc.client.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Infoln("Bad Pod:", podName, "no longer exists. Removing from bad pods map")

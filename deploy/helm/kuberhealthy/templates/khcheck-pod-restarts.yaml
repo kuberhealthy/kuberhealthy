@@ -15,10 +15,12 @@ spec:
     {{- end}}
     containers:
       - env:
+          {{- if not .Values.check.podRestarts.allNamespaces }}
           - name: POD_NAMESPACE
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          {{- end }}
 {{- range $key, $value := .Values.check.podRestarts.extraEnvs }}
           - name: {{ $key }}
             value: {{ $value | quote }}
@@ -59,6 +61,43 @@ spec:
     restartPolicy: Never
     serviceAccountName: pod-restart-sa
 ---
+{{- if .Values.check.podRestarts.allNamespaces }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pod-restart-rb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pod-restart-role
+subjects:
+  - kind: ServiceAccount
+    name: pod-restart-sa
+    namespace: kuberhealthy
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-restart-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - list
+{{ else }}
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -94,10 +133,15 @@ rules:
       - events
     verbs:
       - list
+{{- end }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: pod-restart-sa
+{{- if .Values.check.podRestarts.allNamespaces }}
+  namespace: kuberhealthy
+{{- else }}
   namespace: {{ .Release.Namespace }}
+{{- end}}
 {{- end }}
