@@ -6,59 +6,27 @@ import (
 	"testing"
 	"time"
 
+	yaml "gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-// TestParseConfigs ensures that all checkReaper configs are properly parsed and that there are no 0 values
+// TestParseConfigs ensures that all checkReaper configs are properly parsed and that there are no 0 duration values
 func TestParseConfigs(t *testing.T) {
 
-	testConfig1 := &Config{
-		FailedPodCleanupDuration: "10m",
-		JobCleanupDuration: "100h",
-		MaxCheckPods: 4,
+	inputConfig := `listenAddress: ":8080" # The port for kuberhealthy to listen on for web requests
+enableForceMaster: false # Set to true to enable local testing, forced master mode
+logLevel: "debug" # Log level to be used
+listenNamespace: "test" # Kuberhealthy will only monitor khcheck resources from this namespace
+jobCleanupDuration: 3m # The maximum age of khjobs before being reaped
+maxCheckPods: 1 # The maximum number of check pods in Completed state before being reaped`
+
+	testConfig := Config{}
+	err := yaml.Unmarshal([]byte(inputConfig), &testConfig)
+	if err != nil {
+		t.Fatal("Error unmarshaling yaml config with error:" + err.Error())
 	}
-
-	testConfig2 := &Config{
-		FailedPodCleanupDuration: "10m",
-		JobCleanupDuration: "100h",
-		MaxCheckPods: 0,
-	}
-
-	testConfig2.parseConfigs()
-
-	var testCases = []struct {
-		description 	string
-		cfg         	*Config
-	}{
-		{"Valid config", testConfig1},
-		{"0 MaxCheckPods", testConfig2},
-	}
-
-	for _, test := range testCases {
-
-		t.Logf(test.description)
-
-		test.cfg.parseConfigs()
-
-		if test.cfg.failedPodCleanupDuration == 0 {
-			t.Fatalf("failedPodCleanupDuration config not set")
-		}
-		t.Logf("parseConfigs parsed failedPodCleanupDuration correctly: %s", test.cfg.failedPodCleanupDuration)
-
-		if test.cfg.jobCleanupDuration == 0 {
-			t.Fatalf("jobCleanupDuration config not set")
-		}
-		t.Logf("parseConfigs parsed jobCleanupDuration correctly: %s", test.cfg.jobCleanupDuration)
-
-		if test.cfg.MaxCheckPods == 0 {
-			t.Fatalf("MaxCheckPods config not set")
-		}
-		t.Logf("parseConfigs parsed MaxCheckPods correctly: %d", test.cfg.MaxCheckPods)
-
-	}
-
 }
 
 // TestParseStringDuration ensures that a string duration can be parsed into a time.Duration.
@@ -67,15 +35,15 @@ func TestParseConfigs(t *testing.T) {
 func TestParseDurationOrUseDefault(t *testing.T) {
 
 	var testCases = []struct {
-		description 	string
-		stringDuration	string
-		defaultDuration	time.Duration
-		expected    	time.Duration
-		err				string
+		description     string
+		stringDuration  string
+		defaultDuration time.Duration
+		expected        time.Duration
+		err             string
 	}{
-		{"Valid duration", "5m", time.Minute*15, time.Minute*5, ""},
-		{"0 Duration value, not allowed", "0", time.Minute*15, time.Minute*15, ""},
-		{"No duration value", "", time.Minute*15, time.Minute*15, ""},
+		{"Valid duration", "5m", time.Minute * 15, time.Minute * 5, ""},
+		{"0 Duration value, not allowed", "0", time.Minute * 15, time.Minute * 15, ""},
+		{"No duration value", "", time.Minute * 15, time.Minute * 15, ""},
 	}
 
 	for _, test := range testCases {
@@ -98,7 +66,7 @@ func TestParseDurationOrUseDefault(t *testing.T) {
 // TestListCheckerPods ensures that only completed (Successful or Failed) kuberhealthy checker pods are listed / returned
 func TestListCheckerPods(t *testing.T) {
 	validKHPod := v1.Pod{
-		ObjectMeta: v12.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "valid-kh-pod",
 			Namespace: "foo",
 			Labels: map[string]string{
@@ -111,7 +79,7 @@ func TestListCheckerPods(t *testing.T) {
 	}
 
 	anotherValidKHPod := v1.Pod{
-		ObjectMeta: v12.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "another-valid-kh-pod",
 			Namespace: "foo",
 			Labels: map[string]string{
@@ -124,14 +92,14 @@ func TestListCheckerPods(t *testing.T) {
 	}
 
 	nonKHPod := v1.Pod{
-		ObjectMeta: v12.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "non-kh-pod",
 			Namespace: "foo",
 		},
 	}
 
 	runningKHPod := v1.Pod{
-		ObjectMeta: v12.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "running-kh-pod",
 			Namespace: "foo",
 			Labels: map[string]string{
@@ -155,7 +123,7 @@ func TestListCheckerPods(t *testing.T) {
 
 	ctx, _ := context.WithCancel(context.Background())
 	for _, c := range khCheckerPods {
-		_, err := api.Client.CoreV1().Pods(c.Namespace).Create(ctx, &c, v12.CreateOptions{})
+		_, err := api.Client.CoreV1().Pods(c.Namespace).Create(ctx, &c, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("Error creating test pods: %s", err)
 		}
@@ -185,7 +153,7 @@ func TestListCheckerPods(t *testing.T) {
 func TestGetAllPodsWithCheckName(t *testing.T) {
 
 	khCheck := v1.Pod{
-		ObjectMeta: v12.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "original-kh-pod",
 			Namespace: "foo",
 			Annotations: map[string]string{
@@ -198,7 +166,7 @@ func TestGetAllPodsWithCheckName(t *testing.T) {
 	}
 
 	khCheck1 := v1.Pod{
-		ObjectMeta: v12.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "same-kh-pod",
 			Namespace: "foo",
 			Labels: map[string]string{
@@ -211,7 +179,7 @@ func TestGetAllPodsWithCheckName(t *testing.T) {
 	}
 
 	khCheck2 := v1.Pod{
-		ObjectMeta: v12.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "another-same-kh-pod",
 			Namespace: "foo",
 			Labels: map[string]string{
@@ -224,7 +192,7 @@ func TestGetAllPodsWithCheckName(t *testing.T) {
 	}
 
 	khCheck3 := v1.Pod{
-		ObjectMeta: v12.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "different-kh-pod",
 			Namespace: "foo",
 			Labels: map[string]string{

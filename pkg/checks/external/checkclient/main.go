@@ -20,16 +20,13 @@ import (
 	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/status"
 )
 
-// Debug can be used to enable output logging from the checkClient
-var Debug bool
+var (
+	// Debug can be used to enable output logging from the checkClient
+	Debug bool
+)
 
 // Use exponential backoff for retries
-var exponentialBackoff = backoff.NewExponentialBackOff()
 const maxElapsedTime = time.Second * 30
-
-func init() {
-	exponentialBackoff.MaxElapsedTime = maxElapsedTime
-}
 
 // ReportSuccess reports a successful check run to the Kuberhealthy service. We
 // do not return an error here because failures will cause the managing
@@ -85,16 +82,35 @@ func sendReport(s status.Report) error {
 	if err != nil {
 		return fmt.Errorf("failed to fetch the kuberhealthy url: %w", err)
 	}
-	writeLog("INFO: Using kuberhealthy reporting URL:", url)
+	writeLog("INFO: Using kuberhealthy reporting URL: ", url)
 
+	// fetch the kh run UUID
+	uuid, err := getKuberhealthyRunUUID()
+	if err != nil {
+		return fmt.Errorf("failed to fetch the kuberhealthy run uuid: %w", err)
+	}
+	writeLog("INFO: Using kuberhealthy run UUID: ", uuid)
+
+	// create the Kuberhealthy post request with the kh-run-uuid header
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(b))
+	if err != nil {
+		return fmt.Errorf("error creating http request: %w", err)
+	}
+	req.Header.Set("kh-run-uuid", uuid)
+	req.Header.Set("Content-Type", "application/json")
+
+	exponentialBackOff := backoff.NewExponentialBackOff()
+	exponentialBackOff.MaxElapsedTime = maxElapsedTime
+
+	client := &http.Client{}
 	// send to the server
 	var resp *http.Response
 	err = backoff.Retry(func() error {
 		var err error
 		writeLog("DEBUG: Making POST request to kuberhealthy:")
-		resp, err = http.Post(url, "application/json", bytes.NewBuffer(b))
+		resp, err = client.Do(req)
 		return err
-	}, exponentialBackoff)
+	}, exponentialBackOff)
 	if err != nil {
 		writeLog("ERROR: got an error sending POST to kuberhealthy:", err)
 		return fmt.Errorf("bad POST request to kuberhealthy status reporting url: %w", err)
@@ -123,6 +139,21 @@ func getKuberhealthyURL() (string, error) {
 	}
 
 	return reportingURL, nil
+}
+
+// getKuberhealthyRunUUID fetches the kuberheathy checker pod run UUID to send to our external checker
+// status to report to from the environment variable
+func getKuberhealthyRunUUID() (string, error) {
+
+	khRunUUID := os.Getenv(external.KHRunUUID)
+
+	// check the length of the UUID to make sure we pulled one properly
+	if len(khRunUUID) < 1 {
+		writeLog("ERROR: kuberhealthy run UUID from environment variable", external.KHRunUUID, "was blank")
+		return "", fmt.Errorf("fetched %s environment variable but it was blank", external.KHRunUUID)
+	}
+
+	return khRunUUID, nil
 }
 
 // GetDeadline fetches the KH_CHECK_RUN_DEADLINE environment variable and returns it.

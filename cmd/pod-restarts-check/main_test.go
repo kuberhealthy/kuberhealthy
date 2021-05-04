@@ -2,13 +2,13 @@ package main
 
 import (
 	v1 "k8s.io/api/core/v1"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func pod(podName string, containerName string, restartCount int32) *v1.Pod {
 
 	var pod = v1.Pod{
-		ObjectMeta: v12.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-namespace",
 			Name:      podName,
 		},

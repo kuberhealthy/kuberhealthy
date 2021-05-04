@@ -29,7 +29,7 @@ func TestConfigReloadNotificatons(t *testing.T) {
 
 	// begin watching for changes
 	t.Log("using test file:", testFile)
-	outChan, cancelFunc, err := startConfigReloadMonitoringWithSmoothing(testFile, time.Second*1, time.Second*2)
+	outChan, cancelFunc, err := startConfigReloadMonitoringWithSmoothing(testFile, time.Second*1, time.Second*5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestConfigReloadNotificatons(t *testing.T) {
 	expectedNotifications := 2
 	foundNotifications := 0
 	startTime := time.Now()
-	quickestRunTime := time.Second * 15
+	quickestRunTime := time.Second * 20
 	quickestPossibleFinishTime := startTime.Add(quickestRunTime)
 	maxRunTime := time.Second * 25
 	timeout := time.After(maxRunTime)
