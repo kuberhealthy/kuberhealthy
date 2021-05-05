@@ -62,6 +62,7 @@ jobs:
         #author: "GitHub Automatic Template Render Job"
         # The author name and email address.
         committer: "Github Actions <action@github.com>"
+        signoff: true
         # The title of the pull request.
         title: "Flat Spec File Regeneration"
         # The body of the pull request.
