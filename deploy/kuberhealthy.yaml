@@ -84,9 +84,10 @@ data:
     influxURL: "" # Address for the InfluxDB instance
     influxDB: "http://localhost:8086" # Name of the InfluxDB database
     enableInflux: false # Set to true to enable metric forwarding to Infux DB
-    jobCleanupDuration: 15m
-    maxCheckPods: 4
-    failedPodCleanupDuration: 120h
+    maxKHJobAge: 15m
+    maxCheckPodAge: 72h
+    maxCompletedPodCount: 4
+    maxErrorPodCount: 4
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
 apiVersion: v1
@@ -108,19 +109,6 @@ kind: ServiceAccount
 metadata:
   name: kuberhealthy
   namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
 ---
 # Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -191,6 +179,19 @@ rules:
     - pods/eviction
     verbs:
     - create
+---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
+  name: kuberhealthy-daemonset-khcheck
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
 ---
 # Source: kuberhealthy/templates/clusterrolebinding.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -404,6 +405,8 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          - name: CHECK_REAPER_RUN_INTERVAL
+            value: 30s
         readinessProbe:
           failureThreshold: 3
           initialDelaySeconds: 2
