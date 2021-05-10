@@ -7,7 +7,7 @@ To release a new version of Kuberhealthy:
 1. After any running `Build and Push kuberhealthy Unstable` action is completed, tag a release candidate from the build done in master as unstable
     ```
     docker pull kuberhealthy/kuberhealthy:unstable
-    docker tag kuberhealthy/kuberhealthy:v[version]-rc.1 kuberhealthy/kuberhealthy:v[version]
+    docker tag kuberhealthy/kuberhealthy:unstable kuberhealthy/kuberhealthy:v[version]-rc.1
     docker push kuberhealthy/kuberhealthy:v[version]
     ```
 1. If the release looks good, tag it with the final new upcoming version and push it to docker hub:
