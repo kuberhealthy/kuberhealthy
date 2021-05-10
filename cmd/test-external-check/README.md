@@ -1,6 +1,6 @@
 ### test-external-check
 
-This is a container used to test external checks in Kuberhealthy. This container simply runs, waits for a set interval of seconds and then either reports a success or failure depending on the `REPORT_FAILURE` environment variable set in the pod spec.  
+This is a container used to test external checks in Kuberhealthy. This container simply runs, waits for a set interval of seconds and then either reports a success or failure depending on the `REPORT_FAILURE` environment variable set in the pod spec.
 
 
 ##### Environment Variables
@@ -38,7 +38,7 @@ spec:
         value: "false"
       - name: REPORT_DELAY
         value: "10s"
-      image: kuberhealthy/test-external-check:v1.3.2
+      image: kuberhealthy/test-external-check:v1.3.3
       name: main
       resources:
         requests:

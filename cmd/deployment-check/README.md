@@ -72,7 +72,7 @@ spec:
   podSpec:
     containers:
       - name: deployment
-        image: kuberhealthy/deployment-check:v1.8.1
+        image: kuberhealthy/deployment-check:v1.8.2
         env:
           - name: CHECK_IMAGE
             value: "nginx:1.17-perl"
@@ -107,7 +107,7 @@ spec:
   podSpec:
     containers:
       - name: deployment
-        image: kuberhealthy/deployment-check:v1.8.1
+        image: kuberhealthy/deployment-check:v1.8.2
         env:
           - name: CHECK_DEPLOYMENT_REPLICAS
             value: "6"

@@ -23,7 +23,7 @@ spec:
   podSpec:
     containers:
       - name: https
-        image: kuberhealthy/http-check:v1.4.3
+        image: kuberhealthy/http-check:v1.4.4
         imagePullPolicy: IfNotPresent
         env:
           - name: CHECK_URL
@@ -58,7 +58,7 @@ spec:
   podSpec:
     containers:
       - name: https
-        image: kuberhealthy/http-check:v1.4.3
+        image: kuberhealthy/http-check:v1.4.4
         imagePullPolicy: IfNotPresent
         env:
           - name: CHECK_URL

@@ -29,7 +29,7 @@ spec:
             value: "kube-system"
           - name: MAX_FAILURES_ALLOWED
             value: "10"
-        image: kuberhealthy/pod-restarts-check:v2.4.0
+        image: kuberhealthy/pod-restarts-check:v2.4.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:

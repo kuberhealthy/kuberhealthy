@@ -33,7 +33,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-        image: kuberhealthy/dns-resolution-check:v1.4.3
+        image: kuberhealthy/dns-resolution-check:v1.4.4
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -44,7 +44,7 @@ spec:
 
 ### Checking endpoints behind DNS Service
 
-In order to check endpoints behind the DNS service, add a `DNS_NODE_SELECTOR` and `NAMESPACE` variable to the spec file denoting where your DNS pods are.  
+In order to check endpoints behind the DNS service, add a `DNS_NODE_SELECTOR` and `NAMESPACE` variable to the spec file denoting where your DNS pods are.
 
 `DNS_NODE_SELECTOR` is a label selector which will be used to select the DNS endpoints to query against.
 
@@ -70,7 +70,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-        image: kuberhealthy/dns-resolution-check:v1.4.3
+        image: kuberhealthy/dns-resolution-check:v1.4.4
         imagePullPolicy: IfNotPresent
         name: main
         resources:
