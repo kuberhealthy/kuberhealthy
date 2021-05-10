@@ -1,4 +1,4 @@
-name: Build and Push kuberhealthy Latest
+name: Build and Push kuberhealthy Unstable
 on:
   push:
     branches:
@@ -8,7 +8,7 @@ on:
     paths:
       - "cmd/kuberhealthy/**"
 env:
-    IMAGE_NAME: kuberhealthy
+    IMAGE_NAME: kuberhealthy/kuberhealthy:unstable
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,5 +20,4 @@ jobs:
       run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
     - name: Push new latest image
       run: |
-          docker tag $IMAGE_NAME kuberhealthy/$IMAGE_NAME
-          docker push kuberhealthy/$IMAGE_NAME
+          docker push $IMAGE_NAME
