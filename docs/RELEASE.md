@@ -13,7 +13,7 @@ To release a new version of Kuberhealthy:
 1. If the release looks good, tag it with the final new upcoming version and push it to docker hub:
     ```
     docker pull kuberhealthy/kuberhealthy:v[version]-rc1
-    docker tag kuberhealthy/kuberhealthy:v[version]-rc1 kuberhealthy/kuberhealthy:v[version]
+    docker tag kuberhealthy/kuberhealthy:v[version]-rc.1 kuberhealthy/kuberhealthy:v[version]
     docker push kuberhealthy/kuberhealthy:v[version]
     ```
 1. Create a `Release` draft on GitHub named with the release version (such as `v2.3.4`)
