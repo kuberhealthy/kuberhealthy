@@ -8,7 +8,7 @@ To release a new version of Kuberhealthy:
     ```
     docker pull kuberhealthy/kuberhealthy:unstable
     docker tag kuberhealthy/kuberhealthy:unstable kuberhealthy/kuberhealthy:v[version]-rc.1
-    docker push kuberhealthy/kuberhealthy:v[version]
+    docker push kuberhealthy/kuberhealthy:v[version]-rc.1
     ```
 1. If the release looks good, tag it with the final new upcoming version and push it to docker hub:
     ```
