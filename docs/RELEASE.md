@@ -4,7 +4,7 @@ To release a new version of Kuberhealthy:
 
 1. Ensure that all issues in the release milestone are completed
 1. Verify that the master branch has all the latest changes that have been tested and verified
-1. After any running `Build and Push kuberhealthy Latest` action is completed, tag a release candidate from the build done in master as unstable
+1. After any running `Build and Push kuberhealthy Unstable` action is completed, tag a release candidate from the build done in master as unstable
     ```
     docker pull kuberhealthy/kuberhealthy:unstable
     docker tag kuberhealthy/kuberhealthy:v[version]-rc1 kuberhealthy/kuberhealthy:v[version]
