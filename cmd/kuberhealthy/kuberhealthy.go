@@ -1081,6 +1081,8 @@ func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, 
 	// put the status on the CRD from the check
 	err = setCheckStateResource(checkName, checkNamespace, details)
 
+	//TODO: Make this retry of updating custom resources repeatable
+	//
 	// We commonly see a race here with the following type of error:
 	// "Error storing CRD state for check: pod-restarts in namespace kuberhealthy Operation cannot be fulfilled on khstates.comcast.github.io \"pod-restarts\": the object
 	// has been modified; please apply your changes to the latest version and try again"
@@ -1101,10 +1103,10 @@ func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, 
 		time.Sleep(delay)
 		delay = delay + delay
 
-		// try the UUID set again
+		// try setting the check state again
 		err = setCheckStateResource(checkName, checkNamespace, details)
 
-		// count how many times we're tried to set the UUID
+		// count how many times we've retried
 		tries++
 	}
 
