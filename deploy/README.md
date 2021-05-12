@@ -32,7 +32,7 @@ A flat file that includes everything but a namespace for clusters *without* Prom
 
 `helm/kuberhealthy`
 
-A helm chart for deploying Kuberhealthy.  This is the same helm chart published in our Helm registry.  The helm chart installs the latest [Kuberhealthy release](https://github.com/Comcast/kuberhealthy/releases). Install this chart with the following steps:
+A helm chart for deploying Kuberhealthy.  This is the same helm chart published in our Helm registry.  The helm chart installs the latest [Kuberhealthy release](https://github.com/kuberhealthy/kuberhealthy/releases). Install this chart with the following steps:
 
 - Create namespace "kuberhealthy" in the desired Kubernetes cluster/context:
 `kubectl create namespace kuberhealthy`

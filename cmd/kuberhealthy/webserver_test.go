@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/health"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
 )
 
 // makeTestKuberhealthy makes a test kuberhealthy client

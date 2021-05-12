@@ -49,7 +49,7 @@ It is possible to configure `Pod Restarts Check` to check pods from all namespac
 
 To implement the Pod Restarts Check with Kuberhealthy, run:
 
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.0.0/cmd/pod-restarts-check/pod-restarts-check.yaml`
+`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/2.0.0/cmd/pod-restarts-check/pod-restarts-check.yaml`
 
 
 If you want to enable the cluster wide option described above then __instead__ apply with cluster permissions [pod-restarts-check-clusterscope.yaml](pod-restarts-check-clusterscope.yaml).

@@ -121,7 +121,7 @@ To implement the SSL Handshake Check with Kuberhealthy, update the spec sheet to
 
 You can use the default values as well by running:  
 
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/v2.3.0/cmd/ssl-handshake-check/ssl-handshake-check.yaml`  
+`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/v2.3.0/cmd/ssl-handshake-check/ssl-handshake-check.yaml`  
 
 To use the `ssl-file-handshake-check.yaml` spec sheet, you must first update the certificate configmap.
 

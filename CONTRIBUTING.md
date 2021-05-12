@@ -12,7 +12,7 @@
 - Create a branch describing your change
 - Develop your feature and push changes to your branch in your fork
 - Add your name to the `CONTRIBUTORS` file
-- Open a pull request from your fork and branch to master on github.com/Comcast/kuberhealthy
+- Open a pull request from your fork and branch to master on github.com/kuberhealthy/kuberhealthy
 - Celebrate! 🎉
 
 ## General Requirements

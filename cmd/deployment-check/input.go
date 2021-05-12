@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+	kh "github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 )

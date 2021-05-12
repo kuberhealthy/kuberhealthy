@@ -1,10 +1,10 @@
-<center><img src="https://github.com/Comcast/kuberhealthy/blob/master/images/kuberhealthy.png?raw=true"></center><br />
+<center><img src="https://github.com/kuberhealthy/kuberhealthy/blob/master/images/kuberhealthy.png?raw=true"></center><br />
 
 Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supplements other solutions like [Prometheus](https://prometheus.io/) nicely.
 
 ## What is Kuberhealthy?
 
-Kuberhealthy performs stynthetic tests from within Kubernetes clusters in order to catch issues that would otherwise go unnoticed.  Instead of trying to identify all the things that could potentially go wrong, Kuberhealthy replicates real workflow and watches carefully for the expected Kubernetes behavior to occur.  Kuberhealthy serves both a JSON status page and a [Prometheus](https://prometheus.io/) metrics endpoint for integration into your choice of alerting solution.  More checks will be added in future versions to better cover [service provisioning](https://github.com/Comcast/kuberhealthy/issues/11), [DNS resolution](https://github.com/Comcast/kuberhealthy/issues/16), [disk provisioning](https://github.com/Comcast/kuberhealthy/issues/9), and more.
+Kuberhealthy performs stynthetic tests from within Kubernetes clusters in order to catch issues that would otherwise go unnoticed.  Instead of trying to identify all the things that could potentially go wrong, Kuberhealthy replicates real workflow and watches carefully for the expected Kubernetes behavior to occur.  Kuberhealthy serves both a JSON status page and a [Prometheus](https://prometheus.io/) metrics endpoint for integration into your choice of alerting solution.  More checks will be added in future versions to better cover [service provisioning](https://github.com/kuberhealthy/kuberhealthy/issues/11), [DNS resolution](https://github.com/kuberhealthy/kuberhealthy/issues/16), [disk provisioning](https://github.com/kuberhealthy/kuberhealthy/issues/9), and more.
 
 Some examples of errors Kuberhealthy has detected in production:
 
@@ -65,7 +65,7 @@ deployment:
   podAnnotations: {} # Annotations to be added to pods created by the deployment
   command:
   - /app/kuberhealthy
-  # use this to override location of the test-image, see: https://github.com/Comcast/kuberhealthy/blob/master/docs/FLAGS.md
+  # use this to override location of the test-image, see: https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/FLAGS.md
   # args:
   # - -dsPauseContainerImageOverride
   # - your-repo/google_containers/pause:0.8.0
@@ -79,4 +79,4 @@ securityContext: # default container security context
 
 For more details, see the [Kuberhealthy web site](https://comcast.github.io/kuberhealthy/).
 
-To report a bug, see the [Kuberhealthy project issues](https://github.com/Comcast/kuberhealthy/issues).
+To report a bug, see the [Kuberhealthy project issues](https://github.com/kuberhealthy/kuberhealthy/issues).
