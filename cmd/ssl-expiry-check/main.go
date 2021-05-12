@@ -21,10 +21,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/ssl_util"
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/nodeCheck"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/ssl_util"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 )

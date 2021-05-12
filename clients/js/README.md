@@ -16,7 +16,7 @@ Download the client into your JavaScript project by navigating to your project d
 
 ```shell
 cd my-kh-check
-curl -O -L https://raw.githubusercontent.com/Comcast/kuberhealthy/master/clients/js/kh-client.js
+curl -O -L https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/clients/js/kh-client.js
 ```
 
 In your project, require the file you just downloaded:

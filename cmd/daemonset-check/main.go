@@ -13,9 +13,9 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
-	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
+	kh "github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/nodeCheck"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 )
 
 var (
@@ -51,12 +51,12 @@ var (
 	checkDeadline time.Time
 
 	// Daemonset check configurations
-	hostName      string
-	tolerationsEnv = os.Getenv("TOLERATIONS")
-	tolerations   []apiv1.Toleration
-	daemonSetName string
+	hostName         string
+	tolerationsEnv   = os.Getenv("TOLERATIONS")
+	tolerations      []apiv1.Toleration
+	daemonSetName    string
 	allowedTaintsEnv = os.Getenv("ALLOWED_TAINTS")
-	allowedTaints map[string]apiv1.TaintEffect
+	allowedTaints    map[string]apiv1.TaintEffect
 
 	// Time object used for the check.
 	now time.Time

@@ -18,7 +18,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	nodeCheck "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
+	nodeCheck "github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 )
 
 // runDeploymentCheck sets up a deployment and applies it to the cluster.

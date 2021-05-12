@@ -19,7 +19,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	khjobcrd "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
+	khjobcrd "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
 
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"

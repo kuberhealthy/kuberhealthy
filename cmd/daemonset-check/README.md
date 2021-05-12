@@ -67,7 +67,7 @@ spec:
 
 To implement the Daemonset Check with Kuberhealthy, run:
 
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/2.3.1/cmd/daemonset-check/daemonset-check.yaml`
+`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/2.3.1/cmd/daemonset-check/daemonset-check.yaml`
 
 Make sure you are using the latest release of Kuberhealthy 2.3.1.
 

@@ -32,7 +32,7 @@ entries:
     name: kuberhealthy
     sources:
     - https://github.com/Comcast/kuberhealthy
-    - https://github.com/Comcast/kuberhealthy/tree/master/deploy/helm/kuberhealthy
+    - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
     - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-64.tgz
@@ -68,7 +68,7 @@ entries:
     name: kuberhealthy
     sources:
     - https://github.com/Comcast/kuberhealthy
-    - https://github.com/Comcast/kuberhealthy/tree/master/deploy/helm/kuberhealthy
+    - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
     - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-63.tgz
@@ -104,7 +104,7 @@ entries:
     name: kuberhealthy
     sources:
     - https://github.com/Comcast/kuberhealthy
-    - https://github.com/Comcast/kuberhealthy/tree/master/deploy/helm/kuberhealthy
+    - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
     - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-62.tgz
@@ -140,7 +140,7 @@ entries:
     name: kuberhealthy
     sources:
     - https://github.com/Comcast/kuberhealthy
-    - https://github.com/Comcast/kuberhealthy/tree/master/deploy/helm/kuberhealthy
+    - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
     - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-59.tgz
@@ -176,7 +176,7 @@ entries:
     name: kuberhealthy
     sources:
     - https://github.com/Comcast/kuberhealthy
-    - https://github.com/Comcast/kuberhealthy/tree/master/deploy/helm/kuberhealthy
+    - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
     - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-58.tgz
@@ -212,7 +212,7 @@ entries:
     name: kuberhealthy
     sources:
     - https://github.com/Comcast/kuberhealthy
-    - https://github.com/Comcast/kuberhealthy/tree/master/deploy/helm/kuberhealthy
+    - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
     - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-54.tgz
@@ -248,7 +248,7 @@ entries:
     name: kuberhealthy
     sources:
     - https://github.com/Comcast/kuberhealthy
-    - https://github.com/Comcast/kuberhealthy/tree/master/deploy/helm/kuberhealthy
+    - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
     - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-53.tgz
@@ -284,7 +284,7 @@ entries:
     name: kuberhealthy
     sources:
     - https://github.com/Comcast/kuberhealthy
-    - https://github.com/Comcast/kuberhealthy/tree/master/deploy/helm/kuberhealthy
+    - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
     - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-51.tgz
@@ -320,7 +320,7 @@ entries:
     name: kuberhealthy
     sources:
     - https://github.com/Comcast/kuberhealthy
-    - https://github.com/Comcast/kuberhealthy/tree/master/deploy/helm/kuberhealthy
+    - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
     - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-50.tgz
@@ -356,7 +356,7 @@ entries:
     name: kuberhealthy
     sources:
     - https://github.com/Comcast/kuberhealthy
-    - https://github.com/Comcast/kuberhealthy/tree/master/deploy/helm/kuberhealthy
+    - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
     - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-45.tgz
@@ -392,7 +392,7 @@ entries:
     name: kuberhealthy
     sources:
     - https://github.com/Comcast/kuberhealthy
-    - https://github.com/Comcast/kuberhealthy/tree/master/deploy/helm/kuberhealthy
+    - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
     - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-43.tgz
