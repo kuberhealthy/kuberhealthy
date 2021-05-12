@@ -88,7 +88,7 @@ spec:
             memory: 15Mi
           limits:
             cpu: 1
-        restartPolicy: Never
+    restartPolicy: Never
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
 ```
@@ -119,7 +119,7 @@ spec:
             memory: 15Mi
           limits:
             cpu: 1
-        restartPolicy: Never
+    restartPolicy: Never
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
 ```
