@@ -109,18 +109,22 @@ func sendReport(s status.Report) error {
 		var err error
 		writeLog("DEBUG: Making POST request to kuberhealthy:")
 		resp, err = client.Do(req)
-		return err
+		// retry on any errors
+		if err != nil {
+			return err
+		}
+		// retry on status codes that do not return a 200 or 400
+		if !(resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusBadRequest) {
+			writeLog("ERROR: got a bad status code from kuberhealthy:", resp.StatusCode, resp.Status)
+			return fmt.Errorf("bad status code from kuberhealthy status reporting url: [%d] %s ", resp.StatusCode, resp.Status)
+		}
+		return nil
 	}, exponentialBackOff)
 	if err != nil {
 		writeLog("ERROR: got an error sending POST to kuberhealthy:", err)
 		return fmt.Errorf("bad POST request to kuberhealthy status reporting url: %w", err)
 	}
 
-	// make sure we got a 200 and consider it an error otherwise
-	if resp.StatusCode != http.StatusOK {
-		writeLog("ERROR: got a bad status code from kuberhealthy:", resp.StatusCode, resp.Status)
-		return fmt.Errorf("bad status code from kuberhealthy status reporting url: [%d] %s ", resp.StatusCode, resp.Status)
-	}
 	writeLog("INFO: Got a good http return status code from kuberhealthy URL:", url)
 
 	return err

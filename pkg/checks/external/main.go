@@ -316,7 +316,7 @@ func (ext *Checker) cleanup() {
 		return
 	}
 
-	// evict all checker pods not status=Failed or status=Succeeded. Check for existense of pods afterwards and if eviction failed, forcefully attempt to kill the pods
+	// evict all checker pods not status=Failed or status=Succeeded. Check for existence of pods afterwards and if eviction failed, forcefully attempt to kill the pods
 	wg := sync.WaitGroup{}
 	for _, p := range podList.Items {
 		ext.log("finding pods that are not in status.phase=Failed or status.phase=Succeeded")
@@ -1251,7 +1251,8 @@ func (ext *Checker) waitForShutdown(ctx context.Context) chan error {
 		}
 		if !exists {
 			ext.log("shutdown completed")
-			return nil
+			doneChan <- nil
+			return doneChan
 		}
 
 		// see if the context has expired yet and give up if so
@@ -1285,15 +1286,15 @@ func (ext *Checker) Shutdown() error {
 			ext.log("Error waiting for pod removal during shutdown:", err)
 			return err
 		}
-		ext.log("Check using pod" + ext.podName() + "successfully shutdown.")
+		ext.log("Check using pod " + ext.podName() + " successfully shutdown.")
 	case <-time.After(defaultShutdownGracePeriod):
 		ext.log("Reached timeout:", defaultShutdownGracePeriod, "trying to shutdown pod:", ext.podName(), "Killing pod forcefully.")
 		err := util.PodKill(ext.KubeClient, ext.podName(), ext.Namespace, 0)
 		if err != nil {
-			ext.log("Error force killing pod:", ext.podName(), "Error:", err)
+			ext.log("Error force killing pod: ", ext.podName(), " Error:", err)
 			return err
 		}
-		ext.log("Check using pod" + ext.podName() + "killed forcefully.")
+		ext.log("Check using pod " + ext.podName() + " killed forcefully.")
 	}
 	return nil
 }
