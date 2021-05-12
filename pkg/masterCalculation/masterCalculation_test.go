@@ -15,7 +15,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	awsutil "github.com/Comcast/kuberhealthy/v2/pkg/aws"
-	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/aws/aws-sdk-go/aws/session"
+	awsutil "github.com/kuberhealthy/kuberhealthy/v2/pkg/aws"
+	kh "github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -31,8 +31,8 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
+	checkclient "github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 )
 
 const defaultMaxFailuresAllowed = 10

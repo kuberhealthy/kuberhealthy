@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khstatecrd"
 )
 
 type testLW struct {

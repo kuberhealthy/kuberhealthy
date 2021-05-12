@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	checkclient "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
+	checkclient "github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 
 	// required for oidc kubectl testing
 	log "github.com/sirupsen/logrus"

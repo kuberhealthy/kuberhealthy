@@ -10,7 +10,7 @@ Download the client into your Python project by navigating to your project direc
 
 ```shell
 cd my-kh-check
-curl -O -L https://raw.githubusercontent.com/Comcast/kuberhealthy/master/clients/python/kh_client.py
+curl -O -L https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/clients/python/kh_client.py
 ```
 
 In your project, require the file you just downloaded:

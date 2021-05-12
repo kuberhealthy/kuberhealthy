@@ -21,9 +21,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v1 "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
-	"github.com/Comcast/kuberhealthy/v2/pkg/health"
-	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
+	v1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khstatecrd"
 )
 
 // setCheckStateResource puts a check state's state into the specified CRD resource.  It sets the AuthoritativePod

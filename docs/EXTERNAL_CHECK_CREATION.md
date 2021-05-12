@@ -4,7 +4,7 @@
 
 ### Using Go 
 
-If you are using Go, we have an easy to use client package: [found here](https://pkg.go.dev/github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient).
+If you are using Go, we have an easy to use client package: [found here](https://pkg.go.dev/github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient).
 
 example code:
 
@@ -12,7 +12,7 @@ example code:
 package main
 
 import (
-  "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
+  "github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
 )
 
 func main() {

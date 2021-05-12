@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external"
 )
 
 // TestGetKuberhealthyURL ensures that KH_REPORTING_URL env var can be fetched
