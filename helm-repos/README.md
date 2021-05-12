@@ -15,7 +15,7 @@ Install the newest Helm chart using the following commands:
 2. Set your current namespace to "kuberhealthy":  
 	`kubectl config set-context --current --namespace=kuberhealthy`
 3. Add the kuberhealthy repo to Helm:  
-	`helm repo add kuberhealthy https://comcast.github.io/kuberhealthy/helm-repos`
+	`helm repo add kuberhealthy https://kuberhealthy.github.io/kuberhealthy/helm-repos`
 4. Install kuberhealthy:  
 	`helm install kuberhealthy kuberhealthy/kuberhealthy`
 
