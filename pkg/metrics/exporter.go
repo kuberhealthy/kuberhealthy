@@ -9,7 +9,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package metrics // import "github.com/Comcast/kuberhealthy/v2/pkg/metrics"
+package metrics // import "github.com/kuberhealthy/kuberhealthy/v2/pkg/metrics"
 
 import (
 	"fmt"
@@ -19,7 +19,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/health"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
 )
 
 //GenerateMetrics takes the state and returns it in the Prometheus format
@@ -95,7 +95,7 @@ func GenerateMetrics(state health.State) string {
 		metricJobDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
 	}
 
-	// Add each metric format individually. This addresses issue https://github.com/Comcast/kuberhealthy/issues/813.
+	// Add each metric format individually. This addresses issue https://github.com/kuberhealthy/kuberhealthy/issues/813.
 	// Unless metric help and type are followed by the metric, datadog cannot process Kuberhealthy metrics.
 	// Kuberhealthy check metrics
 	metricsOutput += "# HELP kuberhealthy_check Shows the status of a Kuberhealthy check\n"

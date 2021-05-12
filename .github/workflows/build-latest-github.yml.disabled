@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v2
 
 # name unknown: docker image push is only supported with a tag of the format :owner/:repo_name/:image_name.
-#		Please add an image name to "comcast/kuberhealthy" tag. e.g. "comcast/kuberhealthy/<image_name>"
+#		Please add an image name to "kuberhealthy/kuberhealthy" tag. e.g. "kuberhealthy/kuberhealthy/<image_name>"
 
 
       - name: Build image
@@ -33,5 +33,5 @@ jobs:
 
       - name: Push image
         run: |
-          docker tag $IMAGE_NAME docker.pkg.github.com/comcast/kuberhealthy/$IMAGE_NAME
-          docker push docker.pkg.github.com/comcast/kuberhealthy/$IMAGE_NAME
+          docker tag $IMAGE_NAME docker.pkg.github.com/kuberhealthy/kuberhealthy/$IMAGE_NAME
+          docker push docker.pkg.github.com/kuberhealthy/kuberhealthy/$IMAGE_NAME

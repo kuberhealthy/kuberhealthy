@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
 	"github.com/gorhill/cronexpr"
+	kh "github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/nodeCheck"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

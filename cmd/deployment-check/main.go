@@ -19,8 +19,8 @@ import (
 	"syscall"
 	"time"
 
-	kh "github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
+	kh "github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"

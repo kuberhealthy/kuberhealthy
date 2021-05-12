@@ -1,6 +1,6 @@
 Available flags for use in Kuberhealthy
 
-For more configuration options, see the [configmap](https://github.com/Comcast/kuberhealthy/blob/master/docs/CONFIGURATION.md) documentation
+For more configuration options, see the [configmap](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CONFIGURATION.md) documentation
 
 # Flags
 

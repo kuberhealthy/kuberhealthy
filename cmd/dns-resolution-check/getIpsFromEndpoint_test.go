@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

@@ -1,5 +1,5 @@
 FROM golang:1.15 as builder
-LABEL LOCATION="git@github.com:Comcast/kuberhealthy.git"
+LABEL LOCATION="git@github.com:kuberhealthy/kuberhealthy.git"
 LABEL DESCRIPTION="Kuberhealthy - Check and expose kubernetes cluster health in detail."
 COPY . /build
 WORKDIR /build/cmd/kuberhealthy

@@ -25,11 +25,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
-	khjobcrd "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
-	"github.com/Comcast/kuberhealthy/v2/pkg/health"
-	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
-	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
+	khjobcrd "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/util"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khcheckcrd"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khstatecrd"
 )
 
 // KHReportingURL is the environment variable used to tell external checks where to send their status updates

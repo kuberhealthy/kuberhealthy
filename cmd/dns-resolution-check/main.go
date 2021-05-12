@@ -29,9 +29,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/checkclient"
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/nodeCheck"
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/nodeCheck"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 )
 
 const maxTimeInFailure = 60 * time.Second

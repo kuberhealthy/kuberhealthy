@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/checks/external/util"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/util"
 )
 
 // Globals for revealing daemonsets that fail to be removed or

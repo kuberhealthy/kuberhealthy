@@ -3,7 +3,7 @@ Guide on how to install and use Kuberhealthy in order to capture some helpful sy
 ### Deploying Kuberhealthy
 
 To install Kuberhealthy, make sure you have [Helm 3](https://helm.sh/docs/intro/install/) installed. If not, you can use the generated flat spec files located
-in this [deploy folder](https://github.com/Comcast/kuberhealthy/tree/master/deploy). You should use [kuberhealthy-prometheus.yaml](https://github.com/Comcast/kuberhealthy/blob/master/deploy/kuberhealthy-prometheus.yaml) if you don't use the [Prometheus Operator](https://github.com/coreos/prometheus-operator), and [kuberhealthy-prometheus-operator.yaml](https://github.com/Comcast/kuberhealthy/blob/master/deploy/kuberhealthy-prometheus-operator.yaml) if you do.  If you don't use Prometheus at all, you can still use Kuberhealthy with a JSON status page and/or InfluxDB integration using [this spec](https://github.com/Comcast/kuberhealthy/blob/master/deploy/kuberhealthy.yaml).
+in this [deploy folder](https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy). You should use [kuberhealthy-prometheus.yaml](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy-prometheus.yaml) if you don't use the [Prometheus Operator](https://github.com/coreos/prometheus-operator), and [kuberhealthy-prometheus-operator.yaml](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy-prometheus-operator.yaml) if you do.  If you don't use Prometheus at all, you can still use Kuberhealthy with a JSON status page and/or InfluxDB integration using [this spec](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy.yaml).
 
 #### To install using Helm 3:
 ##### 1. Create namespace "kuberhealthy" in the desired Kubernetes cluster/context:
@@ -41,11 +41,11 @@ Running the Helm command should automatically install the newest version of Kube
 ### Configuring Additional Checks
 
 Next, you can run `kubectl get khchecks`. You should see three Kuberhealthy checks installed by default:
-- [daemonset](https://github.com/Comcast/kuberhealthy/tree/master/cmd/daemonset-check): Deploys and tears down a daemonset to ensure all nodes in the cluster are functional.
-- [deployment](https://github.com/Comcast/kuberhealthy/tree/master/cmd/deployment-check): Creates a deployment and then triggers a rolling update.  Tests that the deployment is reachable via a service and then deletes everything. Any problem in this process will cause this check to report a failure.
-- [dns-status-internal](https://github.com/Comcast/kuberhealthy/tree/master/cmd/dns-resolution-check): Validates that internal cluster DNS is functioning as expected.
+- [daemonset](https://github.com/kuberhealthy/kuberhealthy/tree/master/cmd/daemonset-check): Deploys and tears down a daemonset to ensure all nodes in the cluster are functional.
+- [deployment](https://github.com/kuberhealthy/kuberhealthy/tree/master/cmd/deployment-check): Creates a deployment and then triggers a rolling update.  Tests that the deployment is reachable via a service and then deletes everything. Any problem in this process will cause this check to report a failure.
+- [dns-status-internal](https://github.com/kuberhealthy/kuberhealthy/tree/master/cmd/dns-resolution-check): Validates that internal cluster DNS is functioning as expected.
 
-To view other available external checks, check out the [external checks registry](https://github.com/Comcast/kuberhealthy/blob/master/docs/EXTERNAL_CHECKS_REGISTRY.md) where you can find other yaml files you can apply to your cluster to enable various checks.
+To view other available external checks, check out the [external checks registry](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/EXTERNAL_CHECKS_REGISTRY.md) where you can find other yaml files you can apply to your cluster to enable various checks.
 
 Kuberhealthy check pods should start running shortly after Kuberhealthy starts running (1-2 minutes). Additionally, the check-reaper cronjob runs every few minutes to ensure there are no more than 5 completed checker pods left lying around at a time.
 
@@ -97,7 +97,7 @@ Kuberhealthy is designed to be extended with custom check containers that can be
 
 Creating your own check is a great way to validate your client library, simulate real user workflow, and create a high level of confidence in your service or system uptime.
 
-To learn more about writing your own checks, along with simple examples, check the [custom check creation](https://github.com/Comcast/kuberhealthy/blob/master/docs/EXTERNAL_CHECK_CREATION.md) documentation.
+To learn more about writing your own checks, along with simple examples, check the [custom check creation](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/EXTERNAL_CHECK_CREATION.md) documentation.
 
 
 ### Prometheus Integration Details
@@ -152,7 +152,7 @@ Using these Kuberhealthy metrics, our team has been able to collect KPIs based o
 
 We define availability as the K8s cluster control plane being up and functioning as expected. This is measured by our ability to create a deployment, do a rolling update, and delete the deployment within a set period of time.
 
-We calculate this by measuring Kuberhealthy's [deployment check](https://github.com/Comcast/kuberhealthy/tree/master/cmd/deployment-check) successes and failures.
+We calculate this by measuring Kuberhealthy's [deployment check](https://github.com/kuberhealthy/kuberhealthy/tree/master/cmd/deployment-check) successes and failures.
   - Availability = Uptime / (Uptime * Downtime)
   - Uptime = Number of Deployment Check Passes * Check Run Interval
   - Downtime = Number of Deployment Check Fails * Check Run Interval
@@ -170,7 +170,7 @@ We calculate this by counting the total number of nodes, deployments, statefulse
 
 *Duration (Latency)*
 
-We define duration as the control plane's capacity and utilization of throughput. We calculate this by capturing the average run duration of a Kuberhealthy [deployment check](https://github.com/Comcast/kuberhealthy/tree/master/cmd/deployment-check) run.
+We define duration as the control plane's capacity and utilization of throughput. We calculate this by capturing the average run duration of a Kuberhealthy [deployment check](https://github.com/kuberhealthy/kuberhealthy/tree/master/cmd/deployment-check) run.
 
 - PromQL Query (Deployment check average run duration):
   ```promql

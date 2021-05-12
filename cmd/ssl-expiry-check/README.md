@@ -90,8 +90,8 @@ or
 
 
 #### You can also use the default values by running:  
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/v2.3.0/cmd/ssl-expiry-check/ssl-ca-expiry-check.yaml`  
+`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/v2.3.0/cmd/ssl-expiry-check/ssl-ca-expiry-check.yaml`  
 or  
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/v2.3.0/cmd/ssl-expiry-check/ssl-selfsign-expiry-check.yaml`  
+`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/v2.3.0/cmd/ssl-expiry-check/ssl-selfsign-expiry-check.yaml`  
  
  Make sure you are using the latest release of Kuberhealthy 2.3.0.
