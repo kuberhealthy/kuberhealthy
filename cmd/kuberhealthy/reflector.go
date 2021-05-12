@@ -113,25 +113,22 @@ func (sr *StateReflector) CurrentStatus() health.State {
 func determineKHWorkload(name string, namespace string) health.KHWorkload {
 
 	var khWorkload health.KHWorkload
-	log.Debugln("determineKHWorkload: determining workload:", name)
 
-	checkPod, err := khCheckClient.Get(v1.GetOptions{}, checkCRDResource, namespace, name)
+	_, err := khCheckClient.Get(v1.GetOptions{}, checkCRDResource, namespace, name)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Debugln("determineKHWorkload: Not a khcheck.")
 		}
 	} else {
-		log.Debugln("determineKHWorkload: Found khcheck:", checkPod.Name)
 		return health.KHCheck
 	}
 
-	jobPod, err := khJobClient.KuberhealthyJobs(namespace).Get(name, v1.GetOptions{})
+	_, err = khJobClient.KuberhealthyJobs(namespace).Get(name, v1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Debugln("determineKHWorkload: Not a khjob.")
 		}
 	} else {
-		log.Debugln("determineKHWorkload: Found khjob:", jobPod.Name)
 		return health.KHJob
 	}
 	return khWorkload
