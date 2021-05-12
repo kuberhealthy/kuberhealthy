@@ -45,7 +45,7 @@ spec:
         allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
         readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
 {{- end}}
-      restartPolicy: Never
+    restartPolicy: Never
     {{- if .Values.check.deployment.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.deployment.nodeSelector | nindent 6 }}
