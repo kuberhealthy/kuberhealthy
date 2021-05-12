@@ -20,6 +20,7 @@ import (
 	"net"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -1079,11 +1080,36 @@ func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, 
 
 	// put the status on the CRD from the check
 	err = setCheckStateResource(checkName, checkNamespace, details)
-	if err != nil {
-		return err
+
+	//TODO: Make this retry of updating custom resources repeatable
+	//
+	// We commonly see a race here with the following type of error:
+	// "Error storing CRD state for check: pod-restarts in namespace kuberhealthy Operation cannot be fulfilled on khstates.comcast.github.io \"pod-restarts\": the object
+	// has been modified; please apply your changes to the latest version and try again"
+	//
+	// If we see this error, we fetch the updated object, re-apply our changes, and try again
+	delay := time.Duration(time.Second * 1)
+	maxTries := 7
+	tries := 0
+	for err != nil && strings.Contains(err.Error(), "the object has been modified") {
+
+		// if too many retires have occurred, we fail up the stack further
+		if tries > maxTries {
+			return fmt.Errorf("failed to update khstate for check %s in namespace %s after %d with error %w", checkName, checkNamespace, maxTries, err)
+		}
+		log.Infoln("Failed to update khstate for check because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
+
+		// sleep and double the delay between checks (exponential backoff)
+		time.Sleep(delay)
+		delay = delay + delay
+
+		// try setting the check state again
+		err = setCheckStateResource(checkName, checkNamespace, details)
+
+		// count how many times we've retried
+		tries++
 	}
 
-	log.Debugln("Successfully updated CRD for check:", checkName, "in namespace", checkNamespace)
 	return err
 }
 
@@ -1399,7 +1425,6 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	}
 
 	// create a details object from our incoming status report before storing it as a khstate custom resource
-	log.Debugln("kuberhealthy workload:", khWorkload)
 	details := health.NewWorkloadDetails(khWorkload)
 	details.Errors = state.Errors
 	details.OK = state.OK
