@@ -33,7 +33,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-        image: kuberhealthy/dns-resolution-check:v1.4.3
+        image: kuberhealthy/dns-resolution-check:v1.5.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -44,7 +44,7 @@ spec:
 
 ### Checking endpoints behind DNS Service
 
-In order to check endpoints behind the DNS service, add a `DNS_NODE_SELECTOR` and `NAMESPACE` variable to the spec file denoting where your DNS pods are.  
+In order to check endpoints behind the DNS service, add a `DNS_NODE_SELECTOR` and `NAMESPACE` variable to the spec file denoting where your DNS pods are.
 
 `DNS_NODE_SELECTOR` is a label selector which will be used to select the DNS endpoints to query against.
 
@@ -70,7 +70,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-        image: kuberhealthy/dns-resolution-check:v1.4.3
+        image: kuberhealthy/dns-resolution-check:v1.5.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -86,4 +86,4 @@ To implement the DNS Status Check with Kuberhealthy, run
 `kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/2.0.0/cmd/dns-resolution-check/externalDNSStatusCheck.yaml`
 `kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/2.0.0/cmd/dns-resolution-check/internalDNSStatusCheck.yaml`
 
- Make sure you are using the latest release of Kuberhealthy 2.0.0.
+ Make sure you are using the latest release of Kuberhealthy 2.4.1 or later.

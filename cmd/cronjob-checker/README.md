@@ -17,7 +17,7 @@ spec:
     serviceAccountName: cronjob-checker
     containers:
       - name: cronjob-checker
-        image: kuberhealthy/cronjob-checker:v2.0.2
+        image: kuberhealthy/cronjob-checker:v2.1.0
         env:
           - name: NAMESPACE
             valueFrom:
@@ -52,6 +52,6 @@ metadata:
 
 #### How-to
 
-Make sure you are using the latest release of Kuberhealthy 2.0.0.
+Make sure you are using the latest release of Kuberhealthy 2.4.1 or later.
 
 Apply a `.yaml` file similar to the one shown above with `kubectl apply -f`

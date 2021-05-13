@@ -9,7 +9,7 @@ The check runs every 15 minutes (spec.runInterval), with a check timeout set to 
 does not complete within the given timeout it will report a timeout error on the status page.
 
 Containers are deployed with their resource requirements set to 0 cores and 0 memory and use the pause container from
-Google (gcr.io/google_containers/pause:0.8.0), which is likely already cached on your nodes. The pause container is already used by kubelet to do various tasks and should be cached at all times. The node-role.kubernetes.io/master 
+Google (gcr.io/google_containers/pause:0.8.0), which is likely already cached on your nodes. The pause container is already used by kubelet to do various tasks and should be cached at all times. The node-role.kubernetes.io/master
 NoSchedule taint is tolerated by daemonset testing pods. The Daemonset Check respects a comma separated list of `key=value` node selectors with the `NODE_SELECTOR` environment variable. If a failure occurs anywhere in the daemonset deployment or tear down, an error is shown on the status page describing the issue.
 
 #### Daemonset Check Kube Spec:
@@ -36,7 +36,7 @@ spec:
             value: "kuberhealthy"
           - name: NODE_SELECTOR # Schedules daemonsets only to nodes with this label
             value: "kubernetes.io/os=linux"
-        image: kuberhealthy/daemonset-check:v3.2.5
+        image: kuberhealthy/daemonset-check:v3.3.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -69,7 +69,7 @@ To implement the Daemonset Check with Kuberhealthy, run:
 
 `kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/2.3.1/cmd/daemonset-check/daemonset-check.yaml`
 
-Make sure you are using the latest release of Kuberhealthy 2.3.1.
+Make sure you are using the latest release of Kuberhealthy 2.4.1 or later.
 
 The configuration file contains:
 - KuberhealthyCheck

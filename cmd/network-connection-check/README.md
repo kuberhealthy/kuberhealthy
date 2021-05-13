@@ -11,7 +11,7 @@ Each check connect to one network target. Default KHCheck configurations applied
     - Target should be unreachable: true
     - Check Name: kuberhealthy-metadata-unreachable
 
-The check runs every 30 minutes (spec.runInterval), with a check timeout set to 10 minutes (spec.timeout). 
+The check runs every 30 minutes (spec.runInterval), with a check timeout set to 10 minutes (spec.timeout).
 The `CONNECTION_TIMEOUT` environment variable is used to define the timeout for the performed network connection. If `CONNECTION_TIMEOUT` isn't set, `20s` will be used as default timeout value.
 
 If the check
@@ -36,7 +36,7 @@ spec:
       - env:
           - name: CONNECTION_TARGET
             value: "tcp://github.com:443"
-        image: kuberhealthy/network-connection-check:v0.1.3
+        image: kuberhealthy/network-connection-check:v0.2.0
         name: kuberhealthy-github-reachable
 ```
 

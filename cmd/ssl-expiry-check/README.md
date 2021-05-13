@@ -25,16 +25,16 @@ spec:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
           - name: DOMAIN_NAME
             value: "corporate.comcast.com"
-          # If not using default SSL port of 443, port name env variable must be updated  
+          # If not using default SSL port of 443, port name env variable must be updated
           - name: PORT
             value: "443"
-          # Number of days until certificate expiration to test for  
+          # Number of days until certificate expiration to test for
           - name: DAYS
             value: "60"
           # Set INSECURE to "false" for CA issued certificates. If "false", a TLS handshake will be performed during the expiry check.
           - name: INSECURE
             value: "false"
-        image: kuberhealthy/ssl-expiry-check:v3.1.3
+        image: kuberhealthy/ssl-expiry-check:v3.2.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -59,16 +59,16 @@ spec:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
           - name: DOMAIN_NAME
             value: "kubernetes.default"
-          # If not using default SSL port of 443, port name env variable must be updated  
+          # If not using default SSL port of 443, port name env variable must be updated
           - name: PORT
             value: "443"
-          # Number of days until certificate expiration to test for  
+          # Number of days until certificate expiration to test for
           - name: DAYS
             value: "60"
           # Set INSECURE to "true" for self-signed certificates. If "true", the TLS handshake will be skipped. This only checks expiration status, NOT validity/security.
           - name: INSECURE
             value: "true"
-        image: kuberhealthy/ssl-expiry-check:v3.1.3
+        image: kuberhealthy/ssl-expiry-check:v3.2.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -80,18 +80,18 @@ spec:
 
 #### How-to
 
-To implement the SSL Handshake Check with Kuberhealthy, update the spec sheet with the domain name, port number, and number of days until expiration that you wish to test. TLS handshakes will fail on self-signed certificates. To check expiration dates and timeframes for self-signed certificates, skip that step by setting the INSECURE variable to "true". 
+To implement the SSL Handshake Check with Kuberhealthy, update the spec sheet with the domain name, port number, and number of days until expiration that you wish to test. TLS handshakes will fail on self-signed certificates. To check expiration dates and timeframes for self-signed certificates, skip that step by setting the INSECURE variable to "true".
 
 #### Update values as needed and apply the spec sheets:
 
-`kubectl apply -f ssl-ca-expiry-check.yaml`  
-or  
-`kubectl apply -f ssl-selfsign-expiry-check.yaml`  
+`kubectl apply -f ssl-ca-expiry-check.yaml`
+or
+`kubectl apply -f ssl-selfsign-expiry-check.yaml`
 
 
-#### You can also use the default values by running:  
-`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/v2.3.0/cmd/ssl-expiry-check/ssl-ca-expiry-check.yaml`  
-or  
-`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/v2.3.0/cmd/ssl-expiry-check/ssl-selfsign-expiry-check.yaml`  
- 
- Make sure you are using the latest release of Kuberhealthy 2.3.0.
+#### You can also use the default values by running:
+`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/v2.3.0/cmd/ssl-expiry-check/ssl-ca-expiry-check.yaml`
+or
+`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/v2.3.0/cmd/ssl-expiry-check/ssl-selfsign-expiry-check.yaml`
+
+ Make sure you are using the latest release of Kuberhealthy 2.4.1 or later.

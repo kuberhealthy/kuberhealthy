@@ -9,21 +9,21 @@ spec:
   timeout: 5m
   podSpec:
     containers:
-    - name: resource-quota
-      image: kuberhealthy/resource-quota-check:v1.2.4
-      imagePullPolicy: IfNotPresent
-      env:
-        - name: BLACKLIST
-          value: "default"
-        - name: WHITELIST
-          value: "kube-system,kuberhealthy"
-      resources:
-        requests:
-          cpu: 15m
-          memory: 15Mi
-        limits:
-          cpu: 50m
-      restartPolicy: Never
+      - name: resource-quota
+        image: kuberhealthy/resource-quota-check:v1.3.0
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: BLACKLIST
+            value: "default"
+          - name: WHITELIST
+            value: "kube-system,kuberhealthy"
+        resources:
+          requests:
+            cpu: 15m
+            memory: 15Mi
+          limits:
+            cpu: 50m
+        restartPolicy: Never
     terminationGracePeriodSeconds: 30
     serviceAccountName: kuberhealthy-resource-quota
 ---

@@ -10,7 +10,7 @@ spec:
     serviceAccountName: namespace-pod-check
     containers:
       - name: namespace-pod-check
-        image: kuberhealthy/namespace-pod-check:v1.0.1
+        image: kuberhealthy/namespace-pod-check:v1.1.0
         imagePullPolicy: IfNotPresent
         resources:
           requests:
