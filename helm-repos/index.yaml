@@ -7,7 +7,7 @@ entries:
     description: An operator for synthetic test and monitoring. Works great with Prometheus.
     digest: 2f71c8e6f5315c7889aab90213697cf5c4a77a11778e9ca2cb699e2bde7aaef5
     home: https://kuberhealthy.github.io/kuberhealthy/
-    icon: https://raw.githubusercontent.com/Comcast/kuberhealthy/master/images/logo-square.png
+    icon: https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/images/logo-square.png
     keywords:
     - kuberhealthy
     - kubernetes
