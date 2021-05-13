@@ -1,26 +1,9 @@
-## ATTN: Kuberhealthy Organization Migration - Wednesday, May 12th
-
-We're super excited to share that Kuberhealthy has been accepted into the CNCF Sandbox and with it, we're transferring the project from the Comcast github organization to its own [Kuberhealthy](https://github.com/kuberhealthy) github organization.
-
-Known Breaking Changes:
-- Helm chart
-- Kuberhealthy go modules
-- [checkClient](https://github.com/Comcast/kuberhealthy/tree/master/pkg/checks/external/checkclient) pkg - for external checks reporting to Kuberhealthy
-- More to be uncovered on May 12th!
-
-Resources:
-- Flat spec files for deploying Kuberhealthy will still be available in the [/deploy](/deploy) directory
-
-Questions:
-- Ping us in the Kubernetes slack channel #kuberhealthy with questions and please submit any issues!
-_____________
-
-<center><img src="https://github.com/Comcast/kuberhealthy/blob/master/images/kuberhealthy.png?raw=true"></center><br />
+<center><img src="https://github.com/kuberhealthy/kuberhealthy/blob/master/images/kuberhealthy.png?raw=true"></center><br />
 
 An operator for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_monitoring) on [Kubernetes](https://kubernetes.io).  Write your own tests in your own container and Kuberhealthy will manage everything else.  Automatically creates and sends metrics to [Prometheus](https://prometheus.io) and [InfluxDB](https://www.influxdata.com/).  Included simple JSON status page. Supplements other solutions like [Prometheus](https://prometheus.io/) very nicely!
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Comcast/kuberhealthy)](https://goreportcard.com/report/github.com/Comcast/kuberhealthy)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kuberhealthy/kuberhealthy)](https://goreportcard.com/report/github.com/kuberhealthy/kuberhealthy)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2822/badge)](https://bestpractices.coreinfrastructure.org/projects/2822)
 [![Twitter Follow](https://img.shields.io/twitter/follow/kuberhealthy.svg?style=social)](https://twitter.com/kuberhealthy)  
 [![Join Slack](https://img.shields.io/badge/slack-kubernetes/kuberhealthy-teal.svg?logo=slack)](https://kubernetes.slack.com/messages/CB9G7HWTE)
@@ -49,7 +32,7 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 2. Set your current namespace to "kuberhealthy":  
 	`kubectl config set-context --current --namespace=kuberhealthy`
 3. Add the kuberhealthy repo to Helm:  
-	`helm repo add kuberhealthy https://comcast.github.io/kuberhealthy/helm-repos`
+	`helm repo add kuberhealthy https://kuberhealthy.github.io/kuberhealthy/helm-repos`
 4. Install kuberhealthy:  
 	`helm install kuberhealthy kuberhealthy/kuberhealthy`
 
@@ -57,9 +40,9 @@ After installation, Kuberhealthy will only be available from within the cluster 
 
 Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.18.x`.
 
-To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/Comcast/kuberhealthy/blob/master/docs/CONFIGURATION.md).
+To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CONFIGURATION.md).
 
-The Helm installation of Kuberhealthy is automatically updated to use the latest [Kuberhealthy release](https://github.com/Comcast/kuberhealthy/releases).
+The Helm installation of Kuberhealthy is automatically updated to use the latest [Kuberhealthy release](https://github.com/kuberhealthy/kuberhealthy/releases).
 
 More installation options, including static yaml files are available in the [/deploy](/deploy) directory. These flat spec files contain the most recent changes to Kuberhealthy, or the master branch. Use this if you would like to test master branch updates.
 
@@ -155,6 +138,6 @@ Vulnerabilities or other security related issues should be logged as Github issu
 If you're interested in contributing to this project:
 - Check out the [Contributing Guide](CONTRIBUTING.md).
 - If you use Kuberhealthy in a production environment, add yourself to the list of [Kuberhealthy adopters](docs/KUBERHEALTHY_ADOPTERS.md)!
-- Check out [open issues](https://github.com/Comcast/kuberhealthy/issues). If you're new to the project, look for the `good first issue` tag.
+- Check out [open issues](https://github.com/kuberhealthy/kuberhealthy/issues). If you're new to the project, look for the `good first issue` tag.
 - We're always looking for external check contributions (either in suggestions or in PRs) as well as feedback from folks implementing
 Kuberhealthy locally or in a test environment.

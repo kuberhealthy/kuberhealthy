@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khstatecrd"
 )
 
 type testLW struct {
@@ -76,7 +76,7 @@ func TestStop(t *testing.T) {
 	// Run watch for 5 seconds
 	go khStateReflector.Start()
 	fw.Add(&khstatecrd.KuberhealthyState{ObjectMeta: metav1.ObjectMeta{Name: "bar"}})
-	time.Sleep(time.Second*2)
+	time.Sleep(time.Second * 2)
 
 	// Stop watch.
 	khStateReflector.Stop()

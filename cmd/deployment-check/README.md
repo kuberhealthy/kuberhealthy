@@ -88,7 +88,7 @@ spec:
             memory: 15Mi
           limits:
             cpu: 1
-        restartPolicy: Never
+    restartPolicy: Never
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
 ```
@@ -119,7 +119,7 @@ spec:
             memory: 15Mi
           limits:
             cpu: 1
-        restartPolicy: Never
+    restartPolicy: Never
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
 ```
@@ -128,7 +128,7 @@ spec:
 
 To use the _Deployment Check_ with Kuberhealthy, apply the configuration file [deployment-check.yaml](deployment-check.yaml) to your Kubernetes Cluster. The following command will also apply the configuration file to your current context:
 
-`kubectl apply -f https://raw.githubusercontent.com/Comcast/kuberhealthy/master/cmd/deployment-check/deployment-check.yaml`
+`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/cmd/deployment-check/deployment-check.yaml`
 
 Make sure you are using the latest release of Kuberhealthy 2.0.0 or later.
 

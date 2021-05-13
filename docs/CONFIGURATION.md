@@ -7,7 +7,7 @@ The configuration file is mounted at `/etc/config'
 
 #### Example Configmap
 
-The following configmap contains all configurable options.  If a configuraiton parameter is not needed, simply leave it blank or remove it from the configmap.
+The following configmap contains all configurable options.  If a configuration parameter is not needed, simply leave it blank or remove it from the configmap.
 
 ```
 apiVersion: v1
@@ -24,7 +24,8 @@ data:
     influxURL: "" # Address for the InfluxDB instance
     influxDB: "http://localhost:8086" # Name of the InfluxDB database
     enableInflux: false # Set to true to enable metric forwarding to Infux DB
-    jobCleanupDuration: 15m # Maximum age of khjobs before being reaped. Valid time units: "ns", "us" (or "µs"), "ms", "s", "m", "h"
-    maxCheckPods:  4 # Maximum number of check pods in Completed state before being reaped
-    failedPodCleanupDuration: 120h # Maximum age of failed khcheck/khjob pods before being reaped. Valid time units: "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    maxKHJobAge: 15m # Maximum age of the khjob resource before being reaped. Valid time units: "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    maxCheckPodAge: 72h # Maximum age of khcheck/khjob pods before being reaped. Valid time units: "ns", "us" (or "µs"), "ms", "s", "m", "h"
+    maxCompletedPodCount: 4 # Maximum number of khcheck/khjob pods in Completed state before being reaped. If not set or set to 0, no completed khjob/khcheck pod will remain.
+    maxErrorPodCount: 4 # Maximum number of khcheck/khjob pods in Error state before being reaped. If not set or set to 0, no completed khjob/khcheck pod will remain.
 ```

@@ -50,24 +50,25 @@ jobs:
           ./create-flat-files.sh
           rm -f *.old
     - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v2.4.4
+      uses: peter-evans/create-pull-request@v3.9.1
       with:
         # GITHUB_TOKEN or a repo scoped PAT
         token: ${{ secrets.GITHUB_TOKEN }}
         # Relative path under $GITHUB_WORKSPACE to the repository.
         #path: # optional
         # The message to use when committing changes.
-        commit-message: "flat file spec regeneration"
+        commit-message: "Automated flat file Kubernetes spec regeneration"
         # The committer name and email address.
         #author: "GitHub Automatic Template Render Job"
         # The author name and email address.
-        committer: "Github Actions <action@github.com>"
+        #committer: "Github Actions <action@github.com>"
+        signoff: true
         # The title of the pull request.
-        title: "Flat Spec File Regeneration"
+        title: "Flat Kubernetes Spec Regeneration"
         # The body of the pull request.
         body: "An automatic PR for the regeneration of flat deployment files."
         # A comma separated list of labels.
-        #labels: # optional
+        labels: bot # optional
         # A comma separated list of assignees (GitHub usernames).
         #assignees: # optional
         # A comma separated list of reviewers (GitHub usernames) to request a review from.

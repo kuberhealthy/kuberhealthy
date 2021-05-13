@@ -28,11 +28,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	khjobcrd "github.com/Comcast/kuberhealthy/v2/pkg/apis/khjob/v1"
-	"github.com/Comcast/kuberhealthy/v2/pkg/khcheckcrd"
-	"github.com/Comcast/kuberhealthy/v2/pkg/khstatecrd"
-	"github.com/Comcast/kuberhealthy/v2/pkg/kubeClient"
-	"github.com/Comcast/kuberhealthy/v2/pkg/masterCalculation"
+	khjobcrd "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khcheckcrd"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khstatecrd"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/masterCalculation"
 )
 
 // status represents the current Kuberhealthy OK:Error state
@@ -44,6 +44,9 @@ var isMaster bool                  // indicates this instance is the master and 
 var upcomingMasterState bool       // the upcoming master state on next interval
 var lastMasterChangeTime time.Time // indicates the last time a master change was seen
 var listenNamespace string         // namespace to listen (watch/get) `khcheck` resources on.  If blank, all namespaces will be monitored.
+
+// Interval for how often check pods should get reaped. Default is 30s.
+var checkReaperRunInterval = os.Getenv("CHECK_REAPER_RUN_INTERVAL")
 
 var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
 
