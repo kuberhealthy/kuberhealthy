@@ -7,11 +7,7 @@ description: "An operator for synthetic test and monitoring. Works great with Pr
 type: application
 maintainers:
   - name: integrii
-    email: eric.greer@comcast.com
-  - name: lolimjake
-    email: jacob.martin@comcast.com
-  - name: ihoegen
-    email: ianhoegen@gmail.com
+    email: ericgreer@gmail.com
   - name: jonnydawg
     email: jonathan_phan@comcast.com
   - name: joshulyne
