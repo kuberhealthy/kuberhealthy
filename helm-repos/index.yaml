@@ -35,7 +35,7 @@ entries:
     - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-64.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-64.tgz
     version: "64"
   - apiVersion: v2
     appVersion: v2.4.1
@@ -71,7 +71,7 @@ entries:
     - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-63.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-63.tgz
     version: "63"
   - apiVersion: v2
     appVersion: v2.4.1
@@ -107,7 +107,7 @@ entries:
     - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-62.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-62.tgz
     version: "62"
   - apiVersion: v2
     appVersion: v2.4.1
@@ -143,7 +143,7 @@ entries:
     - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-59.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-59.tgz
     version: "59"
   - apiVersion: v2
     appVersion: v2.4.1
@@ -179,7 +179,7 @@ entries:
     - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-58.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-58.tgz
     version: "58"
   - apiVersion: v2
     appVersion: v2.4.0
@@ -215,7 +215,7 @@ entries:
     - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-54.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-54.tgz
     version: "54"
   - apiVersion: v2
     appVersion: v2.4.0
@@ -251,7 +251,7 @@ entries:
     - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-53.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-53.tgz
     version: "53"
   - apiVersion: v2
     appVersion: v2.4.0
@@ -287,7 +287,7 @@ entries:
     - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-51.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-51.tgz
     version: "51"
   - apiVersion: v2
     appVersion: v2.3.2
@@ -323,7 +323,7 @@ entries:
     - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-50.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-50.tgz
     version: "50"
   - apiVersion: v2
     appVersion: v2.3.2
@@ -359,7 +359,7 @@ entries:
     - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-45.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-45.tgz
     version: "45"
   - apiVersion: v2
     appVersion: v2.3.2
@@ -395,7 +395,7 @@ entries:
     - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-43.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-43.tgz
     version: "43"
   - apiVersion: v2
     appVersion: v2.3.1
@@ -431,7 +431,7 @@ entries:
     - https://github.com/helm/charts/tree/master/stable/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-33.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-33.tgz
     version: "33"
   - apiVersion: v2
     appVersion: v2.3.0
@@ -467,7 +467,7 @@ entries:
     - https://github.com/helm/charts/tree/master/stable/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-32.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-32.tgz
     version: "32"
   - apiVersion: v2
     appVersion: v2.3.0
@@ -503,7 +503,7 @@ entries:
     - https://github.com/helm/charts/tree/master/stable/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-28.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-28.tgz
     version: "28"
   - apiVersion: v2
     appVersion: 2.2.0
@@ -539,7 +539,7 @@ entries:
     - https://github.com/helm/charts/tree/master/stable/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-2.2.0.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-2.2.0.tgz
     version: 2.2.0
   - apiVersion: v2
     appVersion: 2.1.0
@@ -575,6 +575,6 @@ entries:
     - https://github.com/helm/charts/tree/master/stable/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-2.1.0.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-2.1.0.tgz
     version: 2.1.0
 generated: "2021-05-04T23:00:41.450087391Z"
