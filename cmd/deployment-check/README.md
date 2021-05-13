@@ -71,8 +71,8 @@ spec:
   timeout: 15m
   podSpec:
     containers:
-      - name: deployment
-        image: kuberhealthy/deployment-check:v1.8.1
+      - name: deploym9.0
+        image: kuberhealthy/deployment-check:v1.9.0
         env:
           - name: CHECK_IMAGE
             value: "nginx:1.17-perl"
@@ -107,7 +107,7 @@ spec:
   podSpec:
     containers:
       - name: deployment
-        image: kuberhealthy/deployment-check:v1.8.1
+        image: kuberhealthy/deployment-check:v1.9.0
         env:
           - name: CHECK_DEPLOYMENT_REPLICAS
             value: "6"
@@ -130,7 +130,7 @@ To use the _Deployment Check_ with Kuberhealthy, apply the configuration file [d
 
 `kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/cmd/deployment-check/deployment-check.yaml`
 
-Make sure you are using the latest release of Kuberhealthy 2.0.0 or later.
+Make sure you are using the latest release of Kuberhealthy 2.4.1 or later.
 
 The check configuration file contains:
 

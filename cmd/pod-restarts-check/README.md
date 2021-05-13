@@ -29,7 +29,7 @@ spec:
             value: "kube-system"
           - name: MAX_FAILURES_ALLOWED
             value: "10"
-        image: kuberhealthy/pod-restarts-check:v2.4.0
+        image: kuberhealthy/pod-restarts-check:v2.5.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -66,4 +66,4 @@ To enable cluster wide check with cluster permissions
 helm install kuberhealthy kuberhealthy/kuberhealthy --set check.podRestarts.enabled=true --set check.podRestarts.allNamespaces=true
 ```
 
-Make sure you are using the latest release of Kuberhealthy 2.0.0.
+Make sure you are using the latest release of Kuberhealthy 2.4.1 or later.

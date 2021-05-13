@@ -10,18 +10,18 @@ spec:
     testLabel: testLabel
   podSpec:
     containers:
-    - env:
-      - name: REPORT_FAILURE
-        value: "false"
-      - name: REPORT_DELAY
-        value: "5s"
-      image: kuberhealthy/test-external-check:v1.3.2
-      imagePullPolicy: Always
-      name: main
-      resources:
-        requests:
-          cpu: 10m
-          memory: 50Mi
+      - env:
+          - name: REPORT_FAILURE
+            value: "false"
+          - name: REPORT_DELAY
+            value: "5s"
+        image: kuberhealthy/test-external-check:v1.4.0
+        imagePullPolicy: Always
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
   runInterval: 30s
   timeout: 1s
 ---
@@ -37,18 +37,18 @@ spec:
     testLabel: testLabel
   podSpec:
     containers:
-    - env:
-      - name: REPORT_FAILURE
-        value: "false"
-      - name: REPORT_DELAY
-        value: "5s"
-      image: kuberhealthy/test-external-check:v1.3.2
-      imagePullPolicy: Always
-      name: main
-      resources:
-        requests:
-          cpu: 10m
-          memory: 50Mi
+      - env:
+          - name: REPORT_FAILURE
+            value: "false"
+          - name: REPORT_DELAY
+            value: "5s"
+        image: kuberhealthy/test-external-check:v1.4.0
+        imagePullPolicy: Always
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
   runInterval: 30s
   timeout: 2m
 ---
@@ -64,18 +64,18 @@ spec:
     testLabel: testLabel
   podSpec:
     containers:
-    - env:
-      - name: REPORT_DELAY
-        value: "5s"
-      - name: REPORT_FAILURE
-        value: "false"
-      image: kuberhealthy/test-external-check:v1.3.2
-      imagePullPolicy: Always
-      name: main
-      resources:
-        requests:
-          cpu: 10m
-          memory: 50Mi
+      - env:
+          - name: REPORT_DELAY
+            value: "5s"
+          - name: REPORT_FAILURE
+            value: "false"
+        image: kuberhealthy/test-external-check:v1.4.0
+        imagePullPolicy: Always
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
   runInterval: 30s
   timeout: 2m
 ---
@@ -89,16 +89,16 @@ spec:
   extraLabels: null
   podSpec:
     containers:
-    - env:
-      - name: POD_NAMESPACE
-        value: kuberhealthy
-      image: docker-proto.repo.theplatform.com/kh-check-daemonset:1.0.0
-      imagePullPolicy: Always
-      name: main
-      resources:
-        requests:
-          cpu: 10m
-          memory: 50Mi
+      - env:
+          - name: POD_NAMESPACE
+            value: kuberhealthy
+        image: docker-proto.repo.theplatform.com/kh-check-daemonset:1.0.0
+        imagePullPolicy: Always
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
   runInterval: 30s
   timeout: 15m
 ---
@@ -135,13 +135,13 @@ spec:
   extraLabels:
     testLabel: testLabel
   podSpec:
-      image: kuberhealthy/test-external-check:v1.3.2
-      imagePullPolicy: Always
-      name: main
-      resources:
-        requests:
-          cpu: "800"
-          memory: 50Mi
+    image: kuberhealthy/test-external-check:v1.4.0
+    imagePullPolicy: Always
+    name: main
+    resources:
+      requests:
+        cpu: "800"
+        memory: 50Mi
   runInterval: 30s
   timeout: 2m
 ---
@@ -157,18 +157,18 @@ spec:
     testLabel: testLabel
   podSpec:
     containers:
-    - env:
-      - name: REPORT_DELAY
-        value: "5s"
-      - name: REPORT_FAILURE
-        value: "true"
-      image: kuberhealthy/test-external-check:v1.3.2
-      imagePullPolicy: Always
-      name: main
-      resources:
-        requests:
-          cpu: 10m
-          memory: 50Mi
+      - env:
+          - name: REPORT_DELAY
+            value: "5s"
+          - name: REPORT_FAILURE
+            value: "true"
+        image: kuberhealthy/test-external-check:v1.4.0
+        imagePullPolicy: Always
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
   runInterval: 30s
   timeout: 2m
 ---
@@ -184,18 +184,18 @@ spec:
     testLabel: testLabel
   podSpec:
     containers:
-    - env:
-      - name: REPORT_DELAY
-        value: "5s"
-      - name: REPORT_FAILURE
-        value: "false"
-      image: kuberhealthy/test-external-check:v1.3.2
-      imagePullPolicy: Always
-      name: main
-      resources:
-        requests:
-          cpu: 10m
-          memory: 50Mi
+      - env:
+          - name: REPORT_DELAY
+            value: "5s"
+          - name: REPORT_FAILURE
+            value: "false"
+        image: kuberhealthy/test-external-check:v1.4.0
+        imagePullPolicy: Always
+        name: main
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
   runInterval: 30s
   timeout: 2m
 ---
@@ -211,12 +211,12 @@ spec:
     kuberhealthy-check: kiam-tester-canary
   podSpec:
     containers:
-    - image: docker-proto.repo.theplatform.com/kiam-tester:unstable
-      imagePullPolicy: Always
-      name: kiam-tester-canary
-      resources:
-        requests:
-          cpu: 15m
-          memory: 50Mi
+      - image: docker-proto.repo.theplatform.com/kiam-tester:unstable
+        imagePullPolicy: Always
+        name: kiam-tester-canary
+        resources:
+          requests:
+            cpu: 15m
+            memory: 50Mi
   runInterval: 30s
   timeout: 2m30s

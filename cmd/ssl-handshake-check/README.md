@@ -10,9 +10,9 @@ Certificate Authority (CA) issued certificates should use the first spec sheet (
 
 Self-signed certificate checks can be performed two different ways. The first spec below can be set to SELF_SIGNED = "true" and the check will attempt to retrieve the certificate from the host, add it to the cert pool, and run the TLS handshake check.
 
-The second spec can be used if you have the certificate. Copy and paste the self-signed certificate data into the configmap spec under the certificate.crt data label. 
+The second spec can be used if you have the certificate. Copy and paste the self-signed certificate data into the configmap spec under the certificate.crt data label.
 
-See the examples below: 
+See the examples below:
 
 #### EXAMPLE SSL Handshake Check - Self Signed or CA Issued Kube Spec (ssl-handshake-check.yaml):
 ```yaml
@@ -30,13 +30,13 @@ spec:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
           - name: DOMAIN_NAME
             value: "kubernetes.default"
-          # If not using default SSL port of 443, port env variable must be updated  
+          # If not using default SSL port of 443, port env variable must be updated
           - name: PORT
             value: "443"
           # For internal, self-signed certs, set to "true" and the handshake check will attempt to automatically retrieve the host certificate
           - name: SELF_SIGNED
             value: "true"
-        image: kuberhealthy/ssl-handshake-check:v3.1.11
+        image: kuberhealthy/ssl-handshake-check:v3.2.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -61,18 +61,18 @@ spec:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
           - name: DOMAIN_NAME
             value: "kubernetes.default"
-          # If not using default SSL port of 443, port env variable must be updated  
+          # If not using default SSL port of 443, port env variable must be updated
           - name: PORT
             value: "443"
-          # For internal, self-signed certificates, set to "true" and copy and paste the .pem formatted certificate in the config map below 
+          # For internal, self-signed certificates, set to "true" and copy and paste the .pem formatted certificate in the config map below
           - name: SELF_SIGNED
             value: "true"
-        image: kuberhealthy/ssl-handshake-check:v3.1.11
+        image: kuberhealthy/ssl-handshake-check:v3.2.0
         imagePullPolicy: IfNotPresent
         name: main
         volumeMounts:
         - name: certificate-vol
-          mountPath: /etc/ssl/selfsign  
+          mountPath: /etc/ssl/selfsign
         resources:
           requests:
             cpu: 10m
@@ -115,14 +115,14 @@ data:
 ```
 #### How-to
 
-To implement the SSL Handshake Check with Kuberhealthy, update the spec sheet to the domain name and port number you wish to test and apply:  
+To implement the SSL Handshake Check with Kuberhealthy, update the spec sheet to the domain name and port number you wish to test and apply:
 
-`kubectl apply -f ssl-handshake-check.yaml`  
+`kubectl apply -f ssl-handshake-check.yaml`
 
-You can use the default values as well by running:  
+You can use the default values as well by running:
 
-`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/v2.3.0/cmd/ssl-handshake-check/ssl-handshake-check.yaml`  
+`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/v2.3.0/cmd/ssl-handshake-check/ssl-handshake-check.yaml`
 
 To use the `ssl-file-handshake-check.yaml` spec sheet, you must first update the certificate configmap.
 
- Make sure you are using the latest release of Kuberhealthy 2.3.0.
+ Make sure you are using the latest release of Kuberhealthy 2.4.1 or later.

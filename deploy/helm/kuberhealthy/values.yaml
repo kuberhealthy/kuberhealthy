@@ -25,7 +25,7 @@ prometheus:
 
   enableAlerting: false
 
-# imageRegistry can be used to globally override where check images are pulled from. Individual checks can be overridden below. 
+# imageRegistry can be used to globally override where check images are pulled from. Individual checks can be overridden below.
 # By default if no overrides are specified, all images are pulled from Docker Hub.  Do not include a trailing '/'.
 imageRegistry: {}
 
@@ -114,7 +114,7 @@ check:
     image:
       registry: kuberhealthy
       repository: daemonset-check
-      tag: v3.2.5
+      tag: v3.3.0
     extraEnvs:
     nodeSelector: {}
     tolerations:
@@ -125,7 +125,7 @@ check:
     resources:
       requests:
         cpu: 10m
-        memory: 50Mi    
+        memory: 50Mi
   deployment:
     enabled: true
     runInterval: 10m
@@ -133,13 +133,13 @@ check:
     image:
       registry: kuberhealthy
       repository: deployment-check
-      tag: v1.8.1
+      tag: v1.9.0
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
       CHECK_SERVICE_ACCOUNT: "default"
     nodeSelector: {}
-    tolerations: 
+    tolerations:
     #- key: "key"
     #  operator: "Equal"
     #  value: "value"
@@ -157,11 +157,11 @@ check:
     image:
       registry: kuberhealthy
       repository: dns-resolution-check
-      tag: v1.4.3
+      tag: v1.5.0
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
-    tolerations: 
+    tolerations:
     #- key: "key"
     #  operator: "Equal"
     #  value: "value"
@@ -177,11 +177,11 @@ check:
     image:
       registry: kuberhealthy
       repository: dns-resolution-check
-      tag: v1.4.3
+      tag: v1.5.0
     extraEnvs:
       HOSTNAME: "google.com"
     nodeSelector: {}
-    tolerations: 
+    tolerations:
     #- key: "key"
     #  operator: "Equal"
     #  value: "value"
@@ -197,7 +197,7 @@ check:
     image:
       registry: kuberhealthy
       repository: pod-restarts-check
-      tag: v2.4.0
+      tag: v2.5.0
     allNamespaces: false
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
@@ -218,7 +218,7 @@ check:
     image:
       registry: kuberhealthy
       repository: pod-status-check
-      tag: v1.2.5
+      tag: v1.3.0
     allNamespaces: false
     extraEnvs:
     nodeSelector: {}
@@ -265,7 +265,7 @@ check:
     image:
       registry: kuberhealthy
       repository: network-connection-check
-      tag: v0.1.3
+      tag: v0.2.0
     extraEnvs:
       CONNECTION_TARGET: "tcp://github.com:443"
     nodeSelector: {}
@@ -278,4 +278,3 @@ check:
       requests:
         memory: 5Mi
         cpu: 10m
-

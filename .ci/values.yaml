@@ -72,7 +72,7 @@ check:
     image:
       registry: kuberhealthy
       repository: daemonset-check
-      tag: v3.2.5
+      tag: v3.3.0
     extraEnvs:
     nodeSelector: {}
   deployment:
@@ -82,7 +82,7 @@ check:
     image:
       registry: kuberhealthy
       repository: deployment-check
-      tag: v1.8.1
+      tag: v1.9.0
     extraEnvs:
       CHECK_DEPLOYMENT_REPLICAS: "4"
       CHECK_DEPLOYMENT_ROLLING_UPDATE: "true"
@@ -95,7 +95,7 @@ check:
     image:
       registry: kuberhealthy
       repository: dns-resolution-check
-      tag: v1.4.3
+      tag: v1.5.0
     extraEnvs:
       HOSTNAME: "kubernetes.default"
     nodeSelector: {}
@@ -106,7 +106,7 @@ check:
     image:
       registry: kuberhealthy
       repository: pod-restarts-check
-      tag: v2.4.0
+      tag: v2.5.0
     extraEnvs:
       MAX_FAILURES_ALLOWED: "10"
     nodeSelector: {}
@@ -117,8 +117,7 @@ check:
     image:
       registry: kuberhealthy
       repository: pod-status-check
-      tag: v1.2.5
+      tag: v1.3.0
     extraEnvs:
     nodeSelector: {}
 
-  
