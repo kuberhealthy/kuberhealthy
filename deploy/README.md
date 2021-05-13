@@ -41,7 +41,7 @@ A helm chart for deploying Kuberhealthy.  This is the same helm chart published 
 `kubectl config set-context --current --namespace=kuberhealthy`
 
 - Add the kuberhealthy repo to Helm:
-`helm repo add kuberhealthy https://comcast.github.io/kuberhealthy/helm-repos`
+`helm repo add kuberhealthy https://kuberhealthy.github.io/kuberhealthy/helm-repos`
 
 - Install kuberhealthy with Helm using one of the following:
 

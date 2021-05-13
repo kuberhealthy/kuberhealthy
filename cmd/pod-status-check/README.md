@@ -65,7 +65,7 @@ If you want to enable the cluster wide option described above then __instead__ a
 ##### Helm
 
 ```
-helm repo add kuberhealthy https://comcast.github.io/kuberhealthy/helm-repos
+helm repo add kuberhealthy https://kuberhealthy.github.io/kuberhealthy/helm-repos
 
 helm install kuberhealthy kuberhealthy/kuberhealthy --set check.podStatus.enabled=true
 ```

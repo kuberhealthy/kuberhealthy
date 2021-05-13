@@ -77,6 +77,6 @@ securityContext: # default container security context
 ```
 
 
-For more details, see the [Kuberhealthy web site](https://comcast.github.io/kuberhealthy/).
+For more details, see the [Kuberhealthy web site](https://kuberhealthy.github.io/kuberhealthy/).
 
 To report a bug, see the [Kuberhealthy project issues](https://github.com/kuberhealthy/kuberhealthy/issues).
