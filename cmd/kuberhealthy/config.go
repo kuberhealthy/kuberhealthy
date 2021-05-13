@@ -182,9 +182,11 @@ func configReloader(ctx context.Context, kh *Kuberhealthy) {
 			log.SetLevel(parsedLogLevel)
 		}
 
-		// reload checks
-		kh.RestartChecks(ctx)
-		log.Infoln("configReloader: Kuberhealthy restarted!")
+		if isMaster {
+			// reload checks
+			kh.RestartChecks(ctx)
+			log.Infoln("configReloader: Kuberhealthy restarted!")
+		}
 	}
 	log.Infoln("configReloader: shutting down because no more signals are coming from outChan")
 }
