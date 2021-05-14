@@ -71,7 +71,7 @@ spec:
   timeout: 15m
   podSpec:
     containers:
-      - name: deploym9.0
+      - name: deployment
         image: kuberhealthy/deployment-check:v1.9.0
         env:
           - name: CHECK_IMAGE
