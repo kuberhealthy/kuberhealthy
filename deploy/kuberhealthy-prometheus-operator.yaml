@@ -492,7 +492,7 @@ spec:
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
-      restartPolicy: Never
+    restartPolicy: Never
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
 ---
