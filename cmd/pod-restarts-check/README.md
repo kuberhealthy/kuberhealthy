@@ -65,5 +65,3 @@ To enable cluster wide check with cluster permissions
 ```
 helm install kuberhealthy kuberhealthy/kuberhealthy --set check.podRestarts.enabled=true --set check.podRestarts.allNamespaces=true
 ```
-
-Make sure you are using the latest release of Kuberhealthy 2.4.1 or later.

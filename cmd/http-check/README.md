@@ -87,6 +87,4 @@ spec:
 
 #### How-to
 
-Make sure you are using the latest release of Kuberhealthy 2.4.1 or later.
-
 Apply a `.yaml` file similar to the one shown above with `kubectl apply -f`

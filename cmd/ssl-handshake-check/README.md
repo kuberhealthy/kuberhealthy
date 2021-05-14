@@ -124,5 +124,3 @@ You can use the default values as well by running:
 `kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/v2.3.0/cmd/ssl-handshake-check/ssl-handshake-check.yaml`
 
 To use the `ssl-file-handshake-check.yaml` spec sheet, you must first update the certificate configmap.
-
- Make sure you are using the latest release of Kuberhealthy 2.4.1 or later.

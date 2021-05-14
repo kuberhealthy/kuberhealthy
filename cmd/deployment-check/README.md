@@ -130,8 +130,6 @@ To use the _Deployment Check_ with Kuberhealthy, apply the configuration file [d
 
 `kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/cmd/deployment-check/deployment-check.yaml`
 
-Make sure you are using the latest release of Kuberhealthy 2.4.1 or later.
-
 The check configuration file contains:
 
 - KuberhealthyCheck

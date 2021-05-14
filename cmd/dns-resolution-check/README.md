@@ -85,5 +85,3 @@ To implement the DNS Status Check with Kuberhealthy, run
 
 `kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/2.0.0/cmd/dns-resolution-check/externalDNSStatusCheck.yaml`
 `kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/2.0.0/cmd/dns-resolution-check/internalDNSStatusCheck.yaml`
-
- Make sure you are using the latest release of Kuberhealthy 2.4.1 or later.

@@ -63,8 +63,6 @@ You must first configure a valid role ARN via IAM in your AWS account. The ARN n
 
 To use the _kops AMI Check_ with Kuberhealthy, replace the `<role-arn>` value in the configuration file at [ami-check](ami-check.yaml). Then apply it to your Kubernetes Cluster `kubectl apply -f kiam-check.yaml`.`
 
-Make sure you are using the latest release of Kuberhealthy 2.4.1 or later.
-
 The check configuration file contains:
 
 - KuberhealthyCheck
