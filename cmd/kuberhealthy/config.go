@@ -154,8 +154,8 @@ func startConfigReloadMonitoringWithSmoothing(filePath string, scrapeInterval ti
 	return outChan, cancelFunc, nil
 }
 
-// configReloader watchers for events in file and restarts kuberhealhty checks
-func configReloader(ctx context.Context, kh *Kuberhealthy) {
+// configReloadNotifier watchers for events in file, reloads the configuration, and notifies upstream to restart checks
+func configReloadNotifier(notifyChan chan struct{}) {
 
 	outChan, cancelFunc, err := startConfigReloadMonitoring(configPath)
 	if err != nil {
@@ -181,12 +181,7 @@ func configReloader(ctx context.Context, kh *Kuberhealthy) {
 			log.Infoln("Setting log level to:", parsedLogLevel)
 			log.SetLevel(parsedLogLevel)
 		}
-
-		if isMaster {
-			// reload checks
-			kh.RestartChecks(ctx)
-			log.Infoln("configReloader: Kuberhealthy restarted!")
-		}
+		notifyChan <- struct{}{}
 	}
 	log.Infoln("configReloader: shutting down because no more signals are coming from outChan")
 }
