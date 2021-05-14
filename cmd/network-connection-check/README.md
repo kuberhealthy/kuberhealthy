@@ -39,4 +39,3 @@ spec:
         image: kuberhealthy/network-connection-check:v0.2.0
         name: kuberhealthy-github-reachable
 ```
-

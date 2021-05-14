@@ -64,5 +64,3 @@ spec:
 To use the *Resource Quota Check* with Kuberhealthy, apply the configuration file [resource-quota.yaml](resource-quota.yaml) to your Kubernetes Cluster. The following command will also apply the configuration file to your current context:
 
 `kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/cmd/resource-quota-check/resource-quota-check.yaml`
-
-Make sure you are using at least Kuberhealthy 2.4.1 or anything later.
