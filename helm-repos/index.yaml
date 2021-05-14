@@ -23,6 +23,8 @@ entries:
       name: integrii
     - email: joshulyne_park@comcast.com
       name: joshulyne
+    - email: itsjonnyguy@gmail.com
+      name: jonnydawg
     name: kuberhealthy
     sources:
     - https://github.com/kuberhealthy/kuberhealthy
@@ -51,7 +53,7 @@ entries:
     maintainers:
     - email: eric.greer@comcast.com
       name: integrii
-    - email: jonathan_phan@comcast.com
+    - email: itsjonnyguy@gmail.com
       name: jonnydawg
     - email: joshulyne_park@comcast.com
       name: joshulyne
@@ -85,6 +87,8 @@ entries:
       name: integrii
     - email: joshulyne_park@comcast.com
       name: joshulyne
+    - email: itsjonnyguy@gmail.com
+      name: jonnydawg
     name: kuberhealthy
     sources:
     - https://github.com/kuberhealthy/kuberhealthy
@@ -115,6 +119,8 @@ entries:
       name: integrii
     - email: joshulyne_park@comcast.com
       name: joshulyne
+    - email: itsjonnyguy@gmail.com
+      name: jonnydawg
     name: kuberhealthy
     sources:
     - https://github.com/kuberhealthy/kuberhealthy
@@ -143,7 +149,7 @@ entries:
     maintainers:
     - email: eric.greer@comcast.com
       name: integrii
-    - email: jonathan_phan@comcast.com
+    - email: itsjonnyguy@gmail.com
       name: jonnydawg
     - email: joshulyne_park@comcast.com
       name: joshulyne
@@ -175,7 +181,7 @@ entries:
     maintainers:
     - email: eric.greer@comcast.com
       name: integrii
-    - email: jonathan_phan@comcast.com
+    - email: itsjonnyguy@gmail.com
       name: jonnydawg
     - email: joshulyne_park@comcast.com
       name: joshulyne
@@ -207,7 +213,7 @@ entries:
     maintainers:
     - email: eric.greer@comcast.com
       name: integrii
-    - email: jonathan_phan@comcast.com
+    - email: itsjonnyguy@gmail.com
       name: jonnydawg
     - email: joshulyne_park@comcast.com
       name: joshulyne
@@ -239,7 +245,7 @@ entries:
     maintainers:
     - email: eric.greer@comcast.com
       name: integrii
-    - email: jonathan_phan@comcast.com
+    - email: itsjonnyguy@gmail.com
       name: jonnydawg
     - email: joshulyne_park@comcast.com
       name: joshulyne
@@ -271,7 +277,7 @@ entries:
     maintainers:
     - email: eric.greer@comcast.com
       name: integrii
-    - email: jonathan_phan@comcast.com
+    - email: itsjonnyguy@gmail.com
       name: jonnydawg
     - email: joshulyne_park@comcast.com
       name: joshulyne
@@ -303,7 +309,7 @@ entries:
     maintainers:
     - email: eric.greer@comcast.com
       name: integrii
-    - email: jonathan_phan@comcast.com
+    - email: itsjonnyguy@gmail.com
       name: jonnydawg
     - email: joshulyne_park@comcast.com
       name: joshulyne
@@ -335,7 +341,7 @@ entries:
     maintainers:
     - email: eric.greer@comcast.com
       name: integrii
-    - email: jonathan_phan@comcast.com
+    - email: itsjonnyguy@gmail.com
       name: jonnydawg
     - email: joshulyne_park@comcast.com
       name: joshulyne
@@ -367,7 +373,7 @@ entries:
     maintainers:
     - email: eric.greer@comcast.com
       name: integrii
-    - email: jonathan_phan@comcast.com
+    - email: itsjonnyguy@gmail.com
       name: jonnydawg
     - email: joshulyne_park@comcast.com
       name: joshulyne
@@ -401,6 +407,8 @@ entries:
       name: integrii
     - email: joshulyne_park@comcast.com
       name: joshulyne
+    - email: itsjonnyguy@gmail.com
+      name: jonnydawg
     name: kuberhealthy
     sources:
     - https://github.com/kuberhealthy/kuberhealthy
