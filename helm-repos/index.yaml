@@ -471,6 +471,8 @@ entries:
       name: integrii
     - email: joshulyne_park@comcast.com
       name: joshulyne
+    - email: itsjonnyguy@gmail.com
+      name: jonnydawg
     name: kuberhealthy
     sources:
     - https://github.com/kuberhealthy/kuberhealthy
@@ -501,6 +503,8 @@ entries:
       name: integrii
     - email: joshulyne_park@comcast.com
       name: joshulyne
+    - email: itsjonnyguy@gmail.com
+      name: jonnydawg
     name: kuberhealthy
     sources:
     - https://github.com/kuberhealthy/kuberhealthy
