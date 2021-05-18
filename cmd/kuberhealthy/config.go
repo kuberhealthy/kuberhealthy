@@ -155,7 +155,7 @@ func startConfigReloadMonitoringWithSmoothing(filePath string, scrapeInterval ti
 }
 
 // configReloadNotifier watchers for events in file, reloads the configuration, and notifies upstream to restart checks
-func configReloadNotifier(notifyChan chan struct{}) {
+func configReloadNotifier(ctx context.Context, notifyChan chan struct{}) {
 
 	outChan, cancelFunc, err := startConfigReloadMonitoring(configPath)
 	if err != nil {
@@ -167,6 +167,14 @@ func configReloadNotifier(notifyChan chan struct{}) {
 
 	// when outChan gets events, reload configuration and checks
 	for range outChan {
+		// if the context has expired, then shut down the master status watcher entirely
+		select {
+		case <-ctx.Done():
+			log.Debugln("configReloader: stopped notifying config reloads due to context cancellation")
+			return
+		default:
+		}
+
 		err := cfg.Load(configPath)
 		if err != nil {
 			log.Errorln("configReloader: Error reloading config:", err)
