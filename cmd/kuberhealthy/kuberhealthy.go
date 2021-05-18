@@ -214,7 +214,7 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 
 	// get notified when kuberhealthy configuration is reloaded
 	configReloadChan := make(chan struct{})
-	go configReloadNotifier(configReloadChan)
+	go configReloadNotifier(ctx, configReloadChan)
 
 	// loop and select channels to do appropriate thing when:
 	// - master kuberhealthy pod changes
@@ -250,6 +250,7 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 			if isMaster {
 				log.Infoln("control: Reloading external check configurations due to kuberhealthy configuration update")
 				k.RestartChecks(ctx)
+				k.RestartReaper(ctx)
 			}
 		}
 	}
