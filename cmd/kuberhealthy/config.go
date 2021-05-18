@@ -167,7 +167,7 @@ func configReloadNotifier(ctx context.Context, notifyChan chan struct{}) {
 
 	// when outChan gets events, reload configuration and checks
 	for range outChan {
-		// if the context has expired, then shut down the master status watcher entirely
+		// if the context has expired, then shut down the config reload notifier entirely
 		select {
 		case <-ctx.Done():
 			log.Debugln("configReloader: stopped notifying config reloads due to context cancellation")
