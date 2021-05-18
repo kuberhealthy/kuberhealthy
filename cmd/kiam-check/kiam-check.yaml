@@ -10,16 +10,16 @@ spec:
   timeout: 15m
   podSpec:
     containers:
-    - name: kiam
-      image: kuberhealthy/kiam-check:v1.2.4
-      imagePullPolicy: IfNotPresent
-      env:
-      - name: AWS_REGION
-        value: us-west-2
-      resources:
-        requests:
-          cpu: 15m
-          memory: 10Mi
-        limits:
-          cpu: 30m
-      restartPolicy: Always
+      - name: kiam
+        image: kuberhealthy/kiam-check:v1.3.0
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: AWS_REGION
+            value: us-west-2
+        resources:
+          requests:
+            cpu: 15m
+            memory: 10Mi
+          limits:
+            cpu: 30m
+        restartPolicy: Always

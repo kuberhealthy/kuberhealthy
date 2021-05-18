@@ -28,7 +28,7 @@ spec:
   podSpec:
     containers:
     - name: kiam
-      image: kuberhealthy/kiam-check:v1.2.4
+      image: kuberhealthy/kiam-check:v1.3.0
       imagePullPolicy: IfNotPresent
       env:
       - name: AWS_REGION
@@ -48,8 +48,6 @@ spec:
 You must first configure a valid role ARN via IAM in your AWS account. The ARN needs to have enough permissions to perform reads on the Lambda service. If you need to create or update a role for this, attaching the AWS-provided `AWSLambdaReadOnlyAccess` policy should allow enough permissions for the check to run.
 
 To use the *KIAM Check* with Kuberhealthy, replace the `<role-arn>` value in the configuration file at [kiam-check](kiam-check.yaml). Then apply it to your Kubernetes Cluster `kubectl apply -f kiam-check.yaml`.
-
-Make sure you are using the latest release of Kuberhealthy 2.0.0.
 
 The check configuration file contains:
 - KuberhealthyCheck

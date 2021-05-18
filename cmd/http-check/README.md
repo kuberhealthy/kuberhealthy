@@ -23,7 +23,7 @@ spec:
   podSpec:
     containers:
       - name: https
-        image: kuberhealthy/http-check:v1.4.3
+        image: kuberhealthy/http-check:v1.5.0
         imagePullPolicy: IfNotPresent
         env:
           - name: CHECK_URL
@@ -58,7 +58,7 @@ spec:
   podSpec:
     containers:
       - name: https
-        image: kuberhealthy/http-check:v1.4.3
+        image: kuberhealthy/http-check:v1.5.0
         imagePullPolicy: IfNotPresent
         env:
           - name: CHECK_URL
@@ -86,7 +86,5 @@ spec:
 ```
 
 #### How-to
-
-Make sure you are using the latest release of Kuberhealthy 2.0.0.
 
 Apply a `.yaml` file similar to the one shown above with `kubectl apply -f`

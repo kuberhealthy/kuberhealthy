@@ -1,4 +1,4 @@
-VERSION=v3.1.11
+VERSION=v3.2.0
 
 build:
 	docker build -t kuberhealthy/ssl-handshake-check:${VERSION} -f Dockerfile ../../

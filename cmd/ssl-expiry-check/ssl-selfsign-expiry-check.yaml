@@ -12,16 +12,16 @@ spec:
           # Domain name env variable must be updated to the domain on which you wish to check the SSL for
           - name: DOMAIN_NAME
             value: "kubernetes.default"
-          # If not using default SSL port of 443, port name env variable must be updated  
+          # If not using default SSL port of 443, port name env variable must be updated
           - name: PORT
             value: "443"
-          # Number of days until certificate expiration to test for  
+          # Number of days until certificate expiration to test for
           - name: DAYS
             value: "60"
           # Set INSECURE to "true" for self-signed certificates. If "true", the TLS handshake will be skipped. This only checks expiration status, NOT validity/security.
           - name: INSECURE
             value: "true"
-        image: kuberhealthy/ssl-expiry-check:v3.1.3
+        image: kuberhealthy/ssl-expiry-check:v3.2.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:

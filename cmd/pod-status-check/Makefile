@@ -1,5 +1,5 @@
 build:
-	docker build -t kuberhealthy/pod-status-check:v1.2.5 -f Dockerfile ../../
+	docker build -t kuberhealthy/pod-status-check:v1.3.0 -f Dockerfile ../../
 
 push:
-	docker push kuberhealthy/pod-status-check:v1.2.5
+	docker push kuberhealthy/pod-status-check:v1.3.0

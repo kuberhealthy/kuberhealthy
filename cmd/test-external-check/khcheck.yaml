@@ -17,7 +17,7 @@ spec:
             value: "false"
           - name: REPORT_DELAY
             value: "5s"
-        image: kuberhealthy/test-external-check:v1.3.2
+        image: kuberhealthy/test-external-check:v1.4.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
