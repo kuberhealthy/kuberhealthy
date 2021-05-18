@@ -9,20 +9,20 @@ spec:
   timeout: 15m
   podSpec:
     containers:
-    - name: deployment
-      image: kuberhealthy/deployment-check:v1.8.1
-      imagePullPolicy: IfNotPresent
-      env:
-        - name: CHECK_DEPLOYMENT_REPLICAS
-          value: "4"
-        - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
-          value: "true"
-      resources:
-        requests:
-          cpu: 25m
-          memory: 15Mi
-        limits:
-          cpu: 1
+      - name: deployment
+        image: kuberhealthy/deployment-check:v1.9.0
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: CHECK_DEPLOYMENT_REPLICAS
+            value: "4"
+          - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
+            value: "true"
+        resources:
+          requests:
+            cpu: 25m
+            memory: 15Mi
+          limits:
+            cpu: 1
     restartPolicy: Never
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60

@@ -24,7 +24,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-        image: kuberhealthy/pod-status-check:v1.2.5
+        image: kuberhealthy/pod-status-check:v1.3.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -56,9 +56,7 @@ It is possible to configure `Pod Status Check` to check pods from all namespaces
 ##### kubectl apply
 To implement the Pod Status Check with Kuberhealthy, apply the configuration file [pod-status-check.yaml](pod-status-check.yaml)
 
-`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/2.0.0/cmd/pod-status-check/pod-status-check.yaml`
-
-to your Kubernetes Cluster.  Make sure that you are using the latest release of Kuberhealthy 2.0.0.
+`kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/2.0.0/cmd/pod-status-check/pod-status-check.yaml` to your Kubernetes Cluster.
 
 If you want to enable the cluster wide option described above then __instead__ apply with cluster permissions [pod-status-check-clusterscope.yaml](pod-status-check-clusterscope.yaml).
 

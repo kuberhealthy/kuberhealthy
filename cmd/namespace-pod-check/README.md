@@ -19,7 +19,7 @@ spec:
   podSpec:
     containers:
       - name: namespace-pod-check
-        image: kuberhealthy/namespace-pod-check:v1.0.1
+        image: kuberhealthy/namespace-pod-check:v1.1.0
         imagePullPolicy: IfNotPresent
         resources:
           requests:
@@ -51,7 +51,5 @@ metadata:
 ```
 
 #### How-to
-
-Make sure you are using the latest release of Kuberhealthy 2.0.0.
 
 Apply a `.yaml` file similar to the one shown above with `kubectl apply -f`
