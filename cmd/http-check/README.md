@@ -40,7 +40,7 @@ spec:
             memory: 15Mi
           limits:
             cpu: 25m
-        restartPolicy: Always
+    restartPolicy: Always
     terminationGracePeriodSeconds: 5
 ```
 
@@ -81,7 +81,7 @@ spec:
             memory: 15Mi
           limits:
             cpu: 25m
-        restartPolicy: Always
+    restartPolicy: Always
     terminationGracePeriodSeconds: 5
 ```
 

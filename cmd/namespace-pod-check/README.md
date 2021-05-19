@@ -27,7 +27,7 @@ spec:
             memory: 15Mi
           limits:
             cpu: 25m
-        restartPolicy: Always
+    restartPolicy: Always
     terminationGracePeriodSeconds: 5
 ---
 apiVersion: rbac.authorization.k8s.io/v1

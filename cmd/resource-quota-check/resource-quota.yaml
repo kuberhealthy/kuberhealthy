@@ -23,7 +23,7 @@ spec:
             memory: 15Mi
           limits:
             cpu: 50m
-        restartPolicy: Never
+    restartPolicy: Never
     terminationGracePeriodSeconds: 30
     serviceAccountName: kuberhealthy-resource-quota
 ---
