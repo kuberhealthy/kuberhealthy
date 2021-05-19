@@ -54,7 +54,7 @@ spec:
           memory: 15Mi
         limits:
           cpu: 30m
-      restartPolicy: Never
+    restartPolicy: Never
     terminationGracePeriodSeconds: 30
 
 ```
