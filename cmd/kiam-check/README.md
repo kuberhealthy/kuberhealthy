@@ -39,7 +39,7 @@ spec:
           memory: 10Mi
         limits:
           cpu: 30m
-      restartPolicy: Always
+    restartPolicy: Always
 
 ```
 
