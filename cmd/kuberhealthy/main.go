@@ -178,9 +178,6 @@ func main() {
 	kuberhealthy.shutdownCtxFunc = khRunCtxCancelFunc // load the KH struct with a func to shutdown its control system
 	go listenForInterrupts(kuberhealthy)
 
-	// tell Kuberhealthy to restart if configmap has been changed
-	go configReloader(khRunCtx, kuberhealthy)
-
 	// tell Kuberhealthy to start all checks and master change monitoring
 	kuberhealthy.Start(khRunCtx)
 

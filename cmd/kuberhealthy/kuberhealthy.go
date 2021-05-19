@@ -212,7 +212,14 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 	// monitor for kuberhealthy jobs and trigger when a new job is added
 	go k.monitorKHJobs(ctx)
 
-	// loop and select channels to do appropriate thing when master changes
+	// get notified when kuberhealthy configuration is reloaded
+	configReloadChan := make(chan struct{})
+	go configReloadNotifier(ctx, configReloadChan)
+
+	// loop and select channels to do appropriate thing when:
+	// - master kuberhealthy pod changes
+	// - new khchecks are added or modified
+	// - kuberhealthy configuration changes
 	for {
 		select {
 		case <-ctx.Done(): // we are shutting down
@@ -233,6 +240,15 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 			// if we are master, stop, reconfigure our khchecks, and start again with the new configuration
 			if isMaster {
 				log.Infoln("control: Reloading external check configurations due to khcheck update")
+				k.RestartChecks(ctx)
+				k.RestartReaper(ctx)
+			}
+		case <-configReloadChan:
+			log.Infoln("control: Witnessed a kuberhealthy configuration change...")
+
+			// if we are master, stop, reconfigure our khchecks, and start again with the new configuration
+			if isMaster {
+				log.Infoln("control: Reloading external check configurations due to kuberhealthy configuration update")
 				k.RestartChecks(ctx)
 				k.RestartReaper(ctx)
 			}
