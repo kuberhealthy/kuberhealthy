@@ -100,7 +100,7 @@ spec:
           memory: 15Mi
         limits:
           cpu: 40m
-      restartPolicy: Never
+    restartPolicy: Never
     serviceAccountName: deployment-sa
     terminationGracePeriodSeconds: 60
 ```

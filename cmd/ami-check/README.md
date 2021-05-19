@@ -54,7 +54,7 @@ spec:
             memory: 10Mi
           limits:
             cpu: 15m
-        restartPolicy: Always
+    restartPolicy: Always
 ```
 
 #### Install

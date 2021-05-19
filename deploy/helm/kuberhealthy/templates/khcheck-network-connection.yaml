@@ -35,7 +35,7 @@ spec:
           memory: {{ .Values.check.networkConnection.resources.limits.memory }}
           {{- end }}
         {{- end }}
-      restartPolicy: Never
+    restartPolicy: Never
     {{- if .Values.check.networkConnection.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.networkConnection.nodeSelector | nindent 6 }}
