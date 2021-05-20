@@ -31,7 +31,7 @@ entries:
     - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
-    - https://comcast.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-68.tgz
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-68.tgz
     version: "68"
   - apiVersion: v2
     appVersion: v2.4.1
