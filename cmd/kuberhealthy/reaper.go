@@ -266,7 +266,7 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 	return err
 }
 
-// getAllPodsWithCheckName finds all completed checker pods for a given khcheck that are older than minCheckPodAge
+// getAllCompletedPodsWithCheckName finds all completed checker pods for a given khcheck that are older than minCheckPodAge
 func getAllCompletedPodsWithCheckName(reapCheckerPods map[string]v1.Pod, pod v1.Pod) []v1.Pod {
 
 	var allCheckPods []v1.Pod
