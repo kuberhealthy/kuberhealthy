@@ -209,7 +209,7 @@ func TestGetAllPodsWithCheckName(t *testing.T) {
 	khCheckerPods[khCheck2.Name] = khCheck2
 	khCheckerPods[khCheck3.Name] = khCheck3
 
-	results := getAllPodsWithCheckName(khCheckerPods, khCheck)
+	results := getAllCompletedPodsWithCheckName(khCheckerPods, khCheck)
 
 	if len(results) != 2 {
 		t.Fatalf("getAllPodsWithCheckName failed to get all pods of the same khcheck")
