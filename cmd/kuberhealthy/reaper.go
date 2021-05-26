@@ -79,13 +79,13 @@ func reaper(ctx context.Context) {
 
 	// set MaxCheckPodAge to minCheckPodAge before getting reaped if no maxCheckPodAge is set
 	// Want to make sure the completed pod is around for at least 30s before getting reaped
-	if cfg.MaxCheckPodAge < time.Second * 30 {
+	if cfg.MaxCheckPodAge < minCheckPodAge {
 		cfg.MaxCheckPodAge = minCheckPodAge
 	}
 
 	// set MaxKHJobAge to minKHJobAge before getting reaped if no maxCheckPodAge is set
 	// Want to make sure the completed job is around for at least 5m before getting reaped
-	if cfg.MaxKHJobAge < time.Minute * 5 {
+	if cfg.MaxKHJobAge < minKHJobAge {
 		cfg.MaxKHJobAge = minKHJobAge
 	}
 
