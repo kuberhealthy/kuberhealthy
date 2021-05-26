@@ -178,7 +178,7 @@ func configReloadNotifier(ctx context.Context, notifyChan chan struct{}) {
 		log.Debugln("configReloader: loading new configuration")
 
 		// setup config
-		err := setUp()
+		err := setUpConfig()
 		if err != nil {
 			log.Errorln("configReloader: Error reloading and setting up config:", err)
 			return
