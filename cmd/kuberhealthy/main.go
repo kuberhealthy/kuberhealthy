@@ -86,17 +86,9 @@ var kubernetesClient *kubernetes.Clientset
 // Set dynamicClient that represents the client used to watch and list unstructured khchecks
 var dynamicClient dynamic.Interface
 
-// setUp loads, parses, and sets various Kuberhealthy configurations -- from flags, config values and env vars.
-func setUp() error {
-
-	var useDebugMode bool
-
-	// setup flaggy
-	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
-	flaggy.String(&configPath, "c", "config", "(optional) absolute path to the kuberhealthy config file")
-	flaggy.Bool(&useDebugMode, "d", "debug", "Set to true to enable debug.")
-	flaggy.Parse()
-
+// setUpConfig loads and sets default Kuberhealthy configurations
+// Everytime kuberhealthy sees a configuration change, configurations should reload and reset
+func setUpConfig() error {
 	cfg = &Config{
 		kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),
 		LogLevel:       "info",
@@ -119,6 +111,24 @@ func setUp() error {
 	}
 	cfg.ExternalCheckReportingURL = externalCheckURL
 	log.Infoln("External check reporting URL set to:", cfg.ExternalCheckReportingURL)
+	return nil
+}
+
+// setUp loads, parses, and sets various Kuberhealthy configurations -- from flags, config values and env vars.
+func setUp() error {
+
+	var useDebugMode bool
+
+	// setup flaggy
+	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
+	flaggy.String(&configPath, "c", "config", "(optional) absolute path to the kuberhealthy config file")
+	flaggy.Bool(&useDebugMode, "d", "debug", "Set to true to enable debug.")
+	flaggy.Parse()
+
+	err := setUpConfig()
+	if err != nil {
+		return err
+	}
 
 	// parse and set logging level
 	parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)

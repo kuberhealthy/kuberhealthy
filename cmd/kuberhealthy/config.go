@@ -7,7 +7,7 @@ import (
 
 	"github.com/codingsince1985/checksum"
 	log "github.com/sirupsen/logrus"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 // Config holds all configurable options
@@ -175,11 +175,15 @@ func configReloadNotifier(ctx context.Context, notifyChan chan struct{}) {
 		default:
 		}
 
-		err := cfg.Load(configPath)
+		log.Debugln("configReloader: loading new configuration")
+
+		// setup config
+		err := setUpConfig()
 		if err != nil {
-			log.Errorln("configReloader: Error reloading config:", err)
+			log.Errorln("configReloader: Error reloading and setting up config:", err)
 			continue
 		}
+		log.Debugln("configReloader: loaded new configuration:", cfg)
 
 		// reparse and set logging level
 		parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
