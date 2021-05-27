@@ -39,7 +39,7 @@ mkdir -p ./helm-repos/tmp.d
 $HELM package --version $GITHUB_RUN_NUMBER -d ./helm-repos/tmp.d ./deploy/helm/kuberhealthy
 
 # Append new package info to top of helm index file
-$HELM repo index ./helm-repos/tmp.d --merge ./helm-repos/index.yaml --url https://comcast.github.io/kuberhealthy/helm-repos/archives
+$HELM repo index ./helm-repos/tmp.d --merge ./helm-repos/index.yaml --url https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives
 
 # Move the newly packaged .tgz file and index.yaml where they need to be
 mv -f ./helm-repos/tmp.d/kuberhealthy-*.tgz ./helm-repos/archives
