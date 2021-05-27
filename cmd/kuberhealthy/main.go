@@ -86,6 +86,8 @@ var kubernetesClient *kubernetes.Clientset
 // Set dynamicClient that represents the client used to watch and list unstructured khchecks
 var dynamicClient dynamic.Interface
 
+// setUpConfig loads and sets default Kuberhealthy configurations
+// Everytime kuberhealthy sees a configuration change, configurations should reload and reset
 func setUpConfig() error {
 	cfg = &Config{
 		kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),

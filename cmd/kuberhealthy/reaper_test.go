@@ -64,7 +64,7 @@ func TestParseDurationOrUseDefault(t *testing.T) {
 }
 
 // TestListCheckerPods ensures that only completed (Successful or Failed) kuberhealthy checker pods are listed / returned
-func TestListCheckerPods(t *testing.T) {
+func TestListCompletedCheckerPods(t *testing.T) {
 	validKHPod := v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "valid-kh-pod",
@@ -129,24 +129,24 @@ func TestListCheckerPods(t *testing.T) {
 		}
 	}
 
-	results, err := api.listCheckerPods(ctx, "")
+	results, err := api.listCompletedCheckerPods(ctx, "")
 	if err != nil {
-		t.Fatalf("Error listCheckerPods: %s", err)
+		t.Fatalf("Error listCompletedCheckerPods: %s", err)
 	}
 
 	if len(results) != 2 {
-		t.Fatalf("listCheckerPods failed to list only completed Kuberhealthy pods")
+		t.Fatalf("listCompletedCheckerPods failed to list only completed Kuberhealthy pods")
 	}
 
 	if _, exists := results[validKHPod.Name]; !exists {
-		t.Fatalf("listCheckerPods failed to list %s", validKHPod.Name)
+		t.Fatalf("listCompletedCheckerPods failed to list %s", validKHPod.Name)
 	}
 
 	if _, exists := results[anotherValidKHPod.Name]; !exists {
-		t.Fatalf("listCheckerPods failed to list %s", anotherValidKHPod.Name)
+		t.Fatalf("listCompletedCheckerPods failed to list %s", anotherValidKHPod.Name)
 	}
 
-	t.Logf("listCheckerPods successfully listed only completed Kuberhealthy pods")
+	t.Logf("listCompletedCheckerPods successfully listed only completed Kuberhealthy pods")
 }
 
 // TestGetAllPodsWithCheckName tests that only pods from the same khcheck get listed
