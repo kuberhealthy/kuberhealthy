@@ -114,19 +114,6 @@ metadata:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRole
 metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
   name: kuberhealthy
 rules:
   - apiGroups:
@@ -193,19 +180,18 @@ rules:
     verbs:
     - create
 ---
-# Source: kuberhealthy/templates/clusterrolebinding.yaml
+# Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRoleBinding
+kind: ClusterRole
 metadata:
   name: kuberhealthy-daemonset-khcheck
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kuberhealthy-daemonset-khcheck
-subjects:
-- kind: ServiceAccount
-  name: daemonset-khcheck
-  namespace: kuberhealthy
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
 ---
 # Source: kuberhealthy/templates/clusterrolebinding.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -219,6 +205,20 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kuberhealthy
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/clusterrolebinding.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRoleBinding
+metadata:
+  name: kuberhealthy-daemonset-khcheck
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kuberhealthy-daemonset-khcheck
+subjects:
+- kind: ServiceAccount
+  name: daemonset-khcheck
   namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
@@ -374,7 +374,7 @@ spec:
                   - kuberhealthy
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - image: kuberhealthy/kuberhealthy:v2.4.1
+      - image: kuberhealthy/kuberhealthy:v2.5.0
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
