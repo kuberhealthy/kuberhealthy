@@ -125,7 +125,7 @@ func runCheckReap(ctx context.Context) {
 		Client: kubernetesClient,
 	}
 	// list checker pods in all namespaces
-	podList, err := kubeApi.listCheckerPods(ctx, listenNamespace)
+	podList, err := kubeApi.listCompletedCheckerPods(ctx, listenNamespace)
 	if err != nil {
 		log.Errorln("checkReaper: Failed to list and delete old checker pods", err)
 	}
@@ -160,8 +160,8 @@ func runJobReap(ctx context.Context) {
 	log.Infoln("checkReaper: Finished reaping khjobs.")
 }
 
-// listCheckerPods returns a list of completed (Failed of Succeeded) pods with the khcheck name label
-func (k *KubernetesAPI) listCheckerPods(ctx context.Context, namespace string) (map[string]v1.Pod, error) {
+// listCompletedCheckerPods returns a list of completed (Failed of Succeeded) pods with the khcheck name label
+func (k *KubernetesAPI) listCompletedCheckerPods(ctx context.Context, namespace string) (map[string]v1.Pod, error) {
 	log.Infoln("checkReaper: Listing checker pods")
 
 	ReapCheckerPods = make(map[string]v1.Pod)
