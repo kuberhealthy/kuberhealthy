@@ -16,7 +16,7 @@ in this [deploy folder](https://github.com/kuberhealthy/kuberhealthy/tree/master
   ```
 ##### 3. Add the kuberhealthy repo to Helm:
   ```
-  helm repo add kuberhealthy https://comcast.github.io/kuberhealthy/helm-repos
+  helm repo add kuberhealthy https://kuberhealthy.github.io/kuberhealthy/helm-repos
   ```
 ##### 4. Depending on your Prometheus implementation, install Kuberhealthy using the appropriate command for your cluster:
 
