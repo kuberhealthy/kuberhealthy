@@ -28,14 +28,21 @@ It is possible to configure Kuberhealthy's Prometheus integration with Helm vari
 
 ```
 prometheus:
-  enabled: true # do we deploy a ServiceMonitor spec?
+  enabled: true # do we deploy a ServiceMonitor or PrometheusRule spec?
   name: "prometheus" # the name of the Prometheus deployment in your environment.
   serviceMonitor:
-    enabled: false # use a ServiceMonitor configuration, for if using Prometheus Operator
+    enabled: false # create a ServiceMonitor resource, when using Prometheus Operator (f.e. kube-prometheus-stack)
+    release: prometheus-stack
+    additionalLabels:
+      env: "dev"
     endpoints: # Endpoint specification
       interval: 15s
       bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
-  enableAlerting: true # enable default Kuberhealthy alerts configuration
+  prometheusRule:
+    enabled: true # create a PrometheusRule resource, when using Prometheus Operator (f.e. kube-prometheus-stack)
+    release: prometheus-stack
+    additionalLabels:
+      env: "dev"
 app:
   name: "kuberhealthy" # what to name the kuberhealthy deployment
 image:

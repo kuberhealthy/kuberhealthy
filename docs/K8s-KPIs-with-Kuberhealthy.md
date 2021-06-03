@@ -22,12 +22,12 @@ in this [deploy folder](https://github.com/kuberhealthy/kuberhealthy/tree/master
 
   - If you use the [Prometheus Operator](https://github.com/coreos/prometheus-operator):
   ```
-  helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true,prometheus.enableAlerting=true,prometheus.serviceMonitor.enabled=true
+  helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true,prometheus.prometheusRule.enabled=true,prometheus.serviceMonitor.enabled=true
   ```
 
   - If you use Prometheus, but NOT Prometheus Operator:
   ```
-  helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true,prometheus.enableAlerting=true
+  helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true,prometheus.prometheusRule.enabled=true
   ```
    See additional details about configuring the appropriate scrape annotations in the section [Prometheus Integration Details](#prometheus-integration-details) below.
 
