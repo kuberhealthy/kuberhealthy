@@ -9,7 +9,7 @@ metadata:
     prometheus: {{ .Values.prometheus.name }}
     release: {{ .Values.prometheus.serviceMonitor.release }}
     {{- if .Values.prometheus.serviceMonitor.additionalLabels}}
-    additionalLabels: {{ .Values.prometheus.serviceMonitor.additionalLabels | nindent 6}}
+    {{- toYaml .Values.prometheus.serviceMonitor.additionalLabels | nindent 4 }}
     {{- end }}
   name: {{ template "kuberhealthy.name" . }}
   namespace: {{ .Values.prometheus.serviceMonitor.namespace }}

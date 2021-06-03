@@ -49,17 +49,17 @@ A helm chart for deploying Kuberhealthy.  This is the same helm chart published 
   `helm install kuberhealthy kuberhealthy/kuberhealthy`
 
   - With Prometheus:
-  `helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true  --set prometheus.enableAlerting=true`
+  `helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true  --set prometheus.prometheusRule.enabled=true`
 
   - With Prometheus Operator:
-  `helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true  --set prometheus.enableAlerting=true --set prometheus.serviceMonitor.enabled=true --set prometheus.serviceMonitor.release={prometheus-operator-release-name} --set prometheus.serviceMonitor.namespace={prometheus-operator-namespace}` 
+  `helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true  --set prometheus.prometheusRule.enabled=true --set prometheus.prometheusRule.release={prometheus-operator-release-name} --set prometheus.prometheusRule.namespace={prometheus-operator-namespace} --set prometheus.serviceMonitor.enabled=true --set prometheus.serviceMonitor.release={prometheus-operator-release-name} --set prometheus.serviceMonitor.namespace={prometheus-operator-namespace}` 
 
   - With [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus):
   
-    - Make sure to set your serviceMonitor `release:` label with the matching serviceMonitorSelector `release:` label in your prometheus configuration. This is set to whatever you name your release when you helm install the kube-prometheus-stack. Ex. `helm install prometheus prometheus-community/kube-prometheus-stack` implies that your release name is `prometheus` and so your serviceMonitor should be set with the label `release: prometheus`.
-    - Make sure you set your serviceMonitor namespace to wherever you've deployed your kube-prometheus-stack
+    - Make sure to set your serviceMonitor and prometheusRule `release:` label with the matching serviceMonitorSelector `release:` label in your prometheus configuration. This is set to whatever you name your release when you helm install the kube-prometheus-stack. Ex. `helm install prometheus prometheus-community/kube-prometheus-stack` implies that your release name is `prometheus` and so your serviceMonitor should be set with the label `release: prometheus`.
+    - Make sure you set your serviceMonitor and prometheusRule namespaces to wherever you've deployed your kube-prometheus-stack
   
-    - `helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true  --set prometheus.enableAlerting=true --set prometheus.serviceMonitor.enabled=true --set prometheus.serviceMonitor.release={kube-prometheus-stack-release-name} --set prometheus.serviceMonitor.namespace={kube-prometheus-stack-namespace}`
+    - `helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true  --set prometheus.prometheusRule.enabled=true --set prometheus.prometheusRule.release={prometheus-operator-release-name} --set prometheus.prometheusRule.namespace={prometheus-operator-namespace} --set prometheus.serviceMonitor.enabled=true --set prometheus.serviceMonitor.release={kube-prometheus-stack-release-name} --set prometheus.serviceMonitor.namespace={kube-prometheus-stack-namespace}`
 
 
 ### Helm

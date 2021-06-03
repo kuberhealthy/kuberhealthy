@@ -8,7 +8,8 @@ Kuberhealthy has been installed to your cluster!
 	Tolerates Masters: {{ .Values.tolerations.master }}
 {{- if .Values.prometheus.enabled -}}
 	Prometheus Enabled: {{ .Values.prometheus.enabled }}
-	Prometheus Alerting: {{ .Values.prometheus.enableAlerting }}
+	Prometheus ServiceMonitor created: {{ .Values.prometheus.serviceMonitor.enabled }}
+	Prometheus Rule created: {{ .Values.prometheus.prometheusRule.enabled }}
 {{- end -}}
 
 If you are using Prometheus alert manager for your alerts, Kuberhealthy should
