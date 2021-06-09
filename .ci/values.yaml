@@ -9,13 +9,15 @@ checkReaper:
 prometheus:
   enabled: false
   name: "prometheus"
-  release: prometheus-operator
   serviceMonitor:
     enabled: false
+    release: prometheus-operator
     endpoints:
       interval: 15s
       bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
-  enableAlerting: false
+  prometheusRule:
+    enabled: false
+    release: prometheus-operator
 
 image:
   registry: kuberhealthy
