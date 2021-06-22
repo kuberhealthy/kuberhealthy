@@ -191,27 +191,31 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 	for n, v := range reapCheckerPods {
 
 		// Delete pods older than maxCheckPodAge and is in status Succeeded
-		if v.Status.Phase == v1.PodSucceeded && time.Now().Sub(getPodCompletedTime(v)) > cfg.MaxCheckPodAge {
-			log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Succeeded`. Deleting pod:", n)
+		if v.Status.Phase == v1.PodSucceeded {
+			if time.Now().Sub(getPodCompletedTime(v)) > cfg.MaxCheckPodAge {
+				log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Succeeded`. Deleting pod:", n)
 
-			err = k.deletePod(ctx, v)
-			if err != nil {
-				log.Errorln("checkReaper: Failed to delete pod:", n, err)
-				continue
+				err = k.deletePod(ctx, v)
+				if err != nil {
+					log.Errorln("checkReaper: Failed to delete pod:", n, err)
+					continue
+				}
+				delete(reapCheckerPods, n)
 			}
-			delete(reapCheckerPods, n)
 		}
 
 		// Delete failed pods (status Failed) older than maxCheckPodAge
-		if v.Status.Phase == v1.PodFailed && time.Now().Sub(getPodCompletedTime(v)) > cfg.MaxCheckPodAge{
-			log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Failed`. Deleting pod:", n)
+		if v.Status.Phase == v1.PodFailed {
+			if time.Now().Sub(getPodCompletedTime(v)) > cfg.MaxCheckPodAge {
+				log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Failed`. Deleting pod:", n)
 
-			err = k.deletePod(ctx, v)
-			if err != nil {
-				log.Errorln("checkReaper: Failed to delete pod:", n, err)
-				continue
+				err = k.deletePod(ctx, v)
+				if err != nil{
+					log.Errorln("checkReaper: Failed to delete pod:", n, err)
+					continue
+				}
+				delete(reapCheckerPods, n)
 			}
-			delete(reapCheckerPods, n)
 		}
 
 		// Delete if there are more than MaxCompletedPodCount checker pods with the same name in status Succeeded that were created more recently
