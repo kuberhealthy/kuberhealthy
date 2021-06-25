@@ -190,9 +190,11 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 
 	for n, v := range reapCheckerPods {
 
-		// Delete pods older than maxCheckPodAge and is in status Succeeded
-		if v.Status.Phase == v1.PodSucceeded {
-			if time.Now().Sub(getPodCompletedTime(v)) > cfg.MaxCheckPodAge {
+		podTerminated, podTerminatedTime := getPodCompletedTime(v)
+		if podTerminated {
+
+			// Delete pods older than maxCheckPodAge and is in status Succeeded
+			if v.Status.Phase == v1.PodSucceeded && time.Now().Sub(podTerminatedTime) > cfg.MaxCheckPodAge {
 				log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Succeeded`. Deleting pod:", n)
 
 				err = k.deletePod(ctx, v)
@@ -202,19 +204,19 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 				}
 				delete(reapCheckerPods, n)
 			}
-		}
 
 		// Delete failed pods (status Failed) older than maxCheckPodAge
-		if v.Status.Phase == v1.PodFailed {
-			if time.Now().Sub(getPodCompletedTime(v)) > cfg.MaxCheckPodAge {
-				log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Failed`. Deleting pod:", n)
+			if v.Status.Phase == v1.PodFailed {
+				if time.Now().Sub(podTerminatedTime) > cfg.MaxCheckPodAge {
+					log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Failed`. Deleting pod:", n)
 
-				err = k.deletePod(ctx, v)
-				if err != nil{
-					log.Errorln("checkReaper: Failed to delete pod:", n, err)
-					continue
+					err = k.deletePod(ctx, v)
+					if err != nil {
+						log.Errorln("checkReaper: Failed to delete pod:", n, err)
+						continue
+					}
+					delete(reapCheckerPods, n)
 				}
-				delete(reapCheckerPods, n)
 			}
 		}
 
@@ -279,8 +281,11 @@ func getAllCompletedPodsWithCheckName(reapCheckerPods map[string]v1.Pod, pod v1.
 
 	for _, v := range reapCheckerPods {
 		if v.Labels["kuberhealthy-check-name"] == checkName {
-			if time.Now().Sub(getPodCompletedTime(v)) > minCheckPodAge {
-				allCheckPods = append(allCheckPods, v)
+			podTerminated, podTerminatedTime := getPodCompletedTime(v)
+			if podTerminated {
+				if time.Now().Sub(podTerminatedTime) > minCheckPodAge {
+					allCheckPods = append(allCheckPods, v)
+				}
 			}
 		}
 	}
@@ -336,17 +341,20 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 	return nil
 }
 
-// getPodCompletedTime returns the container with the latest finished time.
-func getPodCompletedTime(pod v1.Pod) time.Time {
+// getPodCompletedTime returns a boolean to ensure container terminated state exists and returns containers' latest finished time
+func getPodCompletedTime(pod v1.Pod) (bool, time.Time) {
 
 	var podCompletedTime time.Time
 	for _, cs := range pod.Status.ContainerStatuses {
-
-		finishedTime := cs.State.Terminated.FinishedAt
-		if finishedTime.After(podCompletedTime) {
-			podCompletedTime = finishedTime.Time
+		if cs.State.Terminated != nil {
+			finishedTime := cs.State.Terminated.FinishedAt
+			if finishedTime.After(podCompletedTime) {
+				podCompletedTime = finishedTime.Time
+			}
+		} else {
+			return false, podCompletedTime
 		}
 	}
 
-	return podCompletedTime
+	return true, podCompletedTime
 }
