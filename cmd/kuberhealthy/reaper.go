@@ -193,7 +193,7 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 
 		podTerminatedTime, err := getPodCompletedTime(v)
 		if err != nil {
-			log.Errorln(err)
+			log.Warnln(err)
 			continue
 		}
 		// Delete pods older than maxCheckPodAge and is in status Succeeded
@@ -281,11 +281,13 @@ func getAllCompletedPodsWithCheckName(reapCheckerPods map[string]v1.Pod, pod v1.
 
 	for _, v := range reapCheckerPods {
 		if v.Labels["kuberhealthy-check-name"] == checkName {
-			podTerminated, podTerminatedTime := getPodCompletedTime(v)
-			if podTerminated {
-				if time.Now().Sub(podTerminatedTime) > minCheckPodAge {
-					allCheckPods = append(allCheckPods, v)
-				}
+			podTerminatedTime, err := getPodCompletedTime(v)
+			if err != nil {
+				log.Warnln(err)
+				continue
+			}
+			if time.Now().Sub(podTerminatedTime) > minCheckPodAge {
+				allCheckPods = append(allCheckPods, v)
 			}
 		}
 	}
