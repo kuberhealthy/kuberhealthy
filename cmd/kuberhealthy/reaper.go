@@ -13,6 +13,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -190,34 +191,33 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 
 	for n, v := range reapCheckerPods {
 
-		podTerminated, podTerminatedTime := getPodCompletedTime(v)
-		if podTerminated {
+		podTerminatedTime, err := getPodCompletedTime(v)
+		if err != nil {
+			log.Errorln(err)
+			continue
+		}
+		// Delete pods older than maxCheckPodAge and is in status Succeeded
+		if v.Status.Phase == v1.PodSucceeded && time.Now().Sub(podTerminatedTime) > cfg.MaxCheckPodAge {
+			log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Succeeded`. Deleting pod:", n)
 
-			// Delete pods older than maxCheckPodAge and is in status Succeeded
-			if v.Status.Phase == v1.PodSucceeded && time.Now().Sub(podTerminatedTime) > cfg.MaxCheckPodAge {
-				log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Succeeded`. Deleting pod:", n)
-
-				err = k.deletePod(ctx, v)
-				if err != nil {
-					log.Errorln("checkReaper: Failed to delete pod:", n, err)
-					continue
-				}
-				delete(reapCheckerPods, n)
+			err = k.deletePod(ctx, v)
+			if err != nil {
+				log.Errorln("checkReaper: Failed to delete pod:", n, err)
+				continue
 			}
+			delete(reapCheckerPods, n)
+		}
 
 		// Delete failed pods (status Failed) older than maxCheckPodAge
-			if v.Status.Phase == v1.PodFailed {
-				if time.Now().Sub(podTerminatedTime) > cfg.MaxCheckPodAge {
-					log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Failed`. Deleting pod:", n)
+		if v.Status.Phase == v1.PodFailed && time.Now().Sub(podTerminatedTime) > cfg.MaxCheckPodAge {
+			log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Failed`. Deleting pod:", n)
 
-					err = k.deletePod(ctx, v)
-					if err != nil {
-						log.Errorln("checkReaper: Failed to delete pod:", n, err)
-						continue
-					}
-					delete(reapCheckerPods, n)
-				}
+			err = k.deletePod(ctx, v)
+			if err != nil {
+				log.Errorln("checkReaper: Failed to delete pod:", n, err)
+				continue
 			}
+			delete(reapCheckerPods, n)
 		}
 
 		// Delete if there are more than MaxCompletedPodCount checker pods with the same name in status Succeeded that were created more recently
@@ -342,7 +342,7 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 }
 
 // getPodCompletedTime returns a boolean to ensure container terminated state exists and returns containers' latest finished time
-func getPodCompletedTime(pod v1.Pod) (bool, time.Time) {
+func getPodCompletedTime(pod v1.Pod) (time.Time, error) {
 
 	var podCompletedTime time.Time
 	for _, cs := range pod.Status.ContainerStatuses {
@@ -352,9 +352,9 @@ func getPodCompletedTime(pod v1.Pod) (bool, time.Time) {
 				podCompletedTime = finishedTime.Time
 			}
 		} else {
-			return false, podCompletedTime
+			return podCompletedTime, fmt.Errorf("could not fetch pod: %s completed time", pod.Name)
 		}
 	}
 
-	return true, podCompletedTime
+	return podCompletedTime, nil
 }
