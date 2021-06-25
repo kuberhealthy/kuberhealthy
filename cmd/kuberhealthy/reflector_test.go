@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khstatecrd"
+	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
 )
 
 type testLW struct {
@@ -38,11 +38,11 @@ func makeTestStateReflector(fakeWatcher *watch.FakeWatcher) *StateReflector {
 			return fakeWatcher, nil
 		},
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-			return &khstatecrd.KuberhealthyStateList{ListMeta: metav1.ListMeta{ResourceVersion: "1"}}, nil
+			return &khstatev1.KuberhealthyStateList{ListMeta: metav1.ListMeta{ResourceVersion: "1"}}, nil
 		},
 	}
 
-	sr.reflector = cache.NewReflector(listerWatcher, &khstatecrd.KuberhealthyState{}, sr.store, sr.resyncPeriod)
+	sr.reflector = cache.NewReflector(listerWatcher, &khstatev1.KuberhealthyState{}, sr.store, sr.resyncPeriod)
 
 	return &sr
 }
@@ -54,7 +54,7 @@ func TestStart(t *testing.T) {
 	khStateReflector := makeTestStateReflector(fw)
 	go khStateReflector.Start()
 
-	fw.Add(&khstatecrd.KuberhealthyState{ObjectMeta: metav1.ObjectMeta{Name: "bar"}})
+	fw.Add(&khstatev1.KuberhealthyState{ObjectMeta: metav1.ObjectMeta{Name: "bar"}})
 	close(khStateReflector.reflectorSigChan)
 	select {
 	case _, ok := <-fw.ResultChan():
@@ -75,7 +75,7 @@ func TestStop(t *testing.T) {
 
 	// Run watch for 5 seconds
 	go khStateReflector.Start()
-	fw.Add(&khstatecrd.KuberhealthyState{ObjectMeta: metav1.ObjectMeta{Name: "bar"}})
+	fw.Add(&khstatev1.KuberhealthyState{ObjectMeta: metav1.ObjectMeta{Name: "bar"}})
 	time.Sleep(time.Second * 2)
 
 	// Stop watch.
