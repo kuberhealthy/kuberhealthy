@@ -13,6 +13,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -190,8 +191,13 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 
 	for n, v := range reapCheckerPods {
 
+		podTerminatedTime, err := getPodCompletedTime(v)
+		if err != nil {
+			log.Warnln(err)
+			continue
+		}
 		// Delete pods older than maxCheckPodAge and is in status Succeeded
-		if v.Status.Phase == v1.PodSucceeded && time.Now().Sub(getPodCompletedTime(v)) > cfg.MaxCheckPodAge {
+		if v.Status.Phase == v1.PodSucceeded && time.Now().Sub(podTerminatedTime) > cfg.MaxCheckPodAge {
 			log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Succeeded`. Deleting pod:", n)
 
 			err = k.deletePod(ctx, v)
@@ -203,7 +209,7 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 		}
 
 		// Delete failed pods (status Failed) older than maxCheckPodAge
-		if v.Status.Phase == v1.PodFailed && time.Now().Sub(getPodCompletedTime(v)) > cfg.MaxCheckPodAge{
+		if v.Status.Phase == v1.PodFailed && time.Now().Sub(podTerminatedTime) > cfg.MaxCheckPodAge {
 			log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Failed`. Deleting pod:", n)
 
 			err = k.deletePod(ctx, v)
@@ -275,7 +281,12 @@ func getAllCompletedPodsWithCheckName(reapCheckerPods map[string]v1.Pod, pod v1.
 
 	for _, v := range reapCheckerPods {
 		if v.Labels["kuberhealthy-check-name"] == checkName {
-			if time.Now().Sub(getPodCompletedTime(v)) > minCheckPodAge {
+			podTerminatedTime, err := getPodCompletedTime(v)
+			if err != nil {
+				log.Warnln(err)
+				continue
+			}
+			if time.Now().Sub(podTerminatedTime) > minCheckPodAge {
 				allCheckPods = append(allCheckPods, v)
 			}
 		}
@@ -332,17 +343,20 @@ func khJobDelete(client *khjobcrd.KHJobV1Client) error {
 	return nil
 }
 
-// getPodCompletedTime returns the container with the latest finished time.
-func getPodCompletedTime(pod v1.Pod) time.Time {
+// getPodCompletedTime returns a boolean to ensure container terminated state exists and returns containers' latest finished time
+func getPodCompletedTime(pod v1.Pod) (time.Time, error) {
 
 	var podCompletedTime time.Time
 	for _, cs := range pod.Status.ContainerStatuses {
-
-		finishedTime := cs.State.Terminated.FinishedAt
-		if finishedTime.After(podCompletedTime) {
-			podCompletedTime = finishedTime.Time
+		if cs.State.Terminated != nil {
+			finishedTime := cs.State.Terminated.FinishedAt
+			if finishedTime.After(podCompletedTime) {
+				podCompletedTime = finishedTime.Time
+			}
+		} else {
+			return podCompletedTime, fmt.Errorf("could not fetch pod: %s completed time", pod.Name)
 		}
 	}
 
-	return podCompletedTime
+	return podCompletedTime, nil
 }
