@@ -1098,13 +1098,19 @@ func (ext *Checker) createPod() (*apiv1.Pod, error) {
 	// enforce various labels and annotations on all checker pods created
 	ext.addKuberhealthyLabels(p)
 
-	// Get ownerReference for the kuberhealthy pod
-	ownerRef, err := util.GetOwnerRef(ext.KubeClient, kuberhealthyNamespace)
-	if err != nil {
-		return nil, errors.New("Failed to getOwnerReference for pod: " + p.Name + ", err: " + err.Error())
+	// only set ownerReference for pods in the kuberhealthy namespace
+	// as cross-namespace owner references are disabled by design
+	if p.Namespace == kuberhealthyNamespace {
+
+		// Get ownerReference for the kuberhealthy pod
+		ownerRef, err := util.GetOwnerRef(ext.KubeClient, kuberhealthyNamespace)
+		if err != nil {
+			return nil, errors.New("Failed to getOwnerReference for pod: " + p.Name + ", err: " + err.Error())
+		}
+
+		// Set ownerReference on checker pods in kuberhealthy namespace
+		p.OwnerReferences = ownerRef
 	}
-	// Set ownerReference on all checker pods
-	p.OwnerReferences = ownerRef
 
 	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(context.TODO(), p, metav1.CreateOptions{})
 }
