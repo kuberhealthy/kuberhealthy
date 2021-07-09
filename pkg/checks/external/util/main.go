@@ -110,7 +110,7 @@ func PodNameExists(client *kubernetes.Clientset, podName string, namespace strin
 	}
 
 	if p.Name == "" {
-		log.Warningln("Pod name is empty. Pod does not exist")
+		log.Warnln("Pod name is empty. Pod does not exist")
 		return false, err
 	}
 

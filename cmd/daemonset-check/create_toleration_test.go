@@ -6,21 +6,21 @@ import (
 )
 
 func TestCreateToleration(test *testing.T) {
-	string_tol := "test"
-	
+	stringTol := "test"
+
 	//nodeSelectors := map[string]string{}
-	expectedResults := corev1.Toleration {
+	expectedResults := corev1.Toleration{
 		Key: "test",
-	//	Value: "test",
-	//	Effect: corev1.TaintEffect("NoSchedule"),
+		//	Value: "test",
+		//	Effect: corev1.TaintEffect("NoSchedule"),
 		Operator: corev1.TolerationOpExists,
 	}
 	//expectedResults := corev1.Toleration{}
 	test.Log("testing createToleration")
-	r, err := createToleration(string_tol)
+	r, err := createToleration(stringTol)
 	if err != nil {
 		test.Errorf("%v", err)
 	} else if *r != expectedResults {
-		test.Errorf("Expected %+v got %+v", expectedResults, r)	
+		test.Errorf("Expected %+v got %+v", expectedResults, r)
 	}
 }
