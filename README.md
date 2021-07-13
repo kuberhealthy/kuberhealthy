@@ -43,7 +43,7 @@ Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.18.x`.
 
 To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CONFIGURATION.md).
 
-The Helm installation of Kuberhealthy is automatically updated to use the latest [Kuberhealthy release](https://github.com/kuberhealthy/kuberhealthy/releases).
+Details on using the helm chart are [documented here](https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy).  The Helm installation of Kuberhealthy is automatically updated to use the latest [Kuberhealthy release](https://github.com/kuberhealthy/kuberhealthy/releases).
 
 More installation options, including static yaml files are available in the [/deploy](/deploy) directory. These flat spec files contain the most recent changes to Kuberhealthy, or the master branch. Use this if you would like to test master branch updates.
 

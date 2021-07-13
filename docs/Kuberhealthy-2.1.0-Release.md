@@ -6,7 +6,7 @@ Last November at KubeCon San Diego 2019, we announced the release of [Kuberhealt
 
 <img align="center" src="https://github.com/kuberhealthy/kuberhealthy/raw/master/images/kuberhealthy-check-reaper.gif">
 
-With the initial 2.0.0 release, each time an external check finished running and reported back to Kuberhealthy, the checker pod would only remain visible in Kubernetes until the next time the check ran. For checks that had shorter run intervals such as the DNS Status check or the Pod Status check, Kubernetes operators weren't given enough time to investigate failed check logs after being alerted. The team decided to retain checker pods and implement a check reaper cron job that deletes 'Completed' or 'Failed' Kuberhealthy checker pods older than a certain time period. Users are now given much more time to investigate failed check runs without having to worry about the pod in question being cleaned up too quickly.  
+With the initial 2.0.0 release, each time a checker pod finished running and reported back to Kuberhealthy, the checker pod would only remain visible in Kubernetes until the next time the check ran. For checks that had shorter run intervals such as the DNS Status check or the Pod Status check, Kubernetes operators weren't given enough time to investigate failed check logs after being alerted. The team decided to retain checker pods and implement a check reaper cron job that deletes 'Completed' or 'Failed' Kuberhealthy checker pods older than a certain time period. Users are now given much more time to investigate failed check runs without having to worry about the pod in question being cleaned up too quickly.  
   
 #### Squashing Bugs 
   
