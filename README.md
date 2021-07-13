@@ -11,7 +11,7 @@ An operator for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_m
 
 ## What is Kuberhealthy?
 
-Kuberhealthy is an [operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) for running synthetic checks.  By creating a custom resource (a `khcheck`) in your cluster, you can easily enable various synthetic test containers.  Kuberhealthy does all the work of scheduling your checks on an interval you specify (like a CronJob), ensuring they run properly within an allotted timeout, maintaining the current up/down state with durability, and producing metrics.  There are [lots of useful checks already available](docs/EXTERNAL_CHECKS_REGISTRY.md) to ensure the core functionality of Kubernetes, but checks can be used to test anything you like.  We encourage you to [write your own check container](docs/EXTERNAL_CHECK_CREATION.md) in any language to test your own applications!
+Kuberhealthy is an [operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) for running synthetic checks.  By creating a custom resource (a `khcheck`) in your cluster, you can easily enable various synthetic test containers.  Kuberhealthy does all the work of scheduling your checks on an interval you specify (like a CronJob), ensuring they run properly within an allotted timeout, maintaining the current up/down state with durability, and producing metrics.  There are [lots of useful checks already available](docs/CHECKS_REGISTRY.md) to ensure the core functionality of Kubernetes, but checks can be used to test anything you like.  We encourage you to [write your own check container](docs/CHECK_CREATION.md) in any language to test your own applications!
 
 Kuberhealthy serves a simple JSON status page, a [Prometheus](https://prometheus.io/) metrics endpoint (at `/metrics`), and supports InfluxDB metric forwarding for integration into your choice of alerting solution.
 
@@ -21,7 +21,7 @@ Here is an illustration of how Kuberhealthy provisions and operates checker pods
 
 ## Create Synthetic Checks for Your App
 
-With Kuberhealthy, you can easily create synthetic tests to check your applications with real world use cases.  Read more about how external checks are configured in the documentation [here](docs/EXTERNAL_CHECKS.md) and learn how to create your own check container in any language [here](docs/EXTERNAL_CHECK_CREATION.md). Clients for external checks outside of Go can be found in the [clients directory](/clients).
+With Kuberhealthy, you can easily create synthetic tests to check your applications with real world use cases.  Read more about how checks are configured in the documentation [here](docs/CHECKS.md) and learn how to create your own check container in any language [here](docs/CHECK_CREATION.md). Clients for checks outside of Go can be found in the [clients directory](/clients).
 
 
 ## Installation
@@ -37,7 +37,7 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 4. Install kuberhealthy:  
 	`helm install kuberhealthy kuberhealthy/kuberhealthy`
 
-After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking service, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer`.  This is done for security.  Options are available in the Helm chart to bypass this and deploy with `Type: LoadBalancer` directly.
+After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking agent, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer`.  This is done for security.  Options are available in the Helm chart to bypass this and deploy with `Type: LoadBalancer` directly.
 
 Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.18.x`.
 
@@ -140,5 +140,5 @@ If you're interested in contributing to this project:
 - Check out the [Contributing Guide](CONTRIBUTING.md).
 - If you use Kuberhealthy in a production environment, add yourself to the list of [Kuberhealthy adopters](docs/KUBERHEALTHY_ADOPTERS.md)!
 - Check out [open issues](https://github.com/kuberhealthy/kuberhealthy/issues). If you're new to the project, look for the `good first issue` tag.
-- We're always looking for external check contributions (either in suggestions or in PRs) as well as feedback from folks implementing
+- We're always looking for check contributions (either in suggestions or in PRs) as well as feedback from folks implementing
 Kuberhealthy locally or in a test environment.

@@ -15,7 +15,7 @@ spec:
             value: "false"
           - name: REPORT_DELAY
             value: "5s"
-        image: kuberhealthy/test-external-check:v1.4.0
+        image: kuberhealthy/test-check:v1.4.0
         imagePullPolicy: Always
         name: main
         resources:
@@ -42,7 +42,7 @@ spec:
             value: "false"
           - name: REPORT_DELAY
             value: "5s"
-        image: kuberhealthy/test-external-check:v1.4.0
+        image: kuberhealthy/test-check:v1.4.0
         imagePullPolicy: Always
         name: main
         resources:
@@ -69,7 +69,7 @@ spec:
             value: "5s"
           - name: REPORT_FAILURE
             value: "false"
-        image: kuberhealthy/test-external-check:v1.4.0
+        image: kuberhealthy/test-check:v1.4.0
         imagePullPolicy: Always
         name: main
         resources:
@@ -82,7 +82,7 @@ spec:
 apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
-  name: kh-daemonset-external-check
+  name: kh-daemonset-check
   namespace: kuberhealthy
 spec:
   extraAnnotations: null
@@ -135,7 +135,7 @@ spec:
   extraLabels:
     testLabel: testLabel
   podSpec:
-    image: kuberhealthy/test-external-check:v1.4.0
+    image: kuberhealthy/test-check:v1.4.0
     imagePullPolicy: Always
     name: main
     resources:
@@ -162,7 +162,7 @@ spec:
             value: "5s"
           - name: REPORT_FAILURE
             value: "true"
-        image: kuberhealthy/test-external-check:v1.4.0
+        image: kuberhealthy/test-check:v1.4.0
         imagePullPolicy: Always
         name: main
         resources:
@@ -189,7 +189,7 @@ spec:
             value: "5s"
           - name: REPORT_FAILURE
             value: "false"
-        image: kuberhealthy/test-external-check:v1.4.0
+        image: kuberhealthy/test-check:v1.4.0
         imagePullPolicy: Always
         name: main
         resources:

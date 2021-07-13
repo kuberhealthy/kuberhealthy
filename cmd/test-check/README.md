@@ -1,6 +1,6 @@
-### test-external-check
+### test-check
 
-This is a container used to test external checks in Kuberhealthy. This container simply runs, waits for a set interval of seconds and then either reports a success or failure depending on the `REPORT_FAILURE` environment variable set in the pod spec.
+This is a container used to test check functionality in Kuberhealthy. This container simply runs, waits for a set interval of seconds and then either reports a success or failure depending on the `REPORT_FAILURE` environment variable set in the pod spec.
 
 
 ##### Environment Variables
@@ -13,7 +13,7 @@ This is a container used to test external checks in Kuberhealthy. This container
 
 The pod is also design to log any errors it encounters when communicating to the Kuberhealthy API.
 
-Below is a YAML template for enabling the test-external-check in Kuberhealthy.
+Below is a YAML template for enabling the test-check in Kuberhealthy.
 
 Simply copy and paste the YAML specs below into a new file and apply it by using the command `kubectl apply -f your-named-khcheck.yaml`.
 
@@ -38,7 +38,7 @@ spec:
         value: "false"
       - name: REPORT_DELAY
         value: "10s"
-      image: kuberhealthy/test-external-check:v1.4.0
+      image: kuberhealthy/test-check:v1.4.0
       name: main
       resources:
         requests:
@@ -48,11 +48,11 @@ spec:
 
 ### image-pull-check
 
-This container tests the availability of external image respositories using Kuberhealthy.  Simply place the `kuberhealthy/test-external-check` image on the repository you need tested.
+This container tests the availability of image respositories using Kuberhealthy.  Simply `docker push` the `kuberhealthy/test-check` image on the repository you need tested.
 
 The pod is designed to attempt a pull of the test image from the remote repository (never from local) every 10 minutes. If the image is unavailable, an error will be reported to the Kuberheakthy API.
 
-To put a copy of this image to your repository, run `docker pull kuberhealthy/test-external-check` and then `docker push my.repository/repo/test-external-check`.
+To put a copy of this image to your repository, run `docker pull kuberhealthy/test-check` and then `docker push my.repository/repo/test-check`.
 
 
 ##### Example `khcheck`
@@ -76,8 +76,8 @@ spec:
         value: "false"
       - name: REPORT_DELAY
         value: "1s"
-      # test-external-check image must be uploaded to the repository you wish to test on, and below URL must be updated to match.
-      image: kuberhealthy/test-external-check:v1.4.0
+      # test-check image must be uploaded to the repository you wish to test on, and below URL must be updated to match.
+      image: kuberhealthy/test-check:v1.4.0
       imagePullPolicy: Always
       name: main
       resources:
