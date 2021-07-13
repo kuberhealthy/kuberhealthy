@@ -90,7 +90,9 @@ Clients outside of Go can be found in the [clients directory](../clients).
 The following environment variables are injected into every checker pod that Kuberhealthy runs.  When writing your checker code, you can depend on these environment variables always being available to you, even if you do not specify them in your `khcheck` spec.
 ```
 KH_REPORTING_URL: The Kuberhealthy URL to send POST requests to for check statuses.
-KH_CHECK_RUN_DEADLINE: The Kuberhealthy-calculated deadline for checks given in unix.
+KH_CHECK_RUN_DEADLINE: The Kuberhealthy-calculated deadline for checks given in Unix.
+KH_RUN_UUID: The UUID of the check run.  This must be sent back as the header 'kh-run-uuid' when status is reported to KH_REPORTING_URL.  The Go checkClient package does this automatically.
+KH_POD_NAMESPACE: The namespace of the checker pod.
 ```
 
 ### Creating Your `khcheck` Resource
