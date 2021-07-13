@@ -13,7 +13,7 @@ An operator for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_m
 
 Kuberhealthy is an [operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) for running synthetic checks.  By creating a custom resource (a `khcheck`) in your cluster, you can easily enable various synthetic test containers.  Kuberhealthy does all the work of scheduling your checks on an interval you specify (like a CronJob), ensuring they run properly within an allotted timeout, maintaining the current up/down state with durability, and producing metrics.  There are [lots of useful checks already available](docs/EXTERNAL_CHECKS_REGISTRY.md) to ensure the core functionality of Kubernetes, but checks can be used to test anything you like.  We encourage you to [write your own check container](docs/EXTERNAL_CHECK_CREATION.md) in any language to test your own applications!
 
-Kuberhealthy serves a simple JSON status page, a [Prometheus](https://prometheus.io/) metrics endpoint, and supports InfluxDB metric forwarding for integration into your choice of alerting solution.
+Kuberhealthy serves a simple JSON status page, a [Prometheus](https://prometheus.io/) metrics endpoint (at `/metrics`), and supports InfluxDB metric forwarding for integration into your choice of alerting solution.
 
 Here is an illustration of how Kuberhealthy provisions and operates checker pods.  In this example, the checker pod both deploys a daemonset and tears it down while carefully watching for errors.  The result of the check is then sent back to Kuberhealthy and channeled into upstream metrics and status pages to indicate basic Kubernetes cluster functionality across all nodes in a cluster.
 
