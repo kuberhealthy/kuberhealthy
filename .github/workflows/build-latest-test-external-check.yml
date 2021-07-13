@@ -1,4 +1,4 @@
-name: Build and Push Test-External-Check Latest
+name: Build and Push Test-Check Latest
 on:
   push:
     branches:
@@ -6,9 +6,9 @@ on:
     - release/*
     - docker-hub # for testing this build spec
     paths:
-      - "cmd/test-external-check/**"
+      - "cmd/test-check/**"
 env:
-    IMAGE_NAME: test-external-check
+    IMAGE_NAME: test-check
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,10 +18,10 @@ jobs:
       uses: burdzwastaken/hadolint-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        HADOLINT_ACTION_DOCKERFILE_FOLDER: cmd/test-external-check
+        HADOLINT_ACTION_DOCKERFILE_FOLDER: cmd/test-check
         HADOLINT_ACTION_COMMENT: false
     - name: build container
-      run: docker build --file cmd/test-external-check/Dockerfile --tag $IMAGE_NAME .
+      run: docker build --file cmd/test-check/Dockerfile --tag $IMAGE_NAME .
     - name: Log into docker hub
       run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
     - name: Push new latest image

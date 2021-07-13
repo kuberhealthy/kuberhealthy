@@ -26,13 +26,13 @@ func main() {
 
 ```
 
-An example check with working Dockerfile is available to use as an example [here](../cmd/test-external-check/main.go).
+An example check with working Dockerfile is available to use as an example [here](../cmd/test-check/main.go).
 
 ### Using JavaScript
 
 #### Reference Sample:
 
-If you would like to write a check in JavaScript, there is a sample client for external checks found [here](../clients/js/).
+If you would like to write a check in JavaScript, there is a sample client for checks found [here](../clients/js/).
 
 Please see the [example check](../clients/js/example) under the same folder with a Dockerfile for reference.
 
@@ -112,7 +112,7 @@ spec:
     - env: # Environment variables are optional but a recommended way to configure check behavior
         - name: MY_OPTION_ENV_VAR
           value: "option_setting_here"
-      image: quay.io/comcast/test-external-check:latest # The image of the check you just pushed
+      image: quay.io/comcast/test-check:latest # The image of the check you just pushed
       imagePullPolicy: Always # During check development, it helps to set this to 'Always' to prevent on-node image caching.
       name: main
 ```
@@ -121,4 +121,4 @@ That's it!  As soon as this `khcheck` is applied, Kuberhealthy will begin runnin
 
 ### Contribute Your Check
 
-You can see a list of checks that others have written on the [check registry](EXTERNAL_CHECKS_REGISTRY.md).  If you have a check that may be useful to others and want to contribute, consider adding it to the registry!  Just fork this repository and send a PR.  This is made easy by simply checking the `Edit` pencil on the check registry page.
+You can see a list of checks that others have written on the [check registry](CHECKS_REGISTRY.md).  If you have a check that may be useful to others and want to contribute, consider adding it to the registry!  Just fork this repository and send a PR.  This is made easy by simply checking the `Edit` pencil on the check registry page.

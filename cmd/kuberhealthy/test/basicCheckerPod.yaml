@@ -1,5 +1,5 @@
 containers:
-  - image: "quay.io/comcast/test-external-check:latest"
+  - image: "quay.io/comcast/test-check:latest"
     name:  "kuberhealthy"
     resources:
       requests:
