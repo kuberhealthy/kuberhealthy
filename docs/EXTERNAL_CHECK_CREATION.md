@@ -68,7 +68,7 @@ Your check only needs to do a few things:
 
 - Read the `KH_REPORTING_URL` environment variable.
 - Send a `POST` to the `KH_REPORTING_URL` with the following JSON body:
-- Ensure that your check finishes within the [unixtime](https://en.wikipedia.org/wiki/Unix_time) deadline specified in the `KH_CHECK_RUN_DEADLINE` environment variable. If `KH_CHECK_RUN_DEADLINE` is not respected, your check may run into a `400` error when reporting its state to Kuberhealthy. 
+- Ensure that your check finishes before the [unixtime](https://en.wikipedia.org/wiki/Unix_time) deadline specified in the `KH_CHECK_RUN_DEADLINE` environment variable. If `KH_CHECK_RUN_DEADLINE` is not respected, your check may run into a `400` error when reporting its state to Kuberhealthy.  This deadline is calculated by the `timeout:` setting in the `khcheck` resource.
 
 ```json
 {
@@ -90,7 +90,7 @@ Clients outside of Go can be found in the [clients directory](../clients).
 The following environment variables are injected into every checker pod that Kuberhealthy runs.  When writing your checker code, you can depend on these environment variables always being available to you, even if you do not specify them in your `khcheck` spec.
 ```
 KH_REPORTING_URL: The Kuberhealthy URL to send POST requests to for check statuses.
-KH_CHECK_RUN_DEADLINE: The Kuberhealthy-calculated deadline for checks given in Unix.
+KH_CHECK_RUN_DEADLINE: The Kuberhealthy deadline for checks as calculated by the check timeout given in Unix.
 KH_RUN_UUID: The UUID of the check run.  This must be sent back as the header 'kh-run-uuid' when status is reported to KH_REPORTING_URL.  The Go checkClient package does this automatically.
 KH_POD_NAMESPACE: The namespace of the checker pod.
 ```
