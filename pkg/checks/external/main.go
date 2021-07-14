@@ -25,11 +25,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
-	khjobcrd "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
+	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
+	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
+	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/util"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khcheckcrd"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khstatecrd"
 )
 
 // KHReportingURL is the environment variable used to tell external checks where to send their status updates
@@ -83,18 +82,6 @@ var kubeConfigFile = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 // Namespace of Kuberhealthy pod. Used to help set ownerReference for created checker pods.
 var kuberhealthyNamespace = "kuberhealthy"
 
-// CRDGroup constant value for grouping Kuberhealthy's custom resource definitions on a server.
-const CRDGroup = "comcast.github.io"
-
-// CRDVersion constant value for versoning Kuberhealthy's custom resource definitions.
-const CRDVersion = "v1"
-
-// checkCRDResource constant value for creating the Kuberhealthy "check" CRDs.
-const checkCRDResource = "khchecks"
-
-// stateCRDResource constant value for creating the Kuberhealthy "state" CRDs.
-const stateCRDResource = "khstates"
-
 // Checker implements a KuberhealthyCheck for external
 // check execution and lifecycle management.
 type Checker struct {
@@ -103,15 +90,16 @@ type Checker struct {
 	RunInterval              time.Duration // how often this check runs a loop
 	RunTimeout               time.Duration // time check must run completely within
 	KubeClient               *kubernetes.Clientset
-	KHJobClient              *khjobcrd.KHJobV1Client
-	KHCheckClient            *khcheckcrd.KuberhealthyCheckClient
-	KHStateClient            *khstatecrd.KuberhealthyStateClient
+	KHJobClient              *khjobv1.KHJobV1Client
+	KHCheckClient            *khcheckv1.KHCheckV1Client
+	KHStateClient            *khstatev1.KHStateV1Client
 	PodSpec                  apiv1.PodSpec // the current pod spec we are using after enforcement of settings
 	OriginalPodSpec          apiv1.PodSpec // the user-provided spec of the pod
 	RunID                    string        // the uuid of the current run
 	KuberhealthyReportingURL string        // the URL that the check should want to report results back to
 	ExtraAnnotations         map[string]string
 	ExtraLabels              map[string]string
+	Node					 string 			// the node the checker pod runs on
 	currentCheckUUID         string             // the UUID of the current external checker running
 	Debug                    bool               // indicates we should run in debug mode - run once and stop
 	shutdownCTXFunc          context.CancelFunc // used to cancel things in-flight when shutting down gracefully
@@ -119,7 +107,7 @@ type Checker struct {
 	wg                       sync.WaitGroup     // used to track background workers and processes
 	hostname                 string             // hostname cache
 	checkPodName             string             // the current unique checker pod name
-	KHWorkload               health.KHWorkload
+	KHWorkload               khstatev1.KHWorkload
 }
 
 func init() {
@@ -130,12 +118,12 @@ func init() {
 }
 
 // New creates a new external checker
-func New(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck, khCheckClient *khcheckcrd.KuberhealthyCheckClient, khStateClient *khstatecrd.KuberhealthyStateClient, reportingURL string) *Checker {
+func New(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyCheck, khCheckClient *khcheckv1.KHCheckV1Client, khStateClient *khstatev1.KHStateV1Client, reportingURL string) *Checker {
 
 	return NewCheck(client, checkConfig, khCheckClient, khStateClient, reportingURL)
 }
 
-func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckcrd.KuberhealthyCheck, khCheckClient *khcheckcrd.KuberhealthyCheckClient, khStateClient *khstatecrd.KuberhealthyStateClient, reportingURL string) *Checker {
+func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyCheck, khCheckClient *khcheckv1.KHCheckV1Client, khStateClient *khstatev1.KHStateV1Client, reportingURL string) *Checker {
 
 	if len(checkConfig.Namespace) == 0 {
 		checkConfig.Namespace = "kuberhealthy"
@@ -155,11 +143,11 @@ func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckcrd.Kuberhealthy
 		OriginalPodSpec:          checkConfig.Spec.PodSpec,
 		PodSpec:                  checkConfig.Spec.PodSpec,
 		KubeClient:               client,
-		KHWorkload:               health.KHCheck,
+		KHWorkload:               khstatev1.KHCheck,
 	}
 }
 
-func NewJob(client *kubernetes.Clientset, jobConfig *khjobcrd.KuberhealthyJob, khJobClient *khjobcrd.KHJobV1Client, khStateClient *khstatecrd.KuberhealthyStateClient, reportingURL string) *Checker {
+func NewJob(client *kubernetes.Clientset, jobConfig *khjobv1.KuberhealthyJob, khJobClient *khjobv1.KHJobV1Client, khStateClient *khstatev1.KHStateV1Client, reportingURL string) *Checker {
 
 	if len(jobConfig.Namespace) == 0 {
 		jobConfig.Namespace = "kuberhealthy"
@@ -178,7 +166,7 @@ func NewJob(client *kubernetes.Clientset, jobConfig *khjobcrd.KuberhealthyJob, k
 		OriginalPodSpec:          jobConfig.Spec.PodSpec,
 		PodSpec:                  jobConfig.Spec.PodSpec,
 		KubeClient:               client,
-		KHWorkload:               health.KHJob,
+		KHWorkload:               khstatev1.KHJob,
 	}
 }
 
@@ -285,16 +273,16 @@ func (ext *Checker) Run(ctx context.Context, client *kubernetes.Clientset) error
 }
 
 // getCheck gets the CRD information for this check from the kubernetes API.
-func (ext *Checker) getCheck() (*khcheckcrd.KuberhealthyCheck, error) {
+func (ext *Checker) getCheck() (*khcheckv1.KuberhealthyCheck, error) {
 
 	// get the item in question and return it along with any errors
 	log.Debugln("Fetching check", ext.CheckName, "in namespace", ext.Namespace)
-	checkConfig, err := ext.KHCheckClient.Get(metav1.GetOptions{}, checkCRDResource, ext.Namespace, ext.CheckName)
+	checkConfig, err := ext.KHCheckClient.KuberhealthyChecks(ext.Namespace).Get(ext.CheckName, metav1.GetOptions{})
 	if err != nil {
-		return &khcheckcrd.KuberhealthyCheck{}, err
+		return &khcheckv1.KuberhealthyCheck{}, err
 	}
 
-	return checkConfig, err
+	return &checkConfig, err
 }
 
 // cleanup cleans up any running, pending, or unknown checker pods by evicting them. Succeeded or Failed pods are left alone for records
@@ -374,15 +362,15 @@ func (ext *Checker) setUUID(uuid string) error {
 	// if the check was not found, we create a fresh one and start there
 	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		ext.log("khstate did not exist, so a default object will be created")
-		details := health.NewWorkloadDetails(ext.KHWorkload)
+		details := khstatev1.NewWorkloadDetails(ext.KHWorkload)
 		details.Namespace = ext.CheckNamespace()
 		details.AuthoritativePod = ext.hostname
 		details.OK = true
 		details.RunDuration = time.Duration(0).String()
-		newState := khstatecrd.NewKuberhealthyState(ext.CheckName, details)
+		newState := khstatev1.NewKuberhealthyState(ext.CheckName, details)
 		newState.Namespace = ext.Namespace
 		ext.log("Creating khstate", newState.Name, newState.Namespace, "because it did not exist")
-		_, err = ext.KHStateClient.Create(&newState, stateCRDResource, ext.CheckNamespace())
+		_, err = ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Create(&newState)
 		if err != nil {
 			ext.log("failed to create a khstate after finding that it did not exist:", err)
 			return err
@@ -401,7 +389,7 @@ func (ext *Checker) setUUID(uuid string) error {
 
 	// update the resource with the new values we want
 	ext.log("Updating khstate", checkState.Name, checkState.Namespace, "to setUUID:", checkState.Spec.CurrentUUID)
-	_, err = ext.KHStateClient.Update(checkState, stateCRDResource, ext.Name(), ext.CheckNamespace())
+	_, err = ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Update(&checkState)
 
 	// Sometimes a race condition occurs when a pod has to verify uuid with kh server. If the pod happens to check the
 	// uuid before it shows as updated on kube-apiserver, the pod will not be allowed to report its status.
@@ -414,7 +402,7 @@ func (ext *Checker) setUUID(uuid string) error {
 		tries++
 		ext.log("Waiting 1 second before checking " + ext.Name() + " uuid.")
 		time.Sleep(time.Second * 1)
-		extCheck, err := ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.Name(), ext.CheckNamespace())
+		extCheck, err := ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Get(ext.Name(), metav1.GetOptions{})
 		if err != nil {
 			ext.log("failed to get khstate while truing up check uuid:", err)
 			continue
@@ -757,26 +745,26 @@ func (ext *Checker) sanityCheck() error {
 }
 
 // getKHState gets the khstate for this check from the resource in the API server
-func (ext *Checker) getKHState() (*khstatecrd.KuberhealthyState, error) {
+func (ext *Checker) getKHState() (khstatev1.KuberhealthyState, error) {
 	// fetch the khstate as it exists
-	return ext.KHStateClient.Get(metav1.GetOptions{}, stateCRDResource, ext.CheckName, ext.Namespace)
+	return ext.KHStateClient.KuberhealthyStates(ext.Namespace).Get(ext.CheckName, metav1.GetOptions{})
 }
 
 // getCheckLastUpdateTime fetches the last time the khstate custom resource for this check was updated
 // as a time.Time.
-func (ext *Checker) getCheckLastUpdateTime() (time.Time, error) {
+func (ext *Checker) getCheckLastUpdateTime() (metav1.Time, error) {
 
 	// fetch the state from the resource
 	state, err := ext.getKHState()
 	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
-		return time.Time{}, nil
+		return metav1.Time{}, nil
 	}
 
 	return state.Spec.LastRun, err
 }
 
 // waitForPodStatusUpdate waits for a pod status to update from the specified time
-func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time) chan error {
+func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime metav1.Time) chan error {
 	ext.log("waiting for pod to report in to status page...")
 
 	// make the output channel we will return and close it whenever we are done
@@ -825,7 +813,7 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime time.Time) chan error 
 }
 
 // podHasReportedInAfterTime indicates if a pod has reported a state since the supplied timestamp
-func (ext *Checker) podHasReportedInAfterTime(t time.Time) (bool, error) {
+func (ext *Checker) podHasReportedInAfterTime(t metav1.Time) (bool, error) {
 	// fetch the lastUpdateTime from the khstate as of right now
 	currentUpdateTime, err := ext.getCheckLastUpdateTime()
 	if err != nil {
@@ -834,7 +822,7 @@ func (ext *Checker) podHasReportedInAfterTime(t time.Time) (bool, error) {
 
 	// if the pod has updated, then we return and were done waiting
 	ext.log("Last report time was:", t, "vs", currentUpdateTime)
-	if currentUpdateTime.After(t) {
+	if currentUpdateTime.After(t.Time) {
 		return true, nil
 	}
 
