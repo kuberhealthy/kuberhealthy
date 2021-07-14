@@ -123,7 +123,7 @@ func CreatePool() (*x509.CertPool, error) {
 	return defaultPool, nil
 }
 
-// SSLHandshakeWithCertPool does an SSL handshake with the spciefied cert pool instead of
+// SSLHandshakeWithCertPool does an SSL handshake with the specified cert pool instead of
 // the default system certificate pool
 func SSLHandshakeWithCertPool(url *url.URL, certPool *x509.CertPool) error {
 

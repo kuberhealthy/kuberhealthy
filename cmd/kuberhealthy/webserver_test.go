@@ -55,9 +55,9 @@ func TestWebServer(t *testing.T) {
 	kh := makeTestKuberhealthy(t)
 
 	// add a fake check to it
-	fc := NewFakeCheck()
+	//fc := NewFakeCheck()
 	t.Log("Adding fake check")
-	kh.AddCheck(fc)
+	//kh.AddCheck(fc)
 
 	t.Log("Starting Kuberhealthy checks")
 	go kh.Start(ctx)
@@ -107,11 +107,11 @@ func TestWebServerNotOK(t *testing.T) {
 	kh := makeTestKuberhealthy(t)
 
 	// add a fake check to it with a not ok return
-	fc := NewFakeCheck()
+	//fc := NewFakeCheck()
 	desiredError := randomdata.SillyName()
-	fc.Errors = []string{desiredError}
-	fc.OK = false
-	kh.AddCheck(fc)
+	//fc.Errors = []string{desiredError}
+	//fc.OK = false
+	//kh.AddCheck(fc)
 
 	// run the checker for enough time to make and update CRD entries, then stop it
 	go kh.Start(ctx)
