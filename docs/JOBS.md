@@ -1,4 +1,4 @@
-### Jobs (Checks that run just once)
+### Kuberhealthy Jobs (khchecks that run just once)
 
 Jobs are configured using the `khjob` custom resources.  These `khjobs` are just like `khchecks` but are configured without a runInterval as they run only once. They act like manually triggered k8s jobs, where as soon as your `khjob` resource is applied to the cluster, kuberhealthy runs it automatically. Any `khcheck` can be configured to be a `khjob` as long as you:
  1) Change the resource to `kind: KuberhealthyJob`
