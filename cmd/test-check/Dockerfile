@@ -4,7 +4,7 @@ COPY go.mod go.sum /build/
 RUN go mod download
 
 COPY . /build
-WORKDIR /build/cmd/test-external-check
+WORKDIR /build/cmd/test-check
 ENV CGO_ENABLED=0
 RUN go build -v
 RUN groupadd -g 999 user && \
@@ -13,5 +13,5 @@ FROM scratch
 COPY --from=builder /etc/passwd /etc/passwd
 USER user
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /build/cmd/test-external-check/test-external-check /app/test-external-check
-ENTRYPOINT ["/app/test-external-check"]
+COPY --from=builder /build/cmd/test-check/test-check /app/test-check
+ENTRYPOINT ["/app/test-check"]
