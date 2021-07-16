@@ -45,7 +45,7 @@ Next, you can run `kubectl get khchecks`. You should see three Kuberhealthy chec
 - [deployment](https://github.com/kuberhealthy/kuberhealthy/tree/master/cmd/deployment-check): Creates a deployment and then triggers a rolling update.  Tests that the deployment is reachable via a service and then deletes everything. Any problem in this process will cause this check to report a failure.
 - [dns-status-internal](https://github.com/kuberhealthy/kuberhealthy/tree/master/cmd/dns-resolution-check): Validates that internal cluster DNS is functioning as expected.
 
-To view other available external checks, check out the [external checks registry](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/EXTERNAL_CHECKS_REGISTRY.md) where you can find other yaml files you can apply to your cluster to enable various checks.
+To view other available checks, check out the [checks registry](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CHECKS_REGISTRY.md) where you can find other yaml files you can apply to your cluster to enable various checks.
 
 Kuberhealthy check pods should start running shortly after Kuberhealthy starts running (1-2 minutes). Additionally, the check-reaper cronjob runs every few minutes to ensure there are no more than 5 completed checker pods left lying around at a time.
 
@@ -97,7 +97,7 @@ Kuberhealthy is designed to be extended with custom check containers that can be
 
 Creating your own check is a great way to validate your client library, simulate real user workflow, and create a high level of confidence in your service or system uptime.
 
-To learn more about writing your own checks, along with simple examples, check the [custom check creation](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/EXTERNAL_CHECK_CREATION.md) documentation.
+To learn more about writing your own checks, along with simple examples, check the [custom check creation](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CHECK_CREATION.md) documentation.
 
 
 ### Prometheus Integration Details
