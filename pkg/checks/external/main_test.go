@@ -11,16 +11,12 @@ import (
 	"github.com/ghodss/yaml"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
-	// "k8s.io/apimachinery/pkg/api/resource"
-
 	log "github.com/sirupsen/logrus"
 
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khcheckcrd"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
-
 	apiv1 "k8s.io/api/core/v1"
-	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	// typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 )
 
 func init() {
@@ -30,9 +26,9 @@ func init() {
 
 // loadTestPodSpecFile loads a check spec yaml from disk in this
 // the test directory and returns the check struct
-func loadTestPodSpecFile(path string) (*khcheckcrd.KuberhealthyCheck, error) {
+func loadTestPodSpecFile(path string) (*khcheckv1.KuberhealthyCheck, error) {
 
-	podSpec := khcheckcrd.KuberhealthyCheck{}
+	podSpec := khcheckv1.KuberhealthyCheck{}
 
 	// open the yaml file
 	f, err := os.Open(path)

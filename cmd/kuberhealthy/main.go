@@ -28,9 +28,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	khjobcrd "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khcheckcrd"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khstatecrd"
+	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
+	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
+	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/masterCalculation"
 )
@@ -59,21 +59,25 @@ const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"
 // DefaultRunInterval is the default run interval for checks set by kuberhealthy
 const DefaultRunInterval = time.Minute * 10
 
+// DefaultTimeout is the default timeout for external checks
+var DefaultTimeout = time.Minute * 5
+
 // KHCheckNameAnnotationKey is the key used in the annotation that holds the check's short name
 const KHCheckNameAnnotationKey = "comcast.github.io/check-name"
 
-// var externalCheckReportingURL = os.Getenv(KHExternalReportingURL)
-var khStateClient *khstatecrd.KuberhealthyStateClient
+// khCheckClient is a client for khstate custom resources
+var khStateClient *khstatev1.KHStateV1Client
+
+// khStateClient is a client for khcheck custom resources
+var khCheckClient *khcheckv1.KHCheckV1Client
 
 // khJobClient is a client for khjob custom resources
-var khJobClient *khjobcrd.KHJobV1Client
+var khJobClient *khjobv1.KHJobV1Client
 
 // constants for using the kuberhealthy status CRD
 const stateCRDGroup = "comcast.github.io"
 const stateCRDVersion = "v1"
 const stateCRDResource = "khstates"
-
-var khCheckClient *khcheckcrd.KuberhealthyCheckClient
 
 // constants for using the kuberhealthy check CRD
 const checkCRDGroup = "comcast.github.io"
@@ -240,21 +244,21 @@ func initKubernetesClients() error {
 	kubernetesClient = kc
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(checkCRDGroup, checkCRDVersion, cfg.kubeConfigFile, "")
+	checkClient, err := khcheckv1.Client(cfg.kubeConfigFile)
 	if err != nil {
 		return err
 	}
 	khCheckClient = checkClient
 
 	// make a new crd state client
-	stateClient, err := khstatecrd.Client(stateCRDGroup, stateCRDVersion, cfg.kubeConfigFile, "")
+	stateClient, err := khstatev1.Client(cfg.kubeConfigFile)
 	if err != nil {
 		return err
 	}
 	khStateClient = stateClient
 
 	// make a new crd job client
-	jobClient, err := khjobcrd.Client(cfg.kubeConfigFile)
+	jobClient, err := khjobv1.Client(cfg.kubeConfigFile)
 	if err != nil {
 		return err
 	}

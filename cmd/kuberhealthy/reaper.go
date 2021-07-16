@@ -20,7 +20,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	khjobcrd "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
+	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
 
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
@@ -147,7 +147,7 @@ func runCheckReap(ctx context.Context) {
 
 // runJobReap runs a process to reap jobs that need deleted (those that were created by a khjob)
 func runJobReap(ctx context.Context) {
-	jobClient, err := khjobcrd.Client(cfg.kubeConfigFile)
+	jobClient, err := khjobv1.Client(cfg.kubeConfigFile)
 	if err != nil {
 		log.Errorln("checkReaper: Unable to create khJob client", err)
 	}
@@ -305,7 +305,7 @@ func (k *KubernetesAPI) deletePod(ctx context.Context, pod v1.Pod) error {
 }
 
 // jobConditions returns true if conditions are met to be deleted for khjob
-func jobConditions(job khjobcrd.KuberhealthyJob, duration time.Duration, phase khjobcrd.JobPhase) bool {
+func jobConditions(job khjobv1.KuberhealthyJob, duration time.Duration, phase khjobv1.JobPhase) bool {
 	if time.Now().Sub(job.CreationTimestamp.Time) > duration && job.Spec.Phase == phase {
 		log.Infoln("checkReaper: Found khjob older than", duration, "minutes in status", phase)
 		return true
@@ -314,7 +314,7 @@ func jobConditions(job khjobcrd.KuberhealthyJob, duration time.Duration, phase k
 }
 
 // KHJobDelete fetches a list of khjobs in a namespace and will delete them if they meet given criteria
-func khJobDelete(client *khjobcrd.KHJobV1Client) error {
+func khJobDelete(client *khjobv1.KHJobV1Client) error {
 
 	opts := metav1.ListOptions{}
 	del := metav1.DeleteOptions{}
