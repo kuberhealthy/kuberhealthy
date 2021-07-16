@@ -1,6 +1,7 @@
 ### Prometheus Integration
 
-Kuberhealthy serves Prometheus metrics at the `/metrics` endpoint.  If you are using the [helm chart](https://github.com/kuberhealthy/kuberhealthy/tree/prom-endpoint-docs/deploy/helm) to deploy Kuberhealthy, then you can simply enable Prometheus in he chart's options to have scrape configs and annotations generated for you.
+Kuberhealthy serves Prometheus metrics at the `/metrics` endpoint.  If you are using the [helm chart](https://github.com/kuberhealthy/kuberhealthy/tree/prom-endpoint-docs/deploy/helm) to deploy Kuberhealthy, 
+ enable Prometheus in the chart options to have scrape configs and annotations generated for you.
 
 ```bash
   helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true  --set prometheus.prometheusRule.enabled=true
