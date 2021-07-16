@@ -11,9 +11,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-
+	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khstatecrd"
 )
 
 // StateReflector watches the state of khstate objects and stores them in a local cache.  Then, when the current
@@ -33,9 +32,9 @@ func NewStateReflector() *StateReflector {
 	sr.resyncPeriod = time.Minute * 5
 
 	// structure the reflector and its required elements
-	khStateListWatch := cache.NewListWatchFromClient(khStateClient.RestClient(), stateCRDResource, listenNamespace, fields.Everything())
+	khStateListWatch := cache.NewListWatchFromClient(khStateClient.RESTClient(), stateCRDResource, listenNamespace, fields.Everything())
 	sr.store = cache.NewStore(cache.MetaNamespaceKeyFunc)
-	sr.reflector = cache.NewReflector(khStateListWatch, &khstatecrd.KuberhealthyState{}, sr.store, sr.resyncPeriod)
+	sr.reflector = cache.NewReflector(khStateListWatch, &khstatev1.KuberhealthyState{}, sr.store, sr.resyncPeriod)
 
 	return &sr
 }
@@ -69,9 +68,9 @@ func (sr *StateReflector) CurrentStatus() health.State {
 	khStateList := sr.store.List()
 	for i, khStateUndefined := range khStateList {
 		log.Debugln("state reflector store item from listing:", i, khStateUndefined)
-		khState, ok := khStateUndefined.(*khstatecrd.KuberhealthyState)
+		khState, ok := khStateUndefined.(*khstatev1.KuberhealthyState)
 		if !ok {
-			log.Warningln("attempted to convert item from state cache reflector to a khstatecrd.KuberhealthyState, but the type was invalid")
+			log.Warningln("attempted to convert item from state cache reflector to a khstatev1.KuberhealthyState, but the type was invalid")
 			continue
 		}
 
@@ -97,9 +96,9 @@ func (sr *StateReflector) CurrentStatus() health.State {
 
 		khWorkload := determineKHWorkload(khState.Name, khState.Namespace)
 		switch khWorkload {
-		case health.KHCheck:
+		case khstatev1.KHCheck:
 			state.CheckDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
-		case health.KHJob:
+		case khstatev1.KHJob:
 			state.JobDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
 		}
 	}
@@ -110,17 +109,19 @@ func (sr *StateReflector) CurrentStatus() health.State {
 
 // determineKHWorkload uses the name and namespace of the kuberhealthy resource to determine whether its a khjob or khcheck
 // This function is necessary for the CurrentStatus() function as getting the KHWorkload from the state spec returns a blank kh workload.
-func determineKHWorkload(name string, namespace string) health.KHWorkload {
+func determineKHWorkload(name string, namespace string) khstatev1.KHWorkload {
 
-	var khWorkload health.KHWorkload
+	var khWorkload khstatev1.KHWorkload
+	log.Debugln("determineKHWorkload: determining workload:", name)
 
-	_, err := khCheckClient.Get(v1.GetOptions{}, checkCRDResource, namespace, name)
+	checkPod, err := khCheckClient.KuberhealthyChecks(namespace).Get(name, v1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Debugln("determineKHWorkload: Not a khcheck.")
 		}
 	} else {
-		return health.KHCheck
+		log.Debugln("determineKHWorkload: Found khcheck:", checkPod.Name)
+		return khstatev1.KHCheck
 	}
 
 	_, err = khJobClient.KuberhealthyJobs(namespace).Get(name, v1.GetOptions{})
@@ -129,7 +130,8 @@ func determineKHWorkload(name string, namespace string) health.KHWorkload {
 			log.Debugln("determineKHWorkload: Not a khjob.")
 		}
 	} else {
-		return health.KHJob
+		log.Debugln("determineKHWorkload: Found khjob:", checkPod.Name)
+		return khstatev1.KHJob
 	}
 	return khWorkload
 }

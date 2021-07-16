@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khcheckcrd"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khstatecrd"
+	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
+	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -18,13 +19,10 @@ import (
 
 var client *kubernetes.Clientset
 
-const testCheckName = "test-check"
 const defaultNamespace = "kuberhealthy"
-const stateCRDGroup = "comcast.github.io"
-const stateCRDVersion = "v1"
 
-var khStateClient *khstatecrd.KuberhealthyStateClient
-var khCheckClient *khcheckcrd.KuberhealthyCheckClient
+var khStateClient *khstatev1.KHStateV1Client
+var khCheckClient *khcheckv1.KHCheckV1Client
 
 var checkCRDScanInterval = time.Second * 5 // how often we scan for changes to check CRD objects
 
@@ -38,14 +36,14 @@ func init() {
 	}
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(CRDGroup, CRDVersion, kubeConfigFile, "")
+	checkClient, err := khcheckv1.Client(kubeConfigFile)
 	if err != nil {
 		log.Fatalln("err")
 	}
 	khCheckClient = checkClient
 
 	// make a new crd state client
-	stateClient, err := khstatecrd.Client(stateCRDGroup, stateCRDVersion, kubeConfigFile, "")
+	stateClient, err := khstatev1.Client(kubeConfigFile)
 	if err != nil {
 		log.Fatalln("err")
 	}
@@ -84,7 +82,7 @@ func TestExternalChecker(t *testing.T) {
 
 // newTestCheckFromSpec creates a new test checker but using the supplied
 // spec file for a khcheck
-func newTestCheckFromSpec(client *kubernetes.Clientset, checkSpec *khcheckcrd.KuberhealthyCheck, reportingURL string) *Checker {
+func newTestCheckFromSpec(client *kubernetes.Clientset, checkSpec *khcheckv1.KuberhealthyCheck, reportingURL string) *Checker {
 	// create a new checker and insert this pod spec
 	checker := New(client, checkSpec, khCheckClient, khStateClient, reportingURL) // external checker does not ever return an error so we drop it
 	checker.Debug = true
@@ -137,15 +135,15 @@ func TestExternalCheckerSanitation(t *testing.T) {
 }
 
 // createKHCheck writes a khcheck custom resource on the server
-func createKHCheckSpec(checkSpec *khcheckcrd.KuberhealthyCheck, checkNamespace string) error {
+func createKHCheckSpec(checkSpec *khcheckv1.KuberhealthyCheck, checkNamespace string) error {
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(CRDGroup, CRDVersion, kubeConfigFile, checkNamespace)
+	checkClient, err := khcheckv1.Client(kubeConfigFile)
 	if err != nil {
 		return err
 	}
 
-	_, err = checkClient.Create(checkSpec, checkCRDResource, checkSpec.Namespace)
+	_, err = checkClient.KuberhealthyChecks(checkSpec.Namespace).Create(checkSpec)
 	return err
 }
 
@@ -153,12 +151,12 @@ func createKHCheckSpec(checkSpec *khcheckcrd.KuberhealthyCheck, checkNamespace s
 func deleteKHCheckSpec(checkName string, checkNamespace string) error {
 
 	// make a new crd check client
-	checkClient, err := khcheckcrd.Client(CRDGroup, CRDVersion, kubeConfigFile, checkNamespace)
+	checkClient, err := khcheckv1.Client(kubeConfigFile)
 	if err != nil {
 		return err
 	}
 
-	_, err = checkClient.Delete(checkCRDResource, checkName, checkNamespace)
+	err = checkClient.KuberhealthyChecks(checkNamespace).Delete(checkName, &v1.DeleteOptions{})
 	return err
 }
 
@@ -190,7 +188,7 @@ func TestWriteWhitelistedUUID(t *testing.T) {
 	if err != nil {
 		t.Fatal((err))
 	}
-	kuberhealthyCheck := khcheckcrd.NewKuberhealthyCheck(checker.CheckName, defaultNamespace, s.Spec)
+	kuberhealthyCheck := khcheckv1.NewKuberhealthyCheck(checker.CheckName, defaultNamespace, s.Spec)
 
 	// write the check to the server
 	err = createKHCheckSpec(&kuberhealthyCheck, defaultNamespace)

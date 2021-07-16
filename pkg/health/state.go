@@ -16,6 +16,8 @@ import (
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
+
+	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
 )
 
 // State represents the results of all checks being managed along with a top-level OK and Error state. This is displayed
@@ -23,8 +25,8 @@ import (
 type State struct {
 	OK            bool
 	Errors        []string
-	CheckDetails  map[string]WorkloadDetails // map of check names to last run timestamp
-	JobDetails    map[string]WorkloadDetails  // map of job names to last run timestamp
+	CheckDetails  map[string]khstatev1.WorkloadDetails // map of check names to last run timestamp
+	JobDetails    map[string]khstatev1.WorkloadDetails // map of job names to last run timestamp
 	CurrentMaster string
 }
 
@@ -59,8 +61,6 @@ func (h *State) WriteHTTPStatusResponse(w http.ResponseWriter) error {
 		return err
 	}
 
-	// log.Infoln("Wrote response to client:", currentStatus)
-
 	return err
 }
 
@@ -69,7 +69,7 @@ func NewState() State {
 	s := State{}
 	s.OK = true
 	s.Errors = []string{}
-	s.CheckDetails = make(map[string]WorkloadDetails)
-	s.JobDetails = make(map[string]WorkloadDetails)
+	s.CheckDetails = make(map[string]khstatev1.WorkloadDetails)
+	s.JobDetails = make(map[string]khstatev1.WorkloadDetails)
 	return s
 }

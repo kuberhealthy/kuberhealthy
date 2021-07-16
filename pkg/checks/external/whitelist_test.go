@@ -3,19 +3,19 @@ package external
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/khstatecrd"
+	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
 )
 
 // GetWhitelistedUUIDForExternalCheck fetches the current allowed UUID for an
 // external check.  This data is stored in khcheck custom resources.
 func GetWhitelistedUUIDForExternalCheck(checkNamespace string, checkName string) (string, error) {
 	// make a new crd check client
-	stateClient, err := khstatecrd.Client(CRDGroup, CRDVersion, kubeConfigFile, checkNamespace)
+	stateClient, err := khstatev1.Client(kubeConfigFile)
 	if err != nil {
 		return "", err
 	}
 
-	r, err := stateClient.Get(metav1.GetOptions{}, stateCRDResource, checkNamespace, checkName)
+	r, err := stateClient.KuberhealthyStates(checkNamespace).Get(checkName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
