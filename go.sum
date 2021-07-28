@@ -62,6 +62,8 @@ github.com/blang/semver v3.5.1+incompatible h1:cQNTCjp13qL8KC3Nbxr/y2Bqb63oX6wdn
 github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/brancz/gojsontoyaml v0.0.0-20201216083616-202f76bf8c1f h1:eyhpHbo03QUlPHSTt5El8XayORJVl9/7Im3HXV0zRAY=
 github.com/brancz/gojsontoyaml v0.0.0-20201216083616-202f76bf8c1f/go.mod h1:eiVwwkJ9JtehmGNiFz03FXpw889jH63XGuhIeug3u4s=
+github.com/brancz/gojsontoyaml v0.0.0-20210709073738-09985366e724 h1:LHdGvVe8bQdBO5ReidBuDLpN4yyzaEr3x8OXcY+oJnY=
+github.com/brancz/gojsontoyaml v0.0.0-20210709073738-09985366e724/go.mod h1:eiVwwkJ9JtehmGNiFz03FXpw889jH63XGuhIeug3u4s=
 github.com/cenkalti/backoff v2.2.1+incompatible h1:tNowT99t7UNflLxfYYSlKYsBpXdEet03Pg2g16Swow4=
 github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=

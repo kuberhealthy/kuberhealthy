@@ -4,7 +4,7 @@ require (
 	github.com/Pallinder/go-randomdata v1.1.0
 	github.com/aws/aws-sdk-go v1.25.24
 	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/brancz/gojsontoyaml v0.0.0-20201216083616-202f76bf8c1f // indirect
+	github.com/brancz/gojsontoyaml v0.0.0-20210709073738-09985366e724 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/codingsince1985/checksum v1.1.0
 	github.com/denverdino/aliyungo v0.0.0-20191023002520-dba750c0c223 // indirect
