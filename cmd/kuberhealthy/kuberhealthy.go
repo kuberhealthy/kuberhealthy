@@ -932,7 +932,7 @@ func (k *Kuberhealthy) runJob(ctx context.Context, job khjobv1.KuberhealthyJob) 
 	details.CurrentUUID = jobDetails.CurrentUUID
 
 	// Fetch node information from running check pod using kh run uuid
-	selector := "kuberhealthy-run-id=" + details.CurrentUUID
+	selector := "kuberhealthy-run-id="+details.CurrentUUID
 	pod, err := k.fetchPodBySelector(selector)
 	if err != nil {
 		log.Errorln(err)
@@ -1045,7 +1045,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c *external.Checker) {
 		details.CurrentUUID = checkDetails.CurrentUUID
 
 		// Fetch node information from running check pod using kh run uuid
-		selector := "kuberhealthy-run-id=" + details.CurrentUUID
+		selector := "kuberhealthy-run-id="+details.CurrentUUID
 		pod, err := k.fetchPodBySelector(selector)
 		if err != nil {
 			log.Errorln(err)
