@@ -1,7 +1,5 @@
 package main
 
-package main
-
 import (
 	"context"
 	"errors"
