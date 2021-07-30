@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
+go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.2
 go get github.com/brancz/gojsontoyaml
 
 GOPATH=$(go env GOPATH)
