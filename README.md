@@ -26,7 +26,7 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 
 ## Installation
 
-**Requires Kubernetes 1.11 or above and Helm 3**
+**Requires Kubernetes 1.16 or above and Helm 3**
 
 1. Create namespace "kuberhealthy" in the desired Kubernetes cluster/context:  
 	`kubectl create namespace kuberhealthy`
@@ -39,7 +39,7 @@ With Kuberhealthy, you can easily create synthetic tests to check your applicati
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to an external checking agent, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer`.  This is done for security.  Options are available in the Helm chart to bypass this and deploy with `Type: LoadBalancer` directly.
 
-Kuberhealthy is currently tested on Kubernetes `1.9.x`, to `1.18.x`.
+Kuberhealthy is currently tested on Kubernetes `1.22.x`.
 
 To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CONFIGURATION.md).
 
