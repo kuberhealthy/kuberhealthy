@@ -96,6 +96,7 @@ func (generator crdGenerator) generateYAMLManifests() error {
 		"paths=.",
 		"output:crd:dir="+outputDir,
 	)
+
 	cmd.Dir, err = filepath.Abs(generator.ControllerPath)
 	if err != nil {
 		return errors.Wrapf(err, "absolute controller path %s", generator.ControllerPath)
@@ -105,14 +106,18 @@ func (generator crdGenerator) generateYAMLManifests() error {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	cmdOutputErr, err := cmd.StderrPipe()
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	go io.Copy(os.Stdout, cmdOutput)
 	go io.Copy(os.Stderr, cmdOutputErr)
+
 	err = cmd.Run()
 	if err != nil {
+		log.Printf("failed to run command %v", err.Error())
 		return err
 	}
 

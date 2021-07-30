@@ -94,7 +94,7 @@ func (in *WorkloadDetails) DeepCopyInto(out *WorkloadDetails) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	in.LastRun.DeepCopyInto(&out.LastRun)
+	in.LastRun.DeepCopyInto(out.LastRun)
 	return
 }
 
@@ -124,15 +124,15 @@ func NewWorkloadDetails(workloadType KHWorkload) WorkloadDetails {
 	}
 	return WorkloadDetails{
 		Errors:     []string{},
-		khWorkload: workloadType,
+		khWorkload: &workloadType,
 	}
 }
 
 // GetKHWorkload returns the workload for the WorkloadDetails struct
 func (wd *WorkloadDetails) GetKHWorkload() KHWorkload {
 	// failsafe if the workload is empty
-	if wd.khWorkload == "" {
+	if len(*wd.khWorkload) == 0 {
 		log.Panicln("Fetched a workload type from a WorkloadDetails struct, but it was blank!")
 	}
-	return wd.khWorkload
+	return *wd.khWorkload
 }
