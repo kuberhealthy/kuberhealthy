@@ -99,7 +99,7 @@ type Checker struct {
 	KuberhealthyReportingURL string        // the URL that the check should want to report results back to
 	ExtraAnnotations         map[string]string
 	ExtraLabels              map[string]string
-	Node					 string 			// the node the checker pod runs on
+	Node                     string             // the node the checker pod runs on
 	currentCheckUUID         string             // the UUID of the current external checker running
 	Debug                    bool               // indicates we should run in debug mode - run once and stop
 	shutdownCTXFunc          context.CancelFunc // used to cancel things in-flight when shutting down gracefully
@@ -760,7 +760,12 @@ func (ext *Checker) getCheckLastUpdateTime() (metav1.Time, error) {
 		return metav1.Time{}, nil
 	}
 
-	return state.Spec.LastRun, err
+	// return a zero time if the time is nil / zero
+	if state.Spec.LastRun.IsZero() {
+		return metav1.Time{}, nil
+	}
+
+	return *state.Spec.LastRun, err
 }
 
 // waitForPodStatusUpdate waits for a pod status to update from the specified time
