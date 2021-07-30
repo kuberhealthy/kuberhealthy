@@ -16,7 +16,9 @@ package main
 
 import (
 	"flag"
+	"io"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
 
@@ -31,10 +33,10 @@ type crdName struct {
 type crdGenerator struct {
 	ControllerGenOpts string
 	YAMLDir           string
-	CRDNames       []crdName
-	CRDAPIGroup    string
-	ControllerPath string
-	CustomizeYAML  func(crdGenerator) error
+	CRDNames          []crdName
+	CRDAPIGroup       string
+	ControllerPath    string
+	CustomizeYAML     func(crdGenerator) error
 }
 
 var (
@@ -44,9 +46,9 @@ var (
 	crdGenerators = []crdGenerator{
 		{
 			ControllerGenOpts: "crd:crdVersions=v1,preserveUnknownFields=false",
-			YAMLDir:           "./scripts/generated",
-			CRDAPIGroup:    "comcast.github.io",
-			ControllerPath: "./pkg/apis/khcheck/v1",
+			YAMLDir:           "./generated",
+			CRDAPIGroup:       "comcast.github.io",
+			ControllerPath:    "../pkg/apis/khcheck/v1",
 			CRDNames: []crdName{
 				{"khcheck", "khchecks"},
 			},
@@ -56,9 +58,9 @@ var (
 		},
 		{
 			ControllerGenOpts: "crd:crdVersions=v1,preserveUnknownFields=false",
-			YAMLDir:           "./scripts/generated",
-			CRDAPIGroup:    "comcast.github.io",
-			ControllerPath: "./pkg/apis/khjob/v1",
+			YAMLDir:           "./generated",
+			CRDAPIGroup:       "comcast.github.io",
+			ControllerPath:    "../pkg/apis/khjob/v1",
 			CRDNames: []crdName{
 				{"khjob", "khjobs"},
 			},
@@ -68,9 +70,9 @@ var (
 		},
 		{
 			ControllerGenOpts: "crd:crdVersions=v1",
-			YAMLDir:           "./scripts/generated",
-			CRDAPIGroup:    "comcast.github.io",
-			ControllerPath: "./pkg/apis/khstate/v1",
+			YAMLDir:           "./generated",
+			CRDAPIGroup:       "comcast.github.io",
+			ControllerPath:    "../pkg/apis/khstate/v1",
 			CRDNames: []crdName{
 				{"khstate", "khstates"},
 			},
@@ -88,18 +90,35 @@ func (generator crdGenerator) generateYAMLManifests() error {
 	}
 
 	// #nosec
+	log.Println("running binary:", controllergen)
 	cmd := exec.Command(controllergen,
 		generator.ControllerGenOpts,
 		"paths=.",
 		"output:crd:dir="+outputDir,
 	)
+
 	cmd.Dir, err = filepath.Abs(generator.ControllerPath)
 	if err != nil {
 		return errors.Wrapf(err, "absolute controller path %s", generator.ControllerPath)
 	}
+
+	cmdOutput, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	cmdOutputErr, err := cmd.StderrPipe()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	go io.Copy(os.Stdout, cmdOutput)
+	go io.Copy(os.Stderr, cmdOutputErr)
+
 	err = cmd.Run()
 	if err != nil {
-		return errors.Wrap(err,"running %s")
+		log.Printf("failed to run command %v", err.Error())
+		return err
 	}
 
 	if generator.CustomizeYAML == nil {

@@ -41,7 +41,8 @@ func setCheckStateResource(checkName string, checkNamespace string, state khstat
 
 	// set the pod name that wrote the khstate
 	state.AuthoritativePod = podHostname
-	state.LastRun = metav1.Now() // set the time the khstate was last
+	now := metav1.Now() // set the time the khstate was last
+	state.LastRun = &now
 
 	khState := khstatev1.NewKuberhealthyState(name, state)
 	khState.SetResourceVersion(resourceVersion)
