@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.6.2
   creationTimestamp: null
   name: khstates.comcast.github.io
 spec:
@@ -61,6 +61,7 @@ spec:
                 type: array
               LastRun:
                 format: date-time
+                nullable: true
                 type: string
               Namespace:
                 type: string
@@ -69,6 +70,11 @@ spec:
               OK:
                 type: boolean
               RunDuration:
+                type: string
+              khWorkload:
+                description: 'KHWorkload is used to describe the different types of
+                  kuberhealthy workloads: KhCheck or KHJob'
+                nullable: true
                 type: string
               uuid:
                 type: string
