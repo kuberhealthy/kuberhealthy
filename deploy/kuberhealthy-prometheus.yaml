@@ -13077,27 +13077,6 @@ metadata:
   name: kuberhealthy
   namespace: kuberhealthy
 ---
-# Source: kuberhealthy/templates/configmap.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kuberhealthy
-  namespace: kuberhealthy
-data:
-  kuberhealthy.yaml: |-
-    listenAddress: ":8080" # The port for kuberhealthy to listen on for web requests
-    enableForceMaster: false # Set to true to enable local testing, forced master mode
-    logLevel: "debug" # Log level to be used
-    influxUsername: "" # Username for the InfluxDB instance
-    influxPassword: "" # Password for the InfluxDB instance
-    influxURL: "" # Address for the InfluxDB instance
-    influxDB: "http://localhost:8086" # Name of the InfluxDB database
-    enableInflux: false # Set to true to enable metric forwarding to Infux DB
-    maxKHJobAge: 15m
-    maxCheckPodAge: 72h
-    maxCompletedPodCount: 4
-    maxErrorPodCount: 4
----
 # Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRole
@@ -13366,7 +13345,7 @@ spec:
                   - kuberhealthy
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - image: kuberhealthy/kuberhealthy:v2.6.0
+      - image: kuberhealthy/kuberhealthy:v2.7.0
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
