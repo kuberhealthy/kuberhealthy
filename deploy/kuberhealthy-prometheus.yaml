@@ -13024,7 +13024,7 @@ status:
   storedVersions: []
 ---
 # Source: kuberhealthy/templates/poddisruptionbudget.yaml
-apiVersion: policy/v1
+apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
   name:  kuberhealthy-pdb
