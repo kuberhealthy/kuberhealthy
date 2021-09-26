@@ -10,10 +10,16 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 )
+
+// Struct to define cache entry for a KHWorkload
+type KHWorkloadCacheEntry struct {
+	value    khstatev1.KHWorkload // KHWorkload value - KHCheck or KHJob
+	expireAt time.Time            // Cache entry expiration timestamp
+}
 
 // StateReflector watches the state of khstate objects and stores them in a local cache.  Then, when the current
 // state of checks is requested, the CurrentStatus func can serve it rapidly from cache.  Needs to run in the
@@ -23,6 +29,7 @@ type StateReflector struct {
 	reflectorSigChan chan struct{} // the channel that indicates when the cache sync should stop
 	resyncPeriod     time.Duration // the period for full API re-syncs
 	store            cache.Store
+	khWorkloadCache  map[string]KHWorkloadCacheEntry // simple map based cache for KHWorkload
 }
 
 // NewStateReflector creates a new StateReflector for watching the state of khstate resources on the server
@@ -35,6 +42,7 @@ func NewStateReflector() *StateReflector {
 	khStateListWatch := cache.NewListWatchFromClient(khStateClient.RESTClient(), stateCRDResource, listenNamespace, fields.Everything())
 	sr.store = cache.NewStore(cache.MetaNamespaceKeyFunc)
 	sr.reflector = cache.NewReflector(khStateListWatch, &khstatev1.KuberhealthyState{}, sr.store, sr.resyncPeriod)
+	sr.khWorkloadCache = make(map[string]KHWorkloadCacheEntry)
 
 	return &sr
 }
@@ -62,6 +70,14 @@ func (sr *StateReflector) CurrentStatus() health.State {
 	if sr.store == nil {
 		log.Warningln("attempted to fetch CurrentStatus from khStateReflector, but the store was nil")
 		return state
+	}
+
+	// Delete expired KHWorkload cache entries
+	currentTime := time.Now()
+	for check, khWorkloadCacheEntry := range sr.khWorkloadCache {
+		if khWorkloadCacheEntry.expireAt.Before(currentTime) {
+			delete(sr.khWorkloadCache, check)
+		}
 	}
 
 	// list all objects from the storage cache
@@ -94,7 +110,19 @@ func (sr *StateReflector) CurrentStatus() health.State {
 			state.OK = false
 		}
 
-		khWorkload := determineKHWorkload(khState.Name, khState.Namespace)
+		khWorkloadCacheEntry, isPresent := sr.khWorkloadCache[khState.GetNamespace()+"/"+khState.GetName()]
+
+		// Call determineKHWorkload if cache entry not present
+		if !isPresent {
+			// Determine KHWorkload and set in cache with expiration of 5 mins from currentTime
+			sr.khWorkloadCache[khState.GetNamespace()+"/"+khState.GetName()] = KHWorkloadCacheEntry{determineKHWorkload(khState.Name, khState.Namespace), currentTime.Add(time.Minute * time.Duration(5))}
+		} else { // Debugging purposes
+			log.Debugln("KHWorkload value used from cache for ", khState.GetNamespace()+"/"+khState.GetName())
+			log.Debugln("Cache expiring at: ", khWorkloadCacheEntry.expireAt)
+			log.Debugln("Current time: ", currentTime)
+		}
+
+		khWorkload := sr.khWorkloadCache[khState.GetNamespace()+"/"+khState.GetName()].value
 		switch khWorkload {
 		case khstatev1.KHCheck:
 			state.CheckDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
