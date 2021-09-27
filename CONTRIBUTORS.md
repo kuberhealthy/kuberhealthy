@@ -20,3 +20,4 @@
 - [Shilla Saebi](https://twitter.com/ShillaSaebi)
 - [Yashvardhan Kukreja](https://twitter.com/yashkukreja98)
 - [Zachary Hanson](mailto:Zachary_Hanson@comcast.com)
+- [Rudrakh Panigrahi](mailto:rudrakhp@gmail.com)

@@ -122,6 +122,9 @@ func (sr *StateReflector) CurrentStatus() health.State {
 			log.Debugln("Current time: ", currentTime)
 		}
 
+		// Possible incorrect KHWorkload type from cache.
+		// Scenario: A KHCheck is deleted and a KHJob is created in the same namespace with the same name, within the cache expiration time period.
+		// Cache has stale data with incorrect KHWorkload type. True vice versa.
 		khWorkload := sr.khWorkloadCache[khState.GetNamespace()+"/"+khState.GetName()].value
 		switch khWorkload {
 		case khstatev1.KHCheck:
