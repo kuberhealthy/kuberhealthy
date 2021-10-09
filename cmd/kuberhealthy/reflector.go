@@ -10,9 +10,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // Struct to define cache entry for a KHWorkload
@@ -114,8 +114,8 @@ func (sr *StateReflector) CurrentStatus() health.State {
 
 		// Call determineKHWorkload if cache entry not present
 		if !isPresent {
-			// Determine KHWorkload and set in cache with expiration of 5 mins from currentTime
-			sr.khWorkloadCache[khState.GetNamespace()+"/"+khState.GetName()] = KHWorkloadCacheEntry{determineKHWorkload(khState.Name, khState.Namespace), currentTime.Add(time.Minute * time.Duration(5))}
+			// Determine KHWorkload and set in cache with expiration of 5 mins from now
+			sr.khWorkloadCache[khState.GetNamespace()+"/"+khState.GetName()] = KHWorkloadCacheEntry{determineKHWorkload(khState.Name, khState.Namespace), time.Now().Add(time.Minute * time.Duration(5))}
 		} else { // Debugging purposes
 			log.Debugln("KHWorkload value used from cache for ", khState.GetNamespace()+"/"+khState.GetName())
 			log.Debugln("Cache expiring at: ", khWorkloadCacheEntry.expireAt)
