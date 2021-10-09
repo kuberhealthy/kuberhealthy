@@ -40,11 +40,11 @@ func getNodeClient() corev1.NodeInterface {
 	return client.CoreV1().Nodes()
 }
 
-func createDaemonset(daemonsetSpec *appsv1.DaemonSet) error {
+func createDaemonset(ctx context.Context, daemonsetSpec *appsv1.DaemonSet) error {
 
 	err := backoff.Retry(func() error {
 		var err error
-		_, err = getDSClient().Create(context.TODO(), daemonsetSpec, metav1.CreateOptions{})
+		_, err = getDSClient().Create(ctx, daemonsetSpec, metav1.CreateOptions{})
 		return err
 	}, exponentialBackoff)
 	if err != nil {
@@ -55,12 +55,12 @@ func createDaemonset(daemonsetSpec *appsv1.DaemonSet) error {
 	return err
 }
 
-func listDaemonsets(more string) (*appsv1.DaemonSetList, error) {
+func listDaemonsets(ctx context.Context, more string) (*appsv1.DaemonSetList, error) {
 
 	var dsList *appsv1.DaemonSetList
 	err := backoff.Retry(func() error {
 		var err error
-		dsList, err = getDSClient().List(context.TODO(), metav1.ListOptions{
+		dsList, err = getDSClient().List(ctx, metav1.ListOptions{
 			Continue: more,
 		})
 		return err
@@ -73,11 +73,11 @@ func listDaemonsets(more string) (*appsv1.DaemonSetList, error) {
 	return dsList, err
 }
 
-func deleteDaemonset(dsName string) error {
+func deleteDaemonset(ctx context.Context, dsName string) error {
 
 	err := backoff.Retry(func() error {
 		var err error
-		err = getDSClient().Delete(context.TODO(), dsName, metav1.DeleteOptions{})
+		err = getDSClient().Delete(ctx, dsName, metav1.DeleteOptions{})
 		return err
 	}, exponentialBackoff)
 	if err != nil {
@@ -88,12 +88,12 @@ func deleteDaemonset(dsName string) error {
 	return err
 }
 
-func listPods() (*v13.PodList, error) {
+func listPods(ctx context.Context) (*v13.PodList, error) {
 
 	var podList *v13.PodList
 	err := backoff.Retry(func() error {
 		var err error
-		podList, err = getPodClient().List(context.TODO(), metav1.ListOptions{
+		podList, err = getPodClient().List(ctx, metav1.ListOptions{
 			LabelSelector: "kh-app=" + daemonSetName + ",source=kuberhealthy,khcheck=daemonset",
 		})
 		return err
@@ -106,11 +106,11 @@ func listPods() (*v13.PodList, error) {
 	return podList, err
 }
 
-func deletePods(dsName string) error {
+func deletePods(ctx context.Context, dsName string) error {
 
 	err := backoff.Retry(func() error {
 		var err error
-		err = getPodClient().DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{
+		err = getPodClient().DeleteCollection(ctx, metav1.DeleteOptions{}, metav1.ListOptions{
 			LabelSelector: "kh-app=" + dsName + ",source=kuberhealthy,khcheck=daemonset",
 		})
 		return err
@@ -123,12 +123,12 @@ func deletePods(dsName string) error {
 	return err
 }
 
-func listNodes() (*v13.NodeList, error) {
+func listNodes(ctx context.Context) (*v13.NodeList, error) {
 
 	var nodeList *v13.NodeList
 	err := backoff.Retry(func() error {
 		var err error
-		nodeList, err = getNodeClient().List(context.TODO(), metav1.ListOptions{})
+		nodeList, err = getNodeClient().List(ctx, metav1.ListOptions{})
 		return err
 	}, exponentialBackoff)
 	if err != nil {

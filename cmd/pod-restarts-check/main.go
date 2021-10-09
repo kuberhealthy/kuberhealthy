@@ -114,12 +114,15 @@ func New(client *kubernetes.Clientset) *Checker {
 // Run starts the go routine to run checks, reports whether or not the check completely successfully, and finally checks
 // for any errors in the Checker struct and re
 func (prc *Checker) Run() error {
+	// TODO: refactor function to receive context on exported function in next breaking change.
+	ctx := context.TODO()
+
 	log.Infoln("Running Pod Restarts checker")
 	doneChan := make(chan error)
 
 	// run the check in a goroutine and notify the doneChan when completed
 	go func(doneChan chan error) {
-		err := prc.doChecks()
+		err := prc.doChecks(ctx)
 		doneChan <- err
 	}(doneChan)
 
@@ -153,11 +156,11 @@ func (prc *Checker) Run() error {
 // doChecks grabs all events in a given namespace, then checks for pods with event type "Warning" with reason "BackOff",
 // and an event count greater than the MaxFailuresAllowed. If any of these pods are found, an error message is appended
 // to Checker struct errorMessages.
-func (prc *Checker) doChecks() error {
+func (prc *Checker) doChecks(ctx context.Context) error {
 
 	log.Infoln("Checking for pod BackOff events for all pods in the namespace:", prc.Namespace)
 
-	podWarningEvents, err := prc.client.CoreV1().Events(prc.Namespace).List(context.TODO(), metav1.ListOptions{FieldSelector: "type=Warning"})
+	podWarningEvents, err := prc.client.CoreV1().Events(prc.Namespace).List(ctx, metav1.ListOptions{FieldSelector: "type=Warning"})
 	if err != nil {
 		return err
 	}
@@ -180,7 +183,7 @@ func (prc *Checker) doChecks() error {
 	}
 
 	for pod := range prc.BadPods {
-		err := prc.verifyBadPodRestartExists(pod)
+		err := prc.verifyBadPodRestartExists(ctx, pod)
 		if err != nil {
 			return err
 		}
@@ -189,14 +192,14 @@ func (prc *Checker) doChecks() error {
 }
 
 // verifyBadPodRestartExists removes the bad pod found from the events list if the pod no longer exists
-func (prc *Checker) verifyBadPodRestartExists(pod string) error {
+func (prc *Checker) verifyBadPodRestartExists(ctx context.Context, pod string) error {
 
 	// Pod is in the form namespace/pod_name
 	parts := strings.Split(pod, "/")
 	namespace := parts[0]
 	podName := parts[1]
 
-	_, err := prc.client.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	_, err := prc.client.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Infoln("Bad Pod:", podName, "no longer exists. Removing from bad pods map")
