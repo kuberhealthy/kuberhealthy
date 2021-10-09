@@ -44,11 +44,13 @@ func getEnvVar(v string) (string, error) {
 
 // CalculateMaster determines which kuberhealthy pod should assume the master role
 func CalculateMaster(client *kubernetes.Clientset) (string, error) {
+	// TODO: refactor function to receive context on exported function in next breaking change.
+	ctx := context.TODO()
 
 	log.Debugln("Calculating current master...")
 
 	// get a list of all kuberhealthy pods
-	pods, err := client.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
+	pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: "app=kuberhealthy", FieldSelector: "status.phase=Running",
 	})
 	if err != nil {

@@ -18,7 +18,7 @@ func cleanUp(ctx context.Context) error {
 	// deleteDS not only issues a delete on the rogue daemonset but also on the rogue daemonset pods
 	log.Infoln("Cleaning up daemonsets and daemonset pods")
 
-	daemonSets, err := getAllDaemonsets()
+	daemonSets, err := getAllDaemonsets(ctx)
 	if err != nil {
 		return err
 	}
@@ -27,7 +27,7 @@ func cleanUp(ctx context.Context) error {
 	if len(daemonSets) > 0 {
 		for _, ds := range daemonSets {
 			log.Infoln("Removing rogue daemonset:", ds.Name)
-			err := remove(ds.Name, ctx)
+			err := remove(ctx, ds.Name)
 			if err != nil {
 				return err
 			}
@@ -38,7 +38,7 @@ func cleanUp(ctx context.Context) error {
 }
 
 // getAllDaemonsets fetches all daemonsets created by the daemonset khcheck
-func getAllDaemonsets() ([]appsv1.DaemonSet, error) {
+func getAllDaemonsets(ctx context.Context) ([]appsv1.DaemonSet, error) {
 
 	var allDS []appsv1.DaemonSet
 	var cont string
@@ -47,7 +47,7 @@ func getAllDaemonsets() ([]appsv1.DaemonSet, error) {
 	// fetch the ds objects created by kuberhealthy
 	for {
 		var dsList *appsv1.DaemonSetList
-		dsList, err = getDSClient().List(context.TODO(), metav1.ListOptions{
+		dsList, err = getDSClient().List(ctx, metav1.ListOptions{
 			LabelSelector: "source=kuberhealthy,khcheck=daemonset",
 		})
 		if err != nil {
