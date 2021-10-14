@@ -67,7 +67,7 @@ func runResourceQuotaCheck(ctx context.Context) {
 }
 
 // examineResourceQuotas looks at the resource quotas and makes reports on namespaces that meet or pass the threshold.
-func examineResourceQuotas(ctx2 context.Context, namespaceList *v1.NamespaceList) chan []string {
+func examineResourceQuotas(ctx context.Context, namespaceList *v1.NamespaceList) chan []string {
 	resultChan := make(chan []string)
 
 	resourceQuotasJobChan := make(chan *Job, len(namespaceList.Items))
