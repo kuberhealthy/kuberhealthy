@@ -45,7 +45,7 @@ func runDaemonsetCheck(ctx context.Context) error {
 
 	// remove the daemonset and block until completed
 	log.Infoln("Running daemonset removal...")
-	err = remove(daemonSetName, ctx)
+	err = remove(ctx, daemonSetName)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func deploy(ctx context.Context) error {
 	log.Infoln("Deploying daemonset.")
 
 	// do the deployment and try to clean up if it fails
-	err := doDeploy()
+	err := doDeploy(ctx)
 	if err != nil {
 		return fmt.Errorf("error deploying daemonset: %s", err)
 	}
@@ -90,23 +90,23 @@ func deploy(ctx context.Context) error {
 }
 
 // doDeploy creates a daemonset
-func doDeploy() error {
+func doDeploy(ctx context.Context) error {
 	//Generate the spec for the DS that we are about to deploy
-	daemonSetSpec := generateDaemonSetSpec()
+	daemonSetSpec := generateDaemonSetSpec(ctx)
 
 	//Generate DS client and create the set with the template we just generated
-	err := createDaemonset(daemonSetSpec)
+	err := createDaemonset(ctx, daemonSetSpec)
 	return err
 }
 
 // remove removes the created daemonset for this check from the cluster. Waits for daemonset and daemonset pods to clear
-func remove(dsName string, ctx context.Context) error {
+func remove(ctx context.Context, dsName string) error {
 	log.Infoln("Removing daemonset.")
 
 	doneChan := make(chan error, 1)
 	// start the DS delete in the background
 	go func() {
-		doneChan <- deleteDS(dsName)
+		doneChan <- deleteDS(ctx, dsName)
 	}()
 
 	// set daemonset remove deadline
@@ -193,7 +193,7 @@ func waitForPodsToComeOnline(ctx context.Context) error {
 
 		// find nodes missing pods from this daemonset
 		var err error
-		nodesMissingDSPod, err = getNodesMissingDSPod()
+		nodesMissingDSPod, err = getNodesMissingDSPod(ctx)
 		if err != nil {
 			log.Warningln("DaemonsetChecker: Error determining which node was unschedulable. Retrying.", err)
 			continue
@@ -244,7 +244,7 @@ func waitForDSRemoval(ctx context.Context) error {
 			return ctxErr
 		}
 		time.Sleep(time.Second / 2)
-		exists, err := fetchDS(daemonSetName)
+		exists, err := fetchDS(ctx, daemonSetName)
 		if err != nil {
 			return err
 		}
@@ -268,7 +268,7 @@ func waitForPodRemoval(ctx context.Context) error {
 	for {
 
 		var err error
-		podRemovalList, err = listPods()
+		podRemovalList, err = listPods(ctx)
 		if err != nil {
 			errorMessage := "Failed to list daemonset: " + daemonSetName + " pods: " + err.Error()
 			log.Errorln(errorMessage)
@@ -282,7 +282,7 @@ func waitForPodRemoval(ctx context.Context) error {
 		select {
 		case <-deleteTicker.C:
 			log.Infoln("DaemonsetChecker re-issuing a pod delete command for daemonset checkers.")
-			err := deletePods(daemonSetName)
+			err := deletePods(ctx, daemonSetName)
 			if err != nil {
 				errorMessage := "Failed to delete daemonset " + daemonSetName + " pods: " + err.Error()
 				log.Errorln(errorMessage)
@@ -308,7 +308,7 @@ func waitForPodRemoval(ctx context.Context) error {
 }
 
 // generateDaemonSetSpec generates a daemonset spec to deploy into the cluster
-func generateDaemonSetSpec() *appsv1.DaemonSet {
+func generateDaemonSetSpec(ctx context.Context) *appsv1.DaemonSet {
 
 	checkRunTime := strconv.Itoa(int(now.Unix()))
 	terminationGracePeriod := int64(1)
@@ -325,7 +325,7 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 	// if a list of tolerations wasnt passed in, default to tolerating all taints
 	if len(tolerations) == 0 {
 		// find all the taints in the cluster and create a toleration for each
-		tolerations, err = findAllUniqueTolerations(client)
+		tolerations, err = findAllUniqueTolerations(ctx, client)
 		if err != nil {
 			log.Warningln("Unable to generate list of pod scheduling tolerations", err)
 		}
@@ -418,12 +418,12 @@ func generateDaemonSetSpec() *appsv1.DaemonSet {
 // findAllUniqueTolerations returns a list of all taints present on any node group in the cluster
 // this is exportable because of a chicken/egg.  We need to determine the taints before
 // we construct the testDS in New() and pass them into New()
-func findAllUniqueTolerations(client *kubernetes.Clientset) ([]apiv1.Toleration, error) {
+func findAllUniqueTolerations(ctx context.Context, client *kubernetes.Clientset) ([]apiv1.Toleration, error) {
 
 	var uniqueTolerations []apiv1.Toleration
 
 	// get a list of all the nodes in the cluster
-	nodes, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodes, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return uniqueTolerations, err
 	}
@@ -457,13 +457,13 @@ func findAllUniqueTolerations(client *kubernetes.Clientset) ([]apiv1.Toleration,
 }
 
 // getNodesMissingDSPod gets a list of nodes that do not have a DS pod running on them
-func getNodesMissingDSPod() ([]string, error) {
+func getNodesMissingDSPod(ctx context.Context) ([]string, error) {
 
 	// nodesMissingDSPods holds the final list of nodes missing pods
 	var nodesMissingDSPods []string
 
 	// get a list of all the nodes in the cluster
-	nodes, err := listNodes()
+	nodes, err := listNodes(ctx)
 	if err != nil {
 		errorMessage := "Failed to list nodes: " + err.Error()
 		log.Errorln(errorMessage)
@@ -471,7 +471,7 @@ func getNodesMissingDSPod() ([]string, error) {
 	}
 
 	// get a list of DS pods
-	pods, err := listPods()
+	pods, err := listPods(ctx)
 	if err != nil {
 		errorMessage := "Failed to list daemonset: " + daemonSetName + " pods: " + err.Error()
 		log.Errorln(errorMessage)
@@ -566,12 +566,12 @@ func nodeLabelsMatch(labels, nodeSelectors map[string]string) bool {
 
 // deleteDS deletes specified daemonset from its checkNamespace.
 // Delete daemonset first, then proceed to delete all daemonset pods.
-func deleteDS(dsName string) error {
+func deleteDS(ctx context.Context, dsName string) error {
 
 	log.Infoln("DaemonsetChecker deleting daemonset:", dsName)
 
 	// Confirm the count of ds pods we are removing before issuing a delete
-	pods, err := listPods()
+	pods, err := listPods(ctx)
 	if err != nil {
 		errorMessage := "Failed to list daemonset: " + daemonSetName + " pods: " + err.Error()
 		log.Errorln(errorMessage)
@@ -580,7 +580,7 @@ func deleteDS(dsName string) error {
 	log.Infoln("There are", len(pods.Items), "daemonset pods to remove")
 
 	// Delete daemonset
-	err = deleteDaemonset(dsName)
+	err = deleteDaemonset(ctx, dsName)
 	if err != nil {
 		errorMessage := "Failed to delete daemonset: " + dsName + err.Error()
 		log.Errorln(errorMessage)
@@ -589,7 +589,7 @@ func deleteDS(dsName string) error {
 
 	// Issue a delete to every pod. removing the DS alone does not ensure all pods are removed
 	log.Infoln("DaemonsetChecker removing daemonset. Proceeding to remove daemonset pods")
-	err = deletePods(dsName)
+	err = deletePods(ctx, dsName)
 	if err != nil {
 		errorMessage := "Failed to delete daemonset " + dsName + " pods: " + err.Error()
 		log.Errorln(errorMessage)
@@ -601,13 +601,13 @@ func deleteDS(dsName string) error {
 
 // fetchDS fetches the ds for the checker from the api server
 // and returns a bool indicating if it exists or not
-func fetchDS(dsName string) (bool, error) {
+func fetchDS(ctx context.Context, dsName string) (bool, error) {
 	var firstQuery bool
 	var more string
 	// pagination
 	for firstQuery || len(more) > 0 {
 		firstQuery = false
-		dsList, err := listDaemonsets(more)
+		dsList, err := listDaemonsets(ctx, more)
 		if err != nil {
 			log.Errorln(err.Error())
 			return false, err

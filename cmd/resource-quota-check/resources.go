@@ -17,10 +17,10 @@ type Job struct {
 	namespace string
 }
 
-func runResourceQuotaCheck() {
+func runResourceQuotaCheck(ctx context.Context) {
 
 	// List all namespaces in the cluster.
-	allNamespaces, err := client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	allNamespaces, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		err = fmt.Errorf("error occurred listing namespaces from the cluster: %v", err)
 		reportErr := kh.ReportFailure([]string{err.Error()})
@@ -31,7 +31,7 @@ func runResourceQuotaCheck() {
 	}
 
 	select {
-	case rqErrors := <-examineResourceQuotas(allNamespaces):
+	case rqErrors := <-examineResourceQuotas(ctx, allNamespaces):
 		if len(rqErrors) != 0 {
 			log.Infoln("This check created", len(rqErrors), "errors and warnings.")
 			log.Debugln("Errors and warnings:")
@@ -67,7 +67,7 @@ func runResourceQuotaCheck() {
 }
 
 // examineResourceQuotas looks at the resource quotas and makes reports on namespaces that meet or pass the threshold.
-func examineResourceQuotas(namespaceList *v1.NamespaceList) chan []string {
+func examineResourceQuotas(ctx context.Context, namespaceList *v1.NamespaceList) chan []string {
 	resultChan := make(chan []string)
 
 	resourceQuotasJobChan := make(chan *Job, len(namespaceList.Items))
@@ -83,7 +83,7 @@ func examineResourceQuotas(namespaceList *v1.NamespaceList) chan []string {
 		for job := range jobs {
 			waitGroup.Add(1)
 			log.Debugln("Starting worker for", job.namespace, "namespace.")
-			go createWorkerForNamespaceResourceQuotaCheck(job.namespace, results, &waitGroup)
+			go createWorkerForNamespaceResourceQuotaCheck(ctx, job.namespace, results, &waitGroup)
 		}
 
 		go func(wg *sync.WaitGroup) {
@@ -112,7 +112,7 @@ if blacklist is specified, and whitelist is also specified, then we operate on t
 if blacklist is not specified, but whitelist is, then we operate on a whitelist
 if neither a blacklist or whitelist is specified, then all namespaces are targeted
 */
-func createWorkerForNamespaceResourceQuotaCheck(namespace string, quotasChan chan string, wg *sync.WaitGroup) {
+func createWorkerForNamespaceResourceQuotaCheck(ctx context.Context, namespace string, quotasChan chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer log.Debugln("worker for", namespace, "namespace is done!")
 
@@ -131,13 +131,13 @@ func createWorkerForNamespaceResourceQuotaCheck(namespace string, quotasChan cha
 		}
 	}
 
-	examineResouceQuotasForNamespace(namespace, quotasChan)
+	examineResouceQuotasForNamespace(ctx, namespace, quotasChan)
 }
 
 // examineResouceQuotasForNamespace looks at resource quotas and sends error messages on threshold violations.
-func examineResouceQuotasForNamespace(namespace string, c chan<- string) {
+func examineResouceQuotasForNamespace(ctx context.Context, namespace string, c chan<- string) {
 	log.Infoln("Looking at resource quotas for", namespace, "namespace.")
-	quotas, err := client.CoreV1().ResourceQuotas(namespace).List(context.TODO(), metav1.ListOptions{})
+	quotas, err := client.CoreV1().ResourceQuotas(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		err = fmt.Errorf("error occurred listing resource quotas for %s namespace %v", namespace, err)
 		c <- err.Error()

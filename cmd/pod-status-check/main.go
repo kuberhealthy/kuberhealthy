@@ -34,6 +34,8 @@ type Options struct {
 }
 
 func main() {
+	ctx := context.Background()
+
 	var err error
 	o := Options{}
 	o.client, err = kubeClient.Create(KubeConfigFile)
@@ -42,7 +44,7 @@ func main() {
 	}
 
 	// get our list of failed pods, if there are any errors, report failures to Kuberhealthy servers.
-	failures, err := o.findPodsNotRunning()
+	failures, err := o.findPodsNotRunning(ctx)
 	if err != nil {
 		err = checkclient.ReportFailure([]string{err.Error()})
 		if err != nil {
@@ -71,7 +73,7 @@ func main() {
 }
 
 // finds pods that are older than 10 minutes and are in an unhealthy lifecycle phase
-func (o Options) findPodsNotRunning() ([]string, error) {
+func (o Options) findPodsNotRunning(ctx context.Context) ([]string, error) {
 
 	var failures []string
 
@@ -85,7 +87,7 @@ func (o Options) findPodsNotRunning() ([]string, error) {
 		log.Printf("looking for pods in namespace %s", namespace)
 	}
 
-	pods, err := o.client.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "app!=kuberhealthy-check,source!=kuberhealthy"})
+	pods, err := o.client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: "app!=kuberhealthy-check,source!=kuberhealthy"})
 	if err != nil {
 		return failures, err
 	}

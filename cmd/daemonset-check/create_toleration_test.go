@@ -1,8 +1,8 @@
 package main
 
 import (
-	"testing"
 	corev1 "k8s.io/api/core/v1"
+	"testing"
 )
 
 func TestCreateToleration(test *testing.T) {
