@@ -283,7 +283,7 @@ func (k *Kuberhealthy) khStateResourceReaper(ctx context.Context) {
 		select {
 		case <-ticker.C:
 			log.Infoln("khState reaper: starting to run an audit")
-			err := k.reapKHStateResources()
+			err := k.reapKHStateResources(ctx)
 			if err != nil {
 				log.Errorln("khState reaper: Error when reaping khState resources:", err)
 			}
@@ -297,7 +297,7 @@ func (k *Kuberhealthy) khStateResourceReaper(ctx context.Context) {
 
 // reapKHStateResources runs a single audit on khState resources.  Any that don't have a matching khCheck are
 // deleted.
-func (k *Kuberhealthy) reapKHStateResources() error {
+func (k *Kuberhealthy) reapKHStateResources(ctx context.Context) error {
 
 	// list all khStates in the cluster
 	khStates, err := khStateClient.KuberhealthyStates(listenNamespace).List(metav1.ListOptions{})
@@ -305,7 +305,7 @@ func (k *Kuberhealthy) reapKHStateResources() error {
 		return fmt.Errorf("khState reaper: error listing khStates for reaping: %w", err)
 	}
 
-	khChecks, err := listUnstructuredKHChecks()
+	khChecks, err := listUnstructuredKHChecks(ctx)
 	if err != nil {
 		return fmt.Errorf("khState reaper: error listing unstructured khChecks: %w", err)
 	}
@@ -438,7 +438,7 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 		time.Sleep(time.Second)
 
 		// start a watch on khcheck resources
-		watcher, err := watchUnstructuredKHChecks()
+		watcher, err := watchUnstructuredKHChecks(ctx)
 		if err != nil {
 			log.Errorln("error creating watcher for khcheck objects:", err)
 			continue
@@ -523,7 +523,7 @@ func (k *Kuberhealthy) monitorExternalChecks(ctx context.Context, notify chan st
 		<-c
 		log.Debugln("Change notification received. Scanning for external check changes...")
 
-		khChecks, err := listUnstructuredKHChecks()
+		khChecks, err := listUnstructuredKHChecks(ctx)
 		if err != nil {
 			log.Errorln("error listing unstructured khChecks: %w", err)
 			continue
@@ -629,11 +629,11 @@ func (k *Kuberhealthy) monitorExternalChecks(ctx context.Context, notify chan st
 
 // setExternalChecks syncs up the state of the external-checks installed in this
 // Kuberhealthy struct.
-func (k *Kuberhealthy) addExternalChecks() error {
+func (k *Kuberhealthy) addExternalChecks(ctx context.Context) error {
 
 	log.Debugln("Fetching khcheck configurations...")
 
-	khChecks, err := listUnstructuredKHChecks()
+	khChecks, err := listUnstructuredKHChecks(ctx)
 	if err != nil {
 		return err
 	}
@@ -746,7 +746,7 @@ func (k *Kuberhealthy) StartChecks(ctx context.Context) {
 	k.wg.Wait()
 
 	log.Infoln("control: Reloading check configuration...")
-	k.configureChecks()
+	k.configureChecks(ctx)
 
 	// sleep to make a more graceful switch-up during lots of master and check changes coming in
 	log.Infoln("control:", len(k.Checks), "checks starting!")
@@ -779,7 +779,7 @@ func (k *Kuberhealthy) masterStatusWatcher(ctx context.Context) {
 		time.Sleep(time.Second * 5)
 
 		// setup a pod watching client for kuberhealthy pods
-		watcher, err := kubernetesClient.CoreV1().Pods(podNamespace).Watch(context.TODO(), metav1.ListOptions{
+		watcher, err := kubernetesClient.CoreV1().Pods(podNamespace).Watch(ctx, metav1.ListOptions{
 			LabelSelector: "app=kuberhealthy",
 		})
 		if err != nil {
@@ -932,8 +932,8 @@ func (k *Kuberhealthy) runJob(ctx context.Context, job khjobv1.KuberhealthyJob) 
 	details.CurrentUUID = jobDetails.CurrentUUID
 
 	// Fetch node information from running check pod using kh run uuid
-	selector := "kuberhealthy-run-id="+details.CurrentUUID
-	pod, err := k.fetchPodBySelector(selector)
+	selector := "kuberhealthy-run-id=" + details.CurrentUUID
+	pod, err := k.fetchPodBySelector(ctx, selector)
 	if err != nil {
 		log.Errorln(err)
 	}
@@ -1045,8 +1045,8 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c *external.Checker) {
 		details.CurrentUUID = checkDetails.CurrentUUID
 
 		// Fetch node information from running check pod using kh run uuid
-		selector := "kuberhealthy-run-id="+details.CurrentUUID
-		pod, err := k.fetchPodBySelector(selector)
+		selector := "kuberhealthy-run-id=" + details.CurrentUUID
+		pod, err := k.fetchPodBySelector(ctx, selector)
 		if err != nil {
 			log.Errorln(err)
 		}
@@ -1186,7 +1186,7 @@ type PodReportInfo struct {
 // validateExternalRequest calls the Kubernetes API to fetch details about a pod using a selector string.
 // It validates that the pod is allowed to report the status of a check. The pod is also expected
 // to have the environment variable KH_CHECK_NAME
-func (k *Kuberhealthy) validateExternalRequest(selector string) (PodReportInfo, error) {
+func (k *Kuberhealthy) validateExternalRequest(ctx context.Context, selector string) (PodReportInfo, error) {
 
 	var podUUID string
 	var podCheckName string
@@ -1196,7 +1196,7 @@ func (k *Kuberhealthy) validateExternalRequest(selector string) (PodReportInfo, 
 
 	// fetch the pod from the api using a specified selector. We keep retrying for some time to avoid kubernetes control
 	// plane api race conditions wherein fast reporting pods are not found in pod listings
-	pod, err := k.fetchPodBySelectorForDuration(selector, time.Minute)
+	pod, err := k.fetchPodBySelectorForDuration(ctx, selector, time.Minute)
 	if err != nil {
 		return reportInfo, err
 	}
@@ -1267,7 +1267,7 @@ func (k *Kuberhealthy) validateExternalRequest(selector string) (PodReportInfo, 
 
 // fetchPodBySelectorForDuration attempts to fetch a pod by a specified selector repeatedly for the supplied duration.
 // If the pod is found, then we return it.  If the pod is not found after the duration, we return an error
-func (k *Kuberhealthy) fetchPodBySelectorForDuration(selector string, d time.Duration) (v1.Pod, error) {
+func (k *Kuberhealthy) fetchPodBySelectorForDuration(ctx context.Context, selector string, d time.Duration) (v1.Pod, error) {
 	endTime := time.Now().Add(d)
 
 	for {
@@ -1275,7 +1275,7 @@ func (k *Kuberhealthy) fetchPodBySelectorForDuration(selector string, d time.Dur
 			return v1.Pod{}, errors.New("Failed to fetch source pod with selector " + selector + " after trying for " + d.String())
 		}
 
-		p, err := k.fetchPodBySelector(selector)
+		p, err := k.fetchPodBySelector(ctx, selector)
 		if err != nil {
 			log.Warningln("was unable to find calling pod with selector " + selector + " while watching for duration. Error: " + err.Error())
 			time.Sleep(time.Second)
@@ -1287,7 +1287,7 @@ func (k *Kuberhealthy) fetchPodBySelectorForDuration(selector string, d time.Dur
 }
 
 // fetchPodBySelector fetches the pod by it's `kuberhealthy-run-id` label selector or by its `status.podIP` field selector
-func (k *Kuberhealthy) fetchPodBySelector(selector string) (v1.Pod, error) {
+func (k *Kuberhealthy) fetchPodBySelector(ctx context.Context, selector string) (v1.Pod, error) {
 	var pod v1.Pod
 
 	podClient := kubernetesClient.CoreV1().Pods("")
@@ -1308,7 +1308,7 @@ func (k *Kuberhealthy) fetchPodBySelector(selector string) (v1.Pod, error) {
 		}
 	}
 
-	podList, err := podClient.List(context.TODO(), listOptions)
+	podList, err := podClient.List(ctx, listOptions)
 	if err != nil {
 		return pod, errors.New("failed to fetch pod with selector " + selector + " with error: " + err.Error())
 	}
@@ -1336,7 +1336,7 @@ func (k *Kuberhealthy) externalCheckReportHandlerLog(s ...interface{}) {
 
 // validatePodReportBySourceIP gets the header `kh-run-uuid` value from the request and forms a selector with it to
 // validate that the request is coming from a kuberhealthy check pod
-func (k *Kuberhealthy) validateUsingRequestHeader(r *http.Request) (PodReportInfo, bool, error) {
+func (k *Kuberhealthy) validateUsingRequestHeader(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
 
 	var podReport PodReportInfo
 	var err error
@@ -1344,7 +1344,7 @@ func (k *Kuberhealthy) validateUsingRequestHeader(r *http.Request) (PodReportInf
 		return podReport, false, nil
 	}
 	selector := "kuberhealthy-run-id=" + r.Header.Get("kh-run-uuid")
-	podReport, err = k.validateExternalRequest(selector)
+	podReport, err = k.validateExternalRequest(ctx, selector)
 	if err != nil {
 		return podReport, false, err
 	}
@@ -1353,7 +1353,7 @@ func (k *Kuberhealthy) validateUsingRequestHeader(r *http.Request) (PodReportInf
 
 // validatePodReportBySourceIP parses the remoteAddr from the request and forms a selector with the remote IP to
 // validate that the request is coming from a kuberhealthy check pod
-func (k *Kuberhealthy) validatePodReportBySourceIP(r *http.Request) (PodReportInfo, error) {
+func (k *Kuberhealthy) validatePodReportBySourceIP(ctx context.Context, r *http.Request) (PodReportInfo, error) {
 
 	var podReport PodReportInfo
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -1361,7 +1361,7 @@ func (k *Kuberhealthy) validatePodReportBySourceIP(r *http.Request) (PodReportIn
 		return podReport, err
 	}
 	selector := "status.podIP==" + ip + ",status.phase==Running"
-	podReport, err = k.validateExternalRequest(selector)
+	podReport, err = k.validateExternalRequest(ctx, selector)
 	if err != nil {
 		return podReport, err
 	}
@@ -1378,12 +1378,14 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	// make a request ID for tracking this request
 	requestID := "web: " + uuid.New().String()
 
+	ctx := r.Context()
+
 	k.externalCheckReportHandlerLog(requestID, "Client connected to check report handler from", r.UserAgent())
 
 	// Validate request using the kh-run-uuid header. If the header doesn't exist, or there's an error with validation,
 	// validate using the pod's remote IP.
 	k.externalCheckReportHandlerLog(requestID, "validating external check status report from its reporting kuberhealthy run uuid:", r.Header.Get("kh-run-uuid"))
-	podReport, reportValidated, err := k.validateUsingRequestHeader(r)
+	podReport, reportValidated, err := k.validateUsingRequestHeader(ctx, r)
 	if err != nil {
 		k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by its kh-run-uuid header:", r.Header.Get("kh-run-uuid"), err)
 	}
@@ -1391,7 +1393,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	// If the check uuid header is missing, attempt to validate using calling pod's source IP
 	if !reportValidated {
 		k.externalCheckReportHandlerLog(requestID, "validating external check status report from the pod's remote IP:", r.RemoteAddr)
-		podReport, err = k.validatePodReportBySourceIP(r)
+		podReport, err = k.validatePodReportBySourceIP(ctx, r)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by its IP:", r.RemoteAddr, err)
@@ -1646,14 +1648,14 @@ func (k *Kuberhealthy) getJob(name string, namespace string) (*external.Checker,
 
 // configureChecks removes all checks set in Kuberhealthy and reloads them
 // based on the configuration options
-func (k *Kuberhealthy) configureChecks() {
+func (k *Kuberhealthy) configureChecks(ctx context.Context) {
 	log.Infoln("control: Loading check configuration...")
 
 	// wipe all existing checks before we configure
 	k.Checks = []*external.Checker{}
 
 	// check external check configurations
-	err := k.addExternalChecks()
+	err := k.addExternalChecks(ctx)
 	if err != nil {
 		log.Errorln("control: ERROR loading external checks:", err)
 	}
@@ -1689,7 +1691,7 @@ func (k *Kuberhealthy) configureInfluxForwarding() {
 	k.MetricForwarder = metricClient
 }
 
-func listUnstructuredKHChecks() (*unstructured.UnstructuredList, error) {
+func listUnstructuredKHChecks(ctx context.Context) (*unstructured.UnstructuredList, error) {
 
 	khCheckGroupVersionResource := schema.GroupVersionResource{
 		Version:  checkCRDVersion,
@@ -1697,7 +1699,7 @@ func listUnstructuredKHChecks() (*unstructured.UnstructuredList, error) {
 		Group:    checkCRDGroup,
 	}
 
-	unstructuredList, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").List(context.TODO(), metav1.ListOptions{})
+	unstructuredList, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return unstructuredList, err
 	}
@@ -1716,7 +1718,7 @@ func convertUnstructuredKhCheck(unstructured unstructured.Unstructured) (khcheck
 	return khCheck, err
 }
 
-func watchUnstructuredKHChecks() (watch.Interface, error) {
+func watchUnstructuredKHChecks(ctx context.Context) (watch.Interface, error) {
 
 	khCheckGroupVersionResource := schema.GroupVersionResource{
 		Version:  checkCRDVersion,
@@ -1724,7 +1726,7 @@ func watchUnstructuredKHChecks() (watch.Interface, error) {
 		Group:    checkCRDGroup,
 	}
 
-	watcher, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").Watch(context.TODO(), metav1.ListOptions{})
+	watcher, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").Watch(ctx, metav1.ListOptions{})
 	if err != nil {
 		return watcher, err
 	}

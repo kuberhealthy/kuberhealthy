@@ -105,7 +105,7 @@ func main() {
 		}
 	}()
 
-	runResourceQuotaCheck()
+	runResourceQuotaCheck(ctx)
 }
 
 func listenForInterrupts(ctx context.Context) {
