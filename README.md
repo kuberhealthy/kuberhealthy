@@ -142,3 +142,8 @@ If you're interested in contributing to this project:
 - Check out [open issues](https://github.com/kuberhealthy/kuberhealthy/issues). If you're new to the project, look for the `good first issue` tag.
 - We're always looking for check contributions (either in suggestions or in PRs) as well as feedback from folks implementing
 Kuberhealthy locally or in a test environment.
+
+
+## Monthly Community Meeting
+
+If you would like to talk directly to the core maintainers to discuss ideas, code reviews, or other complex issues, we have a monthly Zoom meeting on the first Wednesday of the month.  [Click here to add the meeting to your calendar](https://zoom.us/j/96457488866?pwd=SDZxL1dEQTVZUTRWbFFTZWNDZWFwdz09).
