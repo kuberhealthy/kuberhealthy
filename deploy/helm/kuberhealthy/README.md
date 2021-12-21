@@ -4,7 +4,7 @@ Easy synthetic testing for [Kubernetes](https://kubernetes.io) clusters.  Supple
 
 ## What is Kuberhealthy?
 
-Kuberhealthy performs stynthetic tests from within Kubernetes clusters in order to catch issues that would otherwise go unnoticed.  Instead of trying to identify all the things that could potentially go wrong, Kuberhealthy replicates real workflow and watches carefully for the expected Kubernetes behavior to occur.  Kuberhealthy serves both a JSON status page and a [Prometheus](https://prometheus.io/) metrics endpoint for integration into your choice of alerting solution.  More checks will be added in future versions to better cover [service provisioning](https://github.com/kuberhealthy/kuberhealthy/issues/11), [DNS resolution](https://github.com/kuberhealthy/kuberhealthy/issues/16), [disk provisioning](https://github.com/kuberhealthy/kuberhealthy/issues/9), and more.
+Kuberhealthy performs synthetic tests from within Kubernetes clusters in order to catch issues that would otherwise go unnoticed.  Instead of trying to identify all the things that could potentially go wrong, Kuberhealthy replicates real workflow and watches carefully for the expected Kubernetes behavior to occur.  Kuberhealthy serves both a JSON status page and a [Prometheus](https://prometheus.io/) metrics endpoint for integration into your choice of alerting solution.  More checks will be added in future versions to better cover [service provisioning](https://github.com/kuberhealthy/kuberhealthy/issues/11), [DNS resolution](https://github.com/kuberhealthy/kuberhealthy/issues/16), [disk provisioning](https://github.com/kuberhealthy/kuberhealthy/issues/9), and more.
 
 Some examples of errors Kuberhealthy has detected in production:
 
