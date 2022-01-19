@@ -22,7 +22,7 @@ type State struct {
 // AddError adds new errors to State
 func (h *State) AddError(s ...string) {
 	for _, str := range s {
-		if len(s) == 0 {
+		if len(str) == 0 {
 			log.Warningln("AddError was called but the error was blank so it was skipped.")
 			continue
 		}
