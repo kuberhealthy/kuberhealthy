@@ -39,7 +39,8 @@ imageRegistry: {}
 image:
   registry: kuberhealthy
   repository: kuberhealthy
-  tag: v2.4.1
+  # Leave empty to use .Chart.AppVersion
+  tag:
 
 resources:
   requests:
