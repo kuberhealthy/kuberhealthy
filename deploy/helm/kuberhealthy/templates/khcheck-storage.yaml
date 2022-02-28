@@ -52,11 +52,11 @@ spec:
           memory: {{ $.Values.check.storage.resources.limits.memory }}
           {{- end }}
         {{- end }}
-        {{- if $.Values.securityContext.enabled }}
-        securityContext:
-          allowPrivilegeEscalation: {{ $.Values.securityContext.allowPrivilegeEscalation }}
-          readOnlyRootFilesystem: {{ $.Values.securityContext.readOnlyRootFilesystem }}
-        {{- end }}
+      {{- if $.Values.securityContext.enabled }}
+      securityContext:
+        allowPrivilegeEscalation: {{ $.Values.securityContext.allowPrivilegeEscalation }}
+        readOnlyRootFilesystem: {{ $.Values.securityContext.readOnlyRootFilesystem }}
+      {{- end }}
     restartPolicy: Never
     serviceAccountName: storage-khcheck
     {{- if $.Values.check.storage.nodeSelector }}

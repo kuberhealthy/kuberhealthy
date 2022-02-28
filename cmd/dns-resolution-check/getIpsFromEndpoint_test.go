@@ -15,9 +15,9 @@ func TestGetIpsFromEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to create kube client")
 	}
-	endpoints, err := client.CoreV1().Endpoints(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	endpoints, err := client.CoreV1().Endpoints(namespace).List(context.Background(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
-		t.Fatalf("Unable to get endpoint list")
+		t.Fatalf("Unable to get endpoint list %+v\n", err)
 	}
 
 	ips, err := getIpsFromEndpoint(endpoints)

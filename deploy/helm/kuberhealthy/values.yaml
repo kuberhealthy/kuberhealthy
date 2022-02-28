@@ -39,7 +39,8 @@ imageRegistry: {}
 image:
   registry: kuberhealthy
   repository: kuberhealthy
-  tag: v2.4.1
+  # Leave empty to use .Chart.AppVersion
+  tag:
 
 resources:
   requests:
@@ -122,7 +123,7 @@ check:
       registry: kuberhealthy
       repository: daemonset-check
       tag: v3.3.0
-    extraEnvs:
+    extraEnvs: {}
     nodeSelector: {}
     tolerations:
     #- key: "key"
@@ -227,7 +228,7 @@ check:
       repository: pod-status-check
       tag: v1.3.0
     allNamespaces: false
-    extraEnvs:
+    extraEnvs: {}
     nodeSelector: {}
     tolerations: []
     #- key: "key"

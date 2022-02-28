@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"reflect"
 	"testing"
@@ -41,7 +42,7 @@ func Test_findPodsNotRunning(t *testing.T) {
 			o := Options{
 				client: client,
 			}
-			got, err := o.findPodsNotRunning()
+			got, err := o.findPodsNotRunning(context.Background())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("findErrors() error = %v, wantErr %v", err, tt.wantErr)
 				return
