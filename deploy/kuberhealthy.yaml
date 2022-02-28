@@ -13070,12 +13070,32 @@ metadata:
   name: deployment-sa
   namespace: kuberhealthy
 ---
+# Source: kuberhealthy/templates/khcheck-dns-internal.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dns-internal-sa
+  namespace: kuberhealthy
+---
 # Source: kuberhealthy/templates/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: kuberhealthy
   namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
+  name: kuberhealthy-daemonset-khcheck
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
 ---
 # Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -13146,19 +13166,6 @@ rules:
     - pods/eviction
     verbs:
     - create
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
 ---
 # Source: kuberhealthy/templates/clusterrolebinding.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -13252,6 +13259,20 @@ rules:
       - list
       - watch
 ---
+# Source: kuberhealthy/templates/khcheck-dns-internal.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dns-internal-service-role
+  namespace: kuberhealthy
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -13279,6 +13300,20 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: deployment-sa
+---
+# Source: kuberhealthy/templates/khcheck-dns-internal.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dns-internal-check-rb
+  namespace: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: dns-internal-service-role
+subjects:
+  - kind: ServiceAccount
+    name: dns-internal-sa
 ---
 # Source: kuberhealthy/templates/service.yaml
 apiVersion: v1
@@ -13493,3 +13528,4 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
+    serviceAccountName: dns-internal-sa
