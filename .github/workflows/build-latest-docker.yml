@@ -7,6 +7,7 @@ on:
     - docker-hub # for testing this build spec
     paths:
       - "cmd/kuberhealthy/**"
+      - "pkg/**"
 env:
     IMAGE_NAME: kuberhealthy/kuberhealthy:unstable
 jobs:
