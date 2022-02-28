@@ -30,18 +30,39 @@ Kuberhealthy requires Kubernetes 1.16 or above
 
 ```sh
 kubectl create namespace kuberhealthy
-helm repo add kuberhealthy https://kuberhealthy.github.io/kuberhealthy/helm-repos 
-helm install kuberhealthy kuberhealthy/kuberhealthy
+helm repo add kuberhealthy https://kuberhealthy.github.io/kuberhealthy/helm-repos
+helm install -n kuberhealthy kuberhealthy kuberhealthy/kuberhealthy
 ```
 
+If you have Prometheus
+
+```
+helm install --set prometheus.enabled=true -n kuberhealthy kuberhealthy kuberhealthy/kuberhealthy
+```
+
+If you have Prometheus via Prometheus Operator:
+
+```
+helm install --set prometheus.enabled=true --set prometheus.serviceMonitor.enabled=true -n kuberhealthy kuberhealthy kuberhealthy/kuberhealthy
+```
+
+#### Configure Service
+
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to clients outside of the cluster, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer` or otherwise expose the service yourself.
+
+
+#### Edit Configuration Settings
+
+You can edit the Kuberhealthy configmap as well and it will be automatically reloaded by Kuberhealthy.  All configmap options are set to their defaults to make configuration easy.
+
+`kubectl edit -n kuberhealthy configmap kuberhealthy`
 
 #### See Configured Checks
 
 You can see checks that are configured with `kubectl -n kuberhealthy get khcheck`.  Check status can be accessed by the JSON status page endpoint, or via `kubectl -n kuberhealthy get khstate`.
 
 
-### Configuration
+### Further Configuration
 
 
 To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CONFIGURATION.md).
