@@ -602,7 +602,7 @@ func deleteDS(dsName string) error {
 // fetchDS fetches the ds for the checker from the api server
 // and returns a bool indicating if it exists or not
 func fetchDS(dsName string) (bool, error) {
-	var firstQuery bool
+	var firstQuery bool = true
 	var more string
 	// pagination
 	for firstQuery || len(more) > 0 {
