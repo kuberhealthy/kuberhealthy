@@ -47,7 +47,7 @@ func makeRequestToDeploymentCheckService(ctx context.Context, hostname string) c
 		// Try to make requests to the hostname endpoint and wait for a result.
 		select {
 		case result := <-getRequestBackoff(hostname):
-			if &result == nil {
+			if result == (RequestResult{}) {
 				requestChan <- errors.New("got a nil request result from the backoff process")
 				return
 			}
