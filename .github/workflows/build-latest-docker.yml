@@ -1,5 +1,6 @@
 name: Build and Push kuberhealthy Unstable
-on:
+on: 
+  workflow_dispatch:
   push:
     branches:
     - master
