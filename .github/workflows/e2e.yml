@@ -1,4 +1,4 @@
-name: CI
+name: End to End Kuberhealthy Test
 
 on:
   pull_request:
