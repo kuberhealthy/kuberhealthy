@@ -1,24 +1,26 @@
+---
 name: Build and Push kuberhealthy Unstable
 on:
+  workflow_dispatch:
   push:
     branches:
-    - master
-    - release/*
-    - docker-hub # for testing this build spec
+      - master
+      - release/*
+      - docker-hub# for testing this build spec
     paths:
       - "cmd/kuberhealthy/**"
       - "pkg/**"
 env:
-    IMAGE_NAME: kuberhealthy/kuberhealthy:unstable
+  IMAGE_NAME: kuberhealthy/kuberhealthy:unstable
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: build container
-      run: docker build --file cmd/kuberhealthy/Dockerfile --tag $IMAGE_NAME .
-    - name: Log into docker hub
-      run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
-    - name: Push new latest image
-      run: |
-          docker push $IMAGE_NAME
+      - uses: actions/checkout@v2
+      - name: build container
+        run: docker build --file cmd/kuberhealthy/Dockerfile --tag $IMAGE_NAME .
+      - name: Log into docker hub
+        run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
+      - name: Push new latest image
+        run: |
+            docker push $IMAGE_NAME
