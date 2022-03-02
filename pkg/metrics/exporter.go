@@ -42,6 +42,7 @@ func GenerateMetrics(state health.State) string {
 			for _, error := range d.Errors {
 				errors += fmt.Sprintf("%s|", error)
 			}
+			errors = strings.TrimSuffix(errors, "|")
 		}
 		errors = strings.ReplaceAll(errors, "\"", "'")
 		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\",namespace=\"%s\",status=\"%s\",error=\"%s\"}", c, d.Namespace, checkStatus, errors)
