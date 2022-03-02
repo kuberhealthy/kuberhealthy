@@ -48,7 +48,7 @@ func makeRequestToDeploymentCheckService(ctx context.Context, hostname string) c
 		select {
 		case result := <-getRequestBackoff(hostname):
 			if result == (RequestResult{}) {
-				requestChan <- errors.New("got a blank request result from the backoff process and skipped it")
+				requestChan <- errors.New("got a blank request result from the backoff process")
 				return
 			}
 
