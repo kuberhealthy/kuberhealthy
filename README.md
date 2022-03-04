@@ -24,9 +24,25 @@ Kuberhealthy serves the status of all checks on a simple JSON status page, a [Pr
 
 ### Deployment
 
-Kuberhealthy requires Kubernetes 1.16 or above
+Kuberhealthy requires Kubernetes 1.16 or above.  
 
-**Create namespace, add the Kuberhealthy Helm repository, and deploy!**
+#### Using Plain Ole' YAML
+
+If you just want the rendered default specs without Helm, you can [use the static flat file](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy.yaml) or the [static flat file for Prometheus](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy-prometheus.yaml) or even the [static flat file for Prometheus Operator](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy-prometheus-operator.yaml).
+
+Here are the one-line installation commands for those same specs:
+```sh
+# If you don't use Prometheus:
+kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/deploy/kuberhealthy.yaml
+
+# If you use Prometheus, but not with Prometheus Operator:
+kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/deploy/kuberhealthy-prometheus.yaml
+
+# If you use Prometheus Operator:
+kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/deploy/kuberhealthy-prometheus-operator.yaml
+```
+
+#### Using Helm
 
 ```sh
 kubectl create namespace kuberhealthy
