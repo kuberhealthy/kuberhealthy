@@ -33,12 +33,15 @@ If you just want the rendered default specs without Helm, you can [use the stati
 Here are the one-line installation commands for those same specs:
 ```sh
 # If you don't use Prometheus:
+kubectl create namespace kuberhealthy
 kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/deploy/kuberhealthy.yaml
 
 # If you use Prometheus, but not with Prometheus Operator:
+kubectl create namespace kuberhealthy
 kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/deploy/kuberhealthy-prometheus.yaml
 
 # If you use Prometheus Operator:
+kubectl create namespace kuberhealthy
 kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/deploy/kuberhealthy-prometheus-operator.yaml
 ```
 
