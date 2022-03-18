@@ -1,22 +1,22 @@
 ## Legal
 
 - If you would like to contribute code to this project you can do so through GitHub by forking the repository and sending a pull request.
-- Before we merge your code into the project you must sign the Contributor License Agreement (CLA).
-- If you haven't previously signed a the CNCF CLA, you'll automatically be asked to when you open a pull request. Alternatively, we can send you a PDF that you can sign and scan back to us. Please create a new GitHub issue to request a PDF version of the CLA.
+- Your commits [must be signed](https://probot.github.io/apps/dco/) so that the DCO bot will accept them.  This means using `git commit -s` when comitting.
 
 ## Developer
 
 - If you are making a large change, you should submit a proposal issue first so that you don't risk your feature being denied
-- Fork the codebase on github
+- Fork the Kuberhealthy/Kuberhealthy repository on github 
 - Clone your fork to your machine
 - Create a branch describing your change
-- Develop your feature and push changes to your branch in your fork
-- Add your name to the `CONTRIBUTORS` file
-- Open a pull request from your fork and branch to master on github.com/kuberhealthy/kuberhealthy
+- Develop your feature and push changes to a branch in your fork
+- Add your name to the `CONTRIBUTORS.md` file
+- Open a pull request from your branch branch in your fork to the master branch on github.com/kuberhealthy/kuberhealthy
+- Wait for a project maintainer to address your change and merge your code.  Keep an eye on your open PR.
 - Celebrate! 🎉
 
 ## General Requirements
 
 - The code must be formatted with `go fmt`
-- The change must pass all tests
 - The change must include tests for new functionality created
+- The code must pass all Github CI tests
