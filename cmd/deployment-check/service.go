@@ -78,6 +78,7 @@ func createService(ctx context.Context, serviceConfig *corev1.Service) chan Serv
 			log.Errorln("Failed to create a service in the cluster: %w", err)
 			result.Err = err
 			createChan <- result
+			return
 		}
 
 		for {
