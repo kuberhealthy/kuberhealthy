@@ -44,9 +44,9 @@ spec:
 
 ### Checking endpoints behind DNS Service
 
-In order to check endpoints behind the DNS service, add a `DNS_NODE_SELECTOR` and `NAMESPACE` variable to the spec file denoting where your DNS pods are.
+In order to check endpoints behind the DNS service, add a `DNS_POD_SELECTOR` and `NAMESPACE` variable to the spec file denoting where your DNS pods are.
 
-`DNS_NODE_SELECTOR` is a label selector which will be used to select the DNS endpoints to query against.
+`DNS_POD_SELECTOR` is a label selector which will be used to select the DNS endpoints to query against.
 
 ```yaml
 apiVersion: comcast.github.io/v1
@@ -64,7 +64,7 @@ spec:
             value: "kubernetes.default"
           - name: NAMESPACE
             value: "kube-system"
-          - name: DNS_NODE_SELECTOR
+          - name: DNS_POD_SELECTOR
             value: apps=k8s-dns
           - name: NODE_NAME
             valueFrom:
