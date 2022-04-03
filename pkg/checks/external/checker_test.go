@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 	"testing"
-	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -23,8 +22,6 @@ const defaultNamespace = "kuberhealthy"
 
 var khStateClient *khstatev1.KHStateV1Client
 var khCheckClient *khcheckv1.KHCheckV1Client
-
-var checkCRDScanInterval = time.Second * 5 // how often we scan for changes to check CRD objects
 
 func init() {
 
