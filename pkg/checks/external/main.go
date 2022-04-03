@@ -348,23 +348,28 @@ func (ext *Checker) evictPod(ctx context.Context, podName string, podNamespace s
 	return err
 }
 
-// setUUID sets the current whitelisted UUID for the checker and updates it on the server
+// setUUID sets the current whitelisted UUID for the checker and updates it on the server.  If the
+// check fails to run or be verified as set (by a susequent fetch), then it will try up to 9 times
+// before returning an error.
 func (ext *Checker) setUUID(uuid string) error {
 	ext.log("Setting expected UUID to:", uuid)
+
+	// fetch the existing khstate
 	checkState, err := ext.getKHState()
 
-	// if the fetch operation had an error, but it wasn't 'not found', we return here
+	// if the fetch operation had an error, and it wasn't 'not found', we return an error
 	if err != nil && !(k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
 	}
 
-	// if the check was not found, we create a fresh one and start there
+	// if the check was not found, we create a new khstate
 	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
-		ext.log("khstate did not exist, so a default object will be created")
+		ext.log("khstate did not exist for", ext.CheckName, ", so a default object will be created")
 		details := khstatev1.NewWorkloadDetails(ext.KHWorkload)
 		details.Namespace = ext.CheckNamespace()
 		details.AuthoritativePod = ext.hostname
 		details.OK = true
+		details.CurrentUUID = uuid
 		details.RunDuration = time.Duration(0).String()
 		newState := khstatev1.NewKuberhealthyState(ext.CheckName, details)
 		newState.Namespace = ext.Namespace
@@ -375,35 +380,32 @@ func (ext *Checker) setUUID(uuid string) error {
 			return err
 		}
 
-		// checkState will be the new check we just created
-		checkState, err = ext.getKHState()
-		if err != nil {
-			ext.log("failed to fetch khstate khstate after creating it because it did not exist:", err)
-			return err
-		}
+		// if we were able to make a new check, we are done
+		return nil
 	}
 
-	// assign the new uuid
+	// assign the new uuid to the fetched checkState
 	checkState.Spec.CurrentUUID = uuid
-
-	// update the resource with the new values we want
-	ext.log("Updating khstate", checkState.Name, checkState.Namespace, "to setUUID:", checkState.Spec.CurrentUUID)
+	ext.log("Updating khstate to CurrentUUID:", checkState.Spec.CurrentUUID)
 	_, err = ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Update(&checkState)
+	if err != nil {
+		log.Errorln("failed to update khstate CurrentUUID for check", checkState.Namespace, checkState.Name, "with error:", err)
+	}
 
-	// Sometimes a race condition occurs when a pod has to verify uuid with kh server. If the pod happens to check the
-	// uuid before it shows as updated on kube-apiserver, the pod will not be allowed to report its status.
-	// This for-loop is to verify that the the pod uuid is properly showing as set with the api server.
+	// Verify that the new CurrentUUID is set with the server by fetching it.  If something goes
+	// wrong, try to set it again up to maxTries times.
 	tries := 0
+	maxTries := 9
 	for {
-		if tries >= 9 {
+		if tries >= maxTries {
 			return fmt.Errorf("failed to verify uuid %s was set for khstate %s after %d tries", checkState.Spec.CurrentUUID, checkState.Namespace+checkState.Name, tries)
 		}
 		tries++
 
-		// fetch the check we just updated back and ensure its set properly
+		// fetch the check we just updated and ensure it set properly
 		extCheck, err := ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Get(ext.Name(), metav1.GetOptions{})
 		if err != nil {
-			ext.log("failed to get khstate while verifying check uuid:", err)
+			ext.log("error: failed to get khstate while verifying check uuid:", err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -414,9 +416,19 @@ func (ext *Checker) setUUID(uuid string) error {
 
 		// in this circumstance, the khstate has been fetched, but the CurrentUUID value on it is not the one we set
 		log.Warningln("during verification of the CurrentUUID being properly set on khstate", checkState.Namespace, checkState.Name, "UUID setting, we saw UUID", extCheck.Spec.CurrentUUID, "but expected UUID", checkState.Spec.CurrentUUID)
-
-		ext.log("Waiting 1 second before checking " + ext.Name() + " uuid again")
 		time.Sleep(time.Second * 1)
+
+		// Retry the fetch, CurrentUUID update, and set again
+		ext.log("Retrying khstate update to set CurrentUUID:", checkState.Spec.CurrentUUID)
+		checkState, err := ext.getKHState()
+		if err != nil {
+			log.Errorln("failed to fetch khstate for check", checkState.Namespace, checkState.Name, "with error:", err)
+		}
+		checkState.Spec.CurrentUUID = uuid
+		_, err = ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Update(&checkState)
+		if err != nil {
+			log.Errorln("failed to update khstate CurrentUUID for check", checkState.Namespace, checkState.Name, "with error:", err)
+		}
 	}
 
 	return err
@@ -1169,36 +1181,7 @@ func (ext *Checker) setNewCheckUUID() error {
 
 	// set whitelist in check configuration CRD so only this
 	// currently running pod can report-in with a status update
-	err := ext.setUUID(ext.currentCheckUUID)
-
-	// We commonly see a race here with the following type of error:
-	// "Check execution error: Operation cannot be fulfilled on khchecks.comcast.github.io \"pod-restarts\": the object
-	// has been modified; please apply your changes to the latest version and try again"
-	//
-	// If we see this error, we fetch the updated object, re-apply our changes, and try again
-	delay := time.Duration(time.Second * 1)
-	maxTries := 7
-	tries := 0
-	for err != nil && strings.Contains(err.Error(), "the object has been modified") {
-
-		// if too many retires have occcured, we fail up the stack further
-		if tries > maxTries {
-			return fmt.Errorf("failed to updated UUID for check %s in namespace %s after %d with error %w", ext.CheckName, ext.CheckNamespace(), maxTries, err)
-		}
-		ext.log("Failed to write new UUID for check because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
-
-		// sleep and double the delay between checks (exponential backoff)
-		time.Sleep(delay)
-		delay = delay + delay
-
-		// try the UUID set again
-		err = ext.setUUID(ext.currentCheckUUID)
-
-		// count how many times we're tried to set the UUID
-		tries++
-	}
-
-	return err
+	return ext.setUUID(ext.currentCheckUUID)
 
 }
 
