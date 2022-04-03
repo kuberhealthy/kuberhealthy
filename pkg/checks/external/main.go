@@ -23,7 +23,6 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
 	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
@@ -338,7 +337,7 @@ func (ext *Checker) evictPod(ctx context.Context, podName string, podNamespace s
 	if err != nil {
 		ext.log("error when trying to cleanup/evict checker pod", podName, "in namespace", podNamespace+":", err)
 		podExists, _ := util.PodNameExists(ext.KubeClient, podName, podNamespace)
-		if podExists == true {
+		if podExists {
 			err := util.PodKill(ext.KubeClient, podName, podNamespace, 30)
 			if err != nil {
 				ext.log("error killing pod", podName+":", err)
@@ -393,24 +392,31 @@ func (ext *Checker) setUUID(uuid string) error {
 
 	// Sometimes a race condition occurs when a pod has to verify uuid with kh server. If the pod happens to check the
 	// uuid before it shows as updated on kube-apiserver, the pod will not be allowed to report its status.
-	// This for-loop is to verify the pod uuid is properly set with the api server before the checker pod is started.
+	// This for-loop is to verify that the the pod uuid is properly showing as set with the api server.
 	tries := 0
 	for {
 		if tries >= 9 {
-			return fmt.Errorf("failed to verify uuid match %s after %d tries", checkState.Spec.CurrentUUID, tries)
+			return fmt.Errorf("failed to verify uuid %s was set for khstate %s after %d tries", checkState.Spec.CurrentUUID, checkState.Namespace+checkState.Name, tries)
 		}
 		tries++
-		ext.log("Waiting 1 second before checking " + ext.Name() + " uuid.")
-		time.Sleep(time.Second * 1)
+
+		// fetch the check we just updated back and ensure its set properly
 		extCheck, err := ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Get(ext.Name(), metav1.GetOptions{})
 		if err != nil {
-			ext.log("failed to get khstate while truing up check uuid:", err)
+			ext.log("failed to get khstate while verifying check uuid:", err)
+			time.Sleep(time.Second)
 			continue
 		}
 		if checkState.Spec.CurrentUUID == extCheck.Spec.CurrentUUID {
-			ext.log(ext.Name() + " verified uuid match.")
+			ext.log(ext.Name() + " CurrentUUID update verified.")
 			break
 		}
+
+		// in this circumstance, the khstate has been fetched, but the CurrentUUID value on it is not the one we set
+		log.Warningln("during verification of the CurrentUUID being properly set on khstate", checkState.Namespace, checkState.Name, "UUID setting, we saw UUID", extCheck.Spec.CurrentUUID, "but expected UUID", checkState.Spec.CurrentUUID)
+
+		ext.log("Waiting 1 second before checking " + ext.Name() + " uuid again")
+		time.Sleep(time.Second * 1)
 	}
 
 	return err
@@ -514,28 +520,6 @@ func (ext *Checker) waitForDeletedEvent(w watch.Interface) chan error {
 	// if the watch ends for any reason, we notify the listeners that our watch has ended
 	ext.log("pod removal monitor ended unexpectedly")
 	return outChan
-}
-
-// doFinalUpdateCheck is used to do one final update check before we conclude that the pod disappeared expectedly.
-func (ext *Checker) doFinalUpdateCheck(lastReportTime time.Time) (bool, error) {
-	ext.log("witnessed checker pod removal. aborting watch for pod status report. check run skipped gracefully")
-	// sometimes the shutdown event comes in before the status update notify, even if the pod did report in
-	// before the pod shut down.  So, we do one final check here to see if the pod has checked in before
-	// concluding that the pod has been shut down unexpectedly.
-
-	// fetch the lastUpdateTime from the khstate as of right now
-	currentUpdateTime, err := ext.getCheckLastUpdateTime()
-	if err != nil {
-		return false, err
-	}
-
-	// if the pod has not updated, we finally conclude that this pod has gone away unexpectedly
-	ext.log("Last report time was:", lastReportTime, "vs", currentUpdateTime)
-	if !currentUpdateTime.After(lastReportTime) {
-		return false, nil
-	}
-
-	return true, nil
 }
 
 // newError returns an error from the provided string by pre-pending the pod's name and namespace to it
@@ -710,23 +694,6 @@ func (ext *Checker) log(s ...interface{}) {
 	log.Infoln(ext.currentCheckUUID+" "+ext.Namespace+"/"+ext.CheckName+":", s)
 }
 
-// deletePod deletes the pod with the specified name>  If the pod is 'not found', an
-// error is NOT returned.
-func (ext *Checker) deletePod(podName string) error {
-	ext.log("Deleting pod with name", podName)
-	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
-	gracePeriodSeconds := int64(1)
-	deletionPolicy := metav1.DeletePropagationForeground
-	err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{
-		GracePeriodSeconds: &gracePeriodSeconds,
-		PropagationPolicy:  &deletionPolicy,
-	})
-	if err != nil && !(k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
-		return err
-	}
-	return nil
-}
-
 // sanityCheck runs a basic sanity check on the checker before running
 func (ext *Checker) sanityCheck() error {
 	if ext.Namespace == "" {
@@ -845,9 +812,9 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
+	ext.wg.Add(1)
 	go func() {
 
-		ext.wg.Add(1)
 		defer ext.wg.Done()
 
 		// watch events and return when the pod is in state running
@@ -898,9 +865,9 @@ func (ext *Checker) waitForPodExit(ctx context.Context) chan error {
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
+	ext.wg.Add(1)
 	go func() {
 
-		ext.wg.Add(1)
 		defer ext.wg.Done()
 
 		for {
@@ -967,9 +934,9 @@ func (ext *Checker) waitForPodStart(ctx context.Context) chan error {
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
+	ext.wg.Add(1)
 	go func() {
 
-		ext.wg.Add(1)
 		defer ext.wg.Done()
 
 		// watch over and over again until we see our event or run out of time
@@ -1302,11 +1269,6 @@ func (ext *Checker) Shutdown() error {
 		ext.log("Check using pod " + ext.podName() + " killed forcefully.")
 	}
 	return nil
-}
-
-// getPodClient returns a client for Kubernetes pods
-func (ext *Checker) getPodClient() typedv1.PodInterface {
-	return ext.KubeClient.CoreV1().Pods(ext.Namespace)
 }
 
 // resetInjectedContainerEnvVars resets injected environment variables

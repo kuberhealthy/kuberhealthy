@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	v1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
 )
 
@@ -69,7 +70,7 @@ func TestGenerateMetrics(t *testing.T) {
 	}
 	// Test with checks, one good, one bad
 	state = health.State{
-		CheckDetails: map[string]health.WorkloadDetails{
+		CheckDetails: map[string]v1.WorkloadDetails{
 			"good": {
 				OK: true,
 			},
