@@ -13,6 +13,12 @@ prometheus:
   enabled: false
   name: "prometheus"
 
+  grafanaDashboard:
+    enabled: false
+    label: grafana_dashboard
+    labelValue: "1"
+    # namespace: "" # Alternative namespace to use for grafana dashboard.
+
   serviceMonitor:
     enabled: false
     release: prometheus-operator
