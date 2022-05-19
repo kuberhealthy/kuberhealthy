@@ -1,0 +1,5 @@
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: image-download-check
+spec:
