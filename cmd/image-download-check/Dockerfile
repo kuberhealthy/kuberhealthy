@@ -1,4 +1,4 @@
-FROM golang:1.13 AS builder
+FROM golang:1.18.2 AS builder
 WORKDIR /build
 COPY go.mod go.sum /build/
 RUN go mod download
@@ -9,7 +9,10 @@ ENV CGO_ENABLED=0
 RUN go build -v
 RUN groupadd -g 999 user && \
     useradd -r -u 999 -g user user
-FROM scratch
+
+FROM golang:1.18.2
+RUN apt-get update && \
+    apt-get install -y libbtrfs-dev
 COPY --from=builder /etc/passwd /etc/passwd
 USER user
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
