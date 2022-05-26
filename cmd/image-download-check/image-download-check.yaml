@@ -9,13 +9,13 @@ spec:
   podSpec:
     containers:
       - name: image-download-check
-        image: mikeinton/image-download-check:v0.0.1
+        image: kuberhealthy/image-download-check:v0.0.1
         imagePullPolicy: IfNotPresent
         env:
           - name: FULL_IMAGE_URL
             value: "nginx:1.21"
           - name: TIMEOUT_LIMIT
-            value: "30" #### in seconds
+            value: "30s" #### in seconds
         resources:
           requests:
             cpu: 15m
