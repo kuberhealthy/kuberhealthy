@@ -75,7 +75,7 @@ func main() {
 			log.Println("there was an error reporting success to KH ", err)
 		}
 	} else {
-		err = reportKHFailure("error reporting KH failure")
+		err = reportKHFailure("check has failed, reporting KH failure")
 		if err != nil {
 			log.Println("there was an error reporting failure to KH ", err)
 		}
@@ -111,9 +111,11 @@ func checkPass() bool {
 	// check if time duration to download image is less than our specified timeout limit
 	log.Println("checking to see if", duration, "<", timeoutLimitDuration)
 	if duration < timeoutLimitDuration {
+		log.Println("check passes, download duration is less than timeout limit.")
 		return true
 	}
 
+	log.Println("check fails, download duration is greater than timeout limit.")
 	return false
 }
 
@@ -128,7 +130,7 @@ func downloadImage() (v1.Image, error) {
 	}
 
 	// save image tarball to path
-	err = crane.Save(i, "saved_image", "./image")
+	err = crane.Save(i, "emptytag", "/dev/null")
 	if err != nil {
 		return nil, err
 	}
