@@ -2,4 +2,25 @@ apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
   name: image-download-check
+  namespace: kuberhealthy
 spec:
+  runInterval: 2m
+  timeout: 10m
+  podSpec:
+    containers:
+      - name: image-download-check
+        image: mikeinton/image-download-check:v0.0.1
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: FULL_IMAGE_URL
+            value: "nginx:1.21"
+          - name: TIMEOUT_LIMIT
+            value: "30" #### in seconds
+        resources:
+          requests:
+            cpu: 15m
+            memory: 15Mi
+          limits:
+            cpu: 25m
+    restartPolicy: Always
+    terminationGracePeriodSeconds: 5
