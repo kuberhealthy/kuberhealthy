@@ -46,6 +46,7 @@ spec:
           {{- end }}
         {{- if .Values.securityContext.enabled }}
         securityContext:
+          runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
           readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
         {{- end }}
