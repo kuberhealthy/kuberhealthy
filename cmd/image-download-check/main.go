@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -14,6 +13,14 @@ import (
 
 var (
 
+	// fullImageURL is the full registry + image name + tag URL for ease of testing
+	fullImageURL = os.Getenv("FULL_IMAGE_URL")
+
+	// timeoutLimit sets the maximum amount of time in seconds that an
+	// an expected image pull should not breach
+	timeoutLimit = os.Getenv("TIMEOUT_LIMIT")
+
+	// TODO: Implement granular registry URL, image name, and image tag specification
 	/*
 		// privateRegistryURL sets the URL for a private image registry
 		privateRegistryURL = os.Getenv("PRIVATE_REGISTRY_URL")
@@ -24,13 +31,6 @@ var (
 		// imageTag sets the tag for the impage to be pulled
 		imageTag = os.Getenv("IMAGE_TAG")
 	*/
-
-	// fullImageURL is the full registry + image name + tag URL for ease of testing
-	fullImageURL = os.Getenv("FULL_IMAGE_URL")
-
-	// timeoutLimit sets the maximum amount of time in seconds that an
-	// an expected image pull should not breach
-	timeoutLimit = os.Getenv("TIMEOUT_LIMIT")
 )
 
 func init() {
@@ -38,6 +38,12 @@ func init() {
 	// set debug mode for nodeCheck pkg
 	nodeCheck.EnableDebugOutput()
 
+	// check to make sure fullImageURL string is provided
+	if fullImageURL == "" {
+		reportErrorAndStop("No FULL_IMAGE_URL string provided in YAML")
+	}
+
+	// TODO: Implement granular registry URL, image name, and image tag specification
 	/*
 		// check to make sure privateRegistryURL string is provided
 		if privateRegistryURL == "" {
@@ -53,24 +59,26 @@ func init() {
 			reportErrorAndStop("No IMAGE_TAG string provided in YAML")
 		}
 	*/
-
-	// check to make sure fullImageURL string is provided
-	if fullImageURL == "" {
-		reportErrorAndStop("No FULL_IMAGE_URL string provided in YAML")
-	}
-
 }
 
 func main() {
+
+	var err error
 
 	// run check
 	pass := checkPass()
 
 	// report to kh
 	if pass {
-		log.Println("it passed!")
+		err = reportKHSuccess()
+		if err != nil {
+			log.Println("there was an error reporting success to KH ", err)
+		}
 	} else {
-		log.Println("it failed =(")
+		err = reportKHFailure("error reporting KH failure")
+		if err != nil {
+			log.Println("there was an error reporting failure to KH ", err)
+		}
 	}
 
 }
@@ -92,16 +100,17 @@ func checkPass() bool {
 	// calculate time it took to complete image download
 	endTime := time.Now()
 	duration := endTime.Sub(startTime)
-	durationSeconds := int(duration.Seconds())
-	log.Println("image took this long to download: ", durationSeconds)
+	log.Println("image took this many seconds to download: ", duration.Seconds())
 
 	// determine if duration exceeds the time limit threshold
-	timeoutLimitInt, err := strconv.Atoi(timeoutLimit)
+	timeoutLimitDuration, err := time.ParseDuration(timeoutLimit)
 	if err != nil {
 		log.Println("there was an error converting string of timeoutLimit to an int ", err)
 	}
 
-	if durationSeconds < timeoutLimitInt {
+	// check if time duration to download image is less than our specified timeout limit
+	log.Println("checking to see if", duration, "<", timeoutLimitDuration)
+	if duration < timeoutLimitDuration {
 		return true
 	}
 
