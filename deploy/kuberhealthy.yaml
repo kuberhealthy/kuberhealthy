@@ -13171,20 +13171,6 @@ rules:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRoleBinding
 metadata:
-  name: kuberhealthy
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kuberhealthy
-subjects:
-- kind: ServiceAccount
-  name: kuberhealthy
-  namespace: kuberhealthy
----
-# Source: kuberhealthy/templates/clusterrolebinding.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRoleBinding
-metadata:
   name: kuberhealthy-daemonset-khcheck
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -13193,6 +13179,20 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: daemonset-khcheck
+  namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/clusterrolebinding.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRoleBinding
+metadata:
+  name: kuberhealthy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kuberhealthy
+subjects:
+- kind: ServiceAccount
+  name: kuberhealthy
   namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
@@ -13385,6 +13385,7 @@ spec:
           runAsNonRoot: true
           runAsUser: 999
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -13491,6 +13492,7 @@ spec:
         limits:
           cpu: 40m
       securityContext:
+        runAsNonRoot: true
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
     restartPolicy: Never
@@ -13526,6 +13528,7 @@ spec:
             cpu: 10m
             memory: 50Mi
         securityContext:
+          runAsNonRoot: true
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
     serviceAccountName: dns-internal-sa

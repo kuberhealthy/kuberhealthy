@@ -13386,6 +13386,7 @@ spec:
           runAsNonRoot: true
           runAsUser: 999
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -13492,6 +13493,7 @@ spec:
         limits:
           cpu: 40m
       securityContext:
+        runAsNonRoot: true
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
     restartPolicy: Never
@@ -13527,6 +13529,7 @@ spec:
             cpu: 10m
             memory: 50Mi
         securityContext:
+          runAsNonRoot: true
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
     serviceAccountName: dns-internal-sa
