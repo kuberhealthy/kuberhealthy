@@ -19,9 +19,9 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
           - name: FULL_IMAGE_URL
-            value: "nginx:1.21"
+            value: "nginx:1.21"   #### example: docker pull nginx:1.21
           - name: TIMEOUT_LIMIT
-            value: "180s" #### in seconds
+            value: "180s"         #### in seconds
         resources:
           requests:
             cpu: 15m

@@ -16,21 +16,9 @@ var (
 	// fullImageURL is the full registry + image name + tag URL for ease of testing
 	fullImageURL = os.Getenv("FULL_IMAGE_URL")
 
-	// timeoutLimit sets the maximum amount of time in seconds that an
-	// an expected image pull should not breach
+	// timeoutLimit sets the maximum amount of time in seconds that an expected
+	// image pull from a configured registry should not breach
 	timeoutLimit = os.Getenv("TIMEOUT_LIMIT")
-
-	// TODO: Implement granular registry URL, image name, and image tag specification
-	/*
-		// privateRegistryURL sets the URL for a private image registry
-		privateRegistryURL = os.Getenv("PRIVATE_REGISTRY_URL")
-
-		// imageName sets the name for the image to be pulled
-		imageName = os.Getenv("IMAGE_NAME")
-
-		// imageTag sets the tag for the impage to be pulled
-		imageTag = os.Getenv("IMAGE_TAG")
-	*/
 )
 
 func init() {
@@ -42,23 +30,6 @@ func init() {
 	if fullImageURL == "" {
 		reportErrorAndStop("No FULL_IMAGE_URL string provided in YAML")
 	}
-
-	// TODO: Implement granular registry URL, image name, and image tag specification
-	/*
-		// check to make sure privateRegistryURL string is provided
-		if privateRegistryURL == "" {
-			reportErrorAndStop("No PRIVATE_REGISTRY_URL string provided in YAML")
-		}
-
-		// check to make sure imageName string is provided
-		if imageName == "" {
-			reportErrorAndStop("No IMAGE_NAME string provided in YAML")
-		}
-		// check to make sure imageTag string is provided
-		if imageTag == "" {
-			reportErrorAndStop("No IMAGE_TAG string provided in YAML")
-		}
-	*/
 }
 
 func main() {
@@ -68,23 +39,22 @@ func main() {
 	// run check
 	pass := checkPass()
 
-	// report to kh
+	// report success or failure to Kuberhealthy servers
 	if pass {
 		err = reportKHSuccess()
 		if err != nil {
-			log.Println("there was an error reporting success to KH ", err)
+			log.Println("there was an error reporting success to KH", err)
 		}
 	} else {
-		err = reportKHFailure("check has failed, reporting KH failure")
+		err = reportKHFailure("check has failed, reporting failure to KH")
 		if err != nil {
-			log.Println("there was an error reporting failure to KH ", err)
+			log.Println("there was an error reporting failure to KH", err)
 		}
 	}
-
 }
 
 // checkPass implements the logic to pull an image, track a start and end time, then
-// determines if the actual pull time is greater than the expected limit threshold
+// determines if the actual pull time is greater than the specified timeoutLimit
 func checkPass() bool {
 
 	// initialize a start time
@@ -119,11 +89,10 @@ func checkPass() bool {
 	return false
 }
 
+// downloadImage pulls an image from a specified fullImageURL
 func downloadImage() (v1.Image, error) {
 
 	// pull image
-	// i, err := crane.Pull("balenalib/rpi-alpine-node")
-	// i, err := crane.Pull("docker-proto.repo.theplatform.com/kube-deploy:1.22")
 	i, err := crane.Pull(fullImageURL)
 	if err != nil {
 		return nil, err
