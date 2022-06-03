@@ -85,6 +85,7 @@ spec:
           runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
           runAsUser: {{ .Values.securityContext.runAsUser }}
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
         imagePullPolicy: {{ .Values.deployment.imagePullPolicy }}
         livenessProbe:
           failureThreshold: 3
