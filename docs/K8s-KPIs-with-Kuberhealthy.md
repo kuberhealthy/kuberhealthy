@@ -90,7 +90,29 @@ To get status page view of these checks, you'll need to either expose the `kuber
 
 This JSON page displays all Kuberhealthy checks running in your cluster. If you have Kuberhealthy checks running in different namespaces, you can filter them by adding the `GET` variable `namespace` parameter: `?namespace=kuberhealthy,kube-system` onto the status page URL.
 
+#### Custom Fields in Status Page
 
+Sometimes it is desirable to add custom static data to status page to get a more enriched health report.
+The extra status page fields are read and parsed from kuberhealthy.yaml config file which can bet set via helm chart values:
+
+```yaml
+stateMetadata:
+  ClusterName: "my-cluster-name"
+  ClusterVersion: "1.24"
+```
+
+It will create a status page with metadata:
+
+```json
+{
+    "OK": true,
+    // other standard fields
+    "Metadata": {
+      "ClusterName": "my-cluster-name",
+      "ClusterVersion": "1.22"
+    }
+}
+```
 ### Writing Your Own Checks
 
 Kuberhealthy is designed to be extended with custom check containers that can be written by anyone to check anything. These checks can be written in any language as long as they are packaged in a container. This makes Kuberhealthy an excellent platform for creating your own synthetic checks!
