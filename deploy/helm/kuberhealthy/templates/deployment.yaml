@@ -108,13 +108,9 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          {{- if .Values.deployment.env.KH_EXTERNAL_REPORTING_URL }}
-          - name: KH_EXTERNAL_REPORTING_URL
-            value: {{ .Values.deployment.env.KH_EXTERNAL_REPORTING_URL }}
-          {{- end }}
-          {{- if .Values.deployment.env.CHECK_REAPER_RUN_INTERVAL }}
-          - name: CHECK_REAPER_RUN_INTERVAL
-            value: {{ .Values.deployment.env.CHECK_REAPER_RUN_INTERVAL }}
+          {{- range $key, $value := .Values.deployment.env }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
           {{- end }}
         readinessProbe:
           failureThreshold: 3

@@ -1,6 +1,8 @@
 IMAGE="kuberhealthy/kuberhealthy"
 TAG="unstable"
 
+.PHONY: build build-dev push test run run-influx
+
 build:
 	docker build --no-cache --pull -t ${IMAGE}:${TAG} -f Dockerfile ../../
 build-dev:
