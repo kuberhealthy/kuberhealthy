@@ -25,9 +25,9 @@ spec:
             value: {{ $value | quote }}
 {{- end }}
         {{- if .Values.imageRegistry }}
-        image: {{ .Values.imageRegistry }}/{{ .Values.check.dnsInternal.image.repository }}:{{ .Values.check.dnsInternal.image.tag }}
+        image: "{{ .Values.imageRegistry }}/{{ .Values.check.dnsInternal.image.repository }}:{{ .Values.check.dnsInternal.image.tag }}"
         {{- else if .Values.check.dnsInternal.image.registry }}
-        image: {{ .Values.check.dnsInternal.image.registry }}/{{ .Values.check.dnsInternal.image.repository }}:{{ .Values.check.dnsInternal.image.tag }}
+        image: "{{ .Values.check.dnsInternal.image.registry }}/{{ .Values.check.dnsInternal.image.repository }}:{{ .Values.check.dnsInternal.image.tag }}"
         {{- end }}
         imagePullPolicy: IfNotPresent
         name: main
