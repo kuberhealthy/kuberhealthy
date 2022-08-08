@@ -7,4 +7,4 @@ Kuberhealthy serves Prometheus metrics at the `/metrics` endpoint.  If you are u
   helm install kuberhealthy kuberhealthy/kuberhealthy --set prometheus.enabled=true  --set prometheus.prometheusRule.enabled=true
 ```
 
-Alternatively, you can use the static files that are generated from the helm chart auotmatically whenever the chart changes [here](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy-prometheus.yaml).
+Alternatively, you can use the static files that are generated from the helm chart automatically whenever the chart changes [here](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy-prometheus.yaml).
