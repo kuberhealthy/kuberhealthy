@@ -11,8 +11,13 @@ import (
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
 )
 
+type PromMetricsConfig struct {
+	SuppressErrorLabel  bool `yaml:"suppressErrorLabel,omitempty"`  // do we want to supress error label in metrics output(default: false)
+	ErrorLabelMaxLength int  `yaml:"errorLabelMaxLength,omitempty"` // if not suppress, then bound the error label value length to a number of bytes
+}
+
 //GenerateMetrics takes the state and returns it in the Prometheus format
-func GenerateMetrics(state health.State) string {
+func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 	metricsOutput := ""
 	healthStatus := "0"
 	if state.OK {
@@ -44,8 +49,16 @@ func GenerateMetrics(state health.State) string {
 			}
 			errors = strings.TrimSuffix(errors, "|")
 		}
-		errors = strings.ReplaceAll(errors, "\"", "'")
-		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\",namespace=\"%s\",status=\"%s\",error=\"%s\"}", c, d.Namespace, checkStatus, errors)
+		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\",namespace=\"%s\",status=\"%s\"", c, d.Namespace, checkStatus)
+		if !config.SuppressErrorLabel {
+			errors = strings.ReplaceAll(errors, "\"", "'")
+			if config.ErrorLabelMaxLength > 0 {
+				errors = errors[0:config.ErrorLabelMaxLength]
+			}
+			metricName += fmt.Sprintf(",error=\"%s\"}", errors)
+		} else {
+			metricName += "}"
+		}
 		metricDurationName := fmt.Sprintf("kuberhealthy_check_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		metricCheckState[metricName] = checkStatus
 
@@ -72,7 +85,16 @@ func GenerateMetrics(state health.State) string {
 				errors += fmt.Sprintf("%s|", error)
 			}
 		}
-		metricName := fmt.Sprintf("kuberhealthy_job{check=\"%s\",namespace=\"%s\",status=\"%s\",error=\"%s\"}", c, d.Namespace, jobStatus, errors)
+		metricName := fmt.Sprintf("kuberhealthy_job{check=\"%s\",namespace=\"%s\",status=\"%s\"", c, d.Namespace, jobStatus)
+		if !config.SuppressErrorLabel {
+			errors = strings.ReplaceAll(errors, "\"", "'")
+			if config.ErrorLabelMaxLength > 0 {
+				errors = errors[0:config.ErrorLabelMaxLength]
+			}
+			metricName += fmt.Sprintf(",error=\"%s\"}", errors)
+		} else {
+			metricName += "}"
+		}
 		metricDurationName := fmt.Sprintf("kuberhealthy_job_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		metricJobState[metricName] = jobStatus
 
