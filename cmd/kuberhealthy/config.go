@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/codingsince1985/checksum"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/metrics"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -13,19 +14,20 @@ import (
 // Config holds all configurable options
 type Config struct {
 	kubeConfigFile            string
-	ListenAddress             string        `yaml:"listenAddress,omitempty"`
-	EnableForceMaster         bool          `yaml:"enableForceMaster,omitempty"`
-	LogLevel                  string        `yaml:"logLevel,omitempty"`
-	InfluxUsername            string        `yaml:"influxUsername,omitempty"`
-	InfluxPassword            string        `yaml:"influxPassword,omitempty"`
-	InfluxURL                 string        `yaml:"influxURL,omitempty"`
-	InfluxDB                  string        `yaml:"influxDB,omitempty"`
-	EnableInflux              bool          `yaml:"enableInflux,omitempty"`
-	ExternalCheckReportingURL string        `yaml:"externalCheckReportingURL,omitempty"`
-	MaxKHJobAge               time.Duration `yaml:"maxKHJobAge,omitempty"`
-	MaxCheckPodAge            time.Duration `yaml:"maxCheckPodAge,omitempty"`
-	MaxCompletedPodCount      int           `yaml:"maxCompletedPodCount,omitempty"`
-	MaxErrorPodCount          int           `yaml:"maxErrorPodCount,omitempty"`
+	ListenAddress             string                    `yaml:"listenAddress,omitempty"`
+	EnableForceMaster         bool                      `yaml:"enableForceMaster,omitempty"`
+	LogLevel                  string                    `yaml:"logLevel,omitempty"`
+	InfluxUsername            string                    `yaml:"influxUsername,omitempty"`
+	InfluxPassword            string                    `yaml:"influxPassword,omitempty"`
+	InfluxURL                 string                    `yaml:"influxURL,omitempty"`
+	InfluxDB                  string                    `yaml:"influxDB,omitempty"`
+	EnableInflux              bool                      `yaml:"enableInflux,omitempty"`
+	ExternalCheckReportingURL string                    `yaml:"externalCheckReportingURL,omitempty"`
+	MaxKHJobAge               time.Duration             `yaml:"maxKHJobAge,omitempty"`
+	MaxCheckPodAge            time.Duration             `yaml:"maxCheckPodAge,omitempty"`
+	MaxCompletedPodCount      int                       `yaml:"maxCompletedPodCount,omitempty"`
+	MaxErrorPodCount          int                       `yaml:"maxErrorPodCount,omitempty"`
+	PromMetricsConfig         metrics.PromMetricsConfig `yaml:"promMetricsConfig,omitempty"`
 }
 
 // Load loads file from disk
