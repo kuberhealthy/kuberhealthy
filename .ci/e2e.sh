@@ -9,6 +9,10 @@
 NS=kuberhealthy
 name=kuberhealthy
 
+# if unset use "unstable" - useful for local dev testing
+GITHUB_RUN_ID="${GITHUB_RUN_ID:-unstable}"
+echo "Kuberhealthy image tag : $GITHUB_RUN_ID"
+
 # Create namespace
 kubectl create namespace $NS
 
@@ -17,7 +21,7 @@ sleep 2
 
 # Use helm to install kuberhealthy
 # the image repository and tag must match the build that just took place
-helm install -n $NS --set global.image.repository=kuberhealthy,global.image.tag=$GITHUB_RUN_ID -f .ci/values.yaml  $name deploy/helm/kuberhealthy
+helm install -n $NS --set image.repository=kuberhealthy,image.tag=$GITHUB_RUN_ID -f .ci/values.yaml  $name deploy/helm/kuberhealthy
 
 kubectl -n $NS get khc
 
