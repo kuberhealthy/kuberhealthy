@@ -121,6 +121,18 @@ func TestGenerateMetrics(t *testing.T) {
 	if metrics[`kuberhealthy_check{check="bad",namespace="",status="0",error="1234"}`] != "0" {
 		t.Fatal("Kuberhealthy bad error label check does not match - test 3", metrics)
 	}
+	state = health.State{
+		CheckDetails: map[string]khstatev1.WorkloadDetails{
+			"bad": {
+				Errors: []string{"123"},
+			},
+		},
+	}
+	result = GenerateMetrics(state, PromMetricsConfig{SuppressErrorLabel: false, ErrorLabelMaxLength: 10})
+	metrics = parseMetrics(result)
+	if metrics[`kuberhealthy_check{check="bad",namespace="",status="0",error="123"}`] != "0" {
+		t.Fatal("Kuberhealthy bad error label check does not match - test 4", metrics)
+	}
 }
 
 func TestErrorStateMetrics(t *testing.T) {

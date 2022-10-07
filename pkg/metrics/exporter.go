@@ -16,6 +16,28 @@ type PromMetricsConfig struct {
 	ErrorLabelMaxLength int  `yaml:"errorLabelMaxLength,omitempty"` // if not suppress, then bound the error label value length to a number of bytes
 }
 
+// promMetricName: helper fn for GenerateMetrics, does a quick format of the metric line - checkOrJob is literally the string "check" or "job"
+func promMetricName(config PromMetricsConfig, checkOrJob string, checkName string, namespace string, status string, errors []string) string {
+	metricName := fmt.Sprintf("kuberhealthy_%s{check=\"%s\",namespace=\"%s\",status=\"%s\"", checkOrJob, checkName, namespace, status)
+	if !config.SuppressErrorLabel {
+		errorsStr := ""
+		if len(errors) > 0 {
+			for _, error := range errors {
+				errorsStr += fmt.Sprintf("%s|", error)
+			}
+			errorsStr = strings.TrimSuffix(errorsStr, "|")
+			errorsStr = strings.ReplaceAll(errorsStr, "\"", "'")
+		}
+		if config.ErrorLabelMaxLength > 0 && len(errorsStr) > config.ErrorLabelMaxLength {
+			errorsStr = errorsStr[0:config.ErrorLabelMaxLength]
+		}
+		metricName += fmt.Sprintf(",error=\"%s\"}", errorsStr)
+	} else {
+		metricName += "}"
+	}
+	return metricName
+}
+
 //GenerateMetrics takes the state and returns it in the Prometheus format
 func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 	metricsOutput := ""
@@ -42,23 +64,7 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 		if d.OK {
 			checkStatus = "1"
 		}
-		errors := ""
-		if len(d.Errors) > 0 {
-			for _, error := range d.Errors {
-				errors += fmt.Sprintf("%s|", error)
-			}
-			errors = strings.TrimSuffix(errors, "|")
-		}
-		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\",namespace=\"%s\",status=\"%s\"", c, d.Namespace, checkStatus)
-		if !config.SuppressErrorLabel {
-			errors = strings.ReplaceAll(errors, "\"", "'")
-			if config.ErrorLabelMaxLength > 0 {
-				errors = errors[0:config.ErrorLabelMaxLength]
-			}
-			metricName += fmt.Sprintf(",error=\"%s\"}", errors)
-		} else {
-			metricName += "}"
-		}
+		metricName := promMetricName(config, "check", c, d.Namespace, checkStatus, d.Errors)
 		metricDurationName := fmt.Sprintf("kuberhealthy_check_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		metricCheckState[metricName] = checkStatus
 
@@ -79,22 +85,7 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 		if d.OK {
 			jobStatus = "1"
 		}
-		errors := ""
-		if len(d.Errors) > 0 {
-			for _, error := range d.Errors {
-				errors += fmt.Sprintf("%s|", error)
-			}
-		}
-		metricName := fmt.Sprintf("kuberhealthy_job{check=\"%s\",namespace=\"%s\",status=\"%s\"", c, d.Namespace, jobStatus)
-		if !config.SuppressErrorLabel {
-			errors = strings.ReplaceAll(errors, "\"", "'")
-			if config.ErrorLabelMaxLength > 0 {
-				errors = errors[0:config.ErrorLabelMaxLength]
-			}
-			metricName += fmt.Sprintf(",error=\"%s\"}", errors)
-		} else {
-			metricName += "}"
-		}
+		metricName := promMetricName(config, "job", c, d.Namespace, jobStatus, d.Errors)
 		metricDurationName := fmt.Sprintf("kuberhealthy_job_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		metricJobState[metricName] = jobStatus
 
