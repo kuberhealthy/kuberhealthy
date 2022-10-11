@@ -1,5 +1,5 @@
-build:
-	docker build -t kuberhealthy/network-connection-check:v0.2.0 -f Dockerfile ../../
+include ../../Makefile.common.mk
 
-push:
-	docker push kuberhealthy/network-connection-check:v0.2.0
+BUILDER := "dockerx-network-connection-check"
+IMAGE := "kuberhealthy/network-connection-check"
+TAG := "v0.2.0"
