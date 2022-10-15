@@ -17,10 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: build container
-        run: docker build --file cmd/kuberhealthy/Dockerfile --tag $IMAGE_NAME .
       - name: Log into docker hub
         run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
       - name: Push new latest image
-        run: |
-            docker push $IMAGE_NAME
+        run: make -C cmd/kuberhealthy push

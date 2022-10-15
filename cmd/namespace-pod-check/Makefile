@@ -1,5 +1,5 @@
-build:
-	docker build -t kuberhealthy/namespace-pod-check:v1.1.0 -f Dockerfile ../../
+include ../../Makefile.common.mk
 
-push:
-	docker push kuberhealthy/namespace-pod-check:v1.1.0
+BUILDER := "dockerx-namespace-pod-check"
+IMAGE := "kuberhealthy/namespace-pod-check"
+TAG := "v1.1.0"

@@ -1,5 +1,5 @@
-build:
-	docker build -t kuberhealthy/resource-quota-check:v1.3.0 -f Dockerfile ../../
+include ../../Makefile.common.mk
 
-push:
-	docker push kuberhealthy/resource-quota-check:v1.3.0
+BUILDER := "dockerx-resource-quota-check"
+IMAGE := "kuberhealthy/resource-quota-check"
+TAG := "v1.3.0"

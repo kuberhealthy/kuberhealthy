@@ -1,12 +1,11 @@
-IMAGE="kuberhealthy/kuberhealthy"
-TAG="unstable"
+include ../../Makefile.common.mk
 
-build:
-	docker build --no-cache --pull -t ${IMAGE}:${TAG} -f Dockerfile ../../
+BUILDER := "dockerx-kuberhealthy"
+IMAGE := "kuberhealthy/kuberhealthy"
+TAG := "unstable"
+
 build-dev:
 	docker build -t kuberhealthy:dev -f Dockerfile ../../
-push:
-	docker push ${IMAGE}:${TAG}
 test:
 	POD_NAME="kuberhealthy-test" go test -run TestWebServer -v -args -- --debug --forceMaster
 run:
