@@ -28,4 +28,7 @@ data:
     maxCheckPodAge: 72h # Maximum age of khcheck/khjob pods before being reaped. Valid time units: "ns", "us" (or "µs"), "ms", "s", "m", "h"
     maxCompletedPodCount: 4 # Maximum number of khcheck/khjob pods in Completed state before being reaped. If not set or set to 0, no completed khjob/khcheck pod will remain.
     maxErrorPodCount: 4 # Maximum number of khcheck/khjob pods in Error state before being reaped. If not set or set to 0, no completed khjob/khcheck pod will remain.
+    promMetricsConfig:
+      suppressErrorLabel: false  # do we want to suppress error label in metrics output
+      errorLabelMaxLength: 0     # if not suppressing and >0, bound the error label value length to a number of bytes, <=0 is unlimited
 ```
