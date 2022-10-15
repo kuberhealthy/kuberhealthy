@@ -48,13 +48,14 @@ func GenerateMetrics(state health.State) string {
 		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\",namespace=\"%s\",status=\"%s\",error=\"%s\"}", c, d.Namespace, checkStatus, errors)
 		metricDurationName := fmt.Sprintf("kuberhealthy_check_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		metricCheckState[metricName] = checkStatus
+
+		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
+		if d.RunDuration == "" {
+			d.RunDuration = time.Duration(0).String()
+		}
 		runDuration, err := time.ParseDuration(d.RunDuration)
 		if err != nil {
 			log.Errorln("Error parsing run duration:", d.RunDuration, "for metric:", metricName, "error:", err)
-		}
-		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
-		if d.RunDuration == "" {
-			runDuration = 0
 		}
 		metricCheckDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
 	}
@@ -74,13 +75,14 @@ func GenerateMetrics(state health.State) string {
 		metricName := fmt.Sprintf("kuberhealthy_job{check=\"%s\",namespace=\"%s\",status=\"%s\",error=\"%s\"}", c, d.Namespace, jobStatus, errors)
 		metricDurationName := fmt.Sprintf("kuberhealthy_job_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		metricJobState[metricName] = jobStatus
+
+		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
+		if d.RunDuration == "" {
+			d.RunDuration = time.Duration(0).String()
+		}
 		runDuration, err := time.ParseDuration(d.RunDuration)
 		if err != nil {
 			log.Errorln("Error parsing run duration:", d.RunDuration, "for metric:", metricName, "error:", err)
-		}
-		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
-		if d.RunDuration == "" {
-			runDuration = 0
 		}
 		metricJobDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
 	}
