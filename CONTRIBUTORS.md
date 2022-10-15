@@ -22,3 +22,4 @@
 - [Zachary Hanson](mailto:Zachary_Hanson@comcast.com)
 - [Zhicheng Li](https://github.com/Hungrylion2019)
 - [Engin Diri](https://twitter.com/_ediri)
+- [McKenna Jones](https://github.com/mckennajones)
