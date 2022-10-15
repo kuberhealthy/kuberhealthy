@@ -4,6 +4,10 @@ BUILDER := "dockerx-kuberhealthy"
 IMAGE := "kuberhealthy/kuberhealthy"
 TAG := "unstable"
 
+.PHONY: test build build-dev push run run-influx
+
+build:
+	docker build --no-cache --pull -t ${IMAGE}:${TAG} -f Dockerfile ../../
 build-dev:
 	docker build -t kuberhealthy:dev -f Dockerfile ../../
 test:
