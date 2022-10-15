@@ -41,8 +41,7 @@ kubectl -n $NS get khs
 
 # If the operator dosen't start for some reason kill the test
 kubectl -n $NS get pods | grep $name
-if [ $? != 0 ]
-then
+if [ $? != 0 ]; then
     echo "No operator pod found"
     exit 1
 fi
