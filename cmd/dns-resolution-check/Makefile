@@ -1,5 +1,5 @@
-build:
-	docker build -t kuberhealthy/dns-resolution-check:v1.5.0 -f Dockerfile ../../
+include ../../Makefile.common.mk
 
-push:
-	docker push kuberhealthy/dns-resolution-check:v1.5.0
+BUILDER := "dockerx-dns-resolution-check"
+IMAGE := "kuberhealthy/dns-resolution-check"
+TAG := "v1.5.0"

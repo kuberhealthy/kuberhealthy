@@ -1,5 +1,5 @@
-build:
-	docker build -t kuberhealthy/kiam-check:v1.3.0 -f Dockerfile ../../
+include ../../Makefile.common.mk
 
-push:
-	docker push kuberhealthy/kiam-check:v1.3.0
+BUILDER := "dockerx-kiam-check"
+IMAGE := "kuberhealthy/kiam-check"
+TAG := "v1.3.0"
