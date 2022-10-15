@@ -31,12 +31,13 @@ helm ls
 
 echo "get all \n"
 kubectl -n $NS get all
+echo "get deployment \n"
+kubectl get deployment -A -o yaml
+kubectl -n $NS get deployment kuberhealthy -o yaml
 echo "get khc  \n"
 kubectl -n $NS get khc
 echo "get khs \n"
 kubectl -n $NS get khs
-echo "get deployment \n"
-kubectl -n $NS get deployment kuberhealthy -o yaml
 
 # If the operator dosen't start for some reason kill the test
 kubectl -n $NS get pods | grep $name
