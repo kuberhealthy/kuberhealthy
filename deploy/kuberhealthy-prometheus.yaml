@@ -13380,7 +13380,7 @@ spec:
                   - kuberhealthy
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - image: kuberhealthy/kuberhealthy:v2.7.1
+      - image: "docker.io/kuberhealthy/kuberhealthy:v2.7.1"
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
@@ -13389,6 +13389,7 @@ spec:
           runAsNonRoot: true
           runAsUser: 999
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -13452,7 +13453,7 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-        image: kuberhealthy/daemonset-check:v3.3.0
+        image: "docker.io/kuberhealthy/daemonset-check:v3.3.0"
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -13479,7 +13480,7 @@ spec:
       fsGroup: 999
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.9.0
+      image: "docker.io/kuberhealthy/deployment-check:v1.9.0"
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
@@ -13495,6 +13496,7 @@ spec:
         limits:
           cpu: 40m
       securityContext:
+        runAsNonRoot: true
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
     restartPolicy: Never
@@ -13522,7 +13524,7 @@ spec:
                 fieldPath: spec.nodeName
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.5.0
+        image: "docker.io/kuberhealthy/dns-resolution-check:v1.5.0"
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -13530,6 +13532,7 @@ spec:
             cpu: 10m
             memory: 50Mi
         securityContext:
+          runAsNonRoot: true
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
     serviceAccountName: dns-internal-sa
