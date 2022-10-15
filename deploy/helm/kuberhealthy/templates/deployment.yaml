@@ -69,7 +69,7 @@ spec:
 {{- end }}
       containers:
       {{- if .Values.imageURL }}
-      - image: ".Values.imageURL"
+      - image: "{{ .Values.imageURL }}"
       {{- else if .Values.imageRegistry }}
       - image: "{{ .Values.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}"
       {{- else if .Values.image.registry }}
