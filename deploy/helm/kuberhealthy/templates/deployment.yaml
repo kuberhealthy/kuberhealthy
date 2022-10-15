@@ -69,9 +69,9 @@ spec:
 {{- end }}
       containers:
       {{- if .Values.imageRegistry }}
-      - image: {{ .Values.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}
+      - image: "{{ .Values.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}"
       {{- else if .Values.image.registry }}
-      - image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}
+      - image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}"
       {{- end }}
         command: {{ .Values.deployment.command }}
         {{- if .Values.deployment.args }}
