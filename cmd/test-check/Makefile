@@ -1,5 +1,5 @@
-build:
-	docker build -t kuberhealthy/test-check:v1.4.0 -f Dockerfile ../../
+include ../../Makefile.common.mk
 
-push:
-	docker push kuberhealthy/test-check:v1.4.0
+BUILDER := "dockerx-test-check"
+IMAGE := "kuberhealthy/test-check"
+TAG := "v1.4.0"
