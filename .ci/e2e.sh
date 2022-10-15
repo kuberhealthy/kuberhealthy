@@ -11,7 +11,7 @@ name=kuberhealthy
 
 # if unset use "unstable" - useful for local dev testing
 GITHUB_RUN_ID="${GITHUB_RUN_ID:-unstable}"
-echo "Kuberhealthy image tag : $GITHUB_RUN_ID"
+echo "Kuberhealthy image tag: $GITHUB_RUN_ID"
 
 # Create namespace
 kubectl create namespace $NS
@@ -35,9 +35,11 @@ echo "get khc  \n"
 kubectl -n $NS get khc
 echo "get khs \n"
 kubectl -n $NS get khs
+echo "get deployment \n"
+kubectl -n $NS get deployment kuberhealthy -o yaml
 
 # If the operator dosen't start for some reason kill the test
-kubectl -n $NS get pods |grep $name
+kubectl -n $NS get pods | grep $name
 if [ $? != 0 ]
 then
     echo "No operator pod found"
