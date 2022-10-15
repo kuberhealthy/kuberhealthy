@@ -1,5 +1,5 @@
-build:
-	docker build -t kuberhealthy/pod-restarts-check:v2.5.0 -f Dockerfile ../../
+include ../../Makefile.common.mk
 
-push:
-	docker push kuberhealthy/pod-restarts-check:v2.5.0
+BUILDER := "dockerx-pod-restarts-check"
+IMAGE := "kuberhealthy/pod-restarts-check"
+TAG := "v2.5.0"
