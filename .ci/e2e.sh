@@ -21,7 +21,7 @@ sleep 2
 
 # Use helm to install kuberhealthy
 # the image repository and tag must match the build that just took place
-helm install -n $NS --set image.repository=kuberhealthy,image.tag=$GITHUB_RUN_ID -f .ci/values.yaml  $name deploy/helm/kuberhealthy
+helm install -n $NS --set imageURL=kuberhealthy:$GITHUB_RUN_ID -f .ci/values.yaml  $name deploy/helm/kuberhealthy
 
 kubectl -n $NS get khc
 
