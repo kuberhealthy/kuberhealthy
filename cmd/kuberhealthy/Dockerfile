@@ -6,6 +6,7 @@ WORKDIR /build/cmd/kuberhealthy
 ENV CGO_ENABLED=0
 RUN go version
 RUN go test -v
+RUN (cd ../../pkg/metrics && go test -v)
 RUN mkdir /app
 RUN groupadd -g 999 user && \
     useradd -r -u 999 -g user user
