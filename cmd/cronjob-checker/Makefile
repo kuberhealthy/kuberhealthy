@@ -1,5 +1,5 @@
-build:
-	docker build -t kuberhealthy/cronjob-checker:v2.1.0 -f Dockerfile ../../
+include ../../Makefile.common.mk
 
-push:
-	docker push kuberhealthy/cronjob-checker:v2.1.0
+BUILDER := "dockerx-cronjob-checker"
+IMAGE := "kuberhealthy/cronjob-checker"
+TAG := "v2.1.0"

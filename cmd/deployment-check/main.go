@@ -28,6 +28,10 @@ var (
 	checkImageURLBEnv = os.Getenv("CHECK_IMAGE_ROLL_TO")
 	checkImageURLB    string
 
+	// Image Pull Secret for check pods
+	checkImagePullSecretEnv = os.Getenv("CHECK_IMAGE_PULL_SECRET")
+	checkImagePullSecret    string
+
 	// Deployment name that will be used for the check (in case an existing deployment uses a similar name).
 	checkDeploymentNameEnv = os.Getenv("CHECK_DEPLOYMENT_NAME")
 	checkDeploymentName    string
