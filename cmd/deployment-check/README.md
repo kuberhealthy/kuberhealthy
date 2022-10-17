@@ -39,6 +39,7 @@ This check follows the list of actions in order during the run of the check:
 
 - `CHECK_IMAGE`: Initial container image. (default=`nginxinc/nginx-unprivileged:1.17.8`)
 - `CHECK_IMAGE_ROLL_TO`: Container image to roll to. (default=`nginxinc/nginx-unprivileged:1.17.9`)
+- `CHECK_IMAGE_PULL_SECRET`: Name of Image Pull Secret to use for above images. 
 - `CHECK_DEPLOYMENT_NAME`: Name for the check's deployment. (default=`deployment-deployment`)
 - `CHECK_SERVICE_NAME`: Name for the check's service. (default=`deployment-svc`)
 - `CHECK_NAMESPACE`: Namespace for the check (default=`kuberhealthy`) The namespace that the `khcheck` CRD lives in will override this value.

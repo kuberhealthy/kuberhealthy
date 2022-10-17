@@ -90,6 +90,12 @@ func createDeploymentConfig(image string) *v1.Deployment {
 		Tolerations:                   checkDeploymentTolerations,
 	}
 
+	if len(checkImagePullSecret) != 0 {
+		var secrets []corev1.LocalObjectReference
+		secrets = append(secrets, corev1.LocalObjectReference{Name: checkImagePullSecret})
+		podSpec.ImagePullSecrets = secrets
+	}
+
 	// Make labels for pod and deployment.
 	labels := make(map[string]string, 0)
 	labels[defaultLabelKey] = defaultLabelValueBase + strconv.Itoa(int(now.Unix()))

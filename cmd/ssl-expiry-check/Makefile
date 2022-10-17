@@ -1,5 +1,5 @@
-build:
-	docker build -t kuberhealthy/ssl-expiry-check:v3.2.0 -f Dockerfile ../../
+include ../../Makefile.common.mk
 
-push:
-	docker push kuberhealthy/ssl-expiry-check:v3.2.0
+BUILDER := "dockerx-ssl-expiry-check"
+IMAGE := "kuberhealthy/ssl-expiry-check"
+TAG := "v3.2.0"
