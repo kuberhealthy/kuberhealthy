@@ -49,6 +49,12 @@ func parseInputValues() {
 		log.Infoln("Parsed CHECK_IMAGE_ROLL_TO:", checkImageURLB)
 	}
 
+	// Parse image pull secret for check image
+	if len(checkImagePullSecretEnv) != 0 {
+		checkImagePullSecret = checkImagePullSecretEnv
+		log.Infoln("Parsed CHECK_IMAGE_PULL_SECRET:", checkImagePullSecret)
+	}
+
 	// Parse incoming check deployment name.
 	checkDeploymentName = defaultCheckDeploymentName
 	if len(checkDeploymentNameEnv) != 0 {

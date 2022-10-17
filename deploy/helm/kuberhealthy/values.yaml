@@ -46,6 +46,9 @@ imageRegistry: ""
 # imagePullSecrets:
 # - name: my-secret-name
 
+# imageURL allows you to override all other nonsense and just specify the full image URL you want to pull
+#imageURL: docker.io/kuberhealthy/kuberhealthy:v1.6.0
+
 image:
   registry: docker.io
   repository: kuberhealthy/kuberhealthy

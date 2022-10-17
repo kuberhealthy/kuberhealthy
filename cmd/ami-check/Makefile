@@ -1,5 +1,5 @@
-build:
-	docker build -t kuberhealthy/ami-check:v1.4.0 -f Dockerfile ../../
+include ../../Makefile.common.mk
 
-push:
-		docker push kuberhealthy/ami-check:v1.4.0
+BUILDER := "dockerx-ami-check"
+IMAGE := "kuberhealthy/ami-check"
+TAG := "v1.4.0"

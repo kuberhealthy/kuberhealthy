@@ -1,5 +1,5 @@
-build:
-	docker build -t kuberhealthy/pod-status-check:v1.3.0 -f Dockerfile ../../
+include ../../Makefile.common.mk
 
-push:
-	docker push kuberhealthy/pod-status-check:v1.3.0
+BUILDER := "dockerx-pod-status-check"
+IMAGE := "kuberhealthy/pod-status-check"
+TAG := "v1.3.0"
