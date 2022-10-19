@@ -689,7 +689,12 @@ func rollingUpdateComplete(ctx context.Context, statuses map[string]bool, oldPod
 // rolledPodsAreReady checks if a deployments pods have been updated and are available.
 // Returns true if all replicas are up, ready, and the deployment generation is greater than 1.
 func rolledPodsAreReady(d *v1.Deployment) bool {
-	return d.Status.Replicas == int32(checkDeploymentReplicas) && d.Status.AvailableReplicas == int32(checkDeploymentReplicas) && d.Status.ReadyReplicas == int32(checkDeploymentReplicas) && d.Status.ObservedGeneration > 1
+	return d.Status.Replicas == int32(checkDeploymentReplicas) &&
+	d.Status.UpdatedReplicas == int32(checkDeploymentReplicas) &&
+	d.Status.AvailableReplicas == int32(checkDeploymentReplicas) &&
+	d.Status.ReadyReplicas == int32(checkDeploymentReplicas) &&
+	d.Status.UnavailableReplicas < 1 &&
+	d.Status.ObservedGeneration > 1
 }
 
 // deploymentAvailable checks the status conditions of the deployment and returns a boolean.
@@ -698,7 +703,13 @@ func deploymentAvailable(deployment *v1.Deployment) bool {
 	for _, condition := range deployment.Status.Conditions {
 		if condition.Type == v1.DeploymentAvailable && condition.Status == corev1.ConditionTrue {
 			log.Infoln("Deployment is reporting", condition.Type, "with", condition.Status+".")
-			return true
+			if deployment.Status.Replicas == int32(checkDeploymentReplicas) &&
+			deployment.Status.AvailableReplicas == int32(checkDeploymentReplicas) &&
+			deployment.Status.ReadyReplicas == int32(checkDeploymentReplicas) &&
+			deployment.Status.ObservedGeneration == 1 {
+				log.Infoln(deployment.Status.AvailableReplicas, "deployment pods are ready and available.")
+				return true
+			}
 		}
 	}
 	return false
