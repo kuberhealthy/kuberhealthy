@@ -42,6 +42,10 @@ prometheus:
 # By default if no overrides are specified, all images are pulled from Docker Hub.  Do not include a trailing '/'.
 imageRegistry: ""
 
+# Global imagePullSecrets setting for all images.
+# imagePullSecrets:
+# - name: my-secret-name
+
 # imageURL allows you to override all other nonsense and just specify the full image URL you want to pull
 #imageURL: docker.io/kuberhealthy/kuberhealthy:v1.6.0
 
