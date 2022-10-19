@@ -67,6 +67,10 @@ spec:
               topologyKey: "kubernetes.io/hostname"
 {{- end }}
 {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{ toYaml .Values.imagePullSecrets | indent 2 }}
+      {{- end }}
       containers:
       {{- if .Values.imageURL }}
       - image: "{{ .Values.imageURL }}"
