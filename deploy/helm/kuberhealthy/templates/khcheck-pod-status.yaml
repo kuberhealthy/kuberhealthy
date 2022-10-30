@@ -13,6 +13,10 @@ spec:
       runAsUser: {{ .Values.securityContext.runAsUser }}
       fsGroup: {{ .Values.securityContext.fsGroup }}
     {{- end}}
+    {{- if .Values.imagePullSecrets }}
+    imagePullSecrets:
+      {{ toYaml .Values.imagePullSecrets | indent 2 }}
+    {{- end }}
     containers:
       - env:
           - name: SKIP_DURATION
@@ -28,9 +32,9 @@ spec:
             value: {{ $value | quote }}
 {{- end }}
         {{- if .Values.imageRegistry }}
-        image: {{ .Values.imageRegistry }}/{{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
+        image: "{{ .Values.imageRegistry }}/{{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}"
         {{- else if .Values.check.podStatus.image.registry }}
-        image: {{ .Values.check.podStatus.image.registry }}/{{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}
+        image: "{{ .Values.check.podStatus.image.registry }}/{{ .Values.check.podStatus.image.repository }}:{{ .Values.check.podStatus.image.tag }}"
         {{- end }}
         imagePullPolicy: IfNotPresent
         name: main
@@ -52,7 +56,7 @@ spec:
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
           readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
         {{- end }}
-    
+
     {{- if .Values.check.podStatus.nodeSelector }}
     nodeSelector:
 {{- toYaml .Values.check.podStatus.nodeSelector | nindent 6 }}

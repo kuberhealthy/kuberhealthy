@@ -14,6 +14,10 @@ spec:
       runAsUser: {{ .Values.securityContext.runAsUser }}
       fsGroup: {{ .Values.securityContext.fsGroup }}
     {{- end}}
+    {{- if .Values.imagePullSecrets }}
+    imagePullSecrets:
+      {{ toYaml .Values.imagePullSecrets | indent 2 }}
+    {{- end }}
     containers:
       - env:
           - name: NODE_NAME
@@ -25,9 +29,9 @@ spec:
             value: {{ $value | quote }}
 {{- end }}
         {{- if .Values.imageRegistry }}
-        image: {{ .Values.imageRegistry }}/{{ .Values.check.dnsInternal.image.repository }}:{{ .Values.check.dnsInternal.image.tag }}
+        image: "{{ .Values.imageRegistry }}/{{ .Values.check.dnsInternal.image.repository }}:{{ .Values.check.dnsInternal.image.tag }}"
         {{- else if .Values.check.dnsInternal.image.registry }}
-        image: {{ .Values.check.dnsInternal.image.registry }}/{{ .Values.check.dnsInternal.image.repository }}:{{ .Values.check.dnsInternal.image.tag }}
+        image: "{{ .Values.check.dnsInternal.image.registry }}/{{ .Values.check.dnsInternal.image.repository }}:{{ .Values.check.dnsInternal.image.tag }}"
         {{- end }}
         imagePullPolicy: IfNotPresent
         name: main
@@ -46,6 +50,7 @@ spec:
           {{- end }}
         {{- if .Values.securityContext.enabled }}
         securityContext:
+          runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
           readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
         {{- end }}
@@ -60,23 +65,9 @@ spec:
     serviceAccountName: dns-internal-sa
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRole
 metadata:
-  name: dns-internal-check-rb
-  namespace: {{ .Release.Namespace }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: dns-internal-service-role
-subjects:
-  - kind: ServiceAccount
-    name: dns-internal-sa
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: dns-internal-service-role
-  namespace: {{ .Release.Namespace }}
+  name: dns-internal-service-cr
 rules:
   - apiGroups:
       - ""
@@ -84,6 +75,19 @@ rules:
       - nodes
     verbs:
       - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dns-internal-service-crb
+roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: dns-internal-service-cr
+subjects:
+  - kind: ServiceAccount
+    name: dns-internal-sa
+    namespace: {{ .Release.Namespace }}
 ---
 apiVersion: v1
 kind: ServiceAccount

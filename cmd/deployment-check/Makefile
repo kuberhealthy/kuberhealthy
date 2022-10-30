@@ -1,8 +1,5 @@
-IMAGE="kuberhealthy/deployment-check"
-TAG="v1.9.0"
+include ../../Makefile.common.mk
 
-build:
-	docker build -t ${IMAGE}:${TAG} -f Dockerfile ../../
-
-push:
-	docker push ${IMAGE}:${TAG}
+BUILDER := "dockerx-deployment-check"
+IMAGE := "kuberhealthy/deployment-check"
+TAG := "v1.9.0"

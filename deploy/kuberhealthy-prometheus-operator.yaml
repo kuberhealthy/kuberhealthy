@@ -13088,19 +13088,6 @@ metadata:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRole
 metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
   name: kuberhealthy
 rules:
   - apiGroups:
@@ -13167,6 +13154,32 @@ rules:
     verbs:
     - create
 ---
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
+metadata:
+  name: kuberhealthy-daemonset-khcheck
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
+---
+# Source: kuberhealthy/templates/khcheck-dns-internal.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dns-internal-service-cr
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+---
 # Source: kuberhealthy/templates/clusterrolebinding.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRoleBinding
@@ -13194,6 +13207,20 @@ subjects:
 - kind: ServiceAccount
   name: daemonset-khcheck
   namespace: kuberhealthy
+---
+# Source: kuberhealthy/templates/khcheck-dns-internal.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dns-internal-service-crb
+roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: dns-internal-service-cr
+subjects:
+  - kind: ServiceAccount
+    name: dns-internal-sa
+    namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -13259,20 +13286,6 @@ rules:
       - list
       - watch
 ---
-# Source: kuberhealthy/templates/khcheck-dns-internal.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: dns-internal-service-role
-  namespace: kuberhealthy
-rules:
-  - apiGroups:
-      - ""
-    resources:
-      - nodes
-    verbs:
-      - get
----
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -13300,20 +13313,6 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: deployment-sa
----
-# Source: kuberhealthy/templates/khcheck-dns-internal.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: dns-internal-check-rb
-  namespace: kuberhealthy
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: dns-internal-service-role
-subjects:
-  - kind: ServiceAccount
-    name: dns-internal-sa
 ---
 # Source: kuberhealthy/templates/service.yaml
 apiVersion: v1
@@ -13377,7 +13376,7 @@ spec:
                   - kuberhealthy
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - image: kuberhealthy/kuberhealthy:v2.7.0
+      - image: "docker.io/kuberhealthy/kuberhealthy:v2.7.1"
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
@@ -13386,6 +13385,7 @@ spec:
           runAsNonRoot: true
           runAsUser: 999
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -13449,7 +13449,7 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_POD_TIMEOUT
             value: "10m"
-        image: kuberhealthy/daemonset-check:v3.3.0
+        image: "docker.io/kuberhealthy/daemonset-check:v3.3.0"
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -13476,7 +13476,7 @@ spec:
       fsGroup: 999
     containers:
     - name: deployment
-      image: kuberhealthy/deployment-check:v1.9.0
+      image: "docker.io/kuberhealthy/deployment-check:v1.9.0"
       imagePullPolicy: IfNotPresent
       env:
         - name: CHECK_DEPLOYMENT_REPLICAS
@@ -13492,6 +13492,7 @@ spec:
         limits:
           cpu: 40m
       securityContext:
+        runAsNonRoot: true
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
     restartPolicy: Never
@@ -13519,7 +13520,7 @@ spec:
                 fieldPath: spec.nodeName
           - name: HOSTNAME
             value: "kubernetes.default"
-        image: kuberhealthy/dns-resolution-check:v1.5.0
+        image: "docker.io/kuberhealthy/dns-resolution-check:v1.5.0"
         imagePullPolicy: IfNotPresent
         name: main
         resources:
@@ -13527,6 +13528,7 @@ spec:
             cpu: 10m
             memory: 50Mi
         securityContext:
+          runAsNonRoot: true
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
     serviceAccountName: dns-internal-sa
