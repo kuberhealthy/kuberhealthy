@@ -9,6 +9,10 @@
 NS=kuberhealthy
 name=kuberhealthy
 
+# if unset use "unstable" - useful for local dev testing
+IMAGE_URL="$1"
+echo "Kuberhealthy image: $IMAGE_URL"
+
 # Create namespace
 kubectl create namespace $NS
 
@@ -17,7 +21,7 @@ sleep 2
 
 # Use helm to install kuberhealthy
 # the image repository and tag must match the build that just took place
-helm install -n $NS --set global.image.repository=kuberhealthy,global.image.tag=$GITHUB_RUN_ID -f .ci/values.yaml  $name deploy/helm/kuberhealthy
+helm install -n $NS --set imageURL=$IMAGE_URL -f .ci/values.yaml  $name deploy/helm/kuberhealthy
 
 kubectl -n $NS get khc
 
@@ -27,15 +31,17 @@ helm ls
 
 echo "get all \n"
 kubectl -n $NS get all
+echo "get deployment \n"
+kubectl get deployment -A -o yaml
+kubectl -n $NS get deployment kuberhealthy -o yaml
 echo "get khc  \n"
 kubectl -n $NS get khc
 echo "get khs \n"
 kubectl -n $NS get khs
 
 # If the operator dosen't start for some reason kill the test
-kubectl -n $NS get pods |grep $name
-if [ $? != 0 ]
-then
+kubectl -n $NS get pods | grep $name
+if [ $? != 0 ]; then
     echo "No operator pod found"
     exit 1
 fi

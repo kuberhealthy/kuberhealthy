@@ -1,5 +1,5 @@
-build:
-	docker build -t kuberhealthy/daemonset-check:v3.3.0 -f Dockerfile ../../
+include ../../Makefile.common.mk
 
-push:
-	docker push kuberhealthy/daemonset-check:v3.3.0
+BUILDER := "dockerx-daemonset-check"
+IMAGE := "kuberhealthy/daemonset-check"
+TAG := "v3.3.0"

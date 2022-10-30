@@ -14,6 +14,10 @@ spec:
       runAsUser: {{ .Values.securityContext.runAsUser }}
       fsGroup: {{ .Values.securityContext.fsGroup }}
     {{- end}}
+    {{- if .Values.imagePullSecrets }}
+    imagePullSecrets:
+      {{ toYaml .Values.imagePullSecrets | indent 2 }}
+    {{- end }}
     containers:
       - env:
           - name: NODE_NAME
@@ -25,9 +29,9 @@ spec:
             value: {{ $value | quote }}
 {{- end }}
         {{- if .Values.imageRegistry }}
-        image: {{ .Values.imageRegistry }}/{{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}
+        image: "{{ .Values.imageRegistry }}/{{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}"
         {{- else if .Values.check.dnsExternal.image.registry }}
-        image: {{ .Values.check.dnsExternal.image.registry }}/{{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}
+        image: "{{ .Values.check.dnsExternal.image.registry }}/{{ .Values.check.dnsExternal.image.repository }}:{{ .Values.check.dnsExternal.image.tag }}"
         {{- end }}
         imagePullPolicy: IfNotPresent
         name: main

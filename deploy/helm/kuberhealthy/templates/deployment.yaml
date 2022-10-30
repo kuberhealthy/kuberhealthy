@@ -67,11 +67,17 @@ spec:
               topologyKey: "kubernetes.io/hostname"
 {{- end }}
 {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{ toYaml .Values.imagePullSecrets | indent 2 }}
+      {{- end }}
       containers:
-      {{- if .Values.imageRegistry }}
-      - image: {{ .Values.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}
+      {{- if .Values.imageURL }}
+      - image: "{{ .Values.imageURL }}"
+      {{- else if .Values.imageRegistry }}
+      - image: "{{ .Values.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}"
       {{- else if .Values.image.registry }}
-      - image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}
+      - image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}"
       {{- end }}
         command: {{ .Values.deployment.command }}
         {{- if .Values.deployment.args }}
@@ -85,6 +91,7 @@ spec:
           runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
           runAsUser: {{ .Values.securityContext.runAsUser }}
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
         imagePullPolicy: {{ .Values.deployment.imagePullPolicy }}
         livenessProbe:
           failureThreshold: 3

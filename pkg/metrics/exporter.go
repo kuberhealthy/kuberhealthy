@@ -11,8 +11,35 @@ import (
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
 )
 
+type PromMetricsConfig struct {
+	SuppressErrorLabel  bool `yaml:"suppressErrorLabel,omitempty"`  // do we want to supress error label in metrics output(default: false)
+	ErrorLabelMaxLength int  `yaml:"errorLabelMaxLength,omitempty"` // if not suppress, then bound the error label value length to a number of bytes
+}
+
+// promMetricName: helper fn for GenerateMetrics, does a quick format of the metric line - checkOrJob is literally the string "check" or "job"
+func promMetricName(config PromMetricsConfig, checkOrJob string, checkName string, namespace string, status string, errors []string) string {
+	metricName := fmt.Sprintf("kuberhealthy_%s{check=\"%s\",namespace=\"%s\",status=\"%s\"", checkOrJob, checkName, namespace, status)
+	if !config.SuppressErrorLabel {
+		errorsStr := ""
+		if len(errors) > 0 {
+			for _, error := range errors {
+				errorsStr += fmt.Sprintf("%s|", error)
+			}
+			errorsStr = strings.TrimSuffix(errorsStr, "|")
+			errorsStr = strings.ReplaceAll(errorsStr, "\"", "'")
+		}
+		if config.ErrorLabelMaxLength > 0 && len(errorsStr) > config.ErrorLabelMaxLength {
+			errorsStr = errorsStr[0:config.ErrorLabelMaxLength]
+		}
+		metricName += fmt.Sprintf(",error=\"%s\"}", errorsStr)
+	} else {
+		metricName += "}"
+	}
+	return metricName
+}
+
 //GenerateMetrics takes the state and returns it in the Prometheus format
-func GenerateMetrics(state health.State) string {
+func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 	metricsOutput := ""
 	healthStatus := "0"
 	if state.OK {
@@ -37,24 +64,17 @@ func GenerateMetrics(state health.State) string {
 		if d.OK {
 			checkStatus = "1"
 		}
-		errors := ""
-		if len(d.Errors) > 0 {
-			for _, error := range d.Errors {
-				errors += fmt.Sprintf("%s|", error)
-			}
-			errors = strings.TrimSuffix(errors, "|")
-		}
-		errors = strings.ReplaceAll(errors, "\"", "'")
-		metricName := fmt.Sprintf("kuberhealthy_check{check=\"%s\",namespace=\"%s\",status=\"%s\",error=\"%s\"}", c, d.Namespace, checkStatus, errors)
+		metricName := promMetricName(config, "check", c, d.Namespace, checkStatus, d.Errors)
 		metricDurationName := fmt.Sprintf("kuberhealthy_check_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		metricCheckState[metricName] = checkStatus
+
+		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
+		if d.RunDuration == "" {
+			d.RunDuration = time.Duration(0).String()
+		}
 		runDuration, err := time.ParseDuration(d.RunDuration)
 		if err != nil {
 			log.Errorln("Error parsing run duration:", d.RunDuration, "for metric:", metricName, "error:", err)
-		}
-		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
-		if d.RunDuration == "" {
-			runDuration = 0
 		}
 		metricCheckDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
 	}
@@ -65,22 +85,17 @@ func GenerateMetrics(state health.State) string {
 		if d.OK {
 			jobStatus = "1"
 		}
-		errors := ""
-		if len(d.Errors) > 0 {
-			for _, error := range d.Errors {
-				errors += fmt.Sprintf("%s|", error)
-			}
-		}
-		metricName := fmt.Sprintf("kuberhealthy_job{check=\"%s\",namespace=\"%s\",status=\"%s\",error=\"%s\"}", c, d.Namespace, jobStatus, errors)
+		metricName := promMetricName(config, "job", c, d.Namespace, jobStatus, d.Errors)
 		metricDurationName := fmt.Sprintf("kuberhealthy_job_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		metricJobState[metricName] = jobStatus
+
+		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
+		if d.RunDuration == "" {
+			d.RunDuration = time.Duration(0).String()
+		}
 		runDuration, err := time.ParseDuration(d.RunDuration)
 		if err != nil {
 			log.Errorln("Error parsing run duration:", d.RunDuration, "for metric:", metricName, "error:", err)
-		}
-		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
-		if d.RunDuration == "" {
-			runDuration = 0
 		}
 		metricJobDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
 	}

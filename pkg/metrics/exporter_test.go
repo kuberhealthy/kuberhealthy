@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	v1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
+	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
 )
 
@@ -24,9 +25,9 @@ func parseMetrics(metricOutput string) map[string]string {
 func TestGenerateMetrics(t *testing.T) {
 	// Test Empty State
 	state := health.State{}
-	result := GenerateMetrics(state)
+	result := GenerateMetrics(state, PromMetricsConfig{})
 	metrics := parseMetrics(result)
-	if metrics[`kuberhealthy_running{currentMaster=""}`] != "1" {
+	if metrics[`kuberhealthy_running{current_master=""}`] != "1" {
 		t.Fatal("Kuberhealthy is not shown as running")
 	}
 	if metrics["kuberhealthy_cluster_state"] == "1" {
@@ -36,9 +37,9 @@ func TestGenerateMetrics(t *testing.T) {
 	state = health.State{
 		OK: true,
 	}
-	result = GenerateMetrics(state)
+	result = GenerateMetrics(state, PromMetricsConfig{})
 	metrics = parseMetrics(result)
-	if metrics[`kuberhealthy_running{currentMaster=""}`] != "1" {
+	if metrics[`kuberhealthy_running{current_master=""}`] != "1" {
 		t.Fatal("Kuberhealthy is not shown as running")
 	}
 	if metrics["kuberhealthy_cluster_state"] != "1" {
@@ -48,9 +49,9 @@ func TestGenerateMetrics(t *testing.T) {
 	state = health.State{
 		OK: false,
 	}
-	result = GenerateMetrics(state)
+	result = GenerateMetrics(state, PromMetricsConfig{})
 	metrics = parseMetrics(result)
-	if metrics[`kuberhealthy_running{currentMaster=""}`] != "1" {
+	if metrics[`kuberhealthy_running{current_master=""}`] != "1" {
 		t.Fatal("Kuberhealthy is not shown as running")
 	}
 	if metrics["kuberhealthy_cluster_state"] == "1" {
@@ -60,9 +61,9 @@ func TestGenerateMetrics(t *testing.T) {
 	state = health.State{
 		CurrentMaster: "testMaster",
 	}
-	result = GenerateMetrics(state)
+	result = GenerateMetrics(state, PromMetricsConfig{})
 	metrics = parseMetrics(result)
-	if metrics[`kuberhealthy_running{currentMaster="testMaster"}`] != "1" {
+	if metrics[`kuberhealthy_running{current_master="testMaster"}`] != "1" {
 		t.Fatal("Kuberhealthy is not shown as running")
 	}
 	if metrics["kuberhealthy_cluster_state"] == "1" {
@@ -70,7 +71,7 @@ func TestGenerateMetrics(t *testing.T) {
 	}
 	// Test with checks, one good, one bad
 	state = health.State{
-		CheckDetails: map[string]v1.WorkloadDetails{
+		CheckDetails: map[string]khstatev1.WorkloadDetails{
 			"good": {
 				OK: true,
 			},
@@ -82,22 +83,56 @@ func TestGenerateMetrics(t *testing.T) {
 			},
 		},
 	}
-	result = GenerateMetrics(state)
+	result = GenerateMetrics(state, PromMetricsConfig{})
 	metrics = parseMetrics(result)
-	if metrics[`kuberhealthy_running{currentMaster=""}`] != "1" {
+	if metrics[`kuberhealthy_running{current_master=""}`] != "1" {
 		t.Fatal("Kuberhealthy is not shown as running")
 	}
 	if metrics["kuberhealthy_cluster_state"] == "1" {
 		t.Fatal("Kuberhealthy shows cluster as healthy when it isn't")
 	}
-	if metrics[`kuberhealthy_check{check="good"}`] != "1" {
+	if metrics[`kuberhealthy_check{check="good",namespace="",status="1",error=""}`] != "1" {
 		t.Fatal("Kuberhealthy good check shows as bad")
 	}
-	if metrics[`kuberhealthy_check{check="bad"}`] != "0" {
+	if metrics[`kuberhealthy_check{check="bad",namespace="",status="0",error=""}`] != "0" {
 		t.Fatal("Kuberhealthy good check shows as bad")
 	}
-	if metrics[`kuberhealthy_check{check=""}`] != "1" {
+	if metrics[`kuberhealthy_check{check="",namespace="",status="1",error=""}`] != "1" {
 		t.Fatal("Kuberhealthy good check shows as bad")
+	}
+	state = health.State{
+		CheckDetails: map[string]khstatev1.WorkloadDetails{
+			"bad": {
+				Errors: []string{"12345678910"},
+			},
+		},
+	}
+	result = GenerateMetrics(state, PromMetricsConfig{})
+	metrics = parseMetrics(result)
+	if metrics[`kuberhealthy_check{check="bad",namespace="",status="0",error="12345678910"}`] != "0" {
+		t.Fatal("Kuberhealthy bad error label check does not match - test 1", metrics)
+	}
+	result = GenerateMetrics(state, PromMetricsConfig{SuppressErrorLabel: true})
+	metrics = parseMetrics(result)
+	if metrics[`kuberhealthy_check{check="bad",namespace="",status="0"}`] != "0" {
+		t.Fatal("Kuberhealthy bad error label check does not match - test 2", metrics)
+	}
+	result = GenerateMetrics(state, PromMetricsConfig{SuppressErrorLabel: false, ErrorLabelMaxLength: 4})
+	metrics = parseMetrics(result)
+	if metrics[`kuberhealthy_check{check="bad",namespace="",status="0",error="1234"}`] != "0" {
+		t.Fatal("Kuberhealthy bad error label check does not match - test 3", metrics)
+	}
+	state = health.State{
+		CheckDetails: map[string]khstatev1.WorkloadDetails{
+			"bad": {
+				Errors: []string{"123"},
+			},
+		},
+	}
+	result = GenerateMetrics(state, PromMetricsConfig{SuppressErrorLabel: false, ErrorLabelMaxLength: 10})
+	metrics = parseMetrics(result)
+	if metrics[`kuberhealthy_check{check="bad",namespace="",status="0",error="123"}`] != "0" {
+		t.Fatal("Kuberhealthy bad error label check does not match - test 4", metrics)
 	}
 }
 

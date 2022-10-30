@@ -1,12 +1,15 @@
-IMAGE="kuberhealthy/kuberhealthy"
-TAG="unstable"
+include ../../Makefile.common.mk
+
+BUILDER := "dockerx-kuberhealthy"
+IMAGE := "kuberhealthy/kuberhealthy"
+TAG := "unstable"
+
+.PHONY: test build build-dev push run run-influx
 
 build:
 	docker build --no-cache --pull -t ${IMAGE}:${TAG} -f Dockerfile ../../
 build-dev:
 	docker build -t kuberhealthy:dev -f Dockerfile ../../
-push:
-	docker push ${IMAGE}:${TAG}
 test:
 	POD_NAME="kuberhealthy-test" go test -run TestWebServer -v -args -- --debug --forceMaster
 run:
