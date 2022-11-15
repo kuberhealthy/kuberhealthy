@@ -16,9 +16,9 @@ spec:
       runAsUser: {{ $.Values.securityContext.runAsUser }}
       fsGroup: {{ $.Values.securityContext.fsGroup }}
     {{- end }}
-    {{- if .Values.imagePullSecrets }}
+    {{- if $.Values.imagePullSecrets }}
     imagePullSecrets:
-      {{ toYaml .Values.imagePullSecrets | indent 2 }}
+      {{ toYaml $.Values.imagePullSecrets | indent 2 }}
     {{- end }}
     containers:
     - name: main
