@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	watchpkg "k8s.io/apimachinery/pkg/watch"
+	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const (
@@ -46,6 +47,10 @@ const (
 	defaultProbeTimeoutSeconds      = 2  // Number of seconds after which the probe times out (k8s default = 1).
 	defaultProbePeriodSeconds       = 15 // How often to perform the probe (k8s default = 10).
 )
+
+// deployment pod error reason
+var defaultPodErrorReason = errors.New("pod in the processing of creating deployment")
+var defaultPodErrorReasonForDeploymentUpdate = errors.New("pod in the processing of updating deployment")
 
 // createDeploymentConfig creates and configures a k8s deployment and returns the struct (ready to apply with client).
 func createDeploymentConfig(image string) *v1.Deployment {
@@ -161,12 +166,15 @@ type DeploymentResult struct {
 }
 
 // createDeployment creates a deployment in the cluster with a given deployment specification.
-func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan DeploymentResult {
+func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment, deadline time.Time) chan DeploymentResult {
 
 	createChan := make(chan DeploymentResult)
 
 	go func() {
 		log.Infoln("Creating deployment in cluster with name:", deploymentConfig.Name)
+
+		ctxCreate, c := context.WithCancel(context.TODO())
+		defer c()
 
 		defer close(createChan)
 
@@ -186,6 +194,30 @@ func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan
 			createChan <- result
 			return
 		}
+
+		//capture the possible pod error
+		go func() {
+			for {
+				select {
+				case <-ctxCreate.Done():
+					log.Infoln("creating deployment done")
+					return
+				default:
+				}
+
+				if time.Until(deadline) < checkTimeLimit/2 {
+					log.Infoln("start capture the possible pod error when creating deployment ")
+					err = checkDeploymentPodEvent(defaultPodErrorReason)
+					if err != nil {
+						result.Err = err
+						createChan <- result
+						c()
+						return
+					}
+				}
+				time.Sleep(time.Second * 2)
+			}
+		}()
 
 		for {
 			log.Infoln("Watching for deployment to exist.")
@@ -234,6 +266,9 @@ func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan
 						result.Err = errors.New("failed to clean up properly: " + err.Error())
 					}
 					createChan <- result
+					return
+				case <-ctxCreate.Done():
+					log.Infoln("creating deployment done")
 					return
 				default:
 				}
@@ -526,12 +561,15 @@ func findPreviousDeployment(ctx context.Context) (bool, error) {
 
 // updateDeployment performs an update on a deployment with a given deployment configuration.  The DeploymentResult
 // channel is notified when the rolling update is complete.
-func updateDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan DeploymentResult {
+func updateDeployment(ctx context.Context, deploymentConfig *v1.Deployment, deadline time.Time) chan DeploymentResult {
 
 	updateChan := make(chan DeploymentResult)
 
 	go func() {
 		log.Infoln("Performing rolling-update on deployment", deploymentConfig.Name, "to ["+deploymentConfig.Spec.Template.Spec.Containers[0].Image+"]")
+
+		ctxUpdate, c := context.WithCancel(context.TODO())
+		defer c()
 
 		defer close(updateChan)
 
@@ -565,6 +603,30 @@ func updateDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan
 		// Stop the watch on each loop because we will create a new one.
 		defer watch.Stop()
 
+		//capture the possible pod error
+		go func() {
+			for {
+				select {
+				case <-ctxUpdate.Done():
+					log.Infoln("updating deployment done")
+					return
+				default:
+				}
+
+				if time.Until(deadline) < checkTimeLimit/3 {
+					log.Infoln("start capture the possible pod error when updating deployment ")
+					err = checkDeploymentPodEvent(defaultPodErrorReasonForDeploymentUpdate)
+					if err != nil {
+						result.Err = err
+						updateChan <- result
+						c()
+						return
+					}
+				}
+				time.Sleep(time.Second * 2)
+			}
+		}()
+
 		log.Debugln("Watching for deployment rolling-update to complete.")
 		for {
 			select {
@@ -592,6 +654,10 @@ func updateDeployment(ctx context.Context, deploymentConfig *v1.Deployment) chan
 				// 	updateChan <- result
 				// 	return
 				// }
+
+			case <-ctxUpdate.Done():
+				log.Infoln("updating deployment done")
+				return
 			case <-ctx.Done():
 				// If the context has expired, exit.
 				log.Errorln("Context expired while waiting for deployment to create.")
@@ -690,11 +756,11 @@ func rollingUpdateComplete(ctx context.Context, statuses map[string]bool, oldPod
 // Returns true if all replicas are up, ready, and the deployment generation is greater than 1.
 func rolledPodsAreReady(d *v1.Deployment) bool {
 	return d.Status.Replicas == int32(checkDeploymentReplicas) &&
-	d.Status.UpdatedReplicas == int32(checkDeploymentReplicas) &&
-	d.Status.AvailableReplicas == int32(checkDeploymentReplicas) &&
-	d.Status.ReadyReplicas == int32(checkDeploymentReplicas) &&
-	d.Status.UnavailableReplicas < 1 &&
-	d.Status.ObservedGeneration > 1
+		d.Status.UpdatedReplicas == int32(checkDeploymentReplicas) &&
+		d.Status.AvailableReplicas == int32(checkDeploymentReplicas) &&
+		d.Status.ReadyReplicas == int32(checkDeploymentReplicas) &&
+		d.Status.UnavailableReplicas < 1 &&
+		d.Status.ObservedGeneration > 1
 }
 
 // deploymentAvailable checks the status conditions of the deployment and returns a boolean.
@@ -704,9 +770,9 @@ func deploymentAvailable(deployment *v1.Deployment) bool {
 		if condition.Type == v1.DeploymentAvailable && condition.Status == corev1.ConditionTrue {
 			log.Infoln("Deployment is reporting", condition.Type, "with", condition.Status+".")
 			if deployment.Status.Replicas == int32(checkDeploymentReplicas) &&
-			deployment.Status.AvailableReplicas == int32(checkDeploymentReplicas) &&
-			deployment.Status.ReadyReplicas == int32(checkDeploymentReplicas) &&
-			deployment.Status.ObservedGeneration == 1 {
+				deployment.Status.AvailableReplicas == int32(checkDeploymentReplicas) &&
+				deployment.Status.ReadyReplicas == int32(checkDeploymentReplicas) &&
+				deployment.Status.ObservedGeneration == 1 {
 				log.Infoln(deployment.Status.AvailableReplicas, "deployment pods are ready and available.")
 				return true
 			}
@@ -749,4 +815,69 @@ func containsString(s string, list []string) bool {
 		}
 	}
 	return false
+}
+
+func checkDeploymentPodEvent(reason error) error {
+	var err error
+
+	podList, err := client.CoreV1().Pods(checkNamespace).List(ctx, metav1.ListOptions{
+		LabelSelector: defaultLabelKey + "=" + defaultLabelValueBase + strconv.Itoa(int(now.Unix())),
+	})
+
+	if err != nil {
+		log.WithError(err).Errorln("Error occurred attempting to list deployment pod while waiting for deployment ready")
+		return err
+	}
+	for _, pod := range podList.Items {
+		for _, containerStat := range pod.Status.ContainerStatuses {
+			if containerStat.State.Waiting == nil {
+				continue
+			}
+			if containerStat.State.Waiting.Reason != "" {
+
+				if !containerStat.Ready && containerStat.State.Waiting.Reason != "ContainerCreating" {
+					err = errors.New("pod: " + pod.Name + " Node: " + pod.Spec.NodeName + " container: " + containerStat.Name + " reason: " + containerStat.State.Waiting.Reason + " msg: " + containerStat.State.Waiting.Message)
+					log.WithError(err).Errorln("capturing the unexpected container error")
+					return fmt.Errorf("%s when %w", containerStat.State.Waiting.Reason, reason)
+				}
+
+				deploymentPodEventList, err := client.CoreV1().Events(checkNamespace).List(context.TODO(), metav1.ListOptions{
+					FieldSelector: typedv1.GetInvolvedObjectNameFieldLabel("v1") + "=" + pod.Name,
+				})
+				if err != nil && !k8sErrors.IsNotFound(err) {
+					return err
+				}
+				eventReason := ""
+				eventMsg := ""
+				for _, checkerPodEvent := range deploymentPodEventList.Items {
+					var recentEventTime time.Time
+
+					checkerPodEventReason := strings.ToLower(checkerPodEvent.Reason)
+					// pkg:kubelet/events/event.go
+					// only hanled the error event
+					if strings.Contains(checkerPodEventReason, "err") || strings.Contains(checkerPodEventReason, "failed") || strings.Contains(checkerPodEventReason, "backoff") {
+						// only get the recent event
+						if checkerPodEvent.LastTimestamp.After(recentEventTime) {
+							recentEventTime = checkerPodEvent.LastTimestamp.Time
+							eventReason = checkerPodEvent.Reason
+							eventMsg = checkerPodEvent.Message
+						}
+					}
+				}
+				if len(eventReason) > 0 {
+					err = errors.New("pod: " + pod.Name + " Node: " + pod.Spec.NodeName + " container: " + containerStat.Name + " reason: " + eventReason + " msg: " + eventMsg)
+					log.WithError(err).Errorln("capturing the unexpected pod event")
+					return fmt.Errorf("%s when %w", eventReason, reason)
+				}
+
+			}
+		}
+		if pod.Status.Phase == corev1.PodFailed {
+			err = errors.New("pod: " + pod.Name + " Node: " + pod.Spec.NodeName + " reason: " + pod.Status.Reason + " msg: " + pod.Status.Message)
+			log.WithError(err).Errorln("pod in failed status")
+			return fmt.Errorf("%s when %w", pod.Status.Reason, reason)
+		}
+	}
+
+	return nil
 }
