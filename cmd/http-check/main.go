@@ -125,11 +125,11 @@ func main() {
 	if passingInt == 0 {
 		passingInt = 100
 	}
-	passingPercentage := passingInt / 100
+	passingPercentage := float32(passingInt) / 100
 
 	// sets the passing score to compare it against checks that have been ran
-	passingScore := passingPercentage * countInt
-	passInt := passingScore
+	passingScore := passingPercentage * float32(countInt)
+	passInt := int(passingScore)
 	log.Infoln("Looking for at least", passingInt, "percent of", countInt, "checks to pass")
 
 	// init counters for checks
