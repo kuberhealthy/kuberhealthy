@@ -24,3 +24,4 @@
 - [Engin Diri](https://twitter.com/_ediri)
 - [Joel Kulesa](https://github.com/jkulesa)
 - [McKenna Jones](https://github.com/mckennajones)
+- [Allan Ramirez](https://github.com/ramirezag)
