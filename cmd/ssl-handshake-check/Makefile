@@ -1,7 +1,5 @@
-VERSION=v3.2.0
+include ../../Makefile.common.mk
 
-build:
-	docker build -t kuberhealthy/ssl-handshake-check:${VERSION} -f Dockerfile ../../
-
-push:
-	docker push kuberhealthy/ssl-handshake-check:${VERSION}
+BUILDER := "dockerx-ssl-handshake-check"
+IMAGE := "kuberhealthy/ssl-handshake-check"
+TAG := "v3.2.0"

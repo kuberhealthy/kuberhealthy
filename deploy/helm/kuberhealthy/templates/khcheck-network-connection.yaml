@@ -9,6 +9,10 @@ spec:
   runInterval:  {{ .Values.check.networkConnection.runInterval }}
   timeout: {{ .Values.check.networkConnection.timeout }}
   podSpec:
+    {{- if .Values.imagePullSecrets }}
+    imagePullSecrets:
+      {{ toYaml .Values.imagePullSecrets | indent 2 }}
+    {{- end }}
     containers:
     - name: deployment
       {{- if .Values.imageRegistry }}
