@@ -23,7 +23,6 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
 	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
@@ -338,7 +337,7 @@ func (ext *Checker) evictPod(ctx context.Context, podName string, podNamespace s
 	if err != nil {
 		ext.log("error when trying to cleanup/evict checker pod", podName, "in namespace", podNamespace+":", err)
 		podExists, _ := util.PodNameExists(ext.KubeClient, podName, podNamespace)
-		if podExists == true {
+		if podExists {
 			err := util.PodKill(ext.KubeClient, podName, podNamespace, 30)
 			if err != nil {
 				ext.log("error killing pod", podName+":", err)
@@ -349,23 +348,28 @@ func (ext *Checker) evictPod(ctx context.Context, podName string, podNamespace s
 	return err
 }
 
-// setUUID sets the current whitelisted UUID for the checker and updates it on the server
+// setUUID sets the current whitelisted UUID for the checker and updates it on the server.  If the
+// check fails to run or be verified as set (by a susequent fetch), then it will try up to 9 times
+// before returning an error.
 func (ext *Checker) setUUID(uuid string) error {
 	ext.log("Setting expected UUID to:", uuid)
+
+	// fetch the existing khstate
 	checkState, err := ext.getKHState()
 
-	// if the fetch operation had an error, but it wasn't 'not found', we return here
+	// if the fetch operation had an error, and it wasn't 'not found', we return an error
 	if err != nil && !(k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		return fmt.Errorf("error setting uuid for check %s %w", ext.CheckName, err)
 	}
 
-	// if the check was not found, we create a fresh one and start there
+	// if the check was not found, we create a new khstate
 	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
-		ext.log("khstate did not exist, so a default object will be created")
+		ext.log("khstate did not exist for", ext.CheckName, ", so a default object will be created")
 		details := khstatev1.NewWorkloadDetails(ext.KHWorkload)
 		details.Namespace = ext.CheckNamespace()
 		details.AuthoritativePod = ext.hostname
 		details.OK = true
+		details.CurrentUUID = uuid
 		details.RunDuration = time.Duration(0).String()
 		newState := khstatev1.NewKuberhealthyState(ext.CheckName, details)
 		newState.Namespace = ext.Namespace
@@ -376,40 +380,54 @@ func (ext *Checker) setUUID(uuid string) error {
 			return err
 		}
 
-		// checkState will be the new check we just created
-		checkState, err = ext.getKHState()
-		if err != nil {
-			ext.log("failed to fetch khstate khstate after creating it because it did not exist:", err)
-			return err
-		}
+		// if we were able to make a new check, we are done
+		return nil
 	}
 
-	// assign the new uuid
+	// assign the new uuid to the fetched checkState
 	checkState.Spec.CurrentUUID = uuid
-
-	// update the resource with the new values we want
-	ext.log("Updating khstate", checkState.Name, checkState.Namespace, "to setUUID:", checkState.Spec.CurrentUUID)
+	ext.log("Updating khstate to CurrentUUID:", checkState.Spec.CurrentUUID)
 	_, err = ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Update(&checkState)
+	if err != nil {
+		log.Errorln("failed to update khstate CurrentUUID for check", checkState.Namespace, checkState.Name, "with error:", err)
+	}
 
-	// Sometimes a race condition occurs when a pod has to verify uuid with kh server. If the pod happens to check the
-	// uuid before it shows as updated on kube-apiserver, the pod will not be allowed to report its status.
-	// This for-loop is to verify the pod uuid is properly set with the api server before the checker pod is started.
+	// Verify that the new CurrentUUID is set with the server by fetching it.  If something goes
+	// wrong, try to set it again up to maxTries times.
 	tries := 0
+	maxTries := 9
 	for {
-		if tries >= 9 {
-			return fmt.Errorf("failed to verify uuid match %s after %d tries", checkState.Spec.CurrentUUID, tries)
+		if tries >= maxTries {
+			return fmt.Errorf("failed to verify uuid %s was set for khstate %s after %d tries", checkState.Spec.CurrentUUID, checkState.Namespace+checkState.Name, tries)
 		}
 		tries++
-		ext.log("Waiting 1 second before checking " + ext.Name() + " uuid.")
-		time.Sleep(time.Second * 1)
+
+		// fetch the check we just updated and ensure it set properly
 		extCheck, err := ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Get(ext.Name(), metav1.GetOptions{})
 		if err != nil {
-			ext.log("failed to get khstate while truing up check uuid:", err)
+			ext.log("error: failed to get khstate while verifying check uuid:", err)
+			time.Sleep(time.Second)
 			continue
 		}
 		if checkState.Spec.CurrentUUID == extCheck.Spec.CurrentUUID {
-			ext.log(ext.Name() + " verified uuid match.")
+			ext.log(ext.Name() + " CurrentUUID update verified.")
 			break
+		}
+
+		// in this circumstance, the khstate has been fetched, but the CurrentUUID value on it is not the one we set
+		log.Warningln("during verification of the CurrentUUID being properly set on khstate", checkState.Namespace, checkState.Name, "UUID setting, we saw UUID", extCheck.Spec.CurrentUUID, "but expected UUID", checkState.Spec.CurrentUUID)
+		time.Sleep(time.Second * 1)
+
+		// Retry the fetch, CurrentUUID update, and set again
+		ext.log("Retrying khstate update to set CurrentUUID:", checkState.Spec.CurrentUUID)
+		checkState, err := ext.getKHState()
+		if err != nil {
+			log.Errorln("failed to fetch khstate for check", checkState.Namespace, checkState.Name, "with error:", err)
+		}
+		checkState.Spec.CurrentUUID = uuid
+		_, err = ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Update(&checkState)
+		if err != nil {
+			log.Errorln("failed to update khstate CurrentUUID for check", checkState.Namespace, checkState.Name, "with error:", err)
 		}
 	}
 
@@ -514,28 +532,6 @@ func (ext *Checker) waitForDeletedEvent(w watch.Interface) chan error {
 	// if the watch ends for any reason, we notify the listeners that our watch has ended
 	ext.log("pod removal monitor ended unexpectedly")
 	return outChan
-}
-
-// doFinalUpdateCheck is used to do one final update check before we conclude that the pod disappeared expectedly.
-func (ext *Checker) doFinalUpdateCheck(lastReportTime time.Time) (bool, error) {
-	ext.log("witnessed checker pod removal. aborting watch for pod status report. check run skipped gracefully")
-	// sometimes the shutdown event comes in before the status update notify, even if the pod did report in
-	// before the pod shut down.  So, we do one final check here to see if the pod has checked in before
-	// concluding that the pod has been shut down unexpectedly.
-
-	// fetch the lastUpdateTime from the khstate as of right now
-	currentUpdateTime, err := ext.getCheckLastUpdateTime()
-	if err != nil {
-		return false, err
-	}
-
-	// if the pod has not updated, we finally conclude that this pod has gone away unexpectedly
-	ext.log("Last report time was:", lastReportTime, "vs", currentUpdateTime)
-	if !currentUpdateTime.After(lastReportTime) {
-		return false, nil
-	}
-
-	return true, nil
 }
 
 // newError returns an error from the provided string by pre-pending the pod's name and namespace to it
@@ -710,23 +706,6 @@ func (ext *Checker) log(s ...interface{}) {
 	log.Infoln(ext.currentCheckUUID+" "+ext.Namespace+"/"+ext.CheckName+":", s)
 }
 
-// deletePod deletes the pod with the specified name>  If the pod is 'not found', an
-// error is NOT returned.
-func (ext *Checker) deletePod(podName string) error {
-	ext.log("Deleting pod with name", podName)
-	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
-	gracePeriodSeconds := int64(1)
-	deletionPolicy := metav1.DeletePropagationForeground
-	err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{
-		GracePeriodSeconds: &gracePeriodSeconds,
-		PropagationPolicy:  &deletionPolicy,
-	})
-	if err != nil && !(k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
-		return err
-	}
-	return nil
-}
-
 // sanityCheck runs a basic sanity check on the checker before running
 func (ext *Checker) sanityCheck() error {
 	if ext.Namespace == "" {
@@ -845,9 +824,9 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
+	ext.wg.Add(1)
 	go func() {
 
-		ext.wg.Add(1)
 		defer ext.wg.Done()
 
 		// watch events and return when the pod is in state running
@@ -898,9 +877,9 @@ func (ext *Checker) waitForPodExit(ctx context.Context) chan error {
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
+	ext.wg.Add(1)
 	go func() {
 
-		ext.wg.Add(1)
 		defer ext.wg.Done()
 
 		for {
@@ -967,9 +946,9 @@ func (ext *Checker) waitForPodStart(ctx context.Context) chan error {
 	// setup a pod watching client for our current KH pod
 	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
 
+	ext.wg.Add(1)
 	go func() {
 
-		ext.wg.Add(1)
 		defer ext.wg.Done()
 
 		// watch over and over again until we see our event or run out of time
@@ -1202,36 +1181,7 @@ func (ext *Checker) setNewCheckUUID() error {
 
 	// set whitelist in check configuration CRD so only this
 	// currently running pod can report-in with a status update
-	err := ext.setUUID(ext.currentCheckUUID)
-
-	// We commonly see a race here with the following type of error:
-	// "Check execution error: Operation cannot be fulfilled on khchecks.comcast.github.io \"pod-restarts\": the object
-	// has been modified; please apply your changes to the latest version and try again"
-	//
-	// If we see this error, we fetch the updated object, re-apply our changes, and try again
-	delay := time.Duration(time.Second * 1)
-	maxTries := 7
-	tries := 0
-	for err != nil && strings.Contains(err.Error(), "the object has been modified") {
-
-		// if too many retires have occcured, we fail up the stack further
-		if tries > maxTries {
-			return fmt.Errorf("failed to updated UUID for check %s in namespace %s after %d with error %w", ext.CheckName, ext.CheckNamespace(), maxTries, err)
-		}
-		ext.log("Failed to write new UUID for check because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
-
-		// sleep and double the delay between checks (exponential backoff)
-		time.Sleep(delay)
-		delay = delay + delay
-
-		// try the UUID set again
-		err = ext.setUUID(ext.currentCheckUUID)
-
-		// count how many times we're tried to set the UUID
-		tries++
-	}
-
-	return err
+	return ext.setUUID(ext.currentCheckUUID)
 
 }
 
@@ -1302,11 +1252,6 @@ func (ext *Checker) Shutdown() error {
 		ext.log("Check using pod " + ext.podName() + " killed forcefully.")
 	}
 	return nil
-}
-
-// getPodClient returns a client for Kubernetes pods
-func (ext *Checker) getPodClient() typedv1.PodInterface {
-	return ext.KubeClient.CoreV1().Pods(ext.Namespace)
 }
 
 // resetInjectedContainerEnvVars resets injected environment variables

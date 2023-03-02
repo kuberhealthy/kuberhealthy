@@ -1492,7 +1492,8 @@ func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, r *http.Requ
 func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to prometheus metrics endpoint from", r.RemoteAddr, r.UserAgent())
 	state := k.getCurrentState([]string{})
-	m := metrics.GenerateMetrics(state)
+
+	m := metrics.GenerateMetrics(state, cfg.PromMetricsConfig)
 	// write summarized health check results back to caller
 	_, err := w.Write([]byte(m))
 	if err != nil {

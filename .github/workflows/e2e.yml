@@ -18,14 +18,13 @@ jobs:
     steps:
     - uses: actions/setup-go@v1
       with:
-        go-version: '1.16.1'
+        go-version: '1.18.1'
     - uses: actions/checkout@v2
     - name: build container
-      run: docker build --file cmd/kuberhealthy/Dockerfile --tag kuberhealthy:$GITHUB_RUN_ID .
+      run: docker build --file cmd/kuberhealthy/Dockerfile --tag kuberhealthy:${GITHUB_RUN_ID} .
     - uses: engineerd/setup-kind@v0.5.0
       with:
           version: "v0.11.1"
-
     - name: Testing
       run: |
         kubectl cluster-info
@@ -33,7 +32,8 @@ jobs:
         kubectl get nodes
         echo "current-context:" $(kubectl config current-context)
         echo "environment-kubeconfig:" ${KUBECONFIG}
-        kind load docker-image kuberhealthy:$GITHUB_RUN_ID
+        echo "loading image to kind:" ${GITHUB_RUN_ID}
+        kind load docker-image kuberhealthy:${GITHUB_RUN_ID}
 
     - name: "running end to end test"
-      run: ./.ci/e2e.sh
+      run: ./.ci/e2e.sh kuberhealthy:${GITHUB_RUN_ID}

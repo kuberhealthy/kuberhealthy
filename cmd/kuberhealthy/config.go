@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/codingsince1985/checksum"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/metrics"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -27,6 +28,7 @@ type Config struct {
 	MaxCompletedPodCount      int               `yaml:"maxCompletedPodCount,omitempty"`
 	MaxErrorPodCount          int               `yaml:"maxErrorPodCount,omitempty"`
 	StateMetadata             map[string]string `yaml:"stateMetadata,omitempty"`
+	PromMetricsConfig         metrics.PromMetricsConfig `yaml:"promMetricsConfig,omitempty"`
 }
 
 // Load loads file from disk
