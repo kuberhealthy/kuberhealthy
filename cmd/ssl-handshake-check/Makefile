@@ -1,4 +1,4 @@
-include ../../Makefile.common.mk
+include ../../Makefile
 
 BUILDER := "dockerx-ssl-handshake-check"
 IMAGE := "kuberhealthy/ssl-handshake-check"
