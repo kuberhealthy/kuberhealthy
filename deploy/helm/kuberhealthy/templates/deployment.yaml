@@ -92,6 +92,10 @@ spec:
           runAsUser: {{ .Values.securityContext.runAsUser }}
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
           readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+          {{- if .Values.securityContext.seccompProfile }}
+          seccompProfile:
+            {{- toYaml .Values.securityContext.seccompProfile | nindent 12 }}
+          {{- end }}
         imagePullPolicy: {{ .Values.deployment.imagePullPolicy }}
         livenessProbe:
           failureThreshold: 3

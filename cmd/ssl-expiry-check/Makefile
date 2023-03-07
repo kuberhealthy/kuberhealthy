@@ -1,4 +1,4 @@
-include ../../Makefile.common.mk
+include ../../Makefile
 
 BUILDER := "dockerx-ssl-expiry-check"
 IMAGE := "kuberhealthy/ssl-expiry-check"

@@ -1,4 +1,4 @@
-include ../../Makefile.common.mk
+include ../../Makefile
 
 BUILDER := "dockerx-cronjob-checker"
 IMAGE := "kuberhealthy/cronjob-checker"

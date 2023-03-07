@@ -1,4 +1,4 @@
-include ../../Makefile.common.mk
+include ../../Makefile
 
 BUILDER := "dockerx-network-connection-check"
 IMAGE := "kuberhealthy/network-connection-check"

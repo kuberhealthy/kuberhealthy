@@ -2,15 +2,13 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
-
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/nodeCheck"
 
@@ -26,9 +24,6 @@ var (
 
 	// TimeoutDur is user requested timeout duration for specified URL
 	TimeoutDur = os.Getenv("TIMEOUT_DURATION")
-
-	// the global kubernetes client
-	kubernetesClient *kubernetes.Clientset
 )
 
 func init() {
@@ -50,7 +45,8 @@ func main() {
 
 	// create context
 	checkTimeLimit := time.Minute * 1
-	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), checkTimeLimit)
+	defer cancelFunc()
 
 	// hits kuberhealthy endpoint to see if node is ready
 	err := nodeCheck.WaitForKuberhealthy(ctx)
@@ -94,13 +90,7 @@ func getURLContent(url string) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return []byte{}, err
-
-	}
-	defer resp.Body.Close()
-	return body, err
+	return io.ReadAll(resp.Body)
 
 }
 
@@ -108,10 +98,7 @@ func getURLContent(url string) ([]byte, error) {
 func findStringInContent(b []byte, s string) bool {
 
 	stringbody := string(b)
-	if strings.Contains(stringbody, s) {
-		return true
-	}
-	return false
+	return strings.Contains(stringbody, s)
 }
 
 // reportErrorAndStop reports to kuberhealthy of error and exits program when called
