@@ -1,4 +1,4 @@
-include ../../Makefile.common.mk
+include ../../Makefile
 
 BUILDER := "dockerx-ami-check"
 IMAGE := "kuberhealthy/ami-check"
