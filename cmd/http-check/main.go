@@ -166,7 +166,7 @@ func main() {
 			checksFailed++
 			continue
 		}
-		log.Errorln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
+		log.Infoln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
 		checksPassed++
 
 		// if we have a ticker, we wait for it to tick before checking again
