@@ -1,4 +1,4 @@
-include ../../Makefile.common.mk
+include ../../Makefile
 
 BUILDER := "dockerx-dns-resolution-check"
 IMAGE := "kuberhealthy/dns-resolution-check"
