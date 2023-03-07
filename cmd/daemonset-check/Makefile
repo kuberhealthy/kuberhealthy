@@ -1,4 +1,4 @@
-include ../../Makefile.common.mk
+include ../../Makefile
 
 BUILDER := "dockerx-daemonset-check"
 IMAGE := "kuberhealthy/daemonset-check"

@@ -1,5 +1,3 @@
-include ../../Makefile.common.mk
-
 BUILDER := "dockerx-kuberhealthy"
 IMAGE := "kuberhealthy/kuberhealthy"
 TAG := "unstable"

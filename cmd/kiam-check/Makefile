@@ -1,4 +1,4 @@
-include ../../Makefile.common.mk
+include ../../Makefile
 
 BUILDER := "dockerx-kiam-check"
 IMAGE := "kuberhealthy/kiam-check"
