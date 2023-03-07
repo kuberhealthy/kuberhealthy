@@ -107,6 +107,8 @@ securityContext:
   fsGroup: 999
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
+  #seccompProfile:
+  #  type: RuntimeDefault
 
 # When enabled kuberhealthy will create a PodSecurityPolicy, Role and Binding to match the specified securityContext
 # In case you use your own images for tests, you might need to add other PSPs as well on your own
