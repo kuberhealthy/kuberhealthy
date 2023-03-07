@@ -1,4 +1,4 @@
-include ../../Makefile.common.mk
+include ../../Makefile
 
 BUILDER := "dockerx-http-check"
 IMAGE := "kuberhealthy/http-check"

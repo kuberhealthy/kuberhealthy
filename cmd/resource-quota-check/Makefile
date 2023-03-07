@@ -1,4 +1,4 @@
-include ../../Makefile.common.mk
+include ../../Makefile
 
 BUILDER := "dockerx-resource-quota-check"
 IMAGE := "kuberhealthy/resource-quota-check"

@@ -15,7 +15,7 @@ jobs:
       - name: Checkout Source 
         uses: actions/checkout@v2
       - name: Download Gosec
-        run: curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sudo sh -s -- -b /usr/bin v2.15.0
+        run: curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sudo sh -s v2.15.0 -- -b /usr/bin
       - name: Run Gosec Security Scanner 
         #G107: Url provided to HTTP request as taint input
         #G109: Potential Integer overflow made by strconv.Atoi result conversion to int16/32
@@ -23,4 +23,4 @@ jobs:
         #G402: allow variable assignment for InsecureSkipVerify to allow no handshake SSL expiration date checks 
         #G601: Implicit memory aliasing in for loop.  (disabled due to false positives for safe code)
         #G114: Gosec does not allow using the http.ListenAndServePackage (disabled because this is a reasonably large change and it blocks every build)
-        run: gosec -exclude=G107,G109,G304,G402,G601,G204,G114 ./...
+        run: bin/gosec -exclude=G107,G109,G304,G402,G601,G204,G114 ./...
