@@ -39,8 +39,7 @@ prometheus:
     namespace: kuberhealthy
     rules: # applies to all PrometheusRule specs
       additionalAnnotations: {}
-      additionalLabels:
-        severity: critical
+      additionalLabels: {}
 
 # imageRegistry can be used to globally override where check images are pulled from. Individual checks can be overridden below.
 # By default if no overrides are specified, all images are pulled from Docker Hub.  Do not include a trailing '/'.
