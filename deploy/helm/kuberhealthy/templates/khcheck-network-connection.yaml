@@ -9,6 +9,11 @@ spec:
   runInterval:  {{ .Values.check.networkConnection.runInterval }}
   timeout: {{ .Values.check.networkConnection.timeout }}
   podSpec:
+    {{- if .Values.securityContext.seccompProfile }}
+    securityContext:
+      seccompProfile:
+        {{- toYaml .Values.securityContext.seccompProfile | nindent 8 }}
+    {{- end }}
     {{- if .Values.imagePullSecrets }}
     imagePullSecrets:
       {{ toYaml .Values.imagePullSecrets | indent 2 }}

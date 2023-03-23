@@ -1,4 +1,4 @@
-include ../../Makefile.common.mk
+include ../../Makefile
 
 BUILDER := "dockerx-pod-restarts-check"
 IMAGE := "kuberhealthy/pod-restarts-check"

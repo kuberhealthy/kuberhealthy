@@ -25,3 +25,5 @@
 - [Joel Kulesa](https://github.com/jkulesa)
 - [McKenna Jones](https://github.com/mckennajones)
 - [Lorenzo Setale](https://setale.me/)
+- [Allan Ramirez](https://github.com/ramirezag)
+- [Erich Stoekl](https://github.com/erichstoekl)
