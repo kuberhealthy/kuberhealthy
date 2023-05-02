@@ -1,0 +1,20 @@
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyJob
+metadata:
+  name: kh-test-job
+spec:
+  timeout: 2m
+  podSpec:
+    containers:
+    - env:
+      - name: REPORT_FAILURE
+        value: "REPORT_FAILURE_VALUE"
+      - name: REPORT_DELAY
+        value: 5s
+      image: kuberhealthy/test-check:latest
+      imagePullPolicy: Always
+      name: main
+      resources:
+        requests:
+          cpu: 10m
+          memory: 50Mi

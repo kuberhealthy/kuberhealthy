@@ -38,6 +38,7 @@ type KuberhealthyJobsGetter interface {
 type KuberhealthyJobInterface interface {
 	Create(*KuberhealthyJob) (KuberhealthyJob, error)
 	Update(*KuberhealthyJob) (KuberhealthyJob, error)
+	UpdateStatus(*KuberhealthyJob) (KuberhealthyJob, error)
 	Delete(name string, options *metav1.DeleteOptions) error
 	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
 	Get(name string, options metav1.GetOptions) (KuberhealthyJob, error)
@@ -124,6 +125,21 @@ func (c *kuberhealthyJobs) Update(kuberhealthyJob *KuberhealthyJob) (result Kube
 		Namespace(c.ns).
 		Resource("khjobs").
 		Name(kuberhealthyJob.Name).
+		Body(kuberhealthyJob).
+		Do(context.TODO()).
+		Into(&result)
+	return
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *kuberhealthyJobs) UpdateStatus(kuberhealthyJob *KuberhealthyJob) (result KuberhealthyJob, err error) {
+	result = KuberhealthyJob{}
+	err = c.client.Put().
+		Namespace(c.ns).
+		Resource("khjobs").
+		Name(kuberhealthyJob.Name).
+		SubResource("status").
 		Body(kuberhealthyJob).
 		Do(context.TODO()).
 		Into(&result)

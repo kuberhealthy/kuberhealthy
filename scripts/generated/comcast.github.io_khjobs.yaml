@@ -19,7 +19,20 @@ spec:
   scope: Namespaced
   preserveUnknownFields: false
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - description: OK status
+      jsonPath: .status.ok
+      name: OK
+      type: string
+    - description: Last Run
+      jsonPath: .status.lastRun
+      name: Age LastRun
+      type: date
+    - description: Age
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
     schema:
       openAPIV3Schema:
         description: KuberhealthyJob represents the data in the CRD for configuring
@@ -6452,9 +6465,40 @@ spec:
             - podSpec
             - timeout
             type: object
+          status:
+            description: Status holds the results of the job
+            properties:
+              authoritativePod:
+                type: string
+              errors:
+                items:
+                  type: string
+                type: array
+              lastRun:
+                format: date-time
+                nullable: true
+                type: string
+              node:
+                type: string
+              ok:
+                type: boolean
+              runDuration:
+                type: string
+              uuid:
+                type: string
+            required:
+            - authoritativePod
+            - errors
+            - node
+            - ok
+            - runDuration
+            - uuid
+            type: object
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""

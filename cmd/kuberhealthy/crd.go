@@ -28,11 +28,6 @@ func setCheckStateResource(checkName string, checkNamespace string, state khstat
 	}
 	resourceVersion := existingState.GetResourceVersion()
 
-	// set the pod name that wrote the khstate
-	state.AuthoritativePod = podHostname
-	now := metav1.Now() // set the time the khstate was last
-	state.LastRun = &now
-
 	khState := khstatev1.NewKuberhealthyState(name, state)
 	khState.SetResourceVersion(resourceVersion)
 	// TODO - if "try again" message found in error, then try again
@@ -127,18 +122,13 @@ func getJobState(j *external.Checker) (khstatev1.WorkloadDetails, error) {
 
 // setJobPhase updates the kuberhealthy job phase depending on the state of its run.
 func setJobPhase(jobName string, jobNamespace string, jobPhase khjobv1.JobPhase) error {
-
 	kj, err := khJobClient.KuberhealthyJobs(jobNamespace).Get(jobName, metav1.GetOptions{})
 	if err != nil {
 		log.Errorln("error getting khjob:", jobName, err)
 		return err
 	}
-	resourceVersion := kj.GetResourceVersion()
-	updatedJob := khjobv1.NewKuberhealthyJob(jobName, jobNamespace, kj.Spec)
-	updatedJob.SetResourceVersion(resourceVersion)
 	log.Infoln("Setting khjob phase to:", jobPhase)
-	updatedJob.Spec.Phase = jobPhase
-
-	_, err = khJobClient.KuberhealthyJobs(jobNamespace).Update(&updatedJob)
+	kj.Spec.Phase = jobPhase
+	_, err = khJobClient.KuberhealthyJobs(jobNamespace).Update(&kj)
 	return err
 }

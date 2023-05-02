@@ -82,7 +82,7 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName string, checkNamespace s
 	log.Debugln("Setting execution state of check", checkName, "to", details.OK, details.Errors, details.CurrentUUID, details.GetKHWorkload())
 
 	// store the check state with the CRD
-	err = k.storeCheckState(checkName, checkNamespace, details)
+	err = k.updateWorkloadStatus(checkName, checkNamespace, details)
 	if err != nil {
 		return fmt.Errorf("Was unable to write an execution error to the CRD status with error: %w", err)
 	}
@@ -116,7 +116,7 @@ func (k *Kuberhealthy) setJobExecutionError(jobName string, jobNamespace string,
 	log.Debugln("Setting execution state of job", jobName, "to", details.OK, details.Errors, details.CurrentUUID, details.GetKHWorkload())
 
 	// store the check state with the CRD
-	err = k.storeCheckState(jobName, jobNamespace, details)
+	err = k.updateWorkloadStatus(jobName, jobNamespace, details)
 	if err != nil {
 		return fmt.Errorf("Was unable to write an execution error to the CRD status with error: %w", err)
 	}
@@ -135,7 +135,7 @@ func (k *Kuberhealthy) Shutdown(doneChan chan struct{}) {
 		log.Infoln("shutdown: aborting control context")
 		k.shutdownCtxFunc() // stop the control system
 	}
-	time.Sleep(5) // help prevent more checks from starting in a race before control system stop happens
+	time.Sleep(time.Second * 5) // help prevent more checks from starting in a race before control system stop happens
 	log.Infoln("shutdown: stopping checks")
 	k.StopChecks() // stop all checks
 	log.Infoln("shutdown: ready for main program shutdown")
@@ -848,7 +848,7 @@ func (k *Kuberhealthy) masterMonitor(ctx context.Context, becameMasterChan chan 
 	// event, then we calculate if we should become or lose master.
 	for range ticker.C {
 
-		if time.Now().Sub(lastMasterChangeTime) < interval {
+		if time.Since(lastMasterChangeTime) < interval {
 			log.Println("control: waiting for master changes to settle...")
 			continue
 		}
@@ -918,7 +918,7 @@ func (k *Kuberhealthy) runJob(ctx context.Context, job khjobv1.KuberhealthyJob) 
 	// Subtract 10 seconds from run time since there are two 5 second sleeps during the job run where kuberhealthy
 	// waits for all pods to clear before running the check and waits for all pods to exit once the check has finished
 	// running. Both occur before and after the kh job pod completes its run.
-	jobRunDuration := time.Now().Sub(jobStartTime) - time.Second*10
+	jobRunDuration := time.Since(jobStartTime) - time.Second*10
 
 	// make a new state for this job and fill it from the job's current status
 	jobDetails, err := getJobState(j)
@@ -930,6 +930,10 @@ func (k *Kuberhealthy) runJob(ctx context.Context, job khjobv1.KuberhealthyJob) 
 	details.OK, details.Errors = j.CurrentStatus()
 	details.RunDuration = jobRunDuration.String()
 	details.CurrentUUID = jobDetails.CurrentUUID
+	details.AuthoritativePod = podHostname
+
+	lastRun := metav1.Now()
+	details.LastRun = &lastRun
 
 	// Fetch node information from running check pod using kh run uuid
 	selector := "kuberhealthy-run-id=" + details.CurrentUUID
@@ -972,12 +976,12 @@ func (k *Kuberhealthy) runJob(ctx context.Context, job khjobv1.KuberhealthyJob) 
 	log.Infoln("Setting state of job", j.Name(), "in namespace", j.CheckNamespace(), "to", details.OK, details.Errors, details.RunDuration, details.CurrentUUID, details.GetKHWorkload())
 
 	// store the job state with the CRD
-	err = k.storeCheckState(j.Name(), j.CheckNamespace(), details)
+	err = k.updateWorkloadStatus(j.Name(), j.CheckNamespace(), details)
 	if err != nil {
 		log.Errorln("Error storing CRD state for job:", j.Name(), "in namespace", j.CheckNamespace(), err)
 	}
 
-	// set KHJob phase to running:
+	// set KHJob phase to completed:
 	err = setJobPhase(j.Name(), j.CheckNamespace(), khjobv1.JobCompleted)
 	if err != nil {
 		log.Errorln("Error setting job phase:", err)
@@ -1031,7 +1035,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c *external.Checker) {
 		// Subtract 10 seconds from run time since there are two 5 second sleeps during the check run where kuberhealthy
 		// waits for all pods to clear before running the check and waits for all pods to exit once the check has finished
 		// running. Both occur before and after the checker pod completes its run.
-		checkRunDuration := time.Now().Sub(checkStartTime) - time.Second*10
+		checkRunDuration := time.Since(checkStartTime) - time.Second*10
 
 		// make a new state for this check and fill it from the check's current status
 		checkDetails, err := getCheckState(c)
@@ -1043,6 +1047,10 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c *external.Checker) {
 		details.OK, details.Errors = c.CurrentStatus()
 		details.RunDuration = checkRunDuration.String()
 		details.CurrentUUID = checkDetails.CurrentUUID
+		details.AuthoritativePod = podHostname
+
+		lastRun := metav1.Now()
+		details.LastRun = &lastRun
 
 		// Fetch node information from running check pod using kh run uuid
 		selector := "kuberhealthy-run-id=" + details.CurrentUUID
@@ -1085,7 +1093,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c *external.Checker) {
 		log.Infoln("Setting state of check", c.Name(), "in namespace", c.CheckNamespace(), "to", details.OK, details.Errors, details.RunDuration, details.CurrentUUID, details.GetKHWorkload())
 
 		// store the check state with the CRD
-		err = k.storeCheckState(c.Name(), c.CheckNamespace(), details)
+		err = k.updateWorkloadStatus(c.Name(), c.CheckNamespace(), details)
 		if err != nil {
 			log.Errorln("Error storing CRD state for check:", c.Name(), "in namespace", c.CheckNamespace(), err)
 		}
@@ -1095,8 +1103,64 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c *external.Checker) {
 	}
 }
 
-// storeCheckState stores the check state in its cluster CRD
-func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, details khstatev1.WorkloadDetails) error {
+func (k *Kuberhealthy) updateWorkloadStatus(name string, namespace string, details khstatev1.WorkloadDetails) error {
+	var updateFunction func() error
+	khWorkload := details.GetKHWorkload()
+	switch khWorkload {
+	case khstatev1.KHCheck:
+		status := khcheckv1.CheckStatus{}
+		status.OK = details.OK
+		status.Errors = details.Errors
+		status.RunDuration = details.RunDuration
+		status.Node = details.Node
+		status.LastRun = details.LastRun
+		status.AuthoritativePod = details.AuthoritativePod
+		status.CurrentUUID = details.CurrentUUID
+		updateFunction = func() error { return k.updateCheckStatus(name, namespace, status) }
+	case khstatev1.KHJob:
+		status := khjobv1.JobStatus{}
+		status.OK = details.OK
+		status.Errors = details.Errors
+		status.RunDuration = details.RunDuration
+		status.Node = details.Node
+		status.LastRun = details.LastRun
+		status.AuthoritativePod = details.AuthoritativePod
+		status.CurrentUUID = details.CurrentUUID
+		updateFunction = func() error { return k.updateJobStatus(name, namespace, status) }
+	}
+	resourceDescription := fmt.Sprintf("%s %s/%s", khWorkload, namespace, name)
+	err := updateRetryingObjectModifiedError(resourceDescription, updateFunction)
+	if err != nil {
+		log.Errorln("error updating state:", khWorkload, namespace, name, err)
+		return err
+	}
+
+	// Now store the state custom resource
+	return k.storeKHState(name, namespace, details)
+}
+
+func (k *Kuberhealthy) updateCheckStatus(name string, namespace string, status khcheckv1.CheckStatus) error {
+	check, err := khCheckClient.KuberhealthyChecks(namespace).Get(name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	check.Status = status
+	_, err = khCheckClient.KuberhealthyChecks(namespace).UpdateStatus(&check)
+	return err
+}
+
+func (k *Kuberhealthy) updateJobStatus(name string, namespace string, status khjobv1.JobStatus) error {
+	job, err := khJobClient.KuberhealthyJobs(namespace).Get(name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	job.Status = status
+	_, err = khJobClient.KuberhealthyJobs(namespace).UpdateStatus(&job)
+	return err
+}
+
+// storeKHState stores the check state in its cluster CRD
+func (k *Kuberhealthy) storeKHState(checkName string, checkNamespace string, details khstatev1.WorkloadDetails) error {
 
 	// ensure the CRD resource exits
 	err := ensureStateResourceExists(checkName, checkNamespace, details.GetKHWorkload())
@@ -1104,8 +1168,13 @@ func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, 
 		return err
 	}
 
+	resourceDescription := fmt.Sprintf("khstate %s/%s", checkNamespace, checkName)
+	return updateRetryingObjectModifiedError(resourceDescription, func() error { return setCheckStateResource(checkName, checkNamespace, details) })
+}
+
+func updateRetryingObjectModifiedError(resourceDescription string, updateFunction func() error) error {
 	// put the status on the CRD from the check
-	err = setCheckStateResource(checkName, checkNamespace, details)
+	err := updateFunction()
 
 	//TODO: Make this retry of updating custom resources repeatable
 	//
@@ -1121,7 +1190,7 @@ func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, 
 
 		// if too many retires have occurred, we fail up the stack further
 		if tries > maxTries {
-			return fmt.Errorf("failed to update khstate for check %s in namespace %s after %d with error %w", checkName, checkNamespace, maxTries, err)
+			return fmt.Errorf("failed to update %s after %d with error %w", resourceDescription, maxTries, err)
 		}
 		log.Infoln("Failed to update khstate for check because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
 
@@ -1130,7 +1199,7 @@ func (k *Kuberhealthy) storeCheckState(checkName string, checkNamespace string, 
 		delay = delay + delay
 
 		// try setting the check state again
-		err = setCheckStateResource(checkName, checkNamespace, details)
+		err = updateFunction()
 
 		// count how many times we've retried
 		tries++
@@ -1459,10 +1528,14 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 	details.RunDuration = checkRunDuration
 	details.Namespace = podReport.Namespace
 	details.CurrentUUID = podReport.UUID
+	details.AuthoritativePod = podHostname
+
+	lastRun := metav1.Now()
+	details.LastRun = &lastRun
 
 	// since the check is validated, we can proceed to update the status now
 	k.externalCheckReportHandlerLog(requestID, "Setting check with name", podReport.Name, "in namespace", podReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID, details.GetKHWorkload())
-	err = k.storeCheckState(podReport.Name, podReport.Namespace, details)
+	err = k.updateWorkloadStatus(podReport.Name, podReport.Namespace, details)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		k.externalCheckReportHandlerLog(requestID, "failed to store check state for %s: %w", podReport.Name, err)

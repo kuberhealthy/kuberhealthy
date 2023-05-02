@@ -58,6 +58,7 @@ kubectl logs -n $NS --selector $selector
 for i in {1..60}
 do
     khsCount=$(kubectl get -n $NS khs -o yaml |grep "OK: true" |wc -l)
+    kcStatusCount=$(kubectl get -n $NS khcheck -o yaml |grep "ok: true" |wc -l)
     cDeploy=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep deployment |grep Completed |wc -l)
     cDNS=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep dns-status-internal |grep Completed |wc -l)
     cDS=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep daemonset |grep Completed |wc -l)
@@ -65,7 +66,7 @@ do
     cPS=$(kubectl -n $NS get pods -l app=kuberhealthy-check |grep pod-status |grep Completed |wc -l)
     failCount=$(kubectl get -n $NS khs -o yaml |grep "OK: false" |wc -l)
 
-    if [ $khsCount -ge 5 ] && [ $cDeploy -ge 1 ] && [ $cDS -ge 1 ] && [ $cDNS -ge 1 ] && [ $cPR -ge 1 ] && [ $cPS -ge 1 ]
+    if [ $khsCount -ge 5 ] && [ $khsCount -eq $kcStatusCount ] && [ $cDeploy -ge 1 ] && [ $cDS -ge 1 ] && [ $cDNS -ge 1 ] && [ $cPR -ge 1 ] && [ $cPS -ge 1 ]
     then
         echo "Kuberhealthy is working like it should and all tests passed"
         break
@@ -113,3 +114,5 @@ then
 else
     echo "No Error deployment pods found"
 fi
+
+. .ci/_job_test.sh

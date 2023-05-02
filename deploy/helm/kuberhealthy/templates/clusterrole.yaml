@@ -52,6 +52,13 @@ rules:
     verbs:
     - "*"
   - apiGroups:
+    - comcast.github.io
+    resources:
+    - khchecks/status
+    - khjobs/status
+    verbs:
+    - "*"
+  - apiGroups:
     - ""
     resources:
     - namespaces
