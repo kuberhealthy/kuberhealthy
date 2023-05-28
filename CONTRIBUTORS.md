@@ -26,3 +26,4 @@
 - [McKenna Jones](https://github.com/mckennajones)
 - [Allan Ramirez](https://github.com/ramirezag)
 - [Erich Stoekl](https://github.com/erichstoekl)
+- [Jason Hiatt](https://github.com/jthiatt)
