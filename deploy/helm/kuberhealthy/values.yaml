@@ -17,6 +17,9 @@ prometheus:
     enabled: false
     label: grafana_dashboard
     labelValue: "1"
+    additionalLabels: {}
+      # env: "dev"
+      # mycustomlabel: "value"
     # namespace: "" # Alternative namespace to use for grafana dashboard.
 
   serviceMonitor:
