@@ -20,6 +20,8 @@ prometheus:
     additionalLabels: {}
       # env: "dev"
       # mycustomlabel: "value"
+    annotations: {}
+      # k8s-sidecar-target-directory: "kuberhealthy"
     # namespace: "" # Alternative namespace to use for grafana dashboard.
 
   serviceMonitor:
