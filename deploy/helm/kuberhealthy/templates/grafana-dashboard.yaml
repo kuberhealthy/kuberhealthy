@@ -7,6 +7,10 @@ metadata:
     {{- if .Values.prometheus.grafanaDashboard.additionalLabels}}
     {{- toYaml .Values.prometheus.grafanaDashboard.additionalLabels | nindent 4 }}
     {{- end }}
+  {{- if .Values.prometheus.grafanaDashboard.annotations}}
+  annotations:
+    {{- toYaml .Values.prometheus.grafanaDashboard.annotations | nindent 4 }}
+  {{- end }}
   name: grafana-kuberhealthy
   {{- if .Values.prometheus.grafanaDashboard.namespace }}
   namespace: {{ .Values.prometheus.grafanaDashboard.namespace }}
