@@ -20,7 +20,7 @@ spec:
       app: {{ .Chart.Name }}
   namespaceSelector:
     matchNames:
-      - {{ .Release.Namespace }}
+      - {{ .Values.namespace | default .Release.Namespace }}
   endpoints:
   - port: http
     interval: {{ .Values.prometheus.serviceMonitor.endpoints.interval }}

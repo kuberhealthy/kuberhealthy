@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: kuberhealthy
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
 data:
   kuberhealthy.yaml: |-
     listenAddress: ":8080" # The port for kuberhealthy to listen on for web requests
