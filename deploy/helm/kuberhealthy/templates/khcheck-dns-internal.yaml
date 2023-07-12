@@ -4,7 +4,7 @@ apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
   name: dns-status-internal
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
 spec:
   runInterval: {{ .Values.check.dnsInternal.runInterval }}
   timeout: {{ .Values.check.dnsInternal.timeout }}
@@ -91,11 +91,11 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: dns-internal-sa
-    namespace: {{ .Release.Namespace }}
+    namespace: {{ .Values.namespace | default .Release.Namespace }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: dns-internal-sa
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
 {{- end }}
