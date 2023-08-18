@@ -300,7 +300,7 @@ func (k *Kuberhealthy) khStateResourceReaper(ctx context.Context) {
 func (k *Kuberhealthy) reapKHStateResources(ctx context.Context) error {
 
 	// list all khStates in the cluster
-	khStates, err := khStateClient.KuberhealthyStates(listenNamespace).List(metav1.ListOptions{})
+	khStates, err := khStateClient.KuberhealthyStates(cfg.ListenNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("khState reaper: error listing khStates for reaping: %w", err)
 	}
@@ -310,7 +310,7 @@ func (k *Kuberhealthy) reapKHStateResources(ctx context.Context) error {
 		return fmt.Errorf("khState reaper: error listing unstructured khChecks: %w", err)
 	}
 
-	khJobs, err := khJobClient.KuberhealthyJobs(listenNamespace).List(metav1.ListOptions{})
+	khJobs, err := khJobClient.KuberhealthyJobs(cfg.ListenNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("khState reaper: error listing khJobs for reaping: %w", err)
 	}
@@ -370,7 +370,7 @@ func (k *Kuberhealthy) monitorKHJobs(ctx context.Context) {
 		// wait a second so we don't retry too quickly on error
 		time.Sleep(time.Second)
 
-		watcher, err := khJobClient.KuberhealthyJobs(listenNamespace).Watch(metav1.ListOptions{})
+		watcher, err := khJobClient.KuberhealthyJobs(cfg.ListenNamespace).Watch(metav1.ListOptions{})
 		if err != nil {
 			log.Errorln("error watching for khjob objects:", err)
 			continue
