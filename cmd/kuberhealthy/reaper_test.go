@@ -17,7 +17,6 @@ func TestParseConfigs(t *testing.T) {
 
 	inputConfig := `listenAddress: ":8080" # The port for kuberhealthy to listen on for web requests
 enableForceMaster: false # Set to true to enable local testing, forced master mode
-listenNamespace: "foo-bar"
 logLevel: "debug" # Log level to be used
 listenNamespace: "test" # Kuberhealthy will only monitor khcheck resources from this namespace
 jobCleanupDuration: 3m # The maximum age of khjobs before being reaped
@@ -29,7 +28,7 @@ maxCheckPods: 1 # The maximum number of check pods in Completed state before bei
 		t.Fatal("Error unmarshaling yaml config with error:" + err.Error())
 	}
 
-	if testConfig.ListenNamespace != "foo-bar" {
+	if testConfig.ListenNamespace != "test" {
 		t.Fatal("ListenNamespace did not unmarshal correctly")
 	}
 }
