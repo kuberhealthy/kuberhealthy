@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -29,7 +30,7 @@ var (
 )
 
 type APIRequest struct {
-	URL  string
+	URL  *url.URL
 	Type string
 	Body io.Reader
 }
@@ -86,8 +87,15 @@ func main() {
 	checkTimeLimit := time.Minute * 1
 	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
 
+	// validate url
+	parsedUrl, err := url.Parse(checkURL)
+	if err != nil {
+		log.Errorln("Cannot parse provided URL:" + err.Error())
+		ReportFailureAndExit(err)
+	}
+
 	// hits kuberhealthy endpoint to see if node is ready
-	err := nodeCheck.WaitForKuberhealthy(ctx)
+	err = nodeCheck.WaitForKuberhealthy(ctx)
 	if err != nil {
 		log.Errorln("Error waiting for kuberhealthy endpoint to be contactable by checker pod with error:" + err.Error())
 	}
@@ -149,7 +157,7 @@ func main() {
 	// and returns a http status every second.
 	for checksRan < countInt {
 		r, err := callAPI(APIRequest{
-			URL:  checkURL,
+			URL:  parsedUrl,
 			Type: requestType,
 			Body: bytes.NewBuffer([]byte(requestBody)),
 		})
@@ -157,16 +165,16 @@ func main() {
 
 		if err != nil {
 			checksFailed++
-			log.Errorln("Failed to reach URL: ", checkURL)
+			log.Errorln("Failed to reach URL: ", parsedUrl.Redacted())
 			continue
 		}
 
 		if r.StatusCode != expectedStatusCodeInt {
-			log.Errorln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
+			log.Errorln("Got a", r.StatusCode, "with a", http.MethodGet, "to", parsedUrl.Redacted())
 			checksFailed++
 			continue
 		}
-		log.Infoln("Got a", r.StatusCode, "with a", http.MethodGet, "to", checkURL)
+		log.Infoln("Got a", r.StatusCode, "with a", http.MethodGet, "to", parsedUrl.Redacted())
 		checksPassed++
 
 		// if we have a ticker, we wait for it to tick before checking again
@@ -182,7 +190,7 @@ func main() {
 
 	// Check to see if the number of requests passed at passingPercent and reports to Kuberhealthy accordingly
 	if checksPassed < passInt {
-		reportErr := fmt.Errorf("unable to retrieve a valid response (expected status: %d) from %s %s checks failed %d out of %d attempts", expectedStatusCodeInt, requestType, checkURL, checksFailed, checksRan)
+		reportErr := fmt.Errorf("unable to retrieve a valid response (expected status: %d) from %s %s checks failed %d out of %d attempts", expectedStatusCodeInt, requestType, parsedUrl.Redacted(), checksFailed, checksRan)
 		ReportFailureAndExit(reportErr)
 	}
 
@@ -210,23 +218,23 @@ func callAPI(request APIRequest) (*http.Response, error) {
 	var response *http.Response
 	switch request.Type {
 	case "GET":
-		resp, err := http.Get(request.URL)
+		resp, err := http.Get(request.URL.String())
 		if err != nil {
-			return nil, fmt.Errorf("error occurred while calling %s: %w", request.URL, err)
+			return nil, fmt.Errorf("error occurred while calling %s: %w", request.URL.Redacted(), err)
 		}
 		response = resp
 	case "POST", "PUT", "DELETE", "PATCH":
-		req, err := http.NewRequest(string(request.Type), request.URL, request.Body)
+		req, err := http.NewRequest(request.Type, request.URL.String(), request.Body)
 		if err != nil {
-			return nil, fmt.Errorf("error occurred while calling %s: %w", request.URL, err)
+			return nil, fmt.Errorf("error occurred while calling %s: %w", request.URL.Redacted(), err)
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return nil, fmt.Errorf("error occurred while calling %s: %w", request.URL, err)
+			return nil, fmt.Errorf("error occurred while calling %s: %w", request.URL.Redacted(), err)
 		}
 		response = resp
 	default:
-		return nil, fmt.Errorf("error occurred while calling %s: wrong request type found", request.URL)
+		return nil, fmt.Errorf("error occurred while calling %s: wrong request type found", request.URL.Redacted())
 	}
 
 	return response, nil
