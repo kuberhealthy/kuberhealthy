@@ -1,0 +1,24 @@
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: knativesvc
+  namespace: kuberhealthy
+spec:
+  runInterval: 15m
+  timeout: 2m
+  podSpec:
+    containers:
+      - image: "kuberhealthy/knative-svc-check:v0.4"
+        imagePullPolicy: Always
+        name: knativesvc
+        env:
+          - name: KH_ATT
+            value: "3"
+          - name: KH_DEL
+            value: "10"
+          - name: KS_SVC
+            value: "kh-knativesvc"
+          - name: KS_NS
+            value: "kuberhealthy"
+          - name: KS_IMAGE
+            value: "gcr.io/knative-samples/helloworld-go"
