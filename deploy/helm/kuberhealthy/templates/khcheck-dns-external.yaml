@@ -4,7 +4,7 @@ apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
   name: dns-status-external
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
 spec:
   runInterval: {{ .Values.check.dnsExternal.runInterval }}
   timeout: {{ .Values.check.dnsExternal.timeout }}

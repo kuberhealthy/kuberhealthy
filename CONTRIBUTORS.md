@@ -11,6 +11,7 @@
 - [James Rawlings](https://github.com/rawlingsj)
 - [Jonathan Phan](https://github.com/jonnydawg) - maintainer
 - [Joshulyne Park](https://github.com/joshulyne) - maintainer
+- [jsvk](https://github.com/jsvk)
 - [Justin Downie](https://github.com/jdowni000)
 - [Mario Constanti](https://github.com/bavarianbidi)
 - [Michael Kurashima](mailto:Michael.Kurashima@comcast.com)
@@ -26,3 +27,4 @@
 - [McKenna Jones](https://github.com/mckennajones)
 - [Allan Ramirez](https://github.com/ramirezag)
 - [Erich Stoekl](https://github.com/erichstoekl)
+- [Ajay Kalambur](https://github.com/kalamburajay)
