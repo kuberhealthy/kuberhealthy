@@ -300,7 +300,7 @@ func (k *Kuberhealthy) khStateResourceReaper(ctx context.Context) {
 func (k *Kuberhealthy) reapKHStateResources(ctx context.Context) error {
 
 	// list all khStates in the cluster
-	khStates, err := khStateClient.KuberhealthyStates(listenNamespace).List(metav1.ListOptions{})
+	khStates, err := khStateClient.KuberhealthyStates(cfg.ListenNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("khState reaper: error listing khStates for reaping: %w", err)
 	}
@@ -310,7 +310,7 @@ func (k *Kuberhealthy) reapKHStateResources(ctx context.Context) error {
 		return fmt.Errorf("khState reaper: error listing unstructured khChecks: %w", err)
 	}
 
-	khJobs, err := khJobClient.KuberhealthyJobs(listenNamespace).List(metav1.ListOptions{})
+	khJobs, err := khJobClient.KuberhealthyJobs(cfg.ListenNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("khState reaper: error listing khJobs for reaping: %w", err)
 	}
@@ -370,7 +370,7 @@ func (k *Kuberhealthy) monitorKHJobs(ctx context.Context) {
 		// wait a second so we don't retry too quickly on error
 		time.Sleep(time.Second)
 
-		watcher, err := khJobClient.KuberhealthyJobs(listenNamespace).Watch(metav1.ListOptions{})
+		watcher, err := khJobClient.KuberhealthyJobs(cfg.ListenNamespace).Watch(metav1.ListOptions{})
 		if err != nil {
 			log.Errorln("error watching for khjob objects:", err)
 			continue
@@ -1290,7 +1290,7 @@ func (k *Kuberhealthy) fetchPodBySelectorForDuration(ctx context.Context, select
 func (k *Kuberhealthy) fetchPodBySelector(ctx context.Context, selector string) (v1.Pod, error) {
 	var pod v1.Pod
 
-	podClient := kubernetesClient.CoreV1().Pods("")
+	podClient := kubernetesClient.CoreV1().Pods(cfg.ListenNamespace)
 
 	// Use either label selector or field selector depending on the selector string passed through
 	// LabelSelector: "kuberhealthy-run-id=" + uuid,
@@ -1700,7 +1700,7 @@ func listUnstructuredKHChecks(ctx context.Context) (*unstructured.UnstructuredLi
 		Group:    checkCRDGroup,
 	}
 
-	unstructuredList, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").List(ctx, metav1.ListOptions{})
+	unstructuredList, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace(cfg.ListenNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return unstructuredList, err
 	}
@@ -1727,7 +1727,7 @@ func watchUnstructuredKHChecks(ctx context.Context) (watch.Interface, error) {
 		Group:    checkCRDGroup,
 	}
 
-	watcher, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace("").Watch(ctx, metav1.ListOptions{})
+	watcher, err := dynamicClient.Resource(khCheckGroupVersionResource).Namespace(cfg.ListenNamespace).Watch(ctx, metav1.ListOptions{})
 	if err != nil {
 		return watcher, err
 	}
