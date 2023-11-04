@@ -27,6 +27,17 @@ spec:
     {{- if .Values.prometheus.serviceMonitor.endpoints.bearerTokenFile }}
     bearerTokenFile: {{ .Values.prometheus.serviceMonitor.endpoints.bearerTokenFile }}
     {{- end }}
+    {{- with .Values.prometheus.serviceMonitor.endpoints.relabelings }}
+    relabelings:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.prometheus.serviceMonitor.endpoints.metricRelabelings }}
+    metricRelabelings:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
+  {{- with .Values.prometheus.serviceMonitor.targetLabels }}
+  targetLabels:
+    {{- toYaml . | nindent 8 }}
+  {{- end }}
 {{- end -}}
 {{- end -}}
-
