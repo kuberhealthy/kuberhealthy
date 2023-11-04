@@ -143,6 +143,11 @@ func getRequestBackoff(hostname string) chan RequestResult {
 
 			if resp != nil {
 				log.Debugln("Got a", resp.StatusCode)
+				if resp.StatusCode == 502 {
+                                    // When running with istio we get a 502 with err being nil so retry terminates
+                                    // Handle this scenario by resetting error to not nil
+                                    err = errors.New("")
+                                }
 				closeErr := resp.Body.Close()
 				if closeErr != nil {
 					log.Debugln("Failed to close response body:", closeErr.Error())
