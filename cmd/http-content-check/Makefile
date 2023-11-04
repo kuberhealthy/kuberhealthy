@@ -1,5 +1,5 @@
-include ../../Makefile
+BUILDER := http-content-check
+IMAGE := kuberhealthy/${BUILDER}
+TAG := v1.5.0
 
-BUILDER := "dockerx-http-content-check"
-IMAGE := "kuberhealthy/http-content-check"
-TAG := "v1.5.0"
+include ../../Makefile

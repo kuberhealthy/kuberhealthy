@@ -1,4 +1,4 @@
-FROM golang:1.15 as builder
+FROM golang:1.20.2 as builder
 LABEL LOCATION="git@github.com:kuberhealthy/kuberhealthy.git"
 LABEL DESCRIPTION="Kuberhealthy - Check and expose kubernetes cluster health in detail."
 COPY . /build

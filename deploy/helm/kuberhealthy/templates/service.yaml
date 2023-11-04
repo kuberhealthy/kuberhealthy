@@ -5,7 +5,7 @@ metadata:
   labels:
     app: {{ template "kuberhealthy.name" . }}
   name: {{ template "kuberhealthy.name" . }}
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
   {{- if or .Values.prometheus.enabled .Values.service.annotations }}
   annotations:
   {{- if and .Values.prometheus.enabled (not .Values.prometheus.serviceMonitor.enabled) }}
