@@ -36,6 +36,15 @@ prometheus:
     endpoints:
       interval: 15s
       bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      # -- ServiceMonitor relabel configs to apply to samples before scraping
+      ## Ref: https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/api.md#relabelconfig
+      relabelings: []
+      # -- ServiceMonitor metric relabel configs to apply to samples before ingestion
+      ## Ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#endpoint
+      metricRelabelings: []
+    # -- ServiceMonitor will add labels from the service to the Prometheus metric
+    ## Ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#servicemonitorspec
+    targetLabels: []
     namespace: kuberhealthy # prometheus operator must be allowed to scrape serviceMonitor metrics from kuberhealthy namespace or set to namespace of prometheus operator
 
   prometheusRule:
