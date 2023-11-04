@@ -6,7 +6,7 @@ apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
   name: storage-check-{{ . | default "default" }}
-  namespace: {{ $.Release.Namespace }}
+  namespace: {{ $.Values.namespace | default $.Release.Namespace }}
 spec:
   runInterval: {{ $.Values.check.storage.runInterval }}
   timeout: {{ $.Values.check.storage.timeout }}
@@ -81,7 +81,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: storage-khcheck-role
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
 rules:
   - apiGroups:
       - ""
@@ -148,7 +148,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: storage-khcheck-rb
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -161,5 +161,5 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: storage-khcheck
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
 {{- end }}

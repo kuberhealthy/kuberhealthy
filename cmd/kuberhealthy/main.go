@@ -32,8 +32,6 @@ var podNamespace = os.Getenv("POD_NAMESPACE")
 var isMaster bool                  // indicates this instance is the master and should be running checks
 var upcomingMasterState bool       // the upcoming master state on next interval
 var lastMasterChangeTime time.Time // indicates the last time a master change was seen
-var listenNamespace string         // namespace to listen (watch/get) `khcheck` resources on.  If blank, all namespaces will be monitored.
-
 // Interval for how often check pods should get reaped. Default is 30s.
 var checkReaperRunInterval = os.Getenv("CHECK_REAPER_RUN_INTERVAL")
 

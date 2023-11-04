@@ -15,6 +15,7 @@ import (
 type Config struct {
 	kubeConfigFile            string
 	ListenAddress             string                    `yaml:"listenAddress,omitempty"`
+	ListenNamespace           string                    `yaml:"listenNamespace,omitempty"`
 	EnableForceMaster         bool                      `yaml:"enableForceMaster,omitempty"`
 	LogLevel                  string                    `yaml:"logLevel,omitempty"`
 	InfluxUsername            string                    `yaml:"influxUsername,omitempty"`
