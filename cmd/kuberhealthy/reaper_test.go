@@ -27,6 +27,10 @@ maxCheckPods: 1 # The maximum number of check pods in Completed state before bei
 	if err != nil {
 		t.Fatal("Error unmarshaling yaml config with error:" + err.Error())
 	}
+
+	if testConfig.ListenNamespace != "test" {
+		t.Fatal("ListenNamespace did not unmarshal correctly")
+	}
 }
 
 // TestParseStringDuration ensures that a string duration can be parsed into a time.Duration.

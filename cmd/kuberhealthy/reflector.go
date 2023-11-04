@@ -32,7 +32,7 @@ func NewStateReflector() *StateReflector {
 	sr.resyncPeriod = time.Minute * 5
 
 	// structure the reflector and its required elements
-	khStateListWatch := cache.NewListWatchFromClient(khStateClient.RESTClient(), stateCRDResource, listenNamespace, fields.Everything())
+	khStateListWatch := cache.NewListWatchFromClient(khStateClient.RESTClient(), stateCRDResource, cfg.ListenNamespace, fields.Everything())
 	sr.store = cache.NewStore(cache.MetaNamespaceKeyFunc)
 	sr.reflector = cache.NewReflector(khStateListWatch, &khstatev1.KuberhealthyState{}, sr.store, sr.resyncPeriod)
 

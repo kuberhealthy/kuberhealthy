@@ -1,4 +1,4 @@
-FROM golang:1.13 AS builder
+FROM golang:1.20 AS builder
 RUN groupadd -g 999 user && \
     useradd -r -u 999 -g user user
 COPY --chown=user:user . /build
