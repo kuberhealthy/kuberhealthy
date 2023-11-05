@@ -31,8 +31,8 @@ entries:
     - https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy
     type: application
     urls:
-    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-97.tgz
-    version: "97"
+    - https://kuberhealthy.github.io/kuberhealthy/helm-repos/archives/kuberhealthy-98.tgz
+    version: "98"
   - apiVersion: v2
     appVersion: v2.7.1
     created: "2023-11-04T23:24:51.432294917Z"
