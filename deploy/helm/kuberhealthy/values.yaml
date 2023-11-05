@@ -46,6 +46,10 @@ prometheus:
     ## Ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#servicemonitorspec
     targetLabels: []
     namespace: kuberhealthy # prometheus operator must be allowed to scrape serviceMonitor metrics from kuberhealthy namespace or set to namespace of prometheus operator
+    rules: # applies to all PrometheusRule specs
+      additionalAnnotations: {}
+      additionalLabels:
+        severity: critical
 
   prometheusRule:
     enabled: false
