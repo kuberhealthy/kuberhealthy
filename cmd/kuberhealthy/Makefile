@@ -9,12 +9,12 @@ TAG := "unstable"
 build:
 	docker buildx build --platform linux/amd64,linux/arm64 --no-cache --pull -t ${IMAGE}:${TAG} -f Dockerfile ../../
 build-dev:
-	docker buildx build linux/amd64,linux/arm64 -t ${IMAGE}:${TAG} -f Dockerfile ../../
+	docker buildx build --platform linux/amd64,linux/arm64 -t ${IMAGE}:${TAG} -f Dockerfile ../../
 test:
 	POD_NAME="kuberhealthy-test" go test -run TestWebServer -v -args -- --debug --forceMaster
 run:
 	go build
-	POD_NAME="kuberhealthy-test" ./kuberhealthy --debug --forceMaster
+	KH_EXTERNAL_REPORTING_URL=localhost:8006 POD_NAMESPACE=kuberhealthy POD_NAME="kuberhealthy-test" ./kuberhealthy --debug --forceMaster --config ./test/test-config.yaml
 run-influx:
 	go build
 	POD_NAME="kuberhealthy-test" ./kuberhealthy -debug -forceMaster -enableInflux -influxUrl=http://localhost:8086 -influxDB=kuberhealthy

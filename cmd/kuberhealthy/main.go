@@ -168,7 +168,7 @@ func initKubernetesClients() error {
 	khJobClient = jobClient
 
 	// make a dynamicClient for kubernetes unstructured checks
-	restConfig, err := clientcmd.BuildConfigFromFlags("", configPath)
+	restConfig, err := clientcmd.BuildConfigFromFlags(kc.RESTClient().Get().URL().Host, configPath)
 	if err != nil {
 		log.Fatalln("Failed to build kubernetes configuration from configuration flags:", err)
 	}
@@ -214,16 +214,18 @@ func setUp() error {
 
 	var useDebugMode bool
 
-	// setup flaggy
-	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
-	flaggy.String(&configPath, "c", "config", "(optional) absolute path to the kuberhealthy config file")
-	flaggy.Bool(&useDebugMode, "d", "debug", "Set to true to enable debug.")
-	flaggy.Parse()
-
+	// setup global config struct
 	err := setUpConfig()
 	if err != nil {
 		return err
 	}
+
+	// setup flaggy
+	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
+	flaggy.String(&configPath, "c", "config", "Absolute path to the kuberhealthy config file")
+	flaggy.Bool(&useDebugMode, "d", "debug", "Set to true to enable debug.")
+	flaggy.Bool(&cfg.EnableForceMaster, "", "forceMaster", "Set to force master responsibilities on.")
+	flaggy.Parse()
 
 	// parse and set logging level
 	parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
@@ -257,11 +259,7 @@ func setUp() error {
 	}
 
 	// determine the name of this pod from the POD_NAME environment variable
-	targetNamespaceEnv, err = getEnvVar("TARGET_NAMESPACE")
-	if err != nil {
-		err := fmt.Errorf("failed to fetch TARGET_NAMESPACE environment variable: %w", err)
-		return err
-	}
+	targetNamespaceEnv = os.Getenv("TARGET_NAMESPACE")
 
 	// setup all clients
 	err = initKubernetesClients()

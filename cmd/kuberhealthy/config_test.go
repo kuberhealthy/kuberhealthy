@@ -1,11 +1,34 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
+
+func TestRenderConfig(t *testing.T) {
+
+	// make a new default config
+	cfg := Config{}
+	cfg.EnableForceMaster = false
+	cfg.EnableInflux = false
+	cfg.ExternalCheckReportingURL = "http://localhost:8006"
+	cfg.ListenAddress = "http://localhost:8006"
+	cfg.LogLevel = "debug"
+
+	// render it as yaml
+	b, err := yaml.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// output the config in yaml
+	fmt.Println(string(b))
+}
 
 // TestConfigReloadNotifications tests the notification of files changing with
 // limiting on output duration.
