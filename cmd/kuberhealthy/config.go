@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/codingsince1985/checksum"
@@ -29,11 +29,14 @@ type Config struct {
 	MaxErrorPodCount          int                       `yaml:"maxErrorPodCount,omitempty"`
 	StateMetadata             map[string]string         `yaml:"stateMetadata,omitempty"`
 	PromMetricsConfig         metrics.PromMetricsConfig `yaml:"promMetricsConfig,omitempty"`
+	// TargetNamespace sets the namespace that Kuberhealthy will operate in.  By default, this is blank, which means
+	// all namespaces.  However, for multi-tennant environments you may wish to set this.
+	TargetNamespace string `yaml:"namespace,omitempty"`
 }
 
 // Load loads file from disk
 func (c *Config) Load(file string) error {
-	b, err := ioutil.ReadFile(file)
+	b, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}
