@@ -13,6 +13,13 @@ require (
 	github.com/integrii/flaggy v1.2.2
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.0
+	github.com/pkg/sftp v1.10.1 // indirect
+	github.com/smartystreets/goconvey v1.6.4 // indirect
+	github.com/stretchr/testify v1.7.0
+	google.golang.org/api v0.44.0 // indirect
+	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c // indirect
+	gopkg.in/ini.v1 v1.62.0 // indirect
+	github.com/sirupsen/logrus v1.8.1
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.25.5
 	k8s.io/apimachinery v0.25.5
