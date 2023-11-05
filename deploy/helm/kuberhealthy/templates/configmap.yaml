@@ -18,3 +18,7 @@ data:
     maxCheckPodAge: {{ .Values.checkReaper.maxCheckPodAge }}
     maxCompletedPodCount: {{ .Values.checkReaper.maxCompletedPodCount }}
     maxErrorPodCount: {{ .Values.checkReaper.maxErrorPodCount }}
+    stateMetadata:
+      {{- range $key, $value := $.Values.stateMetadata }}
+      {{ $key }}: {{ $value }}
+      {{- end }}  

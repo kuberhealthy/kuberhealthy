@@ -1553,14 +1553,18 @@ func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
 		log.Errorln("Failed to calculate master:", err)
 	}
 
+	var currentState health.State
 	if len(namespaces) != 0 {
-		currentState := k.getCurrentStatusForNamespaces(namespaces)
-		currentState.CurrentMaster = currentMaster
-		return currentState
+		currentState = k.getCurrentStatusForNamespaces(namespaces)
+	} else {
+		currentState = k.stateReflector.CurrentStatus()
 	}
 
-	currentState := k.stateReflector.CurrentStatus()
 	currentState.CurrentMaster = currentMaster
+	if len(cfg.StateMetadata) != 0 {
+		currentState.Metadata = cfg.StateMetadata
+	}
+
 	return currentState
 }
 

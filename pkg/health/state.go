@@ -17,6 +17,7 @@ type State struct {
 	CheckDetails  map[string]khstatev1.WorkloadDetails // map of check names to last run timestamp
 	JobDetails    map[string]khstatev1.WorkloadDetails // map of job names to last run timestamp
 	CurrentMaster string
+	Metadata      map[string]string
 }
 
 // AddError adds new errors to State
@@ -60,5 +61,6 @@ func NewState() State {
 	s.Errors = []string{}
 	s.CheckDetails = make(map[string]khstatev1.WorkloadDetails)
 	s.JobDetails = make(map[string]khstatev1.WorkloadDetails)
+	s.Metadata = map[string]string{}
 	return s
 }

@@ -15,7 +15,6 @@ import (
 type Config struct {
 	kubeConfigFile            string
 	ListenAddress             string                    `yaml:"listenAddress,omitempty"`
-	ListenNamespace           string                    `yaml:"listenNamespace,omitempty"`
 	EnableForceMaster         bool                      `yaml:"enableForceMaster,omitempty"`
 	LogLevel                  string                    `yaml:"logLevel,omitempty"`
 	InfluxUsername            string                    `yaml:"influxUsername,omitempty"`
@@ -28,6 +27,7 @@ type Config struct {
 	MaxCheckPodAge            time.Duration             `yaml:"maxCheckPodAge,omitempty"`
 	MaxCompletedPodCount      int                       `yaml:"maxCompletedPodCount,omitempty"`
 	MaxErrorPodCount          int                       `yaml:"maxErrorPodCount,omitempty"`
+	StateMetadata             map[string]string         `yaml:"stateMetadata,omitempty"`
 	PromMetricsConfig         metrics.PromMetricsConfig `yaml:"promMetricsConfig,omitempty"`
 }
 
