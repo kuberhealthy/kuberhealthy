@@ -77,90 +77,7 @@ var kubernetesClient *kubernetes.Clientset
 // Set dynamicClient that represents the client used to watch and list unstructured khchecks
 var dynamicClient dynamic.Interface
 
-// setUpConfig loads and sets default Kuberhealthy configurations
-// Everytime kuberhealthy sees a configuration change, configurations should reload and reset
-func setUpConfig() error {
-	cfg = &Config{
-		kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),
-		LogLevel:       "info",
-	}
-
-	// attempt to load config file from disk
-	err := cfg.Load(configPath)
-	if err != nil {
-		log.Println("WARNING: Failed to read configuration file from disk:", err)
-	}
-
-	// set env variables into config if specified. otherwise set external check URL to default
-	externalCheckURL, err := getEnvVar(KHExternalReportingURL)
-	if err != nil {
-		if len(podNamespace) == 0 {
-			return errors.New("KH_EXTERNAL_REPORTING_URL environment variable not set and POD_NAMESPACE environment variable was blank.  Could not determine Kuberhealthy callback URL.")
-		}
-		log.Infoln("KH_EXTERNAL_REPORTING_URL environment variable not set, using default value")
-		externalCheckURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local/externalCheckStatus"
-	}
-	cfg.ExternalCheckReportingURL = externalCheckURL
-	log.Infoln("External check reporting URL set to:", cfg.ExternalCheckReportingURL)
-	return nil
-}
-
-// setUp loads, parses, and sets various Kuberhealthy configurations -- from flags, config values and env vars.
-func setUp() error {
-
-	var useDebugMode bool
-
-	// setup flaggy
-	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
-	flaggy.String(&configPath, "c", "config", "(optional) absolute path to the kuberhealthy config file")
-	flaggy.Bool(&useDebugMode, "d", "debug", "Set to true to enable debug.")
-	flaggy.Parse()
-
-	err := setUpConfig()
-	if err != nil {
-		return err
-	}
-
-	// parse and set logging level
-	parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
-	if err != nil {
-		err := fmt.Errorf("unable to parse log-level flag: %s", err)
-		return err
-	}
-
-	// log to stdout and set the level to info by default
-	log.SetOutput(os.Stdout)
-	log.SetLevel(parsedLogLevel)
-	log.Infoln("Startup Arguments:", os.Args)
-
-	// no matter what if user has specified debug leveling, use debug leveling
-	if useDebugMode {
-		log.Infoln("Setting debug output on because user specified flag")
-		log.SetLevel(log.DebugLevel)
-	}
-
-	// Handle force master mode
-	if cfg.EnableForceMaster == true {
-		log.Infoln("Enabling forced master mode")
-		masterCalculation.DebugAlwaysMasterOn()
-	}
-
-	// determine the name of this pod from the POD_NAME environment variable
-	podHostname, err = getEnvVar("POD_NAME")
-	if err != nil {
-		err := fmt.Errorf("failed to determine my hostname: %s", err)
-		return err
-	}
-
-	// setup all clients
-	err = initKubernetesClients()
-	if err != nil {
-		err := fmt.Errorf("failed to bootstrap kubernetes clients: %s", err)
-		return err
-	}
-
-	return nil
-}
+var targetNamespaceEnv string // the target namespace for kuberhealthy to use as observed from the environment variable
 
 func main() {
 
@@ -171,8 +88,7 @@ func main() {
 	}
 
 	// Create a new Kuberhealthy struct
-	kuberhealthy := NewKuberhealthy()
-	kuberhealthy.ListenAddr = cfg.ListenAddress
+	kuberhealthy := NewKuberhealthy(cfg)
 
 	// create run context and start listening for shutdown interrupts
 	khRunCtx, khRunCtxCancelFunc := context.WithCancel(context.Background())
@@ -194,7 +110,7 @@ func listenForInterrupts(k *Kuberhealthy) {
 	sigChan := make(chan os.Signal, 1)
 
 	// register for shutdown events on sigChan
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	log.Infoln("shutdown: waiting for sigChan notification...")
 	<-sigChan
 	log.Infoln("shutdown: Shutting down due to sigChan signal...")
@@ -260,6 +176,98 @@ func initKubernetesClients() error {
 	dynamicClient, err = dynamic.NewForConfig(restConfig)
 	if err != nil {
 		log.Fatalln("Failed to create kubernetes dynamic client configuration")
+	}
+
+	return nil
+}
+
+// setUpConfig loads and sets default Kuberhealthy configurations
+// Everytime kuberhealthy sees a configuration change, configurations should reload and reset
+func setUpConfig() error {
+	cfg = &Config{
+		kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),
+		LogLevel:       "info",
+	}
+
+	// attempt to load config file from disk
+	err := cfg.Load(configPath)
+	if err != nil {
+		log.Println("WARNING: Failed to read configuration file from disk:", err)
+	}
+
+	// set env variables into config if specified. otherwise set external check URL to default
+	externalCheckURL, err := getEnvVar(KHExternalReportingURL)
+	if err != nil {
+		if len(podNamespace) == 0 {
+			return errors.New("env KH_EXTERNAL_REPORTING_URL not set and POD_NAMESPACE environment variable was blank")
+		}
+		log.Infoln("KH_EXTERNAL_REPORTING_URL environment variable not set, using default value")
+		externalCheckURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local/externalCheckStatus"
+	}
+	cfg.ExternalCheckReportingURL = externalCheckURL
+	log.Infoln("External check reporting URL set to:", cfg.ExternalCheckReportingURL)
+	return nil
+}
+
+// setUp loads, parses, and sets various Kuberhealthy configurations -- from flags, config values and env vars.
+func setUp() error {
+
+	var useDebugMode bool
+
+	// setup flaggy
+	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
+	flaggy.String(&configPath, "c", "config", "(optional) absolute path to the kuberhealthy config file")
+	flaggy.Bool(&useDebugMode, "d", "debug", "Set to true to enable debug.")
+	flaggy.Parse()
+
+	err := setUpConfig()
+	if err != nil {
+		return err
+	}
+
+	// parse and set logging level
+	parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
+	if err != nil {
+		err := fmt.Errorf("unable to parse log-level flag: %s", err)
+		return err
+	}
+
+	// log to stdout and set the level to info by default
+	log.SetOutput(os.Stdout)
+	log.SetLevel(parsedLogLevel)
+	log.Infoln("Startup Arguments:", os.Args)
+
+	// no matter what if user has specified debug leveling, use debug leveling
+	if useDebugMode {
+		log.Infoln("Setting debug output on because user specified flag")
+		log.SetLevel(log.DebugLevel)
+	}
+
+	// Handle force master mode
+	if cfg.EnableForceMaster {
+		log.Infoln("Enabling forced master mode")
+		masterCalculation.DebugAlwaysMasterOn()
+	}
+
+	// determine the name of this pod from the POD_NAME environment variable
+	podHostname, err = getEnvVar("POD_NAME")
+	if err != nil {
+		err := fmt.Errorf("failed to determine my hostname: %s", err)
+		return err
+	}
+
+	// determine the name of this pod from the POD_NAME environment variable
+	targetNamespaceEnv, err = getEnvVar("TARGET_NAMESPACE")
+	if err != nil {
+		err := fmt.Errorf("failed to fetch TARGET_NAMESPACE environment variable: %w", err)
+		return err
+	}
+
+	// setup all clients
+	err = initKubernetesClients()
+	if err != nil {
+		err := fmt.Errorf("failed to bootstrap kubernetes clients: %s", err)
+		return err
 	}
 
 	return nil

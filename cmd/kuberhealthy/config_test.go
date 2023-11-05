@@ -11,7 +11,9 @@ import (
 // limiting on output duration.
 // x = file write
 // y = expected notification time
-//       x     x            y
+//
+//	x     x            y
+//
 // |           |            |
 // 0s         1s           2s
 func TestConfigReloadNotificatons(t *testing.T) {
@@ -46,7 +48,7 @@ func TestConfigReloadNotificatons(t *testing.T) {
 	for {
 		if foundNotifications == expectedNotifications {
 			if time.Now().Before(quickestPossibleFinishTime) {
-				t.Fatal("Tests ran too quickly! Duration was:", time.Now().Sub(startTime))
+				t.Fatal("Tests ran too quickly! Duration was:", time.Since(startTime))
 			}
 			break
 		}

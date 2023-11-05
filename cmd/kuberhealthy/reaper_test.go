@@ -130,7 +130,8 @@ func TestListCompletedCheckerPods(t *testing.T) {
 		Client: fake.NewSimpleClientset(),
 	}
 
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancelCtx := context.WithCancel(context.Background())
+	defer cancelCtx()
 	for _, c := range khCheckerPods {
 		_, err := api.Client.CoreV1().Pods(c.Namespace).Create(ctx, &c, metav1.CreateOptions{})
 		if err != nil {
