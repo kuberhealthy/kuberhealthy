@@ -14,5 +14,5 @@ spec:
           # Should we expect the connection target to fail to connect?  If so, set `CONNECTION_TARGET_UNREACHABLE` to `true`.
           - name: CONNECTION_TARGET_UNREACHABLE
             value: "true"
-        image: kuberhealthy/network-connection-check:v0.2.0
+        image: kuberhealthy/network-connection-check:v0.2.1
         name: kuberhealthy-metadata-unreachable
