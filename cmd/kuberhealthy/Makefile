@@ -7,7 +7,7 @@ TAG := "unstable"
 .PHONY: build build-dev push test run run-influx
 
 build:
-	docker buildx build linux/amd64,linux/arm64 --no-cache --pull -t ${IMAGE}:${TAG} -f Dockerfile ../../
+	docker buildx build --platform linux/amd64,linux/arm64 --no-cache --pull -t ${IMAGE}:${TAG} -f Dockerfile ../../
 build-dev:
 	docker buildx build linux/amd64,linux/arm64 -t ${IMAGE}:${TAG} -f Dockerfile ../../
 test:
