@@ -6,6 +6,10 @@ checkReaper:
   jobCleanupDuration: 15m # the maximum age of khjobs before being reaped
   maxCheckPods: 4 # the maximum number of check pods in Completed state before being reaped
 
+stateMetadata:
+  ClusterName: "my-cluster-name"
+  ClusterVersion: "1.24"
+
 prometheus:
   enabled: false
   name: "prometheus"
