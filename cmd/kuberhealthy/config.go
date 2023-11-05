@@ -13,25 +13,24 @@ import (
 
 // Config holds all configurable options
 type Config struct {
-	kubeConfigFile            string
-	ListenAddress             string                    `yaml:"listenAddress,omitempty"`
-	EnableForceMaster         bool                      `yaml:"enableForceMaster,omitempty"`
-	LogLevel                  string                    `yaml:"logLevel,omitempty"`
-	InfluxUsername            string                    `yaml:"influxUsername,omitempty"`
-	InfluxPassword            string                    `yaml:"influxPassword,omitempty"`
-	InfluxURL                 string                    `yaml:"influxURL,omitempty"`
-	InfluxDB                  string                    `yaml:"influxDB,omitempty"`
-	EnableInflux              bool                      `yaml:"enableInflux,omitempty"`
-	ExternalCheckReportingURL string                    `yaml:"externalCheckReportingURL,omitempty"`
-	MaxKHJobAge               time.Duration             `yaml:"maxKHJobAge,omitempty"`
-	MaxCheckPodAge            time.Duration             `yaml:"maxCheckPodAge,omitempty"`
-	MaxCompletedPodCount      int                       `yaml:"maxCompletedPodCount,omitempty"`
-	MaxErrorPodCount          int                       `yaml:"maxErrorPodCount,omitempty"`
+	kubeConfigFile            string                    `yaml:"kubeConfigFile"`
+	ListenAddress             string                    `yaml:"listenAddress"`
+	EnableForceMaster         bool                      `yaml:"enableForceMaster"`
+	LogLevel                  string                    `yaml:"logLevel"`
+	InfluxUsername            string                    `yaml:"influxUsername"`
+	InfluxPassword            string                    `yaml:"influxPassword"`
+	InfluxURL                 string                    `yaml:"influxURL"`
+	InfluxDB                  string                    `yaml:"influxDB"`
+	EnableInflux              bool                      `yaml:"enableInflux"`
+	ExternalCheckReportingURL string                    `yaml:"externalCheckReportingURL"`
+	MaxKHJobAge               time.Duration             `yaml:"maxKHJobAge"`
+	MaxCheckPodAge            time.Duration             `yaml:"maxCheckPodAge"`
+	MaxCompletedPodCount      int                       `yaml:"maxCompletedPodCount"`
+	MaxErrorPodCount          int                       `yaml:"maxErrorPodCount"`
 	StateMetadata             map[string]string         `yaml:"stateMetadata,omitempty"`
 	PromMetricsConfig         metrics.PromMetricsConfig `yaml:"promMetricsConfig,omitempty"`
-	// TargetNamespace sets the namespace that Kuberhealthy will operate in.  By default, this is blank, which means
+	TargetNamespace           string                    `yaml:"namespace"` // TargetNamespace sets the namespace that Kuberhealthy will operate in.  By default, this is blank, which means
 	// all namespaces.  However, for multi-tennant environments you may wish to set this.
-	TargetNamespace string `yaml:"namespace,omitempty"`
 }
 
 // Load loads file from disk
