@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -22,6 +23,8 @@ func runDeploymentCheck(ctx context.Context) {
 
 	// Init a timeout for this entire check run.
 	runTimeout := time.After(checkTimeLimit)
+
+	deadline := time.Now().Add(checkTimeLimit)
 
 	// Init a timeout for cleaning up the check.  Assume that the check should not take more than 2m.
 	cleanupTimeout := time.After(time.Minute * 2)
@@ -55,11 +58,15 @@ func runDeploymentCheck(ctx context.Context) {
 	// Apply the deployment struct manifest to the cluster.
 	var deploymentResult DeploymentResult
 	select {
-	case deploymentResult = <-createDeployment(ctx, deploymentConfig):
+	case deploymentResult = <-createDeployment(ctx, deploymentConfig, deadline):
 		// Handle errors when the deployment creation process completes.
 		if deploymentResult.Err != nil {
-			log.Errorln("error occurred creating deployment in cluster:", deploymentResult.Err)
-			reportErrorsToKuberhealthy([]string{deploymentResult.Err.Error()})
+			errResult := "error occurred creating deployment"
+			log.WithError(deploymentResult.Err).Errorln(errResult)
+			if errors.Is(deploymentResult.Err, defaultPodErrorReason) {
+				errResult = deploymentResult.Err.Error()
+			}
+			reportErrorsToKuberhealthy([]string{errResult})
 			return
 		}
 		// Continue with the check if there is no error.
@@ -168,17 +175,15 @@ func runDeploymentCheck(ctx context.Context) {
 		// Apply the deployment struct manifest to the cluster.
 		var updateDeploymentResult DeploymentResult
 		select {
-		case updateDeploymentResult = <-updateDeployment(ctx, rolledUpdateConfig):
+		case updateDeploymentResult = <-updateDeployment(ctx, rolledUpdateConfig, deadline):
 			// Handle errors when the deployment creation process completes.
 			if updateDeploymentResult.Err != nil {
-				log.Errorln("error occurred applying rolling-update to deployment in cluster:", updateDeploymentResult.Err)
-				errorReport := []string{updateDeploymentResult.Err.Error()} // Make a slice for errors here, because tehre can be more than 1 error.
-				// Clean up the check. A deployment and service was brought up, but could not get a 200 OK from requests.
-				cleanUpError := cleanUp(ctx)
-				if cleanUpError != nil {
-					errorReport = append(errorReport, cleanUpError.Error())
+				errResult := "error occurred rolling-update deployment"
+				log.WithError(updateDeploymentResult.Err).Errorln(errResult)
+				if errors.Is(updateDeploymentResult.Err, defaultPodErrorReasonForDeploymentUpdate) {
+					errResult = updateDeploymentResult.Err.Error()
 				}
-				reportErrorsToKuberhealthy(errorReport)
+				reportErrorsToKuberhealthy([]string{errResult})
 				return
 			}
 			// Continue with the check if there is no error.
