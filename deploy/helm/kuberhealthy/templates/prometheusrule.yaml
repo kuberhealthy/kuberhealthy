@@ -24,15 +24,25 @@ spec:
           expr: kuberhealthy_running < 1
           for: 5m
           labels:
-            severity: critical
+            {{- if .Values.prometheus.prometheusRule.rules.additionalLabels }}
+            {{- toYaml .Values.prometheus.prometheusRule.rules.additionalLabels | nindent 12 }}
+            {{- end }}
           annotations:
             description: Kuberhealthy is not healthy
+            {{- if .Values.prometheus.prometheusRule.rules.additionalAnnotations }}
+            {{- toYaml .Values.prometheus.prometheusRule.rules.additionalAnnotations | nindent 12 }}
+            {{- end }}
         - alert: ClusterUnhealthy
           expr: kuberhealthy_cluster_state < 1
           for: 5m
           labels:
-            severity: critical
+            {{- if .Values.prometheus.prometheusRule.rules.additionalLabels }}
+            {{- toYaml .Values.prometheus.prometheusRule.rules.additionalLabels | nindent 12 }}
+            {{- end }}
           annotations:
             description: Kuberhealthy shows that the cluster is not healthy
+            {{- if .Values.prometheus.prometheusRule.rules.additionalAnnotations }}
+            {{- toYaml .Values.prometheus.prometheusRule.rules.additionalAnnotations | nindent 12 }}
+            {{- end }}
 {{- end }}
 {{- end }}

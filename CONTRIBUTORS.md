@@ -29,3 +29,4 @@
 - [Erich Stoekl](https://github.com/erichstoekl)
 - [Stefan Tertan](https://github.com/ColdFire87)
 - [Ajay Kalambur](https://github.com/kalamburajay)
+- [Lorenzo Setale](https://setale.me/)
