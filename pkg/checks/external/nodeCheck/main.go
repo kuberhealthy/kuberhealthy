@@ -79,22 +79,24 @@ func waitForKuberhealthyEndpointReady(ctx context.Context, kuberhealthyEndpoint 
 	doneChan := make(chan error, 1)
 
 	for {
-		select {
-		case <-ctx.Done():
-			doneChan <- errors.New("context cancelled waiting for Kuberhealthy endpoint to be ready")
-			return doneChan
-		default:
-		}
 		res, err := http.Get(kuberhealthyEndpoint)
 		if err != nil {
-			log.Debugln(kuberhealthyEndpoint, "Error making reuqest to kuberhealthy endpoint "+err.Error())
-			time.Sleep(time.Second * 3)
+			log.Debugln(kuberhealthyEndpoint, "Error making request to kuberhealthy endpoint "+err.Error())
 			continue
 		}
 		if res.StatusCode == 200 {
 			log.Debugln(kuberhealthyEndpoint, "is ready.")
 			doneChan <- nil
 			return doneChan
+		}
+
+		select {
+		case <-ctx.Done():
+			doneChan <- errors.New("context cancelled waiting for Kuberhealthy endpoint to be ready")
+			return doneChan
+		default:
+			log.Debugln(kuberhealthyEndpoint, "is not ready, sleeping for 1 second")
+			time.Sleep(time.Second * 1)
 		}
 
 	}
