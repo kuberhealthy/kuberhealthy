@@ -85,15 +85,17 @@ func waitForKuberhealthyEndpointReady(ctx context.Context, kuberhealthyEndpoint 
 			return doneChan
 		default:
 		}
-
-		_, err := http.NewRequest("GET", kuberhealthyEndpoint, nil)
-		if err == nil {
+		res, err := http.Get(kuberhealthyEndpoint)
+		if err != nil {
+			log.Debugln(kuberhealthyEndpoint, "Error making reuqest to kuberhealthy endpoint "+err.Error())
+			time.Sleep(time.Second * 3)
+			continue
+		}
+		if res.StatusCode == 200 {
 			log.Debugln(kuberhealthyEndpoint, "is ready.")
 			doneChan <- nil
 			return doneChan
-		} else {
-			log.Debugln(kuberhealthyEndpoint, "is not ready yet..."+err.Error())
 		}
-		time.Sleep(time.Second * 3)
+
 	}
 }
