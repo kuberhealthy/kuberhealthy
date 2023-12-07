@@ -13035,6 +13035,28 @@ spec:
     matchLabels:
       app: kuberhealthy
 ---
+# Source: kuberhealthy/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kuberhealthy
+  namespace: kuberhealthy
+data:
+  kuberhealthy.yaml: |-
+    listenAddress: ":8080" # The port for kuberhealthy to listen on for web requests
+    enableForceMaster: false # Set to true to enable local testing, forced master mode
+    logLevel: error # Log level to be used (default: debug)
+    influxUsername: "" # Username for the InfluxDB instance
+    influxPassword: "" # Password for the InfluxDB instance
+    influxURL: "" # Address for the InfluxDB instance
+    influxDB: "http://localhost:8086" # Name of the InfluxDB database
+    enableInflux: false # Set to true to enable metric forwarding to Infux DB
+    maxKHJobAge: 15m
+    maxCheckPodAge: 72h
+    maxCompletedPodCount: 4
+    maxErrorPodCount: 4
+    stateMetadata:
+---
 # Source: kuberhealthy/templates/khcheck-daemonset.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -13063,27 +13085,18 @@ metadata:
   name: kuberhealthy
   namespace: kuberhealthy
 ---
-# Source: kuberhealthy/templates/configmap.yaml
-apiVersion: v1
-kind: ConfigMap
+# Source: kuberhealthy/templates/clusterrole.yaml
+apiVersion: "rbac.authorization.k8s.io/v1"
+kind: ClusterRole
 metadata:
-  name: kuberhealthy
-  namespace: kuberhealthy
-data:
-  kuberhealthy.yaml: |-
-    listenAddress: ":8080" # The port for kuberhealthy to listen on for web requests
-    enableForceMaster: false # Set to true to enable local testing, forced master mode
-    logLevel: error # Log level to be used (default: debug)
-    influxUsername: "" # Username for the InfluxDB instance
-    influxPassword: "" # Password for the InfluxDB instance
-    influxURL: "" # Address for the InfluxDB instance
-    influxDB: "http://localhost:8086" # Name of the InfluxDB database
-    enableInflux: false # Set to true to enable metric forwarding to Infux DB
-    maxKHJobAge: 15m
-    maxCheckPodAge: 72h
-    maxCompletedPodCount: 4
-    maxErrorPodCount: 4
-    stateMetadata:
+  name: kuberhealthy-daemonset-khcheck
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
 ---
 # Source: kuberhealthy/templates/clusterrole.yaml
 apiVersion: "rbac.authorization.k8s.io/v1"
@@ -13154,19 +13167,6 @@ rules:
     - pods/eviction
     verbs:
     - create
----
-# Source: kuberhealthy/templates/clusterrole.yaml
-apiVersion: "rbac.authorization.k8s.io/v1"
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-daemonset-khcheck
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - list
 ---
 # Source: kuberhealthy/templates/khcheck-dns-internal.yaml
 apiVersion: rbac.authorization.k8s.io/v1
