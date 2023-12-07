@@ -6,10 +6,12 @@ TAG := "unstable"
 
 .PHONY: build build-dev push test run run-influx
 
+build-dev:
+	docker build -t ${IMAGE}:${TAG} -f Dockerfile ../../
 build:
 	docker buildx build --platform linux/amd64,linux/arm64 --no-cache --pull -t ${IMAGE}:${TAG} -f Dockerfile ../../
-build-dev:
-	docker buildx build --platform linux/amd64,linux/arm64 -t ${IMAGE}:${TAG} -f Dockerfile ../../
+push:
+	docker push ${IMAGE}:${TAG}
 test:
 	POD_NAME="kuberhealthy-test" go test -run TestWebServer -v -args -- --debug --forceMaster
 run:
