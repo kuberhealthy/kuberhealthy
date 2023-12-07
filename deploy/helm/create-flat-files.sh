@@ -9,12 +9,24 @@ fi
 $HELM version
 echo "Creating flat kuberhealthy.yaml"
 $HELM template --namespace kuberhealthy kuberhealthy > ../kuberhealthy.yaml
+if [[ $? -ne 0 ]]; then
+	echo "Failed to create flat kuberhealthy.yaml"
+	exit 1
+fi
 
 echo "Creating flat kuberhealthy-prometheus.yaml"
 $HELM template --namespace kuberhealthy kuberhealthy kuberhealthy --set prometheus.enabled=true  --set prometheus.prometheusRule.enabled=true > ../kuberhealthy-prometheus.yaml
+if [[ $? -ne 0 ]]; then
+	echo "Failed to create flat kuberhealthy-prometheus.yaml"
+	exit 1
+fi
 
 echo "Creating flat kuberhealthy-prometheus-operator.yaml"
 $HELM template --namespace kuberhealthy kuberhealthy kuberhealthy --set prometheus.enabled=true  --set prometheus.prometheusRule.enabled=true --set prometheus.serviceMonitor.enabled=true > ../kuberhealthy-prometheus-operator.yaml
+if [[ $? -ne 0 ]]; then
+	echo "Failed to create flat kuberhealthy-prometheus-operator.yaml"
+	exit 1
+fi
 
 
 # temp helm fix described in issue #279:
