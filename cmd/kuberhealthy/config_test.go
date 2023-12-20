@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -57,20 +58,20 @@ func TestConfigReloadNotificatons(t *testing.T) {
 	}
 
 	// begin watching for changes
+	ctx := context.Background()
 	t.Log("using test file:", testFile)
-	outChan, cancelFunc, err := startConfigReloadMonitoringWithSmoothing(testFile, time.Second*1, time.Second*5)
+	outChan, err := startConfigReloadMonitoringWithSmoothing(ctx, testFile, time.Second*1, time.Second*5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cancelFunc()
 
 	// watch for expected results
 	expectedNotifications := 2
 	foundNotifications := 0
 	startTime := time.Now()
-	quickestRunTime := time.Second * 20
+	quickestRunTime := time.Second * 5
 	quickestPossibleFinishTime := startTime.Add(quickestRunTime)
-	maxRunTime := time.Second * 25
+	maxRunTime := time.Second * 60
 	timeout := time.After(maxRunTime)
 	for {
 		if foundNotifications == expectedNotifications {
@@ -81,7 +82,9 @@ func TestConfigReloadNotificatons(t *testing.T) {
 		}
 		select {
 		case err := <-errChan:
-			t.Fatal(err)
+			if err != nil {
+				t.Fatal(err)
+			}
 		case <-outChan:
 			foundNotifications++
 			t.Log("Got file change notification!", foundNotifications, "/", expectedNotifications)
@@ -104,7 +107,8 @@ func tempFileWriter(testFile string, t *testing.T) error {
 		time.Sleep(time.Second)
 	}
 
-	time.Sleep(time.Second * 10)
+	// pause for 1 second
+	time.Sleep(time.Second * 1)
 
 	// write changes for 4 seconds every second
 	for i := 0; i < 4; i++ {

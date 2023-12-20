@@ -49,7 +49,7 @@ func (c *Config) Load(file string) error {
 func watchConfig(ctx context.Context, filePath string, interval time.Duration) (chan string, error) {
 
 	log.Infoln("watchConfig: Watching", filePath, "for changes")
-	c := make(chan string)
+	c := make(chan string, 1)
 
 	md5sum, err := hashCreator(filePath)
 	if err != nil {
@@ -85,7 +85,12 @@ func watchConfig(ctx context.Context, filePath string, interval time.Duration) (
 			if newMD5Sum != md5sum {
 				md5sum = newMD5Sum
 				log.Debugln("watchConfig: sending file change notification")
-				c <- md5sum
+				select {
+				case c <- md5sum:
+					log.Debugln("watchConfig: queued reload notification")
+				default:
+					log.Debugln("watchConfig: skipping reload notification because config reload already queued")
+				}
 				log.Debugln("watchConfig: done sending file change notification")
 			}
 		}
@@ -95,80 +100,55 @@ func watchConfig(ctx context.Context, filePath string, interval time.Duration) (
 	return c, nil
 }
 
-// configChangeLimiter takes in a channel and a maximum notification speed.  The returned channel will be notified at most
-// once every specified maximum notification speed.  If the supplied channel gets no messages, then nothing will be
-// sent to the returned channel.
-func configChangeLimiter(maxSpeed time.Duration, inChan chan struct{}, outChan chan struct{}) {
-	for range inChan {
-		var messageSent bool
-		for {
-			// end loop when message has been sent
-			if messageSent {
-				log.Debugln("configChangeLimiter: change notification message sent. waiting for new change")
-				break
-			}
-
-			log.Infoln("configChangeLimiter: file changed, waiting for", maxSpeed, "before sending a change notification")
-			select {
-			case <-time.After(maxSpeed):
-				log.Infoln("configChangeLimiter: time limit has been reached:", maxSpeed, "sending message to outChan")
-				outChan <- struct{}{}
-				messageSent = true
-			case <-inChan:
-				log.Debugln("configChangeLimiter: another file change has been detected")
-			}
-		}
-	}
-	close(outChan)
-}
-
 // startConfigReloadMonitoring watches the target filepath for changes and smooths the output so
 // that multiple signals do not come too rapidly.  Call the returned CancelFunc to shutdown
 // all the background routines safely.
-func startConfigReloadMonitoring(filePath string) (chan struct{}, context.CancelFunc, error) {
-	return startConfigReloadMonitoringWithSmoothing(filePath, time.Second*2, time.Second*6)
+func startConfigReloadMonitoring(ctx context.Context, filePath string) (chan struct{}, error) {
+	return startConfigReloadMonitoringWithSmoothing(ctx, filePath, time.Second*2, time.Second*6)
 }
 
-func startConfigReloadMonitoringWithSmoothing(filePath string, scrapeInterval time.Duration, maxNotificationSpeed time.Duration) (chan struct{}, context.CancelFunc, error) {
+func startConfigReloadMonitoringWithSmoothing(ctx context.Context, filePath string, scrapeInterval time.Duration, maxNotificationSpeed time.Duration) (chan struct{}, error) {
 
 	// make channels needed for limiter and spawn limiter in background
-	inChan := make(chan struct{})
 	outChan := make(chan struct{})
 
 	log.Infoln("configReloader: begin monitoring of configmap change events")
 
-	// create a context to represent this configReloader instance
-	ctx, cancelFunc := context.WithCancel(context.Background())
-
 	// begin watching the configuration file for changes in the background
 	fsNotificationChan, err := watchConfig(ctx, filePath, scrapeInterval)
 	if err != nil {
-		return outChan, cancelFunc, err
+		return outChan, err
 	}
 
-	go func() {
-		for fileHash := range fsNotificationChan {
-			log.Debugln("configReloader: configuration file hash has changed to:", fileHash)
-			inChan <- struct{}{}
+	// spawn a go routine to watch for notifications and send them every interval
+	go func(ctx context.Context, fsNotificationChan chan string) {
+		for {
+			time.Sleep(maxNotificationSpeed) // sleep the maximum notifciation time before sending
+			select {
+			case <-ctx.Done(): // end when context killed
+				log.Debugln("configReloader: shutting down")
+				return
+			case <-fsNotificationChan:
+				outChan <- struct{}{}
+				log.Debugln("configReloader: configuration file hash has changed")
+			default:
+				log.Debugln("configReloader: no configuration reload this tick")
+			}
 		}
-		close(inChan)
-		log.Debugln("configReloader: shutting down")
-	}()
-	go configChangeLimiter(time.Duration(maxNotificationSpeed), inChan, outChan)
+	}(ctx, fsNotificationChan)
 
-	return outChan, cancelFunc, nil
+	return outChan, nil
 }
 
 // configReloadNotifier watchers for events in file, reloads the configuration, and notifies upstream to restart checks
 func configReloadNotifier(ctx context.Context, notifyChan chan struct{}) {
 
-	outChan, cancelFunc, err := startConfigReloadMonitoring(configPath)
+	outChan, err := startConfigReloadMonitoring(ctx, configPath)
 	if err != nil {
 		log.Errorln("configReloader: Error watching configuration file for changes:", err)
 		log.Errorln("configReloader: configuration reloading disabled due to errors")
 		return
 	}
-	defer cancelFunc()
 
 	// when outChan gets events, reload configuration and checks
 	for range outChan {
