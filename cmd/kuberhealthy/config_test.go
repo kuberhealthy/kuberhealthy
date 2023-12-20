@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -44,10 +43,15 @@ func TestConfigReloadNotificatons(t *testing.T) {
 	// make temp file and write changes in the background
 	tempDirectory := os.TempDir()
 	testFile := tempDirectory + "testFile"
-	go tempFileWriter(testFile, t)
+
+	errChan := make(chan error)
+	go func(errChan chan error) {
+		err := tempFileWriter(testFile, t)
+		errChan <- err
+	}(errChan)
 
 	// write an initial blank file so the config monitor finds something without error
-	err := ioutil.WriteFile(testFile, []byte("this is the second test file"), 0775)
+	err := os.WriteFile(testFile, []byte("this is the second test file"), 0775)
 	if err != nil {
 		t.Fatal("Failed to write initial file to disk:", err)
 	}
@@ -76,6 +80,8 @@ func TestConfigReloadNotificatons(t *testing.T) {
 			break
 		}
 		select {
+		case err := <-errChan:
+			t.Fatal(err)
 		case <-outChan:
 			foundNotifications++
 			t.Log("Got file change notification!", foundNotifications, "/", expectedNotifications)
@@ -86,13 +92,13 @@ func TestConfigReloadNotificatons(t *testing.T) {
 }
 
 // tempFileWriter writes files to the specified testFile on a schedule to test config file reloading
-func tempFileWriter(testFile string, t *testing.T) {
+func tempFileWriter(testFile string, t *testing.T) error {
 
 	// write changes for 4 seconds every second
 	for i := 0; i < 4; i++ {
-		err := ioutil.WriteFile(testFile, []byte("this is the test file"+time.Now().String()), 0775)
+		err := os.WriteFile(testFile, []byte("this is the test file"+time.Now().String()), 0775)
 		if err != nil {
-			t.Fatal("Failed to write temp file content:", err)
+			return err
 		}
 		t.Log("Wrote content to location:", testFile)
 		time.Sleep(time.Second)
@@ -102,11 +108,13 @@ func tempFileWriter(testFile string, t *testing.T) {
 
 	// write changes for 4 seconds every second
 	for i := 0; i < 4; i++ {
-		err := ioutil.WriteFile(testFile, []byte("this is the test file"+time.Now().String()), 0775)
+		err := os.WriteFile(testFile, []byte("this is the test file"+time.Now().String()), 0775)
 		if err != nil {
-			t.Fatal("Failed to write temp file content:", err)
+			return err
 		}
 		t.Log("Wrote content to location:", testFile)
 		time.Sleep(time.Second)
 	}
+
+	return nil
 }
