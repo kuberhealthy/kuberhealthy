@@ -142,7 +142,7 @@ func (k *Kuberhealthy) Shutdown(doneChan chan struct{}) {
 		log.Infoln("shutdown: aborting control context")
 		k.shutdownCtxFunc() // stop the control system
 	}
-	time.Sleep(5) // help prevent more checks from starting in a race before control system stop happens
+	time.Sleep(5 * time.Second) // help prevent more checks from starting in a race before control system stop happens
 	log.Infoln("shutdown: stopping checks")
 	k.StopChecks() // stop all checks
 	log.Infoln("shutdown: ready for main program shutdown")

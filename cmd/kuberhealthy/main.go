@@ -62,8 +62,8 @@ var khCheckClient *khcheckv1.KHCheckV1Client
 var khJobClient *khjobv1.KHJobV1Client
 
 // constants for using the kuberhealthy status CRD
-const stateCRDGroup = "comcast.github.io"
-const stateCRDVersion = "v1"
+// const stateCRDGroup = "comcast.github.io"
+// const stateCRDVersion = "v1"
 const stateCRDResource = "khstates"
 
 // constants for using the kuberhealthy check CRD
@@ -71,13 +71,11 @@ const checkCRDGroup = "comcast.github.io"
 const checkCRDVersion = "v1"
 const checkCRDResource = "khchecks"
 
-// the global kubernetes client
+// kubernetesClient is the global kubernetes client
 var kubernetesClient *kubernetes.Clientset
 
-// Set dynamicClient that represents the client used to watch and list unstructured khchecks
+// dynamicClient represents the client used to watch and list unstructured khchecks
 var dynamicClient dynamic.Interface
-
-var targetNamespaceEnv string // the target namespace for kuberhealthy to use as observed from the environment variable
 
 func main() {
 
@@ -259,7 +257,7 @@ func setUp() error {
 	}
 
 	// determine the name of this pod from the POD_NAME environment variable
-	targetNamespaceEnv = os.Getenv("TARGET_NAMESPACE")
+	cfg.TargetNamespace = os.Getenv("TARGET_NAMESPACE")
 
 	// setup all clients
 	err = initKubernetesClients()
