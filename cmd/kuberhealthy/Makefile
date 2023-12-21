@@ -9,7 +9,7 @@ TAG := "unstable"
 build-dev:
 	docker build -t ${IMAGE}:${TAG} -f Dockerfile ../../
 build:
-	docker buildx build --platform linux/arm64,linux/arm64 --push -t ${IMAGE}:${TAG} -f Dockerfile ../../
+	docker buildx build --platform linux/amd64,linux/arm64 --push -t ${IMAGE}:${TAG} -f Dockerfile ../../
 push:
 	docker push ${IMAGE}:${TAG}
 test:
