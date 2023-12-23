@@ -111,6 +111,7 @@ deployment:
   #   effect: "NoSchedule"
   env:
     CHECK_REAPER_RUN_INTERVAL: "30s" # Interval for how often check pods should get reaped. Default is 30s
+    TARGET_NAMESPACE: "" # leave blank to target all namespaces, or supply a namespace to operate on only a single namespace
   command:
   - /app/kuberhealthy
   # args:

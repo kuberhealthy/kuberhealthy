@@ -16,7 +16,7 @@ spec:
       - env:
           - name: MAX_FAILURES_ALLOWED
             value: "10"
-        image: kuberhealthy/pod-restarts-check:v2.5.0
+        image: kuberhealthy/pod-restarts-check:v2.5.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:

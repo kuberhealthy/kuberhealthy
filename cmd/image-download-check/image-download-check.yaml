@@ -9,7 +9,7 @@ spec:
   podSpec:
     containers:
       - name: image-download-check
-        image: kuberhealthy/image-download-check:v0.0.1
+        image: kuberhealthy/image-download-check:v0.1.0
         imagePullPolicy: IfNotPresent
         env:
           - name: FULL_IMAGE_URL

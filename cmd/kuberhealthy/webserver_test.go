@@ -22,7 +22,7 @@ import (
 func makeTestKuberhealthy(t *testing.T) *Kuberhealthy {
 	t.Skip()
 
-	kh := NewKuberhealthy()
+	kh := NewKuberhealthy(&Config{})
 
 	// override the client with a blank config
 	config := &rest.Config{}
