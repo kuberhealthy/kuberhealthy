@@ -15,7 +15,7 @@ spec:
             value: "false"
           - name: REPORT_DELAY
             value: "5s"
-        image: kuberhealthy/test-check:v1.4.0
+        image: kuberhealthy/test-check:v1.4.1
         imagePullPolicy: Always
         name: main
         resources:

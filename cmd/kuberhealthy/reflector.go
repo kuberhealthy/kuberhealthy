@@ -26,13 +26,13 @@ type StateReflector struct {
 }
 
 // NewStateReflector creates a new StateReflector for watching the state of khstate resources on the server
-func NewStateReflector() *StateReflector {
+func NewStateReflector(namespace string) *StateReflector {
 	sr := StateReflector{}
 	sr.reflectorSigChan = make(chan struct{})
 	sr.resyncPeriod = time.Minute * 5
 
 	// structure the reflector and its required elements
-	khStateListWatch := cache.NewListWatchFromClient(khStateClient.RESTClient(), stateCRDResource, cfg.ListenNamespace, fields.Everything())
+	khStateListWatch := cache.NewListWatchFromClient(khStateClient.RESTClient(), stateCRDResource, namespace, fields.Everything())
 	sr.store = cache.NewStore(cache.MetaNamespaceKeyFunc)
 	sr.reflector = cache.NewReflector(khStateListWatch, &khstatev1.KuberhealthyState{}, sr.store, sr.resyncPeriod)
 

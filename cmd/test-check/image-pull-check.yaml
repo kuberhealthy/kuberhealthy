@@ -13,7 +13,7 @@ spec:
           - name: REPORT_DELAY
             value: "1s"
         # test-check image must be uploaded to the repository you wish to test on, and below URL must be updated to match.
-        image: kuberhealthy/test-check:v1.4.0
+        image: kuberhealthy/test-check:v1.4.1
         imagePullPolicy: Always
         name: main
         resources:
