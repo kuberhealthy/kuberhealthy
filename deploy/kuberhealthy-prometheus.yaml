@@ -13414,6 +13414,8 @@ spec:
                 fieldPath: metadata.namespace
           - name: CHECK_REAPER_RUN_INTERVAL
             value: "30s"
+          - name: TARGET_NAMESPACE
+            value: ""
         readinessProbe:
           failureThreshold: 3
           initialDelaySeconds: 2
