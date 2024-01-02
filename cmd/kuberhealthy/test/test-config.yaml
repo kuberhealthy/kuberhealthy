@@ -1,0 +1,14 @@
+listenAddress: "http://localhost:8006"
+enableForceMaster: false
+logLevel: debug
+influxUsername: ""
+influxPassword: ""
+influxURL: ""
+influxDB: ""
+enableInflux: false
+externalCheckReportingURL: "http://localhost:8006"
+maxKHJobAge: 0s
+maxCheckPodAge: 0s
+maxCompletedPodCount: 0
+maxErrorPodCount: 0
+namespace: ""

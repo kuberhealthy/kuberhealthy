@@ -322,22 +322,16 @@ func createContainerConfig(imageURL string) corev1.Container {
 	}
 
 	// Make a TCP socket for the probe handler.
-	tcpSocket := corev1.TCPSocketAction{
-		Port: intstr.IntOrString{
-			IntVal: checkContainerPort,
-			StrVal: strconv.Itoa(int(checkContainerPort)),
-		},
-	}
-
-	// Make a handler for the probes.
-	handler := corev1.ProbeHandler{
-		TCPSocket: &tcpSocket,
-	}
+	// tcpSocket := corev1.TCPSocketAction{
+	// 	Port: intstr.IntOrString{
+	// 		IntVal: checkContainerPort,
+	// 		StrVal: strconv.Itoa(int(checkContainerPort)),
+	// 	},
+	// }
 
 	// Make liveness and readiness probes.
 	// Make the liveness probe here.
 	liveProbe := corev1.Probe{
-		ProbeHandler:        handler,
 		InitialDelaySeconds: defaultProbeInitialDelaySeconds,
 		TimeoutSeconds:      defaultProbeTimeoutSeconds,
 		PeriodSeconds:       defaultProbePeriodSeconds,
@@ -347,7 +341,6 @@ func createContainerConfig(imageURL string) corev1.Container {
 
 	// Make the readiness probe here.
 	readyProbe := corev1.Probe{
-		ProbeHandler:        handler,
 		InitialDelaySeconds: defaultProbeInitialDelaySeconds,
 		TimeoutSeconds:      defaultProbeTimeoutSeconds,
 		PeriodSeconds:       defaultProbePeriodSeconds,
