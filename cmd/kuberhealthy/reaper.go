@@ -50,8 +50,9 @@ func parseDurationOrUseDefault(d string, defaultDuration time.Duration) (time.Du
 
 }
 
-// reaper runs until the supplied context expires and reaps khjobs and khchecks
-func reaper(ctx context.Context) {
+// reaper runs until the supplied context expires and reaps khjobs and khchecks.  To target all
+// namespace, set the namespace string to ""
+func reaper(ctx context.Context, namespace string) {
 
 	reaperRunInterval, err := parseDurationOrUseDefault(checkReaperRunInterval, checkReaperRunIntervalDefault)
 	if err != nil {
@@ -93,8 +94,8 @@ func reaper(ctx context.Context) {
 		defer runCtxCancel()
 
 		// run our check and job reapers
-		runCheckReap(runCtx)
-		runJobReap(runCtx)
+		runCheckReap(runCtx, namespace)
+		runJobReap(runCtx, namespace)
 
 		// check if the parent context has expired
 		select {
@@ -109,13 +110,13 @@ func reaper(ctx context.Context) {
 }
 
 // runCheckReap runs a process which locates checkpods that need reaped and reaps them
-func runCheckReap(ctx context.Context) {
+func runCheckReap(ctx context.Context, namespace string) {
 
 	kubeApi := KubernetesAPI{
 		Client: kubernetesClient,
 	}
 	// list checker pods in all namespaces
-	podList, err := kubeApi.listCompletedCheckerPods(ctx, cfg.ListenNamespace)
+	podList, err := kubeApi.listCompletedCheckerPods(ctx, namespace)
 	if err != nil {
 		log.Errorln("checkReaper: Failed to list and delete old checker pods", err)
 	}
@@ -135,7 +136,7 @@ func runCheckReap(ctx context.Context) {
 }
 
 // runJobReap runs a process to reap jobs that need deleted (those that were created by a khjob)
-func runJobReap(ctx context.Context) {
+func runJobReap(ctx context.Context, namespace string) {
 	jobClient, err := khjobv1.Client(cfg.kubeConfigFile)
 	if err != nil {
 		log.Errorln("checkReaper: Unable to create khJob client", err)
@@ -143,7 +144,7 @@ func runJobReap(ctx context.Context) {
 
 	log.Infoln("checkReaper: Beginning to search for khjobs.")
 	// fetch and delete khjobs that meet criteria
-	err = khJobDelete(jobClient)
+	err = khJobDelete(jobClient, namespace)
 	if err != nil {
 		log.Errorln("checkReaper: Failed to reap khjobs with error: ", err)
 	}
@@ -186,7 +187,7 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 			continue
 		}
 		// Delete pods older than maxCheckPodAge and is in status Succeeded
-		if v.Status.Phase == v1.PodSucceeded && time.Now().Sub(podTerminatedTime) > cfg.MaxCheckPodAge {
+		if v.Status.Phase == v1.PodSucceeded && time.Since(podTerminatedTime) > cfg.MaxCheckPodAge {
 			log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Succeeded`. Deleting pod:", n)
 
 			err = k.deletePod(ctx, v)
@@ -198,7 +199,7 @@ func (k *KubernetesAPI) deleteFilteredCheckerPods(ctx context.Context, client *k
 		}
 
 		// Delete failed pods (status Failed) older than maxCheckPodAge
-		if v.Status.Phase == v1.PodFailed && time.Now().Sub(podTerminatedTime) > cfg.MaxCheckPodAge {
+		if v.Status.Phase == v1.PodFailed && time.Since(podTerminatedTime) > cfg.MaxCheckPodAge {
 			log.Infoln("checkReaper: Found completed pod older than:", cfg.MaxCheckPodAge, "in status `Failed`. Deleting pod:", n)
 
 			err = k.deletePod(ctx, v)
@@ -275,7 +276,7 @@ func getAllCompletedPodsWithCheckName(reapCheckerPods map[string]v1.Pod, pod v1.
 				log.Warnln(err)
 				continue
 			}
-			if time.Now().Sub(podTerminatedTime) > minCheckPodAge {
+			if time.Since(podTerminatedTime) > minCheckPodAge {
 				allCheckPods = append(allCheckPods, v)
 			}
 		}
@@ -295,7 +296,7 @@ func (k *KubernetesAPI) deletePod(ctx context.Context, pod v1.Pod) error {
 
 // jobConditions returns true if conditions are met to be deleted for khjob
 func jobConditions(job khjobv1.KuberhealthyJob, duration time.Duration, phase khjobv1.JobPhase) bool {
-	if time.Now().Sub(job.CreationTimestamp.Time) > duration && job.Spec.Phase == phase {
+	if time.Since(job.CreationTimestamp.Time) > duration && job.Spec.Phase == phase {
 		log.Infoln("checkReaper: Found khjob older than", duration, "minutes in status", phase)
 		return true
 	}
@@ -303,13 +304,13 @@ func jobConditions(job khjobv1.KuberhealthyJob, duration time.Duration, phase kh
 }
 
 // KHJobDelete fetches a list of khjobs in a namespace and will delete them if they meet given criteria
-func khJobDelete(client *khjobv1.KHJobV1Client) error {
+func khJobDelete(client *khjobv1.KHJobV1Client, namespace string) error {
 
 	opts := metav1.ListOptions{}
 	del := metav1.DeleteOptions{}
 
 	// list khjobs in Namespace
-	list, err := client.KuberhealthyJobs(cfg.ListenNamespace).List(opts)
+	list, err := client.KuberhealthyJobs(namespace).List(opts)
 	if err != nil {
 		log.Errorln("checkReaper: Error: failed to retrieve khjob list with error", err)
 		return err

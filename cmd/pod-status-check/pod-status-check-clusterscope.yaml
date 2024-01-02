@@ -16,7 +16,7 @@ spec:
       - env:
           - name: SKIP_DURATION
             value: "10m"
-        image: kuberhealthy/pod-status-check:v1.3.0
+        image: kuberhealthy/pod-status-check:v1.3.1
         imagePullPolicy: IfNotPresent
         name: main
         resources:

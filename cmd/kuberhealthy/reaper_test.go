@@ -28,9 +28,14 @@ maxCheckPods: 1 # The maximum number of check pods in Completed state before bei
 		t.Fatal("Error unmarshaling yaml config with error:" + err.Error())
 	}
 
-	if testConfig.ListenNamespace != "test" {
-		t.Fatal("ListenNamespace did not unmarshal correctly")
+	if testConfig.ListenAddress != ":8080" {
+		t.Fatal("ListenAddress did not unmarshal correctly")
 	}
+
+	if testConfig.LogLevel != "debug" {
+		t.Fatal("ListenAddress did not unmarshal correctly")
+	}
+
 }
 
 // TestParseStringDuration ensures that a string duration can be parsed into a time.Duration.
@@ -46,7 +51,7 @@ func TestParseDurationOrUseDefault(t *testing.T) {
 		err             string
 	}{
 		{"Valid duration", "5m", time.Minute * 15, time.Minute * 5, ""},
-		{"0 Duration value, not allowed", "0", time.Minute * 15, time.Minute * 15, ""},
+		{"0 Duration value, not allowed", "0", time.Minute * 15, time.Minute * 15, "duration value 0 is not valid"},
 		{"No duration value", "", time.Minute * 15, time.Minute * 15, ""},
 	}
 
@@ -125,7 +130,8 @@ func TestListCompletedCheckerPods(t *testing.T) {
 		Client: fake.NewSimpleClientset(),
 	}
 
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancelCtx := context.WithCancel(context.Background())
+	defer cancelCtx()
 	for _, c := range khCheckerPods {
 		_, err := api.Client.CoreV1().Pods(c.Namespace).Create(ctx, &c, metav1.CreateOptions{})
 		if err != nil {

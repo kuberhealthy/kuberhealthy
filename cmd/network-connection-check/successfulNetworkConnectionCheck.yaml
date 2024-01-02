@@ -13,5 +13,5 @@ spec:
             value: "10s"
           - name: CONNECTION_TARGET
             value: "tcp://github.com:443"
-        image: kuberhealthy/network-connection-check:v0.2.0
+        image: kuberhealthy/network-connection-check:v0.2.1
         name: kuberhealthy-github-reachable
