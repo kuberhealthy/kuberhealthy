@@ -19,8 +19,8 @@ func getEnvVar(v string) (string, error) {
 	return envVar, err
 }
 
-// getAllLogLevel fetches a string list of possible log levels that can be set
-func getAllLogLevel() string {
+// getAllLogLevels fetches a string list of possible log levels that can be set
+func getAllLogLevels() string {
 	var levelStrings []string
 	for _, level := range log.AllLevels {
 		levelStrings = append(levelStrings, level.String())
