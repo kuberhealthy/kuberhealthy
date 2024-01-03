@@ -1,0 +1,16 @@
+FROM golang:1.21.5 as builder
+LABEL LOCATION="git@github.com:kuberhealthy/kuberhealthy.git"
+LABEL DESCRIPTION="Kuberhealthy - Check and expose kubernetes cluster health in detail."
+COPY . /build
+WORKDIR /build/cmd/kuberhealthy
+RUN go version
+ENV CGO_ENABLED=0
+RUN mkdir /app
+RUN go build -v -o /app/kuberhealthy
+
+FROM scratch
+WORKDIR /app
+COPY --from=builder /app /app
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /etc/passwd /etc/passwd
+ENTRYPOINT ["/app/kuberhealthy"]
