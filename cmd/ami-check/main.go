@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
-	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -94,12 +94,17 @@ func init() {
 	// Create a context for this check.
 	ctx = context.Background()
 
-	var err error
+	// var err error
 	if len(debugEnv) != 0 {
-		debug, err = strconv.ParseBool(debugEnv)
-		if err != nil {
-			log.Fatalln("Unable to parse DEBUG environment variable:", err)
+		// avoid the strconv package because it causes a segfault when building for multi-arch on docker. yes, really.
+		debugEnv = strings.ToLower(debugEnv)
+		if debugEnv == "t" || debugEnv == "true" || debugEnv == "yes" {
+			debug = true
 		}
+		// debug, err = strconv.ParseBool(debugEnv)
+		// if err != nil {
+		// 	log.Fatalln("Unable to parse DEBUG environment variable:", err)
+		// }
 	}
 
 	if debug {
@@ -115,7 +120,8 @@ func main() {
 
 	// create context
 	checkTimeLimit := time.Minute * 1
-	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
+	ctx, ctxCancel := context.WithTimeout(context.Background(), checkTimeLimit)
+	defer ctxCancel()
 
 	// hits kuberhealthy endpoint to see if node is ready
 	err = nodeCheck.WaitForKuberhealthy(ctx)
