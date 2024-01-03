@@ -66,3 +66,36 @@ spec:
 {{- toYaml .Values.check.dnsExternal.tolerations | nindent 6 }}
     {{- end }}
 {{- end }}
+    serviceAccountName: dns-external-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dns-external-service-cr
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dns-external-service-crb
+roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: dns-external-service-cr
+subjects:
+  - kind: ServiceAccount
+    name: dns-external-sa
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dns-external-sa
+  namespace: {{ .Release.Namespace }}
+{{- end }}
