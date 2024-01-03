@@ -54,7 +54,7 @@ echo "dump the kuberhealthy deployment logs \n"
 kubectl logs -n $NS deployment/kuberhealthy
 
 # repeatedly check for checks to run successfully
-for i in {1..60}; do
+for i in {1..20}; do
     khsCount=$(kubectl get -n $NS khs -o yaml | grep "OK: true" | wc -l)
     cDeploy=$(kubectl -n $NS get pods -l app=kuberhealthy-check | grep deployment | grep Completed | wc -l)
     cDNS=$(kubectl -n $NS get pods -l app=kuberhealthy-check | grep dns-status-internal | grep Completed | wc -l)
