@@ -445,7 +445,8 @@ func (k *Kuberhealthy) watchForKHCheckChanges(ctx context.Context, c chan struct
 		time.Sleep(time.Second)
 
 		// start a watch on khcheck resources
-		watcher, err := watchUnstructuredKHChecks(ctx, k.TargetNamespace)
+		watcher, err := khCheckClient.KuberhealthyChecks(k.TargetNamespace).Watch(metav1.ListOptions{})
+		// watcher, err := watchUnstructuredKHChecks(ctx, k.TargetNamespace)
 		if err != nil {
 			log.Errorln("error creating watcher for khcheck objects:", err)
 			continue
