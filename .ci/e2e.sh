@@ -64,7 +64,12 @@ for i in {1..60}; do
 
     if [ $khsCount -ge 5 ] && [ $cDeploy -ge 1 ] && [ $cDS -ge 1 ] && [ $cDNS -ge 1 ] && [ $cPR -ge 1 ] && [ $cPS -ge 1 ]; then
         echo "ALL KUBERHEALTHY CHECKS PASSED!!"
-        break
+
+		# Print some final output to make debuging easier.
+		echo "kuberhealthy logs"
+		kubectl logs -n $NS deployment/kuberhealthy
+		exit 0 # successful testing
+        
     else
         echo "--- Waiting for all kubrhealthy checks to pass...\n"
 		echo "Checks Successful of 5: $khsCount"
@@ -74,11 +79,11 @@ for i in {1..60}; do
 		echo "Pod Restart checks completed: $cPR"
 		echo "Pod Status checks completed: $cPS"
         kubectl get -n $NS pods,khchecks,khstate
+        kubectl logs -n $NS -l app=kuberhealthy
         sleep 10
     fi
 
 done
 
-# Print some final output to make debuging easier.
-echo "kuberhealthy logs"
-kubectl logs -n $NS deployment/kuberhealthy
+echo "Testing failed due to timeout waiting for successful checks to return."
+exit 1 # failed testing due to timeout
