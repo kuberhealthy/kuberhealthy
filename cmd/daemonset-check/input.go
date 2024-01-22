@@ -196,17 +196,19 @@ func parseInputValues() {
 				}
 				tolerations = append(tolerations, *tol)
 			}
+		} else {
+			//parse single toleration and append to slice
+			tol, err := createToleration(tolerationsEnv)
+			if err != nil {
+				// if we can't create a toleration, error out and return
+				log.Errorln(err)
+				return
+			}
+			tolerations = append(tolerations, *tol)
 		}
-		//parse single toleration and append to slice
-		tol, err := createToleration(tolerationsEnv)
-		if err != nil {
-			// if we can't create a toleration, error out and return
-			log.Errorln(err)
-			return
-		}
-		tolerations = append(tolerations, *tol)
+
 		// if we parsed tolerations, log them
-		if len(tolerations) > 1 {
+		if len(tolerations) > 0 {
 			log.Infoln("Parsed TOLERATIONS:", tolerations)
 		}
 	}
