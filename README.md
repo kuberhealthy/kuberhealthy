@@ -210,4 +210,5 @@ Kuberhealthy locally or in a test environment.
 
 ## Monthly Community Meeting
 
-If you would like to talk directly to the core maintainers to discuss ideas, code reviews, or other complex issues, we have a monthly Zoom meeting on the first Wednesday of the month.  [Click here to add the meeting to your calendar](https://zoom.us/j/96457488866?pwd=SDZxL1dEQTVZUTRWbFFTZWNDZWFwdz09).
+If you would like to talk directly to the core maintainers to discuss ideas, code reviews, or other complex issues, we have a monthly Zoom meeting on the **24th day** of every month at **04:00 PM Pacific Time**.  [Click here to add the meeting to your calendar](https://zoom.us/meeting/tJIlcuyrqT8qHNWDSx3ZozYamoq2f0ruwfB0/ics?icsToken=98tyKuCupj4vGdORsB-GRowAGo_4Z-nwtilfgo1quCz9UBpceDr3O-1TYLQvAs3H) or [click here to join the zoom meeting right now](https://zoom.us/j/96855374061
+).
