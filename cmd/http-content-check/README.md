@@ -27,6 +27,8 @@ spec:
             value: "httpbin" # The string that will be used to parse through provided URL
           - name: "TIMEOUT_DURATION"
             value: "30s" # Specifies the time limit for requests made by the client to the URL
+          - name: "TLS_INSECURE_SKIP_VERIFY"
+            value: "true" # Disables http client TLS validation, default "false"
 ```
 
 #### How-to

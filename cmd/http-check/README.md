@@ -34,6 +34,8 @@ spec:
             value: "1"
           - name: PASSING_PERCENT #### default: "100"
             value: "80"
+          - name: TLS_INSECURE_SKIP_VERIFY #### default: "false"
+            value: "true
         resources:
           requests:
             cpu: 15m
@@ -75,6 +77,8 @@ spec:
             value: '{"name": "morpheus", "job": "leader"}'
           - name: EXPECTED_STATUS_CODE #### default: "200"
             value: "201"
+          - name: TLS_INSECURE_SKIP_VERIFY #### default: "false"
+            value: "true"
         resources:
           requests:
             cpu: 15m

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -27,6 +28,7 @@ var (
 	requestType        = os.Getenv("REQUEST_TYPE")
 	requestBody        = os.Getenv("REQUEST_BODY")
 	expectedStatusCode = os.Getenv("EXPECTED_STATUS_CODE")
+	insecureSkipVerify = os.Getenv("TLS_INSECURE_SKIP_VERIFY")
 )
 
 type APIRequest struct {
@@ -73,6 +75,11 @@ func init() {
 	// Check that the EXPECTED_STATUS_CODE environment variable is valid.
 	if len(expectedStatusCode) == 0 {
 		expectedStatusCode = "200"
+	}
+
+	// Check that the TLS_INSECURE_SKIP_VERIFY environment variable is valid.
+	if len(insecureSkipVerify) == 0 {
+		insecureSkipVerify = "false"
 	}
 
 	// If the URL does not begin with HTTP, exit.
@@ -216,9 +223,25 @@ func ReportFailureAndExit(err error) {
 // It returns the response corresponding to the request.
 func callAPI(request APIRequest) (*http.Response, error) {
 	var response *http.Response
+	skipTLS, err := strconv.ParseBool(insecureSkipVerify)
+	if err != nil {
+		err = fmt.Errorf("Error converting TLS_INSECURE_SKIP_VERIFY to bool: " + err.Error())
+		ReportFailureAndExit(err)
+	}
+
+	tr := &http.Transport{}
+
+	if skipTLS {
+		tr = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+
+	client := &http.Client{Transport: tr}
+
 	switch request.Type {
 	case "GET":
-		resp, err := http.Get(request.URL.String())
+		resp, err := client.Get(request.URL.String())
 		if err != nil {
 			return nil, fmt.Errorf("error occurred while calling %s: %w", request.URL.Redacted(), err)
 		}
@@ -228,7 +251,7 @@ func callAPI(request APIRequest) (*http.Response, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error occurred while calling %s: %w", request.URL.Redacted(), err)
 		}
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := client.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("error occurred while calling %s: %w", request.URL.Redacted(), err)
 		}

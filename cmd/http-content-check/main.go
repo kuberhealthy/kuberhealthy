@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +26,8 @@ var (
 
 	// TimeoutDur is user requested timeout duration for specified URL
 	TimeoutDur = os.Getenv("TIMEOUT_DURATION")
+
+	insecureSkipVerify = os.Getenv("TLS_INSECURE_SKIP_VERIFY")
 )
 
 func init() {
@@ -38,6 +42,11 @@ func init() {
 	//check to make sure string is provided
 	if TargetString == "" {
 		reportErrorAndStop("No string provided in YAML")
+	}
+
+	// Check that the TLS_INSECURE_SKIP_VERIFY environment variable is valid.
+	if len(insecureSkipVerify) == 0 {
+		insecureSkipVerify = "false"
 	}
 }
 
@@ -81,17 +90,29 @@ func main() {
 
 // getURLContent retrieves bytes and error from URL
 func getURLContent(url string) ([]byte, error) {
+	skipTLS, err := strconv.ParseBool(insecureSkipVerify)
+	if err != nil {
+		reportErrorAndStop("Error converting TLS_INSECURE_SKIP_VERIFY to bool")
+	}
+
+	tr := &http.Transport{}
+
+	if skipTLS {
+		tr = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+
 	dur, err := time.ParseDuration(TimeoutDur)
 	if err != nil {
 		return []byte{}, err
 	}
-	client := http.Client{Timeout: dur}
+	client := http.Client{Timeout: dur, Transport: tr}
 	resp, err := client.Get(url)
 	if err != nil {
 		return []byte{}, err
 	}
 	return io.ReadAll(resp.Body)
-
 }
 
 // findStringInContent parses through URL bytes for specified string and returns bool
