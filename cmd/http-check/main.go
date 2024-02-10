@@ -173,9 +173,9 @@ func main() {
 			log.Errorln("Got a", r.StatusCode, "with a", http.MethodGet, "to", parsedUrl.Redacted())
 			checksFailed++
 			continue
-		}
-		log.Infoln("Got a", r.StatusCode, "with a", http.MethodGet, "to", parsedUrl.Redacted())
-		checksPassed++
+		} else {
+		    log.Infoln("Got a", r.StatusCode, "with a", http.MethodGet, "to", parsedUrl.Redacted())
+		    checksPassed++
 
 		// if we have a ticker, we wait for it to tick before checking again
 		if ticker != nil && ticker.C != nil {
