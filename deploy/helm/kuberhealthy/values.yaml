@@ -104,6 +104,7 @@ deployment:
   imagePullPolicy: IfNotPresent
   nodeSelector: {}
   podAnnotations: {}
+  topologySpreadConstraints: {}
   # tolerations:
   # - key: "key"
   #   operator: "Equal"
