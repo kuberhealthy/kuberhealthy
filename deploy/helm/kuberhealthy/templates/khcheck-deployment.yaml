@@ -5,6 +5,8 @@ kind: KuberhealthyCheck
 metadata:
   name: deployment
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 spec:
   runInterval:  {{ .Values.check.deployment.runInterval }}
   timeout: {{ .Values.check.deployment.timeout }}
@@ -71,6 +73,8 @@ kind: RoleBinding
 metadata:
   name: deployment-check-rb
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -84,6 +88,8 @@ kind: Role
 metadata:
   name: deployment-service-role
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - "apps"
@@ -123,4 +129,6 @@ kind: ServiceAccount
 metadata:
   name: deployment-sa
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 {{- end }}

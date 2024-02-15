@@ -5,6 +5,9 @@
 # can be used to globally override the namespace where to deploy all components. By default .Release.namespace is used.
 #namespace: ""
 
+global:
+  commonLabels: {}
+
 checkReaper:
   logLevel: error
   maxKHJobAge: 15m # Maximum age of the khjob resource before being reaped. Valid time units: "ns", "us" (or "µs"), "ms", "s", "m", "h"
@@ -103,6 +106,7 @@ deployment:
   maxUnavailable: 1
   imagePullPolicy: IfNotPresent
   nodeSelector: {}
+  podLabels: {}
   podAnnotations: {}
   # tolerations:
   # - key: "key"

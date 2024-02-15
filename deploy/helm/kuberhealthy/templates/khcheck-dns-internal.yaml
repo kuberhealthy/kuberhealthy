@@ -5,6 +5,8 @@ kind: KuberhealthyCheck
 metadata:
   name: dns-status-internal
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 spec:
   runInterval: {{ .Values.check.dnsInternal.runInterval }}
   timeout: {{ .Values.check.dnsInternal.timeout }}
@@ -72,6 +74,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: dns-internal-service-cr
+  labels:
+    {{- include "labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - ""
@@ -84,6 +88,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: dns-internal-service-crb
+  labels:
+    {{- include "labels" . | nindent 4 }}
 roleRef:
     apiGroup: rbac.authorization.k8s.io
     kind: ClusterRole
@@ -98,4 +104,6 @@ kind: ServiceAccount
 metadata:
   name: dns-internal-sa
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 {{- end }}

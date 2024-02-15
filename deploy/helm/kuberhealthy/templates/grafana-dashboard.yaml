@@ -3,6 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   labels:
+    {{- include "labels" . | nindent 4 }}
     {{ .Values.prometheus.grafanaDashboard.label }}: {{ .Values.prometheus.grafanaDashboard.labelValue | quote }}
     {{- if .Values.prometheus.grafanaDashboard.additionalLabels}}
     {{- toYaml .Values.prometheus.grafanaDashboard.additionalLabels | nindent 4 }}

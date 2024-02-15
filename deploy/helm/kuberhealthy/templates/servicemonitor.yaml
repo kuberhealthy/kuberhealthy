@@ -5,6 +5,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
+    {{- include "labels" . | nindent 4 }}
     app: {{ template "kuberhealthy.name" . }}
     prometheus: {{ .Values.prometheus.name }}
     release: {{ .Values.prometheus.serviceMonitor.release }}

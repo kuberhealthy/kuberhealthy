@@ -3,6 +3,7 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
+    {{- include "labels" . | nindent 4 }}
     app: {{ template "kuberhealthy.name" . }}
   name: {{ template "kuberhealthy.name" . }}
   namespace: {{ .Values.namespace | default .Release.Namespace }}

@@ -7,6 +7,8 @@ kind: KuberhealthyCheck
 metadata:
   name: storage-check-{{ . | default "default" }}
   namespace: {{ $.Values.namespace | default $.Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 spec:
   runInterval: {{ $.Values.check.storage.runInterval }}
   timeout: {{ $.Values.check.storage.timeout }}
@@ -82,6 +84,8 @@ kind: Role
 metadata:
   name: storage-khcheck-role
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - ""
@@ -121,6 +125,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: storage-khcheck-cr
+  labels:
+    {{- include "labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - ""
@@ -135,6 +141,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: storage-khcheck-crb
+  labels:
+    {{- include "labels" . | nindent 4 }}
 roleRef:
     apiGroup: rbac.authorization.k8s.io
     kind: ClusterRole
@@ -149,6 +157,8 @@ kind: RoleBinding
 metadata:
   name: storage-khcheck-rb
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -162,4 +172,6 @@ kind: ServiceAccount
 metadata:
   name: storage-khcheck
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 {{- end }}

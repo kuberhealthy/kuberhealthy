@@ -17,3 +17,12 @@ Return the appropriate apiVersion for RBAC APIs.
 {{- end -}}
 {{- end -}}
 
+{{/*
+Labels that should be added on each resource
+*/}}
+{{- define "labels" -}}
+{{- if .Values.global.commonLabels }}
+{{- toYaml .Values.global.commonLabels }}
+{{- end }}
+{{- end -}}
+
