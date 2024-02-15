@@ -5,6 +5,8 @@ kind: KuberhealthyCheck
 metadata:
   name: dns-status-external
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 spec:
   runInterval: {{ .Values.check.dnsExternal.runInterval }}
   timeout: {{ .Values.check.dnsExternal.timeout }}

@@ -5,6 +5,8 @@ kind: KuberhealthyCheck
 metadata:
   name: network-connection-check
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 spec:
   runInterval:  {{ .Values.check.networkConnection.runInterval }}
   timeout: {{ .Values.check.networkConnection.timeout }}

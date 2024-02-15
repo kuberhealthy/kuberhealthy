@@ -4,6 +4,8 @@ apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
 metadata:
   name: pod-status
+  labels:
+    {{- include "labels" . | nindent 4 }}
 spec:
   runInterval: {{ .Values.check.podStatus.runInterval }}
   timeout: {{ .Values.check.podStatus.timeout }}
@@ -76,6 +78,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: pod-status-check-rb
+  labels:
+    {{- include "labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -89,6 +93,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: pod-status-role
+  labels:
+    {{- include "labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - ""
@@ -107,6 +113,8 @@ kind: RoleBinding
 metadata:
   name: pod-status-rb
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -120,6 +128,8 @@ kind: Role
 metadata:
   name: pod-status-role
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - ""
@@ -141,4 +151,6 @@ metadata:
 {{- else }}
   namespace: {{ .Values.namespace | default .Release.Namespace }}
 {{- end}}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 {{- end}}

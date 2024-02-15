@@ -8,6 +8,7 @@ metadata:
     seccomp.security.alpha.kubernetes.io/defaultProfileName: runtime/default
   name: {{ template "kuberhealthy.name" . }}-psp
   labels:
+    {{- include "labels" . | nindent 4 }}
     app: {{ template "kuberhealthy.name" . }}
 spec:
   privileged: false

@@ -5,6 +5,8 @@ kind: KuberhealthyCheck
 metadata:
   name: daemonset
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 spec:
   runInterval:  {{ .Values.check.daemonset.runInterval }}
   timeout: {{ .Values.check.daemonset.timeout }}
@@ -77,6 +79,8 @@ kind: RoleBinding
 metadata:
   name: daemonset-khcheck
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -90,6 +94,8 @@ kind: Role
 metadata:
   name: ds-admin
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - ""
@@ -113,4 +119,6 @@ kind: ServiceAccount
 metadata:
   name: daemonset-khcheck
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 {{- end }}

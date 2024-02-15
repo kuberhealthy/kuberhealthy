@@ -4,6 +4,8 @@ kind: ConfigMap
 metadata:
   name: kuberhealthy
   namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 data:
   kuberhealthy.yaml: |-
     listenAddress: ":8080" # The port for kuberhealthy to listen on for web requests

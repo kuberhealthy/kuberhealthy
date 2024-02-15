@@ -3,6 +3,8 @@ apiVersion: {{ template "rbac.apiVersion" . }}
 kind: ClusterRole
 metadata:
   name: {{ template "kuberhealthy.name" . }}
+  labels:
+    {{- include "labels" . | nindent 4 }}
 rules:
   - apiGroups:
     - apps
@@ -83,6 +85,8 @@ apiVersion: {{ template "rbac.apiVersion" . }}
 kind: ClusterRole
 metadata:
   name: {{ template "kuberhealthy.name" . }}-daemonset-khcheck
+  labels:
+    {{- include "labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - ""
