@@ -1,0 +1,66 @@
+// docs: https://docs.renovatebot.com
+{
+  automerge: true,
+  automergeStrategy: 'auto',
+  automergeType: 'pr',
+  platformAutomerge: true,
+  commitBodyTable: true,
+  dependencyDashboard: true,
+  // more managers: https://docs.renovatebot.com/modules/manager
+  enabledManagers: ['gomod'],
+  extends: [':disablePrControls'],
+  gitAuthor: "rachel-renovate <sheikhrachel97@gmail.com>",
+  gitIgnoredAuthors: [
+    "renovate@whitesourcesoftware.com",
+    "sheikhrachel97@gmail.com",
+  ],
+  rebaseWhen: 'auto',
+  semanticCommitType: 'chore',
+  semanticCommits: 'enabled',
+  separateMajorMinor: true,
+  separateMinorPatch: false,
+  "packageRules": [
+    {
+      "updateTypes": ["patch", "minor"],
+      "automerge": true,
+      "groupName": "Patch/Minor Updates"
+    },
+    {
+      "updateTypes": ["major"],
+      "automerge": false,
+    }
+  ],
+  separateMultipleMajor: false,
+  schedule: 'after 7am and before 2pm every weekday',
+  postUpdateOptions: [
+    'gomodTidy',
+    'gomodUpdateImportPaths',
+  ],
+  prBodyDefinitions: {
+    Package: '{{{depNameLinked}}}',
+    Type: '{{{depType}}}',
+    Update: '{{{updateType}}}',
+    'Current value': '{{{currentValue}}}',
+    'New value': '{{{newValue}}}',
+    Change: '`{{{displayFrom}}}` -> `{{{displayTo}}}`',
+    Pending: '{{{displayPending}}}',
+    References: '{{{references}}}',
+    'Package file': '{{{packageFile}}}',
+    Manager: '{{{manager}}}',
+  },
+  prBodyColumns: [
+    'Package',
+    'Type',
+    'Package file',
+    'Manager',
+    'Update',
+    'Change',
+    'Pending',
+  ],
+  vulnerabilityAlerts: {
+    addLabels: ['security'],
+    semanticCommitType: 'fix',
+    schedule: 'at any time',
+  },
+  timezone: 'America/Los_Angeles',
+}

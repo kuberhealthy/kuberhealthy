@@ -30,3 +30,4 @@
 - [Stefan Tertan](https://github.com/ColdFire87)
 - [Ajay Kalambur](https://github.com/kalamburajay)
 - [Lorenzo Setale](https://setale.me/)
+- [Rachel Sheikh](https://github.com/sheikhrachel)
