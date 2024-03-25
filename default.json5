@@ -7,12 +7,8 @@
   commitBodyTable: true,
   dependencyDashboard: true,
   // more managers: https://docs.renovatebot.com/modules/manager
-  enabledManagers: [
-    'gomod',
-  ],
-  extends: [
-    ':disablePrControls'
-  ],
+  enabledManagers: ['gomod'],
+  extends: [':disablePrControls'],
   gitAuthor: "rachel-renovate <sheikhrachel97@gmail.com>",
   gitIgnoredAuthors: [
     "renovate@whitesourcesoftware.com",
@@ -23,6 +19,17 @@
   semanticCommits: 'enabled',
   separateMajorMinor: true,
   separateMinorPatch: false,
+  "packageRules": [
+    {
+      "updateTypes": ["patch", "minor"],
+      "automerge": true,
+      "groupName": "Patch/Minor Updates"
+    },
+    {
+      "updateTypes": ["major"],
+      "automerge": false,
+    }
+  ],
   separateMultipleMajor: false,
   schedule: 'after 7am and before 2pm every weekday',
   postUpdateOptions: [
@@ -51,9 +58,7 @@
     'Pending',
   ],
   vulnerabilityAlerts: {
-    addLabels: [
-      'security',
-    ],
+    addLabels: ['security'],
     semanticCommitType: 'fix',
     schedule: 'at any time',
   },
