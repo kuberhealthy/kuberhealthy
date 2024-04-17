@@ -326,10 +326,6 @@ func (k *Kuberhealthy) reapKHStateResources(ctx context.Context, namespace strin
 		log.Debugln("khState reaper: analyzing khState", khState.GetName(), "in", khState.GetName())
 		var foundKHCheck bool
 		for _, kc := range khChecks.Items {
-			if err != nil {
-				log.Errorln("Error converting unstructured object to khcheck:", err)
-				continue
-			}
 			log.Debugln("khState reaper:", kc.GetName(), "==", khState.GetName(), "&&", kc.GetNamespace(), "==", khState.GetNamespace())
 			if kc.GetName() == khState.GetName() && kc.GetNamespace() == khState.GetNamespace() {
 				log.Infoln("khState reaper:", khState.GetName(), "in", khState.GetNamespace(), "is still valid")
@@ -573,13 +569,8 @@ func (k *Kuberhealthy) monitorExternalChecks(ctx context.Context, notify chan st
 		}
 
 		for _, kc := range khChecks.Items {
-			if err != nil {
-				log.Errorln("Error converting unstructured object to khcheck:", err)
-				continue
-			}
 
 			mapName := kc.Namespace + "/" + kc.Name
-
 			log.Debugln("Scanning khcheck CRD", mapName, "for changes since last seen...")
 
 			if len(kc.Namespace) < 1 {
