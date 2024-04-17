@@ -13,9 +13,7 @@ import (
 
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 
 	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
 	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
@@ -67,15 +65,12 @@ var khJobClient *khjobv1.KHJobV1Client
 const stateCRDResource = "khstates"
 
 // constants for using the kuberhealthy check CRD
-const checkCRDGroup = "comcast.github.io"
-const checkCRDVersion = "v1"
-const checkCRDResource = "khchecks"
+// const checkCRDGroup = "comcast.github.io"
+// const checkCRDVersion = "v1"
+// const checkCRDResource = "khchecks"
 
 // kubernetesClient is the global kubernetes client
 var kubernetesClient *kubernetes.Clientset
-
-// dynamicClient represents the client used to watch and list unstructured khchecks
-var dynamicClient dynamic.Interface
 
 func main() {
 
@@ -164,17 +159,6 @@ func initKubernetesClients() error {
 		return err
 	}
 	khJobClient = jobClient
-
-	// make a dynamicClient for kubernetes unstructured checks
-	restConfig, err := clientcmd.BuildConfigFromFlags(kc.RESTClient().Get().URL().Host, configPath)
-	if err != nil {
-		log.Fatalln("Failed to build kubernetes configuration from configuration flags:", err)
-	}
-
-	dynamicClient, err = dynamic.NewForConfig(restConfig)
-	if err != nil {
-		log.Fatalln("Failed to create kubernetes dynamic client configuration")
-	}
 
 	return nil
 }

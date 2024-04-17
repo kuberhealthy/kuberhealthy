@@ -7,7 +7,10 @@ TAG := "unstable"
 .PHONY: build build-dev push test run run-influx
 
 build-dev:
-	docker build -t ${IMAGE}:${TAG} -f Dockerfile ../../
+	podman build -t kuberhealthy:unstable -f Dockerfile ../../
+	podman tag kuberhealthy:unstable harbor.garage/garage/kuberhealthy:unstable
+	podman push --tls-verify=false harbor.garage/garage/kuberhealthy:unstable
+	#docker build -t ${IMAGE}:${TAG} -f Dockerfile ../../
 build:
 	docker buildx build --platform linux/amd64,linux/arm64 --push -t ${IMAGE}:${TAG} -f Dockerfile ../../
 push:
