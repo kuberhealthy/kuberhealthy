@@ -15,12 +15,15 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
-	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
-	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
-	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khcheckClient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khjobClient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khstateClient"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/masterCalculation"
 )
+
+// KHCheckNameAnnotationKey is the key used in the annotation that holds the check's short name
+const KHCheckNameAnnotationKey = "comcast.github.io/check-name"
 
 // status represents the current Kuberhealthy OK:Error state
 var cfg *Config
@@ -47,30 +50,17 @@ const DefaultRunInterval = time.Minute * 10
 // DefaultTimeout is the default timeout for external checks
 var DefaultTimeout = time.Minute * 5
 
-// KHCheckNameAnnotationKey is the key used in the annotation that holds the check's short name
-const KHCheckNameAnnotationKey = "comcast.github.io/check-name"
+// KHStateClient is a client for khstate custom resources
+var KHStateClient *khstateClient.Clientset
 
-// khCheckClient is a client for khstate custom resources
-var khStateClient *khstatev1.KHStateV1Client
+// KHCheckClient is a client for khcheck custom resources
+var KHCheckClient *khcheckClient.Clientset
 
-// khStateClient is a client for khcheck custom resources
-var khCheckClient *khcheckv1.KHCheckV1Client
+// KHJobClient is a client for khjob custom resources
+var KHJobClient *khjobClient.Clientset
 
-// khJobClient is a client for khjob custom resources
-var khJobClient *khjobv1.KHJobV1Client
-
-// constants for using the kuberhealthy status CRD
-// const stateCRDGroup = "comcast.github.io"
-// const stateCRDVersion = "v1"
-const stateCRDResource = "khstates"
-
-// constants for using the kuberhealthy check CRD
-// const checkCRDGroup = "comcast.github.io"
-// const checkCRDVersion = "v1"
-// const checkCRDResource = "khchecks"
-
-// kubernetesClient is the global kubernetes client
-var kubernetesClient *kubernetes.Clientset
+// KubernetesClient is the global kubernetes client
+var KubernetesClient *kubernetes.Clientset
 
 func main() {
 
@@ -133,32 +123,32 @@ func listenForInterrupts(k *Kuberhealthy) {
 func initKubernetesClients() error {
 
 	// make a new kuberhealthy client
-	kc, err := kubeClient.Create(cfg.kubeConfigFile)
+	clientSet, restConfig, err := kubeClient.Create(cfg.kubeConfigFile)
 	if err != nil {
 		return err
 	}
-	kubernetesClient = kc
+	KubernetesClient = clientSet
 
 	// make a new crd check client
-	checkClient, err := khcheckv1.Client(cfg.kubeConfigFile)
+	checkClient, err := khcheckClient.NewForConfig(restConfig)
 	if err != nil {
 		return err
 	}
-	khCheckClient = checkClient
+	KHCheckClient = checkClient
 
 	// make a new crd state client
-	stateClient, err := khstatev1.Client(cfg.kubeConfigFile)
+	stateClient, err := khstateClient.NewForConfig(restConfig)
 	if err != nil {
 		return err
 	}
-	khStateClient = stateClient
+	KHStateClient = stateClient
 
 	// make a new crd job client
-	jobClient, err := khjobv1.Client(cfg.kubeConfigFile)
+	jobClient, err := khjobClient.NewForConfig(restConfig)
 	if err != nil {
 		return err
 	}
-	khJobClient = jobClient
+	KHJobClient = jobClient
 
 	return nil
 }

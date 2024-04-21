@@ -5,22 +5,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // KuberhealthyJob represents the data in the CRD for configuring an
 // external checker job for Kuberhealthy
 // +k8s:openapi-gen=true
-// +kubebuilder:resource:path="khjobs"
-// +kubebuilder:resource:singular="khjob"
-// +kubebuilder:resource:shortName="khj"
+// +genclient
 type KuberhealthyJob struct {
-	metav1.TypeMeta `json:",inline" yaml:",inline"`
-	// +optional
+	metav1.TypeMeta   `json:",inline" yaml:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-
 	// Spec holds the desired state of the KuberhealthyJob (from the client).
-	// +optional
 	Spec JobConfig `json:"spec,omitempty" yaml:"spec,omitempty"`
 }
 

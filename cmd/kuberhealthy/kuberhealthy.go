@@ -24,6 +24,7 @@ import (
 	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
 	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
 	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
+
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/status"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"

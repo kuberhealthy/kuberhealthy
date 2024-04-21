@@ -5,22 +5,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // KuberhealthyCheck represents the data in the CRD for configuring an
 // external check for Kuberhealthy
 // +k8s:openapi-gen=true
-// +kubebuilder:resource:path="khchecks"
-// +kubebuilder:resource:singular="khcheck"
-// +kubebuilder:resource:shortName="khc"
+// +genclient
 type KuberhealthyCheck struct {
-	metav1.TypeMeta `json:",inline" yaml:",inline"`
-	// +optional
+	metav1.TypeMeta   `json:",inline" yaml:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-
 	// Spec holds the desired state of the KuberhealthyCheck (from the client).
-	// +optional
 	Spec CheckConfig `json:"spec,omitempty" yaml:"spec,omitempty"`
 }
 
@@ -38,8 +30,6 @@ type CheckConfig struct {
 	// +optional
 	ExtraLabels map[string]string `json:"extraLabels" yaml:"extraLabels"` // a map of extra labels that will be applied to the pod
 }
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // KuberhealthyCheckList is a list of KuberhealthyCheck resources
 type KuberhealthyCheckList struct {

@@ -9,7 +9,7 @@ import (
 
 // Create returns a kubernetes api clientset that enables communication with
 // the kubernetes API via the internal service.
-func Create(kubeConfigFile string) (*kubernetes.Clientset, error) {
+func Create(restConfig *rest.Config, kubeConfigFile string) (*kubernetes.Clientset, *rest.Config, error) {
 	kubeconfig, err := rest.InClusterConfig()
 	if err != nil {
 		// If not in cluster, use kube config file
@@ -18,5 +18,10 @@ func Create(kubeConfigFile string) (*kubernetes.Clientset, error) {
 			return nil, err
 		}
 	}
-	return kubernetes.NewForConfig(kubeconfig)
+	clientset, err := kubernetes.NewForConfig(kubeconfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return clientset, kubeconfig, nil
 }
