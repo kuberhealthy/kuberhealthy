@@ -15,13 +15,21 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khcheckClient"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khjobClient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khstateClient"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/masterCalculation"
 )
 
 // KHCheckNameAnnotationKey is the key used in the annotation that holds the check's short name
 const KHCheckNameAnnotationKey = "comcast.github.io/check-name"
+
+// KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
+const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"
+
+// DefaultRunInterval is the default run interval for checks set by kuberhealthy
+const DefaultRunInterval = time.Minute * 10
 
 // status represents the current Kuberhealthy OK:Error state
 var cfg *Config
@@ -39,20 +47,14 @@ var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes 
 // the hostname of this pod
 var podHostname string
 
-// KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
-const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"
-
-// DefaultRunInterval is the default run interval for checks set by kuberhealthy
-const DefaultRunInterval = time.Minute * 10
-
 // DefaultTimeout is the default timeout for external checks
 var DefaultTimeout = time.Minute * 5
 
 // KHStateClient is a client for khstate custom resources
-var KHStateClient *KHStateClient.Clientset
+var KHStateClient *khstateClient.Clientset
 
 // KHCheckClient is a client for khcheck custom resources
-var KHCheckClient *KHCheckClient.Clientset
+var KHCheckClient *khcheckClient.Clientset
 
 // KHJobClient is a client for khjob custom resources
 var KHJobClient *khjobClient.Clientset
@@ -121,21 +123,21 @@ func listenForInterrupts(k *Kuberhealthy) {
 func initKubernetesClients() error {
 
 	// make a new kuberhealthy client
-	clientSet, restConfig, _, err := kubeClient.Create(cfg.kubeConfigFile)
+	clientSet, restConfig, err := kubeClient.Create(cfg.kubeConfigFile)
 	if err != nil {
 		return err
 	}
 	KubernetesClient = clientSet
 
 	// make a new crd check client
-	checkClient, err := KHCheckClient.NewForConfig(restConfig)
+	checkClient, err := khcheckClient.NewForConfig(restConfig)
 	if err != nil {
 		return err
 	}
 	KHCheckClient = checkClient
 
 	// make a new crd state client
-	stateClient, err := KHStateClient.NewForConfig(restConfig)
+	stateClient, err := khstateClient.NewForConfig(restConfig)
 	if err != nil {
 		return err
 	}
