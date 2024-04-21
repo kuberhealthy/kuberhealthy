@@ -9,7 +9,6 @@ import (
 	yaml "gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/fake"
 )
 
 // TestParseConfigs ensures that all checkReaper configs are properly parsed and that there are no 0 duration values
@@ -59,7 +58,8 @@ func TestParseDurationOrUseDefault(t *testing.T) {
 
 		t.Logf(test.description)
 
-		result, err := parseDurationOrUseDefault(test.stringDuration, test.defaultDuration)
+		reaper := NewReaper()
+		result, err := reaper.parseDurationOrUseDefault(test.stringDuration, test.defaultDuration)
 		if result != test.expected {
 			t.Fatalf("parseDurationOrUseDefault resulted in %s but expected value %s", result, test.expected)
 		}
@@ -126,20 +126,20 @@ func TestListCompletedCheckerPods(t *testing.T) {
 	khCheckerPods[nonKHPod.Name] = nonKHPod
 	khCheckerPods[runningKHPod.Name] = runningKHPod
 
-	api := KubernetesAPI{
-		Client: fake.NewSimpleClientset(),
-	}
-
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
 	for _, c := range khCheckerPods {
-		_, err := api.Client.CoreV1().Pods(c.Namespace).Create(ctx, &c, metav1.CreateOptions{})
+		_, err := KubernetesClient.CoreV1().Pods(c.Namespace).Create(ctx, &c, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("Error creating test pods: %s", err)
 		}
 	}
 
-	results, err := api.listCompletedCheckerPods(ctx, "")
+	// make a new repaer
+	reaper := NewReaper()
+
+	// list completed pods
+	results, err := reaper.listCompletedCheckerPods(ctx, "")
 	if err != nil {
 		t.Fatalf("Error listCompletedCheckerPods: %s", err)
 	}
@@ -162,18 +162,18 @@ func TestListCompletedCheckerPods(t *testing.T) {
 // TestGetAllPodsWithCheckName tests that only pods from the same khcheck get listed
 func TestGetAllPodsWithCheckName(t *testing.T) {
 
-	khCheck := v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "original-kh-pod",
-			Namespace: "foo",
-			Annotations: map[string]string{
-				"comcast.github.io/check-name": "same-check",
-			},
-		},
-		Status: v1.PodStatus{
-			Phase: v1.PodPhase("Succeeded"),
-		},
-	}
+	// khCheck := v1.Pod{
+	// 	ObjectMeta: metav1.ObjectMeta{
+	// 		Name:      "original-kh-pod",
+	// 		Namespace: "foo",
+	// 		Annotations: map[string]string{
+	// 			"comcast.github.io/check-name": "same-check",
+	// 		},
+	// 	},
+	// 	Status: v1.PodStatus{
+	// 		Phase: v1.PodPhase("Succeeded"),
+	// 	},
+	// }
 
 	khCheck1 := v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -219,8 +219,11 @@ func TestGetAllPodsWithCheckName(t *testing.T) {
 	khCheckerPods[khCheck2.Name] = khCheck2
 	khCheckerPods[khCheck3.Name] = khCheck3
 
-	results := getAllCompletedPodsWithCheckName(khCheckerPods, khCheck)
+	// make a new repaer
+	reaper := NewReaper()
 
+	// get all completed pods of the check named "same-kh-pod"
+	results := reaper.getAllCompletedPodsWithCheckName(khCheckerPods, "same-check")
 	if len(results) != 2 {
 		t.Fatalf("getAllPodsWithCheckName failed to get all pods of the same khcheck")
 	}

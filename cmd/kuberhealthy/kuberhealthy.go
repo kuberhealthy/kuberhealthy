@@ -250,9 +250,10 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 
 // StartReaper starts the check reaper
 func (k *Kuberhealthy) StartReaper(ctx context.Context) {
-	reaperCtx, reaperCtxCancel := context.WithCancel(ctx)
-	k.cancelReaperFunc = reaperCtxCancel
-	go reaper(reaperCtx, k.TargetNamespace)
+	reaperCtx, reaperCtxCancel := context.WithCancel(ctx) // make a new context
+	k.cancelReaperFunc = reaperCtxCancel                  // store the context in the kuberhealthy instance
+	reaper := NewReaper()                                 // make a new reaper instance
+	go reaper.Run(reaperCtx, k.TargetNamespace)           // run the new reaper instance with the context we created
 }
 
 // StopReaper stops the check reaper
