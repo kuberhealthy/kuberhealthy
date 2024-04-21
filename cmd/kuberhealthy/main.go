@@ -15,9 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khcheckClient"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khjobClient"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khstateClient"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/masterCalculation"
 )
@@ -51,10 +49,10 @@ const DefaultRunInterval = time.Minute * 10
 var DefaultTimeout = time.Minute * 5
 
 // KHStateClient is a client for khstate custom resources
-var KHStateClient *khstateClient.Clientset
+var KHStateClient *KHStateClient.Clientset
 
 // KHCheckClient is a client for khcheck custom resources
-var KHCheckClient *khcheckClient.Clientset
+var KHCheckClient *KHCheckClient.Clientset
 
 // KHJobClient is a client for khjob custom resources
 var KHJobClient *khjobClient.Clientset
@@ -123,21 +121,21 @@ func listenForInterrupts(k *Kuberhealthy) {
 func initKubernetesClients() error {
 
 	// make a new kuberhealthy client
-	clientSet, restConfig, err := kubeClient.Create(cfg.kubeConfigFile)
+	clientSet, restConfig, _, err := kubeClient.Create(cfg.kubeConfigFile)
 	if err != nil {
 		return err
 	}
 	KubernetesClient = clientSet
 
 	// make a new crd check client
-	checkClient, err := khcheckClient.NewForConfig(restConfig)
+	checkClient, err := KHCheckClient.NewForConfig(restConfig)
 	if err != nil {
 		return err
 	}
 	KHCheckClient = checkClient
 
 	// make a new crd state client
-	stateClient, err := khstateClient.NewForConfig(restConfig)
+	stateClient, err := KHStateClient.NewForConfig(restConfig)
 	if err != nil {
 		return err
 	}

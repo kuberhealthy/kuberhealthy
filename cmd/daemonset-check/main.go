@@ -100,7 +100,7 @@ func init() {
 func main() {
 	// Create a kubernetes client.
 	var err error
-	client, err = kubeClient.Create(kubeConfigFile)
+	client, _, err = kubeClient.Create(kubeConfigFile)
 	if err != nil {
 		log.Fatalln("Unable to create kubernetes client:" + err.Error())
 	}

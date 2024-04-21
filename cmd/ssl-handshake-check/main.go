@@ -75,7 +75,7 @@ func main() {
 	nodeCheckTimeout := time.Minute * 1
 	nodeCheckCtx, _ := context.WithTimeout(context.Background(), nodeCheckTimeout.Round(10))
 
-	client, err := kubeClient.Create(kubeConfigFile)
+	client, _, err := kubeClient.Create(kubeConfigFile)
 	if err != nil {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}

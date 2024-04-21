@@ -81,7 +81,7 @@ func main() {
 
 	// Create a kubernetes client.
 	var err error
-	client, err = kubeClient.Create(kubeConfigFile)
+	client, _, err = kubeClient.Create(kubeConfigFile)
 	if err != nil {
 		errorMessage := "failed to create a kubernetes client with error: " + err.Error()
 		reportErr := kh.ReportFailure([]string{errorMessage})

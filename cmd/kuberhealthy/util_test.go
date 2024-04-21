@@ -29,7 +29,7 @@ func newExternalTestCheck(c *kubernetes.Clientset) (*external.Checker, error) {
 // spec file for pods
 func newTestCheckFromSpec(c *kubernetes.Clientset, spec *khcheckv1.KuberhealthyCheck) *external.Checker {
 	// create a new checker and insert this pod spec
-	checker := external.New(c, spec, khCheckClient, khStateClient, cfg.ExternalCheckReportingURL) // external checker does not ever return an error so we drop it
+	checker := external.New(c, spec, KHCheckClient, KHStateClient, cfg.ExternalCheckReportingURL) // external checker does not ever return an error so we drop it
 	checker.Debug = true
 	return checker
 }

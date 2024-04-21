@@ -31,7 +31,7 @@ func main() {
 	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
 
 	// create kubernetes client
-	kubernetesClient, err := kubeClient.Create("")
+	kubernetesClient, _, err := kubeClient.Create("")
 	if err != nil {
 		log.Errorln("Error creating kubeClient with error" + err.Error())
 	}
@@ -103,7 +103,7 @@ func deployPod(ctx context.Context, namespace string, name string, client *kuber
 	return nil
 }
 
-//deletePod deletes pod in namespace
+// deletePod deletes pod in namespace
 func deletePod(ctx context.Context, namespace string, name string, client *kubernetes.Clientset) error {
 
 	delOpts := v1.DeleteOptions{}
@@ -116,7 +116,7 @@ func deletePod(ctx context.Context, namespace string, name string, client *kuber
 	return nil
 }
 
-//getPodObject returns container to run for test
+// getPodObject returns container to run for test
 func getPodObject(name string, namespace string) *core.Pod {
 	return &core.Pod{
 		ObjectMeta: metav1.ObjectMeta{

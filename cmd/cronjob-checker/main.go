@@ -44,7 +44,7 @@ func main() {
 	ctx, _ := context.WithTimeout(context.Background(), khCheckRunTime)
 
 	// create kubeClient
-	client, err := kubeClient.Create(kubeConfigFile)
+	client, _, _, err := kubeClient.Create(kubeConfigFile)
 	if err != nil {
 		errorMessage := fmt.Errorf("Failed to create a kubernetes client with error: " + err.Error())
 		ReportFailureAndExit(errorMessage)
