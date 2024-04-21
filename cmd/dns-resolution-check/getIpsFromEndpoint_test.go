@@ -11,7 +11,7 @@ import (
 )
 
 func TestGetIpsFromEndpoint(t *testing.T) {
-	client, err := kubeClient.Create(filepath.Join(os.Getenv("HOME"), ".kube", "config"))
+	client, _, _, err := kubeClient.Create(filepath.Join(os.Getenv("HOME"), ".kube", "config"))
 	if err != nil {
 		t.Fatalf("Unable to create kube client")
 	}

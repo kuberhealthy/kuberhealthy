@@ -28,6 +28,9 @@ import (
 	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
 	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/util"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khcheckClient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khjobClient"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khstateClient"
 )
 
 // KHReportingURL is the environment variable used to tell external checks where to send their status updates
@@ -89,9 +92,9 @@ type Checker struct {
 	RunInterval              time.Duration // how often this check runs a loop
 	RunTimeout               time.Duration // time check must run completely within
 	KubeClient               *kubernetes.Clientset
-	KHJobClient              *khjobv1.KHJobV1Client
-	KHCheckClient            *khcheckv1.KHCheckV1Client
-	KHStateClient            *khstatev1.KHStateV1Client
+	KHJobClient              *khjobClient.Clientset
+	KHCheckClient            *khcheckClient.Clientset
+	KHStateClient            *khstateClient.Clientset
 	PodSpec                  apiv1.PodSpec // the current pod spec we are using after enforcement of settings
 	OriginalPodSpec          apiv1.PodSpec // the user-provided spec of the pod
 	RunID                    string        // the uuid of the current run
@@ -117,12 +120,11 @@ func init() {
 }
 
 // New creates a new external checker
-func New(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyCheck, khCheckClient *khcheckv1.KHCheckV1Client, khStateClient *khstatev1.KHStateV1Client, reportingURL string) *Checker {
-
+func New(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyCheck, khCheckClient *khcheckClient.Clientset, khStateClient *khstateClient.Clientset, reportingURL string) *Checker {
 	return NewCheck(client, checkConfig, khCheckClient, khStateClient, reportingURL)
 }
 
-func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyCheck, khCheckClient *khcheckv1.KHCheckV1Client, khStateClient *khstatev1.KHStateV1Client, reportingURL string) *Checker {
+func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyCheck, khCheckClient *khcheckClient.Clientset, khStateClient *khstateClient.Clientset, reportingURL string) *Checker {
 
 	if len(checkConfig.Namespace) == 0 {
 		checkConfig.Namespace = "kuberhealthy"
@@ -146,7 +148,7 @@ func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyC
 	}
 }
 
-func NewJob(client *kubernetes.Clientset, jobConfig *khjobv1.KuberhealthyJob, khJobClient *khjobv1.KHJobV1Client, khStateClient *khstatev1.KHStateV1Client, reportingURL string) *Checker {
+func NewJob(client *kubernetes.Clientset, jobConfig *khjobv1.KuberhealthyJob, khJobClient *khjobClient.Clientset, khStateClient *khstateClient.Clientset, reportingURL string) *Checker {
 
 	if len(jobConfig.Namespace) == 0 {
 		jobConfig.Namespace = "kuberhealthy"
@@ -272,16 +274,16 @@ func (ext *Checker) Run(ctx context.Context, client *kubernetes.Clientset) error
 }
 
 // getCheck gets the CRD information for this check from the kubernetes API.
-func (ext *Checker) getCheck() (*khcheckv1.KuberhealthyCheck, error) {
+func (ext *Checker) getCheck(ctx context.Context) (*khcheckv1.KuberhealthyCheck, error) {
 
 	// get the item in question and return it along with any errors
 	log.Debugln("Fetching check", ext.CheckName, "in namespace", ext.Namespace)
-	checkConfig, err := ext.KHCheckClient.KuberhealthyChecks(ext.Namespace).Get(ext.CheckName, metav1.GetOptions{})
+	checkConfig, err := ext.KHCheckClient.KhcheckV1().KuberhealthyChecks(ext.Namespace).Get(ctx, ext.CheckName, metav1.GetOptions{})
 	if err != nil {
 		return &khcheckv1.KuberhealthyCheck{}, err
 	}
 
-	return &checkConfig, err
+	return checkConfig, err
 }
 
 // cleanup cleans up any running, pending, or unknown checker pods by evicting them. Succeeded or Failed pods are left alone for records

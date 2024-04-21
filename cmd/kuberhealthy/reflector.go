@@ -32,7 +32,7 @@ func NewStateReflector(namespace string) *StateReflector {
 	sr.resyncPeriod = time.Minute * 5
 
 	// structure the reflector and its required elements
-	khStateListWatch := cache.NewListWatchFromClient(khStateClient.RESTClient(), stateCRDResource, namespace, fields.Everything())
+	khStateListWatch := cache.NewListWatchFromClient(KHStateClient.RESTClient(), stateCRDResource, namespace, fields.Everything())
 	sr.store = cache.NewStore(cache.MetaNamespaceKeyFunc)
 	sr.reflector = cache.NewReflector(khStateListWatch, &khstatev1.KuberhealthyState{}, sr.store, sr.resyncPeriod)
 
@@ -114,7 +114,7 @@ func determineKHWorkload(name string, namespace string) khstatev1.KHWorkload {
 	var khWorkload khstatev1.KHWorkload
 	log.Debugln("determineKHWorkload: determining workload:", name)
 
-	checkPod, err := khCheckClient.KuberhealthyChecks(namespace).Get(name, v1.GetOptions{})
+	checkPod, err := KHCheckClient.KuberhealthyChecks(namespace).Get(name, v1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Debugln("determineKHWorkload: Not a khcheck.")
