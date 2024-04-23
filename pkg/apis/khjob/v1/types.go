@@ -9,6 +9,7 @@ import (
 // external checker job for Kuberhealthy
 // +k8s:openapi-gen=true
 // +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type KuberhealthyJob struct {
 	metav1.TypeMeta   `json:",inline" yaml:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
@@ -41,9 +42,8 @@ const (
 	JobCompleted JobPhase = "Completed"
 )
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // KuberhealthyJobList is a list of KuberhealthyJob resources
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type KuberhealthyJobList struct {
 	metav1.TypeMeta `json:",inline" yaml:",inline"`
 	metav1.ListMeta `json:"metadata" yaml:"metadata"`
