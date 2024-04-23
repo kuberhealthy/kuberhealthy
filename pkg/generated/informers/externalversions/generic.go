@@ -41,14 +41,12 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=khcheck.comcast.github.io, Version=v1
 	case v1.SchemeGroupVersion.WithResource("kuberhealthychecks"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Khcheck().V1().KuberhealthyChecks().Informer()}, nil
-	case v1.SchemeGroupVersion.WithResource("kuberhealthychecklists"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Khcheck().V1().KuberhealthyCheckLists().Informer()}, nil
 
-		// Group=khjob, Version=v1
+		// Group=khjob.comcast.github.io, Version=v1
 	case khjobv1.SchemeGroupVersion.WithResource("kuberhealthyjobs"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Khjob().V1().KuberhealthyJobs().Informer()}, nil
 
-		// Group=khstate, Version=v1
+		// Group=khstate.comcast.github.io, Version=v1
 	case khstatev1.SchemeGroupVersion.WithResource("kuberhealthystates"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Khstate().V1().KuberhealthyStates().Informer()}, nil
 

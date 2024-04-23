@@ -10,8 +10,6 @@ import (
 type Interface interface {
 	// KuberhealthyChecks returns a KuberhealthyCheckInformer.
 	KuberhealthyChecks() KuberhealthyCheckInformer
-	// KuberhealthyCheckLists returns a KuberhealthyCheckListInformer.
-	KuberhealthyCheckLists() KuberhealthyCheckListInformer
 }
 
 type version struct {
@@ -28,9 +26,4 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // KuberhealthyChecks returns a KuberhealthyCheckInformer.
 func (v *version) KuberhealthyChecks() KuberhealthyCheckInformer {
 	return &kuberhealthyCheckInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// KuberhealthyCheckLists returns a KuberhealthyCheckListInformer.
-func (v *version) KuberhealthyCheckLists() KuberhealthyCheckListInformer {
-	return &kuberhealthyCheckListInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

@@ -1,18 +1,7 @@
 #!/usr/bin/env bash
 
-# Copyright 2017 The Kubernetes Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# This script is based off the kube-builder script with the name update-codegen.sh,
+# but it also includes installation of tools and more build steps
 
 set -o errexit
 set -o nounset
@@ -21,22 +10,26 @@ set -o pipefail
 # Ensure tooling is installed
 if [[ -z `which client-gen` ]]; then go install k8s.io/code-generator/cmd/client-gen@latest; fi
 if [[ -z `which deepcopy-gen` ]]; then go install k8s.io/code-generator/cmd/deepcopy-gen@latest; fi
-#if [[ -z `which register-gen` ]]; then go install k8s.io/code-generator/cmd/register-gen@latest; fi
+if [[ -z `which register-gen` ]]; then go install k8s.io/code-generator/cmd/register-gen@latest; fi
 
 SCRIPT_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+THIS_PKG="github.com/kuberhealthy/kuberhealthy/v2"
 #CODEGEN_PKG=${CODEGEN_PKG:-$(cd "${SCRIPT_ROOT}"; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo ../code-generator)}
+
+# include codegen funcs from kubernetes project
+source "./kube_codegen.sh"
 
 # generate registration
 #register-gen --go-header-file="./boilerplate.go.txt"
 
 # generate deepcopy
-deepcopy-gen --bounding-dirs="github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1" \
-             --output-file="../pkg/apis/khcheck/v1/zz_generated.deepcopy.go" \
-             --go-header-file="./boilerplate.go.txt"
-
-# generate client
-source "./kube_codegen.sh"
-THIS_PKG="github.com/kuberhealthy/kuberhealthy/v2"
+for CRD in khcheck khjob khstate; do
+    echo "Generating CRD go files for $CRD..."
+    deepcopy-gen --bounding-dirs="github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/$CRD/v1" \
+                --output-file="../pkg/apis/$CRD/v1/zz_generated.deepcopy.go" \
+                --go-header-file="./boilerplate.go.txt"
+    register-gen ../pkg/apis/$CRD/v1 
+done
 
 kube::codegen::gen_helpers \
     --boilerplate "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \

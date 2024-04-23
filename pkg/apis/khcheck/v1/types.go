@@ -8,8 +8,8 @@ import (
 // KuberhealthyCheck represents the data in the CRD for configuring an
 // external check for Kuberhealthy
 // +k8s:openapi-gen=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type KuberhealthyCheck struct {
 	metav1.TypeMeta   `json:",inline" yaml:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
@@ -33,8 +33,6 @@ type CheckConfig struct {
 }
 
 // KuberhealthyCheckList is a list of KuberhealthyCheck resources
-// +k8s:openapi-gen=true
-// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type KuberhealthyCheckList struct {
 	metav1.TypeMeta `json:",inline" yaml:",inline"`
