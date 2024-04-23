@@ -15,7 +15,7 @@ type KhstateV1Interface interface {
 	KuberhealthyStatesGetter
 }
 
-// KhstateV1Client is used to interact with features provided by the khstate group.
+// KhstateV1Client is used to interact with features provided by the khstate.comcast.github.io group.
 type KhstateV1Client struct {
 	restClient rest.Interface
 }

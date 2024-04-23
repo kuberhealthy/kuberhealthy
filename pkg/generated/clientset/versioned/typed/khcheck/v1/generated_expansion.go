@@ -3,5 +3,3 @@
 package v1
 
 type KuberhealthyCheckExpansion interface{}
-
-type KuberhealthyCheckListExpansion interface{}

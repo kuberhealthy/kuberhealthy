@@ -15,7 +15,7 @@ type KhjobV1Interface interface {
 	KuberhealthyJobsGetter
 }
 
-// KhjobV1Client is used to interact with features provided by the khjob group.
+// KhjobV1Client is used to interact with features provided by the khjob.comcast.github.io group.
 type KhjobV1Client struct {
 	restClient rest.Interface
 }

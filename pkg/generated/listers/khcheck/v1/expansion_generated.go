@@ -9,11 +9,3 @@ type KuberhealthyCheckListerExpansion interface{}
 // KuberhealthyCheckNamespaceListerExpansion allows custom methods to be added to
 // KuberhealthyCheckNamespaceLister.
 type KuberhealthyCheckNamespaceListerExpansion interface{}
-
-// KuberhealthyCheckListListerExpansion allows custom methods to be added to
-// KuberhealthyCheckListLister.
-type KuberhealthyCheckListListerExpansion interface{}
-
-// KuberhealthyCheckListNamespaceListerExpansion allows custom methods to be added to
-// KuberhealthyCheckListNamespaceLister.
-type KuberhealthyCheckListNamespaceListerExpansion interface{}

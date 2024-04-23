@@ -10,12 +10,6 @@ import (
 // KuberhealthyState represents the data in the CRD for configuring an
 // the state of khjobs or khchecks for Kuberhealthy
 // +k8s:openapi-gen=true
-// +kubebuilder:printcolumn:name="OK",type=string,JSONPath=`.spec.OK`,description="OK status"
-// +kubebuilder:printcolumn:name="Age LastRun",type=date,JSONPath=`.spec.LastRun`,description="Last Run"
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,description="Age"
-// +kubebuilder:resource:path="khstates"
-// +kubebuilder:resource:singular="khstate"
-// +kubebuilder:resource:shortName="khs"
 type KuberhealthyState struct {
 	metav1.TypeMeta `json:",inline" yaml:",inline"`
 	// +optional

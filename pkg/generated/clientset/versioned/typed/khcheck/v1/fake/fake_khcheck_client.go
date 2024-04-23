@@ -16,10 +16,6 @@ func (c *FakeKhcheckV1) KuberhealthyChecks(namespace string) v1.KuberhealthyChec
 	return &FakeKuberhealthyChecks{c, namespace}
 }
 
-func (c *FakeKhcheckV1) KuberhealthyCheckLists(namespace string) v1.KuberhealthyCheckListInterface {
-	return &FakeKuberhealthyCheckLists{c, namespace}
-}
-
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeKhcheckV1) RESTClient() rest.Interface {

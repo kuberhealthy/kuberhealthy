@@ -13,7 +13,6 @@ import (
 type KhcheckV1Interface interface {
 	RESTClient() rest.Interface
 	KuberhealthyChecksGetter
-	KuberhealthyCheckListsGetter
 }
 
 // KhcheckV1Client is used to interact with features provided by the khcheck.comcast.github.io group.
@@ -23,10 +22,6 @@ type KhcheckV1Client struct {
 
 func (c *KhcheckV1Client) KuberhealthyChecks(namespace string) KuberhealthyCheckInterface {
 	return newKuberhealthyChecks(c, namespace)
-}
-
-func (c *KhcheckV1Client) KuberhealthyCheckLists(namespace string) KuberhealthyCheckListInterface {
-	return newKuberhealthyCheckLists(c, namespace)
 }
 
 // NewForConfig creates a new KhcheckV1Client for the given config.
