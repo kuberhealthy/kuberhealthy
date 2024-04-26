@@ -15,9 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khcheckClient"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khjobClient"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khstateClient"
+	khClient "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/masterCalculation"
 )
@@ -50,17 +48,11 @@ var podHostname string
 // DefaultTimeout is the default timeout for external checks
 var DefaultTimeout = time.Minute * 5
 
-// KHStateClient is a client for khstate custom resources
-var KHStateClient *khstateClient.Clientset
-
-// KHCheckClient is a client for khcheck custom resources
-var KHCheckClient *khcheckClient.Clientset
-
-// KHJobClient is a client for khjob custom resources
-var KHJobClient *khjobClient.Clientset
-
 // KubernetesClient is the global kubernetes client
 var KubernetesClient *kubernetes.Clientset
+
+// KuberhealthyClient is used for interfacing with Kuberhealthy CRDs
+var KuberhealthyClient *khClient.Clientset
 
 func main() {
 
@@ -129,28 +121,9 @@ func initKubernetesClients() error {
 	}
 	KubernetesClient = clientSet
 
-	// make a new crd check client
-	checkClient, err := khcheckClient.NewForConfig(restConfig)
-	if err != nil {
-		return err
-	}
-	KHCheckClient = checkClient
-
-	// make a new crd state client
-	stateClient, err := khstateClient.NewForConfig(restConfig)
-	if err != nil {
-		return err
-	}
-	KHStateClient = stateClient
-
-	// make a new crd job client
-	jobClient, err := khjobClient.NewForConfig(restConfig)
-	if err != nil {
-		return err
-	}
-	KHJobClient = jobClient
-
-	return nil
+	// make a new kuberhealthy clientset
+	KuberhealthyClient, err = khClient.NewForConfig(restConfig)
+	return err
 }
 
 // setUpConfig loads and sets default Kuberhealthy configurations

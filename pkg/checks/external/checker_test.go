@@ -20,9 +20,6 @@ var client *kubernetes.Clientset
 
 const defaultNamespace = "kuberhealthy"
 
-var khStateClient *khstatev1.KHStateV1Client
-var khCheckClient *khcheckv1.KHCheckV1Client
-
 func init() {
 
 	// create a kubernetes clientset for our tests to use
