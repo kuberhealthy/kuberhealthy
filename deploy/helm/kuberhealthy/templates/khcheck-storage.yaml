@@ -64,6 +64,10 @@ spec:
       securityContext:
         allowPrivilegeEscalation: {{ $.Values.securityContext.allowPrivilegeEscalation }}
         readOnlyRootFilesystem: {{ $.Values.securityContext.readOnlyRootFilesystem }}
+        {{- if $.Values.securityContext.capabilities }}
+        capabilities:
+          {{- toYaml $.Values.securityContext.capabilities | nindent 8 }}
+        {{- end }}
       {{- end }}
     restartPolicy: Never
     serviceAccountName: storage-khcheck

@@ -96,6 +96,10 @@ spec:
           seccompProfile:
             {{- toYaml .Values.securityContext.seccompProfile | nindent 12 }}
           {{- end }}
+          {{- if .Values.securityContext.capabilities }}
+          capabilities:
+            {{- toYaml .Values.securityContext.capabilities | nindent 12 }}
+          {{- end }}
         imagePullPolicy: {{ .Values.deployment.imagePullPolicy }}
         livenessProbe:
           failureThreshold: 3
