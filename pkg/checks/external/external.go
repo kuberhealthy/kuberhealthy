@@ -24,13 +24,8 @@ import (
 	policyv1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
-	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
-	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/util"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khcheckClient"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khjobClient"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/clients/generated/khstateClient"
+	khClient "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned"
 )
 
 // KHReportingURL is the environment variable used to tell external checks where to send their status updates
@@ -92,9 +87,7 @@ type Checker struct {
 	RunInterval              time.Duration // how often this check runs a loop
 	RunTimeout               time.Duration // time check must run completely within
 	KubeClient               *kubernetes.Clientset
-	KHJobClient              *khjobClient.Clientset
-	KHCheckClient            *khcheckClient.Clientset
-	KHStateClient            *khstateClient.Clientset
+	KHClient                 *khClient.Clientset
 	PodSpec                  apiv1.PodSpec // the current pod spec we are using after enforcement of settings
 	OriginalPodSpec          apiv1.PodSpec // the user-provided spec of the pod
 	RunID                    string        // the uuid of the current run
@@ -124,7 +117,7 @@ func New(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyCheck,
 	return NewCheck(client, checkConfig, khCheckClient, khStateClient, reportingURL)
 }
 
-func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyCheck, khCheckClient *khcheckClient.Clientset, khStateClient *khstateClient.Clientset, reportingURL string) *Checker {
+func NewCheck(client *kubernetes.Clientset, kuberhealthyClient *khClient.Clientset, reportingURL string) *Checker {
 
 	if len(checkConfig.Namespace) == 0 {
 		checkConfig.Namespace = "kuberhealthy"
@@ -134,8 +127,7 @@ func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyC
 	log.Debugf("Creating external check from check config: %+v \n", checkConfig)
 	return &Checker{
 		Namespace:                checkConfig.Namespace,
-		KHCheckClient:            khCheckClient,
-		KHStateClient:            khStateClient,
+		KHClient:                 kuberhealthyClient,
 		CheckName:                checkConfig.Name,
 		KuberhealthyReportingURL: reportingURL,
 		RunTimeout:               defaultTimeout,
@@ -148,7 +140,7 @@ func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyC
 	}
 }
 
-func NewJob(client *kubernetes.Clientset, jobConfig *khjobv1.KuberhealthyJob, khJobClient *khjobClient.Clientset, khStateClient *khstateClient.Clientset, reportingURL string) *Checker {
+func NewJob(client *kubernetes.Clientset, jobConfig *khjobv1.KuberhealthyJob, kuberhealthyClient *khClient.Clientset, reportingURL string) *Checker {
 
 	if len(jobConfig.Namespace) == 0 {
 		jobConfig.Namespace = "kuberhealthy"
@@ -158,8 +150,7 @@ func NewJob(client *kubernetes.Clientset, jobConfig *khjobv1.KuberhealthyJob, kh
 	log.Debugf("Creating kuberhealthy job from job config: %+v \n", jobConfig)
 	return &Checker{
 		Namespace:                jobConfig.Namespace,
-		KHJobClient:              khJobClient,
-		KHStateClient:            khStateClient,
+		KHClient:                 kuberhealthyClient,
 		CheckName:                jobConfig.Name,
 		KuberhealthyReportingURL: reportingURL,
 		ExtraAnnotations:         make(map[string]string),
