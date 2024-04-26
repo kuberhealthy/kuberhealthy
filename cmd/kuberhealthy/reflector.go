@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -32,7 +33,7 @@ func NewStateReflector(namespace string) *StateReflector {
 	sr.resyncPeriod = time.Minute * 5
 
 	// structure the reflector and its required elements
-	khStateListWatch := cache.NewListWatchFromClient(KHStateClient.RESTClient(), "khstate", namespace, fields.Everything())
+	khStateListWatch := cache.NewListWatchFromClient(KuberhealthyClient.RESTClient(), "khstate", namespace, fields.Everything())
 	sr.store = cache.NewStore(cache.MetaNamespaceKeyFunc)
 	sr.reflector = cache.NewReflector(khStateListWatch, &khstatev1.KuberhealthyState{}, sr.store, sr.resyncPeriod)
 
@@ -109,12 +110,11 @@ func (sr *StateReflector) CurrentStatus() health.State {
 
 // determineKHWorkload uses the name and namespace of the kuberhealthy resource to determine whether its a khjob or khcheck
 // This function is necessary for the CurrentStatus() function as getting the KHWorkload from the state spec returns a blank kh workload.
-func determineKHWorkload(name string, namespace string) khstatev1.KHWorkload {
+func determineKHWorkload(ctx context.Context, name string, namespace string) khstatev1.KHWorkload {
 
 	var khWorkload khstatev1.KHWorkload
 	log.Debugln("determineKHWorkload: determining workload:", name)
-
-	checkPod, err := KHCheckClient.KuberhealthyChecks(namespace).Get(name, v1.GetOptions{})
+	checkPod, err := KuberhealthyClient.KhcheckV1().KuberhealthyChecks(namespace).Get(ctx, name, v1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Debugln("determineKHWorkload: Not a khcheck.")

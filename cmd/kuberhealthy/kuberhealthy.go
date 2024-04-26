@@ -1674,10 +1674,10 @@ func (k *Kuberhealthy) configureChecks(ctx context.Context) {
 // check with the supplied name.  Only one UUID can be whitelisted at a time.
 // Operations are not atomic.  Whitelisting prevents expired or invalidated pods from
 // reporting into the status endpoint when they shouldn't be.
-func (k *Kuberhealthy) isUUIDWhitelistedForCheck(checkName string, checkNamespace string, uuid string) (bool, error) {
+func (k *Kuberhealthy) isUUIDWhitelistedForCheck(ctx context.Context, checkName string, checkNamespace string, uuid string) (bool, error) {
 
 	// get the item in question
-	checkState, err := KHStateClient.KuberhealthyStates(checkNamespace).Get(checkName, metav1.GetOptions{})
+	checkState, err := KuberhealthyClient.KhstateV1().KuberhealthyStates(checkNamespace).Get(ctx, checkName, metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}
