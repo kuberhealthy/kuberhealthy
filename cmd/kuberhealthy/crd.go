@@ -12,6 +12,7 @@ import (
 
 	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
 	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external"
 )
 
 // setCheckStateResource puts a check state's state into the specified CRD resource.  It sets the AuthoritativePod
@@ -22,7 +23,7 @@ func setCheckStateResource(ctx context.Context, checkName string, checkNamespace
 
 	// we must fetch the existing state to use the current resource version
 	// int found within
-	existingState, err := KHStateClient.KhstateV1().KuberhealthyStates(checkNamespace).Get(ctx, name, metav1.GetOptions{})
+	existingState, err := KuberhealthyClient.KhstateV1().KuberhealthyStates(checkNamespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return errors.New("Error retrieving CRD for: " + name + " " + err.Error())
 	}
@@ -41,7 +42,7 @@ func setCheckStateResource(ctx context.Context, checkName string, checkNamespace
 	// TODO - if "try again" message found in error, then try again
 
 	log.Debugln(checkNamespace, checkName, "writing khstate with ok:", state.OK, "and errors:", state.Errors, "at last run:", state.LastRun)
-	_, err = KHStateClient.KhstateV1().KuberhealthyStates(checkNamespace).Update(ctx, &khState, metav1.UpdateOptions{})
+	_, err = KuberhealthyClient.KhstateV1().KuberhealthyStates(checkNamespace).Update(ctx, &khState, metav1.UpdateOptions{})
 	return err
 }
 
@@ -62,12 +63,12 @@ func ensureStateResourceExists(ctx context.Context, checkName string, checkNames
 	name := sanitizeResourceName(checkName)
 
 	log.Debugln("Checking existence of custom resource:", name)
-	state, err := KHStateClient.KhstateV1().KuberhealthyStates(checkNamespace).Get(ctx, name, metav1.GetOptions{})
+	state, err := KuberhealthyClient.KhstateV1().KuberhealthyStates(checkNamespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Infoln("Custom resource not found, creating resource:", name, " - ", err)
 			initialState := khstatev1.KuberhealthyState{}
-			_, err := KHStateClient.KhstateV1().KuberhealthyStates(checkNamespace).Create(ctx, &initialState, metav1.CreateOptions{})
+			_, err := KuberhealthyClient.KhstateV1().KuberhealthyStates(checkNamespace).Create(ctx, &initialState, metav1.CreateOptions{})
 			if err != nil {
 				return errors.New("Error creating custom resource: " + name + ": " + err.Error())
 			}
@@ -83,54 +84,57 @@ func ensureStateResourceExists(ctx context.Context, checkName string, checkNames
 
 // // getCheckState retrieves the check values from the kuberhealthy khstate
 // // custom resource
-// func getCheckState(c *external.Checker) (khstatev1.WorkloadDetails, error) {
+func getCheckState(ctx context.Context, c *external.Checker) (khstatev1.WorkloadDetails, error) {
 
-// 	var state = khstatev1.KuberhealthyState{}
-// 	var err error
-// 	name := sanitizeResourceName(c.Name())
+	var state = khstatev1.WorkloadDetails{}
+	var err error
+	name := sanitizeResourceName(c.Name())
 
-// 	// make sure the CRD exists, even when checking status
-// 	err = ensureStateResourceExists(c.Name(), c.CheckNamespace(), khstatev1.KHCheck)
-// 	if err != nil {
-// 		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
-// 	}
+	// make sure the CRD exists, even when checking status
+	err = ensureStateResourceExists(ctx, c.Name(), c.CheckNamespace(), khstatev1.KHCheck)
+	if err != nil {
+		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
+	}
 
-// 	log.Debugln("Retrieving khstate custom resource for:", name)
-// 	khstate, err := KHStateClient.KuberhealthyStates(c.CheckNamespace()).Get(name, metav1.GetOptions{})
-// 	if err != nil {
-// 		return state, errors.New("Error retrieving custom khstate resource: " + name + " " + err.Error())
-// 	}
-// 	log.Debugln("Successfully retrieved khstate resource:", name)
-// 	return khstate.Spec, nil
-// }
+	log.Debugln("Retrieving khstate custom resource for:", name)
+	khstate, err := KuberhealthyClient.KhstateV1().KuberhealthyStates(c.CheckNamespace()).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return state, errors.New("Error retrieving custom khstate resource: " + name + " " + err.Error())
+	}
+	log.Debugln("Successfully retrieved khstate resource:", name)
+	return khstate.Spec, nil
+}
 
 // // getCheckState retrieves the check values from the kuberhealthy khstate
 // // custom resource
-// func getJobState(j *external.Checker) (khstatev1.WorkloadDetails, error) {
+func getJobState(ctx context.Context, j *external.Checker) (khstatev1.WorkloadDetails, error) {
 
-// 	var state = khstatev1.NewWorkloadDetails(khstatev1.KHJob)
-// 	var err error
-// 	name := sanitizeResourceName(j.Name())
+	state := khstatev1.WorkloadDetails{
+		KHWorkload: khstatev1.KHJob,
+	}
+	// var state = khstatev1.NewWorkloadDetails(khstatev1.KHJob)
+	var err error
+	name := sanitizeResourceName(j.Name())
 
-// 	// make sure the CRD exists, even when checking status
-// 	err = ensureStateResourceExists(j.Name(), j.CheckNamespace(), khstatev1.KHJob)
-// 	if err != nil {
-// 		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
-// 	}
+	// make sure the CRD exists, even when checking status
+	err = ensureStateResourceExists(ctx, j.Name(), j.CheckNamespace(), khstatev1.KHJob)
+	if err != nil {
+		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
+	}
 
-// 	log.Debugln("Retrieving khstate custom resource for:", name)
-// 	khstate, err := KHStateClient.KuberhealthyStates(j.CheckNamespace()).Get(name, metav1.GetOptions{})
-// 	if err != nil {
-// 		return state, errors.New("Error retrieving custom khstate resource: " + name + " " + err.Error())
-// 	}
-// 	log.Debugln("Successfully retrieved khstate resource:", name)
-// 	return khstate.Spec, nil
-// }
+	log.Debugln("Retrieving khstate custom resource for:", name)
+	khstate, err := KuberhealthyClient.KhstateV1().KuberhealthyStates(j.CheckNamespace()).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return state, errors.New("Error retrieving custom khstate resource: " + name + " " + err.Error())
+	}
+	log.Debugln("Successfully retrieved khstate resource:", name)
+	return khstate.Spec, nil
+}
 
 // setJobPhase updates the kuberhealthy job phase depending on the state of its run.
 func setJobPhase(ctx context.Context, jobName string, jobNamespace string, jobPhase khjobv1.JobPhase) error {
 
-	kj, err := KHJobClient.KhjobV1().KuberhealthyJobs(jobNamespace).Get(ctx, jobName, metav1.GetOptions{})
+	kj, err := KuberhealthyClient.KhjobV1().KuberhealthyJobs(jobNamespace).Get(ctx, jobName, metav1.GetOptions{})
 	if err != nil {
 		log.Errorln("error getting khjob:", jobName, err)
 		return err
@@ -138,6 +142,6 @@ func setJobPhase(ctx context.Context, jobName string, jobNamespace string, jobPh
 	kj.Spec.Phase = jobPhase
 	log.Infoln("Setting khjob phase to:", jobPhase)
 
-	_, err = KHJobClient.KhjobV1().KuberhealthyJobs(jobNamespace).Update(ctx, kj, metav1.UpdateOptions{})
+	_, err = KuberhealthyClient.KhjobV1().KuberhealthyJobs(jobNamespace).Update(ctx, kj, metav1.UpdateOptions{})
 	return err
 }
