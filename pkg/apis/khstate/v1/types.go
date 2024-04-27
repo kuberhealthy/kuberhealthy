@@ -33,8 +33,7 @@ type WorkloadDetails struct {
 	LastRun          *metav1.Time `json:"LastRun,omitempty" yaml:"LastRun,omitempty"` // the time the khWorkload was last run
 	AuthoritativePod string       `json:"AuthoritativePod" yaml:"AuthoritativePod"`   // the main kuberhealthy pod creating and updating the khstate
 	CurrentUUID      string       `json:"uuid" yaml:"uuid"`                           // the UUID that is authorized to report statuses into the kuberhealthy endpoint
-	// +nullable
-	khWorkload *KHWorkload `json:"khWorkload,omitempty" yaml:"khWorkload,omitempty"`
+	KHWorkload       KHWorkload   `json:"khWorkload,omitempty" yaml:"khWorkload,omitempty"`
 }
 
 // KHWorkload is used to describe the different types of kuberhealthy workloads: KhCheck or KHJob
