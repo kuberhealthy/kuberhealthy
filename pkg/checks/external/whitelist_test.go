@@ -14,6 +14,9 @@ import (
 func GetWhitelistedUUIDForExternalCheck(ctx context.Context, checkNamespace string, checkName string) (string, error) {
 	// make a new crd check client
 	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return "", err
+	}
 	KuberhealthyClient, err := khClient.NewForConfig(restConfig)
 	if err != nil {
 		return "", err
