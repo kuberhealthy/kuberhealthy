@@ -55,7 +55,7 @@ func (sr *StateReflector) Start() {
 }
 
 // CurrentStatus returns the current summary of checks as known by the cache.
-func (sr *StateReflector) CurrentStatus() health.State {
+func (sr *StateReflector) CurrentStatus(ctx context.Context) health.State {
 	log.Infoln("khState reflector fetching current status")
 	state := health.NewState()
 
@@ -95,7 +95,7 @@ func (sr *StateReflector) CurrentStatus() health.State {
 			state.OK = false
 		}
 
-		khWorkload := determineKHWorkload(khState.Name, khState.Namespace)
+		khWorkload := determineKHWorkload(ctx, khState.Name, khState.Namespace)
 		switch khWorkload {
 		case khstatev1.KHCheck:
 			state.CheckDetails[khState.GetNamespace()+"/"+khState.GetName()] = khState.Spec
@@ -124,7 +124,7 @@ func determineKHWorkload(ctx context.Context, name string, namespace string) khs
 		return khstatev1.KHCheck
 	}
 
-	_, err = khJobClient.KuberhealthyJobs(namespace).Get(name, v1.GetOptions{})
+	_, err = KuberhealthyClient.KhjobV1().KuberhealthyJobs(namespace).Get(ctx, name, v1.GetOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Debugln("determineKHWorkload: Not a khjob.")

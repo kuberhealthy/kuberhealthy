@@ -8,15 +8,16 @@ import (
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
-	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
-	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
+	khClient "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 
 	apiv1 "k8s.io/api/core/v1"
 )
 
 var client *kubernetes.Clientset
+var kuberhealthyClient khClient.Clientset
 
 const defaultNamespace = "kuberhealthy"
 
@@ -24,24 +25,17 @@ func init() {
 
 	// create a kubernetes clientset for our tests to use
 	var err error
-	client, err = kubeClient.Create(kubeConfigFile)
+	var restConfig *rest.Config
+	client, restConfig, err = kubeClient.Create(kubeConfigFile)
 	if err != nil {
 		log.Fatal("Unable to create kubernetes client", err)
 	}
 
 	// make a new crd check client
-	checkClient, err := khcheckv1.Client(kubeConfigFile)
+	kuberhealthyClient = khClient.New(restConfig)
 	if err != nil {
 		log.Fatalln("err")
 	}
-	khCheckClient = checkClient
-
-	// make a new crd state client
-	stateClient, err := khstatev1.Client(kubeConfigFile)
-	if err != nil {
-		log.Fatalln("err")
-	}
-	khStateClient = stateClient
 
 }
 

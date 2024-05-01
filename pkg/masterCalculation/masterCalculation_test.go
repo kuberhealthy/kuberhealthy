@@ -12,7 +12,7 @@ var kubeConfigFile = os.Getenv("HOME") + "/.kube/config"
 
 func TestRun(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
-	client, err := kubeClient.Create(kubeConfigFile)
+	client, _, err := kubeClient.Create(kubeConfigFile)
 	if err != nil {
 		t.Fatal(err)
 	}

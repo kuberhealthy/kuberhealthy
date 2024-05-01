@@ -306,7 +306,7 @@ func (r *Reaper) khJobDelete(ctx context.Context, namespace string) error {
 	del := metav1.DeleteOptions{}
 
 	// list khjobs in Namespace
-	list, err := KHJobClient.KhjobV1().KuberhealthyJobs(namespace).List(ctx, opts)
+	list, err := KuberhealthyClient.KhjobV1().KuberhealthyJobs(namespace).List(ctx, opts)
 	if err != nil {
 		log.Errorln("checkReaper: Error: failed to retrieve khjob list with error", err)
 		return err
@@ -318,7 +318,7 @@ func (r *Reaper) khJobDelete(ctx context.Context, namespace string) error {
 	for _, j := range list.Items {
 		if r.jobConditions(j, cfg.MaxKHJobAge, "Completed") {
 			log.Infoln("checkReaper: Deleting khjob", j.Name)
-			err := KHJobClient.KhjobV1().KuberhealthyJobs(namespace).Delete(ctx, j.Name, del)
+			err := KuberhealthyClient.KhjobV1().KuberhealthyJobs(namespace).Delete(ctx, j.Name, del)
 			if err != nil {
 				log.Errorln("checkReaper: Failure to delete khjob", j.Name, "with error:", err)
 				return err
