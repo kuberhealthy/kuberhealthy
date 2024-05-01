@@ -189,10 +189,10 @@ func (ext *Checker) podName() string {
 
 // CurrentStatus returns the status of the check as of right now.  For the external checker, this means checking
 // the khstatus resources on the cluster.
-func (ext *Checker) CurrentStatus() (bool, []string) {
+func (ext *Checker) CurrentStatus(ctx context.Context) (bool, []string) {
 
 	// fetch the state from the resource
-	state, err := ext.getKHState()
+	state, err := ext.getKHState(ctx)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			// if the resource is not found, we default to "up" so not to throw alarms before the first run completes
@@ -240,7 +240,7 @@ func (ext *Checker) Run(ctx context.Context, client *kubernetes.Clientset) error
 	ext.KubeClient = client
 
 	// generate a new UUID for each run
-	err := ext.setNewCheckUUID()
+	err := ext.setNewCheckUUID(ctx)
 	if err != nil {
 		return err
 	}
@@ -269,7 +269,7 @@ func (ext *Checker) getCheck(ctx context.Context) (*khcheckv1.KuberhealthyCheck,
 
 	// get the item in question and return it along with any errors
 	log.Debugln("Fetching check", ext.CheckName, "in namespace", ext.Namespace)
-	checkConfig, err := ext.KHCheckClient.KhcheckV1().KuberhealthyChecks(ext.Namespace).Get(ctx, ext.CheckName, metav1.GetOptions{})
+	checkConfig, err := ext.KHClient.KhcheckV1().KuberhealthyChecks(ext.Namespace).Get(ctx, ext.CheckName, metav1.GetOptions{})
 	if err != nil {
 		return &khcheckv1.KuberhealthyCheck{}, err
 	}
@@ -344,11 +344,11 @@ func (ext *Checker) evictPod(ctx context.Context, podName string, podNamespace s
 // setUUID sets the current whitelisted UUID for the checker and updates it on the server.  If the
 // check fails to run or be verified as set (by a susequent fetch), then it will try up to 9 times
 // before returning an error.
-func (ext *Checker) setUUID(uuid string) error {
+func (ext *Checker) setUUID(ctx context.Context, uuid string) error {
 	ext.log("Setting expected UUID to:", uuid)
 
 	// fetch the existing khstate
-	checkState, err := ext.getKHState()
+	checkState, err := ext.getKHState(ctx)
 
 	// if the fetch operation had an error, and it wasn't 'not found', we return an error
 	if err != nil && !(k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
@@ -358,16 +358,20 @@ func (ext *Checker) setUUID(uuid string) error {
 	// if the check was not found, we create a new khstate
 	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		ext.log("khstate did not exist for", ext.CheckName, ", so a default object will be created")
-		details := khstatev1.NewWorkloadDetails(ext.KHWorkload)
+		details := khstatev1.WorkloadDetails{
+			KHWorkload: checkState.Spec.KHWorkload,
+		}
 		details.Namespace = ext.CheckNamespace()
 		details.AuthoritativePod = ext.hostname
 		details.OK = true
 		details.CurrentUUID = uuid
 		details.RunDuration = time.Duration(0).String()
-		newState := khstatev1.NewKuberhealthyState(ext.CheckName, details)
+		newState := khstatev1.KuberhealthyState{
+			Spec: details,
+		}
 		newState.Namespace = ext.Namespace
 		ext.log("Creating khstate", newState.Name, newState.Namespace, "because it did not exist")
-		_, err = ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Create(&newState)
+		_, err = ext.KHClient.KhstateV1().KuberhealthyStates(ext.CheckNamespace()).Create(ctx, &newState, metav1.CreateOptions{})
 		if err != nil {
 			ext.log("failed to create a khstate after finding that it did not exist:", err)
 			return err
@@ -380,7 +384,7 @@ func (ext *Checker) setUUID(uuid string) error {
 	// assign the new uuid to the fetched checkState
 	checkState.Spec.CurrentUUID = uuid
 	ext.log("Updating khstate to CurrentUUID:", checkState.Spec.CurrentUUID)
-	_, err = ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Update(&checkState)
+	_, err = ext.KHClient.KhstateV1().KuberhealthyStates(ext.CheckNamespace()).Update(ctx, checkState, metav1.UpdateOptions{})
 	if err != nil {
 		log.Errorln("failed to update khstate CurrentUUID for check", checkState.Namespace, checkState.Name, "with error:", err)
 	}
@@ -396,7 +400,7 @@ func (ext *Checker) setUUID(uuid string) error {
 		tries++
 
 		// fetch the check we just updated and ensure it set properly
-		extCheck, err := ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Get(ext.Name(), metav1.GetOptions{})
+		extCheck, err := ext.KHClient.KhstateV1().KuberhealthyStates(ext.CheckNamespace()).Get(ctx, ext.Name(), metav1.GetOptions{})
 		if err != nil {
 			ext.log("error: failed to get khstate while verifying check uuid:", err)
 			time.Sleep(time.Second)
@@ -413,12 +417,13 @@ func (ext *Checker) setUUID(uuid string) error {
 
 		// Retry the fetch, CurrentUUID update, and set again
 		ext.log("Retrying khstate update to set CurrentUUID:", checkState.Spec.CurrentUUID)
-		checkState, err := ext.getKHState()
+		checkState, err := ext.getKHState(ctx)
 		if err != nil {
 			log.Errorln("failed to fetch khstate for check", checkState.Namespace, checkState.Name, "with error:", err)
 		}
 		checkState.Spec.CurrentUUID = uuid
-		_, err = ext.KHStateClient.KuberhealthyStates(ext.CheckNamespace()).Update(&checkState)
+		_, err = ext.KHClient.KhstateV1().KuberhealthyStates(ext.CheckNamespace()).Update(ctx, checkState, metav1.UpdateOptions{})
+		// _, err = ext.KHClient.KhstateV1.(ext.CheckNamespace()).Update(&checkState)
 		if err != nil {
 			log.Errorln("failed to update khstate CurrentUUID for check", checkState.Namespace, checkState.Name, "with error:", err)
 		}
@@ -546,7 +551,7 @@ func (ext *Checker) RunOnce(ctx context.Context) error {
 
 	// fetch the currently known lastReportTime for this check.  We will use this to know when the pod has
 	// fully reported back with a status before exiting
-	lastReportTime, err := ext.getCheckLastUpdateTime()
+	lastReportTime, err := ext.getCheckLastUpdateTime(ctx)
 	if err != nil {
 		return err
 	}
@@ -657,7 +662,7 @@ func (ext *Checker) RunOnce(ctx context.Context) error {
 		}
 		ext.log("pod removed expectedly. pod shutdown monitor shutting down")
 		return ErrPodRemovedExpectedly
-	case err = <-ext.waitForPodStatusUpdate(lastReportTime): // pod reported in
+	case err = <-ext.waitForPodStatusUpdate(ctx, lastReportTime): // pod reported in
 		if err != nil {
 			errorMessage := "found an error when waiting for pod status to update: " + err.Error()
 			ext.log(errorMessage)
@@ -717,17 +722,17 @@ func (ext *Checker) sanityCheck() error {
 }
 
 // getKHState gets the khstate for this check from the resource in the API server
-func (ext *Checker) getKHState() (khstatev1.KuberhealthyState, error) {
+func (ext *Checker) getKHState(ctx context.Context) (*khstatev1.KuberhealthyState, error) {
 	// fetch the khstate as it exists
-	return ext.KHStateClient.KuberhealthyStates(ext.Namespace).Get(ext.CheckName, metav1.GetOptions{})
+	return ext.KHClient.KhstateV1().KuberhealthyStates(ext.Namespace).Get(ctx, ext.CheckName, metav1.GetOptions{})
 }
 
 // getCheckLastUpdateTime fetches the last time the khstate custom resource for this check was updated
 // as a time.Time.
-func (ext *Checker) getCheckLastUpdateTime() (metav1.Time, error) {
+func (ext *Checker) getCheckLastUpdateTime(ctx context.Context) (metav1.Time, error) {
 
 	// fetch the state from the resource
-	state, err := ext.getKHState()
+	state, err := ext.getKHState(ctx)
 	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		return metav1.Time{}, nil
 	}
@@ -741,7 +746,7 @@ func (ext *Checker) getCheckLastUpdateTime() (metav1.Time, error) {
 }
 
 // waitForPodStatusUpdate waits for a pod status to update from the specified time
-func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime metav1.Time) chan error {
+func (ext *Checker) waitForPodStatusUpdate(ctx context.Context, lastUpdateTime metav1.Time) chan error {
 	ext.log("waiting for pod to report in to status page...")
 
 	// make the output channel we will return and close it whenever we are done
@@ -769,7 +774,7 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime metav1.Time) chan erro
 			}
 
 			// check if the pod has reported in
-			hasReported, err := ext.podHasReportedInAfterTime(lastUpdateTime)
+			hasReported, err := ext.podHasReportedInAfterTime(ctx, lastUpdateTime)
 			if err != nil {
 				ext.log("Error checking if checker pod has reported in since last update time:", err)
 				time.Sleep(time.Second)
@@ -790,9 +795,9 @@ func (ext *Checker) waitForPodStatusUpdate(lastUpdateTime metav1.Time) chan erro
 }
 
 // podHasReportedInAfterTime indicates if a pod has reported a state since the supplied timestamp
-func (ext *Checker) podHasReportedInAfterTime(t metav1.Time) (bool, error) {
+func (ext *Checker) podHasReportedInAfterTime(ctx context.Context, t metav1.Time) (bool, error) {
 	// fetch the lastUpdateTime from the khstate as of right now
-	currentUpdateTime, err := ext.getCheckLastUpdateTime()
+	currentUpdateTime, err := ext.getCheckLastUpdateTime(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -1167,14 +1172,14 @@ func (ext *Checker) addKuberhealthyLabels(pod *apiv1.Pod) {
 }
 
 // createCheckUUID creates a UUID that represents a single run of the external check
-func (ext *Checker) setNewCheckUUID() error {
+func (ext *Checker) setNewCheckUUID(ctx context.Context) error {
 	uniqueID := uuid.New()
 	ext.currentCheckUUID = uniqueID.String()
 	log.Debugln("Generated new UUID for external check:", ext.currentCheckUUID)
 
 	// set whitelist in check configuration CRD so only this
 	// currently running pod can report-in with a status update
-	return ext.setUUID(ext.currentCheckUUID)
+	return ext.setUUID(ctx, ext.currentCheckUUID)
 
 }
 

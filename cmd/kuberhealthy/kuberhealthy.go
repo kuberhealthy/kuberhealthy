@@ -926,7 +926,7 @@ func (k *Kuberhealthy) runJob(ctx context.Context, job *khjobv1.KuberhealthyJob)
 	}
 	details := khstatev1.WorkloadDetails{}
 	details.Namespace = j.CheckNamespace()
-	details.OK, details.Errors = j.CurrentStatus()
+	details.OK, details.Errors = j.CurrentStatus(ctx)
 	details.RunDuration = jobRunDuration.String()
 	details.CurrentUUID = jobDetails.CurrentUUID
 
@@ -1043,7 +1043,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c *external.Checker) {
 			KHWorkload: khstatev1.KHCheck,
 		}
 		details.Namespace = c.CheckNamespace()
-		details.OK, details.Errors = c.CurrentStatus()
+		details.OK, details.Errors = c.CurrentStatus(ctx)
 		details.RunDuration = checkRunDuration.String()
 		details.CurrentUUID = checkDetails.CurrentUUID
 
@@ -1448,10 +1448,10 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 
 	switch khWorkload {
 	case khstatev1.KHCheck:
-		checkDetails := k.stateReflector.CurrentStatus().CheckDetails
+		checkDetails := k.stateReflector.CurrentStatus(ctx).CheckDetails
 		checkRunDuration = checkDetails[podReport.Namespace+"/"+podReport.Name].RunDuration
 	case khstatev1.KHJob:
-		jobDetails := k.stateReflector.CurrentStatus().JobDetails
+		jobDetails := k.stateReflector.CurrentStatus(ctx).JobDetails
 		checkRunDuration = jobDetails[podReport.Namespace+"/"+podReport.Name].RunDuration
 	}
 
@@ -1496,7 +1496,7 @@ func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, r *http.Requ
 
 func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to prometheus metrics endpoint from", r.RemoteAddr, r.UserAgent())
-	state := k.getCurrentState([]string{})
+	state := k.getCurrentState(r.Context(), []string{})
 
 	m := metrics.GenerateMetrics(state, cfg.PromMetricsConfig)
 	// write summarized health check results back to caller
@@ -1537,7 +1537,7 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	// fetch the current status from our khstate resources
-	state := k.getCurrentState(namespaces)
+	state := k.getCurrentState(r.Context(), namespaces)
 
 	// write summarized health check results back to caller
 	err = state.WriteHTTPStatusResponse(w)
@@ -1550,7 +1550,7 @@ func (k *Kuberhealthy) healthCheckHandler(w http.ResponseWriter, r *http.Request
 // getCurrentState fetches the current state of all checks from the supplied namespaces.
 // This includes returns the summary as a health.State. Without a requested namespace,
 // this will return the state of ALL found checks.
-func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
+func (k *Kuberhealthy) getCurrentState(ctx context.Context, namespaces []string) health.State {
 
 	currentMaster, err := masterCalculation.CalculateMaster(KubernetesClient)
 	if err != nil {
@@ -1559,9 +1559,9 @@ func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
 
 	var currentState health.State
 	if len(namespaces) != 0 {
-		currentState = k.getCurrentStatusForNamespaces(namespaces)
+		currentState = k.getCurrentStatusForNamespaces(ctx, namespaces)
 	} else {
-		currentState = k.stateReflector.CurrentStatus()
+		currentState = k.stateReflector.CurrentStatus(ctx)
 	}
 
 	currentState.CurrentMaster = currentMaster
@@ -1575,9 +1575,9 @@ func (k *Kuberhealthy) getCurrentState(namespaces []string) health.State {
 // getCurrentState fetches the current state of all checks from the requested namespaces
 // their CRD objects and returns the summary as a health.State.
 // Failures to fetch CRD state return an error.
-func (k *Kuberhealthy) getCurrentStatusForNamespaces(namespaces []string) health.State {
+func (k *Kuberhealthy) getCurrentStatusForNamespaces(ctx context.Context, namespaces []string) health.State {
 	// if there is are requested namespaces, then filter out checks from namespaces not matching those requested
-	states := k.stateReflector.CurrentStatus()
+	states := k.stateReflector.CurrentStatus(ctx)
 	statesForNamespaces := states
 	statesForNamespaces.Errors = []string{}
 	statesForNamespaces.OK = true

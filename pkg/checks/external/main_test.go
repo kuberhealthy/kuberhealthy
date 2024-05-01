@@ -80,7 +80,7 @@ func TestLoadPodSpecTestFile(t *testing.T) {
 // TestShutdown tests shutting down a check while its running
 func TestShutdown(t *testing.T) {
 	// create a kubernetes clientset
-	client, err := kubeClient.Create(kubeConfigFile)
+	client, _, err := kubeClient.Create(kubeConfigFile)
 	if err != nil {
 		t.Log("Unable to create kubernetes client", err)
 	}

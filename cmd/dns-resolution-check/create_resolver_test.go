@@ -26,7 +26,7 @@ func TestCreateResolver(test *testing.T) {
 	r, err := createResolver(string_tol)
 	if err != nil {
 		test.Errorf("%v", err)
-	} else if reflect.TypeOf(*r) != reflect.TypeOf(*expectedResults) {
+	} else if reflect.TypeOf(r) != reflect.TypeOf(expectedResults) {
 		test.Errorf("Expected %+v got %+v", expectedResults, r)
 	}
 }

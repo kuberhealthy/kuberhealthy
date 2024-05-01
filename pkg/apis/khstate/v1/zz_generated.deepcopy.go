@@ -81,11 +81,6 @@ func (in *WorkloadDetails) DeepCopyInto(out *WorkloadDetails) {
 		in, out := &in.LastRun, &out.LastRun
 		*out = (*in).DeepCopy()
 	}
-	if in.khWorkload != nil {
-		in, out := &in.khWorkload, &out.khWorkload
-		*out = new(KHWorkload)
-		**out = **in
-	}
 	return
 }
 

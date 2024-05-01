@@ -44,8 +44,6 @@ var namespace string
 // Label selector used for dns pods
 var labelSelector string
 
-var now time.Time
-
 // Checker validates that DNS is functioning correctly
 type Checker struct {
 	client           *kubernetes.Clientset
@@ -87,12 +85,10 @@ func init() {
 	if len(labelSelector) > 0 {
 		log.Infoln("Looking for DNS pods with label:", labelSelector)
 	}
-
-	now = time.Now()
 }
 
 func main() {
-	client, _, _, err := kubeClient.Create(KubeConfigFile)
+	client, _, err := kubeClient.Create(KubeConfigFile)
 	if err != nil {
 		log.Fatalln("Unable to create kubernetes client", err)
 	}
@@ -105,7 +101,8 @@ func main() {
 	// - kube-proxy is ready and running on the node the check is running on
 	nodeCheck.EnableDebugOutput()
 	checkTimeLimit := time.Minute * 1
-	ctx, _ := context.WithTimeout(context.Background(), checkTimeLimit)
+	ctx, ctxCancel := context.WithTimeout(context.Background(), checkTimeLimit)
+	defer ctxCancel()
 
 	minNodeAge := time.Minute * 3
 	err = nodeCheck.WaitForNodeAge(ctx, client, NodeName, minNodeAge)
@@ -169,7 +166,7 @@ func createResolver(ip string) (*net.Resolver, error) {
 	r := &net.Resolver{}
 	// if we're supplied a null string, return an error
 	if len(ip) < 1 {
-		return r, errors.New("Need a valid ip to create Resolver")
+		return r, errors.New("a valid ip is required to create a Resolver")
 	}
 	// attempt to create the resolver based on the string
 	r = &net.Resolver{
@@ -187,7 +184,7 @@ func createResolver(ip string) (*net.Resolver, error) {
 func getIpsFromEndpoint(endpoints *v1.EndpointsList) ([]string, error) {
 	var ipList []string
 	if len(endpoints.Items) == 0 {
-		return ipList, errors.New("No endpoints found")
+		return ipList, errors.New("no endpoints found")
 	}
 	// loop through endpoint list, subsets, and finally addresses to get backend DNS ip's to query
 	for ep := 0; ep < len(endpoints.Items); ep++ {
@@ -201,7 +198,7 @@ func getIpsFromEndpoint(endpoints *v1.EndpointsList) ([]string, error) {
 	if len(ipList) != 0 {
 		return ipList, nil
 	}
-	return ipList, errors.New("No Ip's found in endpoints list")
+	return ipList, errors.New("no IP's found in endpoints list")
 }
 
 func dnsLookup(r *net.Resolver, host string) error {
