@@ -89,7 +89,7 @@ type Checker struct {
 	Namespace                string
 	RunInterval              time.Duration // how often this check runs a loop
 	RunTimeout               time.Duration // time check must run completely within
-	KubeClient               *kubernetes.Clientset
+	KubeClientInterface      kubernetes.Interface
 	KHClient                 *khClient.Clientset
 	PodSpec                  apiv1.PodSpec // the current pod spec we are using after enforcement of settings
 	OriginalPodSpec          apiv1.PodSpec // the user-provided spec of the pod
@@ -115,11 +115,11 @@ func init() {
 }
 
 // New creates a new external checker
-func New(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyCheck, khClient *khClient.Clientset, reportingURL string) *Checker {
+func New(client kubernetes.Interface, checkConfig *khcheckv1.KuberhealthyCheck, khClient *khClient.Clientset, reportingURL string) *Checker {
 	return NewCheck(client, checkConfig, khClient, reportingURL)
 }
 
-func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyCheck, khClient *khClient.Clientset, reportingURL string) *Checker {
+func NewCheck(client kubernetes.Interface, checkConfig *khcheckv1.KuberhealthyCheck, khClient *khClient.Clientset, reportingURL string) *Checker {
 
 	if len(checkConfig.Namespace) == 0 {
 		checkConfig.Namespace = "kuberhealthy"
@@ -137,11 +137,11 @@ func NewCheck(client *kubernetes.Clientset, checkConfig *khcheckv1.KuberhealthyC
 		ExtraLabels:              make(map[string]string),
 		OriginalPodSpec:          checkConfig.Spec.PodSpec,
 		PodSpec:                  checkConfig.Spec.PodSpec,
-		KubeClient:               client,
+		KubeClientInterface:      client,
 	}
 }
 
-func NewJob(client *kubernetes.Clientset, jobConfig *khjobv1.KuberhealthyJob, kuberhealthyClient *khClient.Clientset, reportingURL string) *Checker {
+func NewJob(client kubernetes.Interface, jobConfig *khjobv1.KuberhealthyJob, kuberhealthyClient *khClient.Clientset, reportingURL string) *Checker {
 
 	if len(jobConfig.Namespace) == 0 {
 		jobConfig.Namespace = "kuberhealthy"
@@ -158,8 +158,21 @@ func NewJob(client *kubernetes.Clientset, jobConfig *khjobv1.KuberhealthyJob, ku
 		ExtraLabels:              make(map[string]string),
 		OriginalPodSpec:          jobConfig.Spec.PodSpec,
 		PodSpec:                  jobConfig.Spec.PodSpec,
-		KubeClient:               client,
+		KubeClientInterface:      client,
 	}
+}
+
+// getKubeClient fetches the kuberntes.Clientset from the kubernetes.Inteface in the struct.
+func (ext *Checker) getKubeClient() *kubernetes.Clientset {
+	if ext.KubeClientInterface == nil {
+		log.Fatalln("external checker failed to getKubeclient due nil client interface")
+	}
+	clientset, ok := ext.KubeClientInterface.(*kubernetes.Clientset)
+	if !ok {
+		log.Fatalln("external checker failed to getKubeclient due to type assertion failure")
+	}
+
+	return clientset
 }
 
 // regeneratePodName regenerates the name of this checker pod with a new name string
@@ -170,7 +183,7 @@ func (ext *Checker) regeneratePodName() {
 	if len(ext.hostname) == 0 {
 		ext.hostname, err = os.Hostname()
 		if err != nil {
-			log.Fatalln("Could not determine my hostname with error:", err)
+			log.Fatalln("could not determine my hostname with error:", err)
 		}
 	}
 
@@ -237,7 +250,7 @@ func (ext *Checker) Timeout() time.Duration {
 func (ext *Checker) Run(ctx context.Context, client *kubernetes.Clientset) error {
 
 	// store the client in the checker
-	ext.KubeClient = client
+	ext.KubeClientInterface = client
 
 	// generate a new UUID for each run
 	err := ext.setNewCheckUUID(ctx)
@@ -264,24 +277,24 @@ func (ext *Checker) Run(ctx context.Context, client *kubernetes.Clientset) error
 	return nil
 }
 
-// getCheck gets the CRD information for this check from the kubernetes API.
-func (ext *Checker) getCheck(ctx context.Context) (*khcheckv1.KuberhealthyCheck, error) {
+// // getCheck gets the CRD information for this check from the kubernetes API.
+// func (ext *Checker) getCheck(ctx context.Context) (*khcheckv1.KuberhealthyCheck, error) {
 
-	// get the item in question and return it along with any errors
-	log.Debugln("Fetching check", ext.CheckName, "in namespace", ext.Namespace)
-	checkConfig, err := ext.KHClient.KhcheckV1().KuberhealthyChecks(ext.Namespace).Get(ctx, ext.CheckName, metav1.GetOptions{})
-	if err != nil {
-		return &khcheckv1.KuberhealthyCheck{}, err
-	}
+// 	// get the item in question and return it along with any errors
+// 	log.Debugln("Fetching check", ext.CheckName, "in namespace", ext.Namespace)
+// 	checkConfig, err := ext.KHClient.KhcheckV1().KuberhealthyChecks(ext.Namespace).Get(ctx, ext.CheckName, metav1.GetOptions{})
+// 	if err != nil {
+// 		return &khcheckv1.KuberhealthyCheck{}, err
+// 	}
 
-	return checkConfig, err
-}
+// 	return checkConfig, err
+// }
 
 // cleanup cleans up any running, pending, or unknown checker pods by evicting them. Succeeded or Failed pods are left alone for records
 // if eviction fails, cleanup will attempt to forcefully kill the pod.
 func (ext *Checker) cleanup(ctx context.Context) {
 	ext.log("Evicting up any running pods with name", ext.podName())
-	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
+	podClient := ext.KubeClientInterface.CoreV1().Pods(ext.Namespace)
 
 	// find all pods that are running still so we can evict them (not delete - for records)
 	checkLabelSelector := kuberhealthyCheckNameLabel + " = " + ext.CheckName
@@ -319,7 +332,7 @@ func (ext *Checker) cleanup(ctx context.Context) {
 // evictPod evicts a pod in a namespace. If eviction fails, it will check if the pod still exists and if so, attempt to kill and then return any errors.
 // Uses a static 30s grace period.
 func (ext *Checker) evictPod(ctx context.Context, podName string, podNamespace string) error {
-	podClient := ext.KubeClient.CoreV1().Pods(podNamespace)
+	podClient := ext.KubeClientInterface.CoreV1().Pods(podNamespace)
 	eviction := &policyv1.Eviction{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
@@ -329,9 +342,9 @@ func (ext *Checker) evictPod(ctx context.Context, podName string, podNamespace s
 	err := podClient.Evict(ctx, eviction)
 	if err != nil {
 		ext.log("error when trying to cleanup/evict checker pod", podName, "in namespace", podNamespace+":", err)
-		podExists, _ := util.PodNameExists(ext.KubeClient, podName, podNamespace)
+		podExists, _ := util.PodNameExists(ext.getKubeClient(), podName, podNamespace)
 		if podExists {
-			err := util.PodKill(ext.KubeClient, podName, podNamespace, 30)
+			err := util.PodKill(ext.getKubeClient(), podName, podNamespace, 30)
 			if err != nil {
 				ext.log("error killing pod", podName+":", err)
 			}
@@ -472,7 +485,7 @@ func (ext *Checker) watchForCheckerPodDelete(ctx context.Context) chan error {
 func (ext *Checker) startPodWatcher(ctx context.Context, listOptions metav1.ListOptions) (watch.Interface, error) {
 
 	// create the pod client used with the watcher
-	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
+	podClient := ext.KubeClientInterface.CoreV1().Pods(ext.Namespace)
 
 	ext.log("creating a pod watcher")
 
@@ -710,8 +723,12 @@ func (ext *Checker) sanityCheck() error {
 		return errors.New("check namespace can not be empty")
 	}
 
-	if ext.KubeClient == nil {
+	if ext.KubeClientInterface == nil {
 		return errors.New("kubeClient can not be nil")
+	}
+
+	if ext.CheckName == "" {
+		return errors.New("CheckName can not be empty")
 	}
 
 	if len(ext.PodSpec.Containers) == 0 {
@@ -820,7 +837,7 @@ func (ext *Checker) waitForAllPodsToClear(ctx context.Context) chan error {
 	outChan := make(chan error, 2)
 
 	// setup a pod watching client for our current KH pod
-	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
+	podClient := ext.KubeClientInterface.CoreV1().Pods(ext.Namespace)
 
 	ext.wg.Add(1)
 	go func() {
@@ -873,7 +890,7 @@ func (ext *Checker) waitForPodExit(ctx context.Context) chan error {
 	outChan := make(chan error, 50)
 
 	// setup a pod watching client for our current KH pod
-	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
+	podClient := ext.KubeClientInterface.CoreV1().Pods(ext.Namespace)
 
 	ext.wg.Add(1)
 	go func() {
@@ -942,7 +959,7 @@ func (ext *Checker) waitForPodStart(ctx context.Context) chan error {
 	outChan := make(chan error, 50)
 
 	// setup a pod watching client for our current KH pod
-	podClient := ext.KubeClient.CoreV1().Pods(ext.Namespace)
+	podClient := ext.KubeClientInterface.CoreV1().Pods(ext.Namespace)
 
 	ext.wg.Add(1)
 	go func() {
@@ -1073,7 +1090,7 @@ func (ext *Checker) createPod(ctx context.Context) (*apiv1.Pod, error) {
 	if p.Namespace == kuberhealthyNamespace {
 
 		// Get ownerReference for the kuberhealthy pod
-		ownerRef, err := util.GetOwnerRef(ext.KubeClient, kuberhealthyNamespace)
+		ownerRef, err := util.GetOwnerRef(ext.getKubeClient(), kuberhealthyNamespace)
 		if err != nil {
 			return nil, errors.New("Failed to getOwnerReference for pod: " + p.Name + ", err: " + err.Error())
 		}
@@ -1082,7 +1099,7 @@ func (ext *Checker) createPod(ctx context.Context) (*apiv1.Pod, error) {
 		p.OwnerReferences = ownerRef
 	}
 
-	return ext.KubeClient.CoreV1().Pods(ext.Namespace).Create(ctx, p, metav1.CreateOptions{})
+	return ext.KubeClientInterface.CoreV1().Pods(ext.Namespace).Create(ctx, p, metav1.CreateOptions{})
 }
 
 // configureUserPodSpec configures a user-specified pod spec with
@@ -1193,7 +1210,7 @@ func (ext *Checker) waitForShutdown(ctx context.Context) chan error {
 	go func() {
 		for {
 			time.Sleep(time.Second * 5)
-			exists, err := util.PodNameExists(ext.KubeClient, ext.checkPodName, ext.Namespace)
+			exists, err := util.PodNameExists(ext.getKubeClient(), ext.checkPodName, ext.Namespace)
 			if err != nil {
 				ext.log("shutdown completed with error: ", err)
 				doneChan <- err
@@ -1242,7 +1259,7 @@ func (ext *Checker) Shutdown() error {
 		ext.log("Check using pod " + ext.podName() + " successfully shutdown.")
 	case <-time.After(defaultShutdownGracePeriod):
 		ext.log("Reached timeout:", defaultShutdownGracePeriod, "trying to shutdown pod:", ext.podName(), "Killing pod forcefully.")
-		err := util.PodKill(ext.KubeClient, ext.podName(), ext.Namespace, 0)
+		err := util.PodKill(ext.getKubeClient(), ext.podName(), ext.Namespace, 0)
 		if err != nil {
 			ext.log("Error force killing pod: ", ext.podName(), " Error:", err)
 			return err
