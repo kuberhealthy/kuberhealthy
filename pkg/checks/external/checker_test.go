@@ -8,31 +8,32 @@ import (
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 
+	khCheckV1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
 	khClient "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
 
 	apiv1 "k8s.io/api/core/v1"
 )
 
-var client *kubernetes.Clientset
-var kuberhealthyClient khClient.Clientset
+var kubernetesClient *kubernetes.Clientset
+var kuberhealthyClient *khClient.Clientset
 
 const defaultNamespace = "kuberhealthy"
 
 func init() {
 
 	// create a kubernetes clientset for our tests to use
-	var err error
-	var restConfig *rest.Config
-	client, restConfig, err = kubeClient.Create(kubeConfigFile)
+	_, restConfig, err := kubeClient.Create(kubeConfigFile)
 	if err != nil {
 		log.Fatal("Unable to create kubernetes client", err)
 	}
 
+	// init the kubernetes client
+	kubernetesClient = kubernetes.NewForConfigOrDie(restConfig)
+
 	// make a new crd check client
-	kuberhealthyClient = khClient.New(restConfig)
+	kuberhealthyClient, err = khClient.NewForConfig(restConfig)
 	if err != nil {
 		log.Fatalln("err")
 	}
@@ -55,11 +56,11 @@ func newTestChecker(client *kubernetes.Clientset) (*Checker, error) {
 func TestExternalChecker(t *testing.T) {
 
 	// make a new default checker of this check
-	checker, err := newTestChecker(client)
+	checker, err := newTestChecker(kubernetesClient)
 	if err != nil {
 		t.Fatal("Failed to create client:", err)
 	}
-	checker.KubeClient = client
+	checker.KubeClient = kubernetesClient
 
 	// run the checker with the kube client
 	err = checker.RunOnce(context.Background())
@@ -70,9 +71,9 @@ func TestExternalChecker(t *testing.T) {
 
 // newTestCheckFromSpec creates a new test checker but using the supplied
 // spec file for a khcheck
-func newTestCheckFromSpec(client *kubernetes.Clientset, checkSpec *khcheckv1.KuberhealthyCheck, reportingURL string) *Checker {
+func newTestCheckFromSpec(client *kubernetes.Clientset, checkSpec *khCheckV1.KuberhealthyCheck, reportingURL string) *Checker {
 	// create a new checker and insert this pod spec
-	checker := New(client, checkSpec, khCheckClient, khStateClient, reportingURL) // external checker does not ever return an error so we drop it
+	checker := New(client, checkSpec, kuberhealthyClient, reportingURL) // external checker does not ever return an error so we drop it
 	checker.Debug = true
 	return checker
 }
@@ -83,11 +84,11 @@ func TestExternalCheckerSanitation(t *testing.T) {
 	t.Parallel()
 
 	// make a new default checker of this check
-	checker, err := newTestChecker(client)
+	checker, err := newTestChecker(kubernetesClient)
 	if err != nil {
 		t.Fatal("Failed to create client:", err)
 	}
-	checker.KubeClient = client
+	checker.KubeClient = kubernetesClient
 
 	// sabotage the pod name
 	checker.CheckName = ""
@@ -123,28 +124,14 @@ func TestExternalCheckerSanitation(t *testing.T) {
 }
 
 // createKHCheck writes a khcheck custom resource on the server
-func createKHCheckSpec(checkSpec *khcheckv1.KuberhealthyCheck, checkNamespace string) error {
-
-	// make a new crd check client
-	checkClient, err := khcheckv1.Client(kubeConfigFile)
-	if err != nil {
-		return err
-	}
-
-	_, err = checkClient.KuberhealthyChecks(checkSpec.Namespace).Create(checkSpec)
+func createKHCheckSpec(ctx context.Context, checkSpec *khCheckV1.KuberhealthyCheck) error {
+	_, err := kuberhealthyClient.KhcheckV1().KuberhealthyChecks(checkSpec.Namespace).Create(ctx, checkSpec, v1.CreateOptions{})
 	return err
 }
 
 // deleteCheckSpec deletes a khcheck object from the server
-func deleteKHCheckSpec(checkName string, checkNamespace string) error {
-
-	// make a new crd check client
-	checkClient, err := khcheckv1.Client(kubeConfigFile)
-	if err != nil {
-		return err
-	}
-
-	err = checkClient.KuberhealthyChecks(checkNamespace).Delete(checkName, &v1.DeleteOptions{})
+func deleteKHCheckSpec(ctx context.Context, checkName string, checkNamespace string) error {
+	err := kuberhealthyClient.KhcheckV1().KuberhealthyChecks(checkNamespace).Delete(ctx, checkName, v1.DeleteOptions{})
 	return err
 }
 
@@ -152,14 +139,8 @@ func deleteKHCheckSpec(checkName string, checkNamespace string) error {
 // removing other properties of the check
 func TestWriteWhitelistedUUID(t *testing.T) {
 
-	// create a client for kubernetes
-	client, err := kubeClient.Create(kubeConfigFile)
-	if err != nil {
-		t.Fatal("Failed to create kube client:", err)
-	}
-
 	// make an external checker for kubernetes
-	checker, err := newTestChecker(client)
+	checker, err := newTestChecker(kubernetesClient)
 	if err != nil {
 		t.Fatal("Failed to create new external check:", err)
 	}
@@ -169,29 +150,37 @@ func TestWriteWhitelistedUUID(t *testing.T) {
 	t.Log("Expecting UUID to be set on check:", testUUID)
 
 	// ensure the check by this name is cleaned off the server
-	_ = deleteKHCheckSpec(checker.Name(), checker.CheckNamespace())
+	_ = deleteKHCheckSpec(context.Background(), checker.Name(), checker.CheckNamespace())
 
 	// create a khcheck custom resource using the pod spec from a test khcheck spec file
 	s, err := loadTestPodSpecFile("test/basicCheckerPod.yaml")
 	if err != nil {
 		t.Fatal((err))
 	}
-	kuberhealthyCheck := khcheckv1.NewKuberhealthyCheck(checker.CheckName, defaultNamespace, s.Spec)
+
+	// create a new kuberhealthy check
+	kuberhealthyCheck := khCheckV1.KuberhealthyCheck{
+		Spec: s.Spec,
+		ObjectMeta: v1.ObjectMeta{
+			Name:      checker.CheckName,
+			Namespace: defaultNamespace,
+		},
+	}
 
 	// write the check to the server
-	err = createKHCheckSpec(&kuberhealthyCheck, defaultNamespace)
+	err = createKHCheckSpec(context.Background(), &kuberhealthyCheck)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// set the whitelisted UUID on the server custom resource
-	err = checker.setUUID(testUUID)
+	err = checker.setUUID(context.Background(), testUUID)
 	if err != nil {
 		t.Fatal((err))
 	}
 
 	// fetch the khcheck custom resource state from the server to validate it now that the right UUID has been set
-	c, err := checker.getCheck()
+	c, err := checker.getCheck(context.Background())
 	if err != nil {
 		t.Fatal("Failed to retrieve khcheck: ", err)
 	}
@@ -206,7 +195,7 @@ func TestWriteWhitelistedUUID(t *testing.T) {
 	}
 
 	// re-fetch the UUID from the custom resource
-	uuid, err := GetWhitelistedUUIDForExternalCheck(c.Namespace, c.Name)
+	uuid, err := GetWhitelistedUUIDForExternalCheck(context.Background(), c.Namespace, c.Name)
 	if err != nil {
 		t.Fatal("Failed to get UUID on test check:", err)
 	}
@@ -224,23 +213,23 @@ func TestGetWhitelistedUUIDForExternalCheck(t *testing.T) {
 	var testUUID = "test-UUID-1234"
 
 	// make an external check and cause it to write a whitelist
-	c, err := newTestChecker(client)
+	c, err := newTestChecker(kubernetesClient)
 	if err != nil {
 		t.Fatal("Failed to create new external check:", err)
 	}
-	c.KubeClient, err = kubeClient.Create(kubeConfigFile)
+	c.KubeClient, _, err = kubeClient.Create(kubeConfigFile)
 	if err != nil {
 		t.Fatal("Failed to create kube client:", err)
 	}
 
 	// delete the UUID (blank it out)
-	err = c.setUUID("")
+	err = c.setUUID(context.Background(), "")
 	if err != nil {
 		t.Fatal("Failed to blank the UUID on test check:", err)
 	}
 
 	// get the UUID's value (should be blank)
-	uuid, err := GetWhitelistedUUIDForExternalCheck(c.Namespace, c.Name())
+	uuid, err := GetWhitelistedUUIDForExternalCheck(context.Background(), c.Namespace, c.Name())
 	if err != nil {
 		t.Fatal("Failed to get UUID on test check:", err)
 	}
@@ -249,13 +238,13 @@ func TestGetWhitelistedUUIDForExternalCheck(t *testing.T) {
 	}
 
 	// set the UUID for real this time
-	err = c.setUUID(testUUID)
+	err = c.setUUID(context.Background(), testUUID)
 	if err != nil {
 		t.Fatal("Failed to set UUID on test check:", err)
 	}
 
 	// re-fetch the UUID from the custom resource
-	uuid, err = GetWhitelistedUUIDForExternalCheck(c.Namespace, c.Name())
+	uuid, err = GetWhitelistedUUIDForExternalCheck(context.Background(), c.Namespace, c.Name())
 	if err != nil {
 		t.Fatal("Failed to get UUID on test check:", err)
 	}
@@ -267,7 +256,7 @@ func TestGetWhitelistedUUIDForExternalCheck(t *testing.T) {
 }
 
 func TestSanityCheck(t *testing.T) {
-	c, err := newTestChecker(client)
+	c, err := newTestChecker(kubernetesClient)
 	if err != nil {
 		t.Fatal(err)
 	}
