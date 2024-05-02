@@ -16,10 +16,7 @@ build:
 push:
 	docker push ${IMAGE}:${TAG}
 test:
-	POD_NAME="kuberhealthy-test" go test -run TestWebServer -v -args -- --debug --forceMaster
+	POD_NAME="kuberhealthy-test" go test -v -args -- --debug --forceMaster
 run:
 	go build
 	KH_EXTERNAL_REPORTING_URL=localhost:8006 POD_NAMESPACE=kuberhealthy POD_NAME="kuberhealthy-test" ./kuberhealthy --debug --forceMaster --config ./test/test-config.yaml
-run-influx:
-	go build
-	POD_NAME="kuberhealthy-test" ./kuberhealthy -debug -forceMaster -enableInflux -influxUrl=http://localhost:8086 -influxDB=kuberhealthy

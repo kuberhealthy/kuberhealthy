@@ -1102,7 +1102,7 @@ func (k *Kuberhealthy) runCheck(ctx context.Context, c *external.Checker) {
 func (k *Kuberhealthy) storeCheckState(ctx context.Context, checkName string, checkNamespace string, details khstatev1.WorkloadDetails) error {
 
 	// ensure the CRD resource exits
-	err := ensureStateResourceExists(ctx, checkName, checkNamespace, details.KHWorkload)
+	err := ensureStateResourceExists(ctx, checkName, checkNamespace)
 	if err != nil {
 		return err
 	}
@@ -1481,7 +1481,7 @@ func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http
 }
 
 // writeHealthCheckError writes an error to the client when things go wrong in a health check handling
-func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, r *http.Request, err error, state health.State) {
+func (k *Kuberhealthy) writeHealthCheckError(w http.ResponseWriter, err error, state health.State) {
 	// if creating a CRD client fails, then write the error back to the user
 	// as well as to the error log.
 	state.OK = false

@@ -59,7 +59,7 @@ func sanitizeResourceName(c string) string {
 }
 
 // ensureStateResourceExists checks for the existence of the specified resource and creates it if it does not exist
-func ensureStateResourceExists(ctx context.Context, checkName string, checkNamespace string, workload khstatev1.KHWorkload) error {
+func ensureStateResourceExists(ctx context.Context, checkName string, checkNamespace string) error {
 	name := sanitizeResourceName(checkName)
 
 	log.Debugln("Checking existence of custom resource:", name)
@@ -91,7 +91,7 @@ func getCheckState(ctx context.Context, c *external.Checker) (khstatev1.Workload
 	name := sanitizeResourceName(c.Name())
 
 	// make sure the CRD exists, even when checking status
-	err = ensureStateResourceExists(ctx, c.Name(), c.CheckNamespace(), khstatev1.KHCheck)
+	err = ensureStateResourceExists(ctx, c.Name(), c.CheckNamespace())
 	if err != nil {
 		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
 	}
@@ -117,7 +117,7 @@ func getJobState(ctx context.Context, j *external.Checker) (khstatev1.WorkloadDe
 	name := sanitizeResourceName(j.Name())
 
 	// make sure the CRD exists, even when checking status
-	err = ensureStateResourceExists(ctx, j.Name(), j.CheckNamespace(), khstatev1.KHJob)
+	err = ensureStateResourceExists(ctx, j.Name(), j.CheckNamespace())
 	if err != nil {
 		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
 	}
