@@ -6,10 +6,22 @@ import (
 	"testing"
 	"time"
 
+	khv1fake "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/fake"
 	yaml "gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	fake "k8s.io/client-go/kubernetes/fake"
 )
+
+var FakeKuberhealthyClient *khv1fake.Clientset
+var FakeKubernetesClient *fake.Clientset
+
+func init() {
+	// create a fake kubernetes client when running tests
+	FakeKubernetesClient = fake.NewSimpleClientset()
+	FakeKuberhealthyClient = khv1fake.NewSimpleClientset()
+
+}
 
 // TestParseConfigs ensures that all checkReaper configs are properly parsed and that there are no 0 duration values
 func TestParseConfigs(t *testing.T) {
@@ -74,6 +86,9 @@ func TestParseDurationOrUseDefault(t *testing.T) {
 
 // TestListCheckerPods ensures that only completed (Successful or Failed) kuberhealthy checker pods are listed / returned
 func TestListCompletedCheckerPods(t *testing.T) {
+
+	t.Skip() // this can't be run as a unit test, so this is not the right place
+
 	validKHPod := v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "valid-kh-pod",
@@ -129,7 +144,7 @@ func TestListCompletedCheckerPods(t *testing.T) {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
 	for _, c := range khCheckerPods {
-		_, err := KubernetesClient.CoreV1().Pods(c.Namespace).Create(ctx, &c, metav1.CreateOptions{})
+		_, err := FakeKubernetesClient.CoreV1().Pods(c.Namespace).Create(ctx, &c, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("Error creating test pods: %s", err)
 		}

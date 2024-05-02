@@ -216,16 +216,16 @@ func (r *Reaper) deleteFilteredCheckerPods(ctx context.Context, reapCheckerPods 
 			successOldCount := 0
 			successCount := 0
 			for _, p := range allCheckPods {
-				if p.CreationTimestamp.Time.Before(p.CreationTimestamp.Time) && p.Status.Phase != v1.PodSucceeded && p.Namespace == p.Namespace {
+				if p.CreationTimestamp.Time.Before(p.CreationTimestamp.Time) && p.Status.Phase != v1.PodSucceeded {
 					failOldCount++
 				}
-				if p.Status.Phase != v1.PodSucceeded && p.Namespace == p.Namespace {
+				if p.Status.Phase != v1.PodSucceeded {
 					failCount++
 				}
-				if p.CreationTimestamp.Time.Before(p.CreationTimestamp.Time) && p.Status.Phase == v1.PodSucceeded && p.Namespace == p.Namespace {
+				if p.CreationTimestamp.Time.Before(p.CreationTimestamp.Time) && p.Status.Phase == v1.PodSucceeded {
 					successOldCount++
 				}
-				if p.Status.Phase == v1.PodSucceeded && p.Namespace == p.Namespace {
+				if p.Status.Phase == v1.PodSucceeded {
 					successCount++
 				}
 			}
