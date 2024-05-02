@@ -7,6 +7,8 @@ import (
 
 func TestCertPull(t *testing.T) {
 
+	t.Skip("this test requires kubernetes cluster access")
+
 	certPool, err := CreatePool()
 	if err != nil {
 		t.Fatal(err)
