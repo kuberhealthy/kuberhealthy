@@ -3,7 +3,7 @@ package external
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 	"time"
@@ -37,7 +37,7 @@ func loadTestPodSpecFile(path string) (*khcheckv1.KuberhealthyCheck, error) {
 	}
 
 	// read in all the configuration bytes
-	b, err := ioutil.ReadAll(f)
+	b, err := io.ReadAll(f)
 	if err != nil {
 		return &podSpec, err
 	}

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"regexp"
 	"strings"
 
@@ -147,7 +147,7 @@ func getObjectContents(awsS3 *s3.S3, objects []*s3.Object) ([]*kops.InstanceGrou
 		}
 
 		// Try to decode the object response body into a byte slice.
-		objectBytes, err := ioutil.ReadAll(output.Body)
+		objectBytes, err := io.ReadAll(output.Body)
 		if err != nil {
 			log.Errorf("failed to read object body: %s", err.Error())
 			log.Infoln("Skipping", *object.Key)

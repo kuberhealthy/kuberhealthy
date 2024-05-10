@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -93,7 +92,7 @@ func parseInputValues() {
 
 	// Parse incoming namespace environment variable
 	checkNamespace = defaultCheckNamespace
-	data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
 		log.Warnln("Failed to open namespace file:", err.Error())
 	}

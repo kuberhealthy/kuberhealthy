@@ -8,7 +8,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -45,7 +44,7 @@ func filePresent(filePath string) bool {
 func certPoolFromFile(filePath string) (*x509.CertPool, error) {
 
 	// read the file bytes from disk
-	b, err := ioutil.ReadFile(filePath)
+	b, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +65,7 @@ func certPoolFromFile(filePath string) (*x509.CertPool, error) {
 // FetchKubernetesSelfSignedCertFromDisk fetches the kubernetes self-signed cert placed on disk within pods as an
 // *x509.Certificate.
 func FetchKubernetesSelfSignedCertFromDisk() ([]byte, error) {
-	certs, err := ioutil.ReadFile(kubernetesCAFileLocation)
+	certs, err := os.ReadFile(kubernetesCAFileLocation)
 	if err != nil {
 		return nil, fmt.Errorf("error reading kubernetes certificate authority file: %w", err)
 	}
@@ -77,7 +76,7 @@ func FetchKubernetesSelfSignedCertFromDisk() ([]byte, error) {
 // fetchSelfSignedCertFromDisk fetches the self-signed cert placed on disk within pods as an
 // *x509.Certificate.
 func fetchSelfSignedCertFromDisk() ([]byte, error) {
-	certs, err := ioutil.ReadFile(selfSignedCertLocation)
+	certs, err := os.ReadFile(selfSignedCertLocation)
 	if err != nil {
 		return nil, fmt.Errorf("error reading custom certificate file: %w", err)
 	}

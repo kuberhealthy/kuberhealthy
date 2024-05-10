@@ -2,7 +2,6 @@ package util
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"strconv"
@@ -76,7 +75,7 @@ func GetInstanceNamespace(defaultNamespace string) string {
 	// instanceNamespaceEnv is a variable for storing namespace instance information
 	var instanceNamespaceEnv string
 
-	data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
 		log.Warnln("Failed to open namespace file:", err.Error())
 	}

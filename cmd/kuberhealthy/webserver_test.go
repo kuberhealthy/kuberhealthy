@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -76,7 +76,7 @@ func TestWebServer(t *testing.T) {
 
 	// output the response from the server
 	t.Log("Reading response body")
-	b, err := ioutil.ReadAll(recorder.Body)
+	b, err := io.ReadAll(recorder.Body)
 	if err != nil {
 		t.Fatal("Error reading response body", err)
 	}
@@ -124,7 +124,7 @@ func TestWebServerNotOK(t *testing.T) {
 	}
 
 	// output the response from the server
-	b, err := ioutil.ReadAll(recorder.Body)
+	b, err := io.ReadAll(recorder.Body)
 	if err != nil {
 		t.Fatal("Error reading response body", err)
 	}
