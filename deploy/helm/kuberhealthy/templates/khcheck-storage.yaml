@@ -10,6 +10,14 @@ metadata:
 spec:
   runInterval: {{ $.Values.check.storage.runInterval }}
   timeout: {{ $.Values.check.storage.timeout }}
+  {{- if .Values.check.storage.extraAnnotations }}
+  extraAnnotations:
+{{- toYaml .Values.check.storage.extraAnnotations | nindent 4 }}
+  {{- end }}
+  {{- if .Values.check.storage.extraLabels }}
+  extraLabels:
+{{- toYaml .Values.check.storage.extraLabels | nindent 4 }}
+  {{- end }}
   podSpec:
     {{- if $.Values.securityContext.enabled }}
     securityContext:

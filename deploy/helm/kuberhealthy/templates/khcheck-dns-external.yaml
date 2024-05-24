@@ -8,6 +8,14 @@ metadata:
 spec:
   runInterval: {{ .Values.check.dnsExternal.runInterval }}
   timeout: {{ .Values.check.dnsExternal.timeout }}
+  {{- if .Values.check.dnsExternal.extraAnnotations }}
+  extraAnnotations:
+{{- toYaml .Values.check.dnsExternal.extraAnnotations | nindent 4 }}
+  {{- end }}
+  {{- if .Values.check.dnsExternal.extraLabels }}
+  extraLabels:
+{{- toYaml .Values.check.dnsExternal.extraLabels | nindent 4 }}
+  {{- end }}
   podSpec:
     {{- if .Values.securityContext.enabled }}
     securityContext:
