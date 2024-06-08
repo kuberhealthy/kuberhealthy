@@ -38,7 +38,7 @@ func promMetricName(config PromMetricsConfig, checkOrJob string, checkName strin
 	return metricName
 }
 
-//GenerateMetrics takes the state and returns it in the Prometheus format
+// GenerateMetrics takes the state and returns it in the Prometheus format
 func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 	metricsOutput := ""
 	healthStatus := "0"
@@ -67,6 +67,9 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 		metricName := promMetricName(config, "check", c, d.Namespace, checkStatus, d.Errors)
 		metricDurationName := fmt.Sprintf("kuberhealthy_check_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		metricCheckState[metricName] = checkStatus
+
+		// sometimes the run duration
+		d.RunDuration = strings.Trim(d.RunDuration, "'\"")
 
 		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
 		if d.RunDuration == "" {
@@ -128,7 +131,7 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 	return metricsOutput
 }
 
-//ErrorStateMetrics is a Prometheus metric meant to show Kuberhealthy has error
+// ErrorStateMetrics is a Prometheus metric meant to show Kuberhealthy has error
 func ErrorStateMetrics(state health.State) string {
 	errorOutput := ""
 	errorOutput += "# HELP kuberhealthy_running Shows if kuberhealthy is running error free\n"
