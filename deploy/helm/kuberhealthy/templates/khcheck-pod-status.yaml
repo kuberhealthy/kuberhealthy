@@ -7,6 +7,14 @@ metadata:
 spec:
   runInterval: {{ .Values.check.podStatus.runInterval }}
   timeout: {{ .Values.check.podStatus.timeout }}
+  {{- if .Values.check.podStatus.extraAnnotations }}
+  extraAnnotations:
+{{- toYaml .Values.check.podStatus.extraAnnotations | nindent 4 }}
+  {{- end }}
+  {{- if .Values.check.podStatus.extraLabels }}
+  extraLabels:
+{{- toYaml .Values.check.podStatus.extraLabels | nindent 4 }}
+  {{- end }}
   podSpec:
     {{- if .Values.securityContext.enabled }}
     securityContext:
