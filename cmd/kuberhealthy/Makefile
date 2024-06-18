@@ -13,8 +13,9 @@ kind:
 	kind create cluster --name kuberhealthy
 	podman save -o kuberhealthy.tar kuberhealthy:unstable
 	kind load image-archive kuberhealthy.tar --name kuberhealthy
+	kubectl --context=kind-kuberhealthy create namespace kuberhealthy
 	kubectl apply --context=kind-kuberhealthy -f ../../deploy/kuberhealthy.yaml
-	kubectl --context=kind-kuberhealthy -n kuberhealthy set image deployment/kuberhealthy kuberhealthy=kuberhealthy:unstable
+	kubectl --context=kind-kuberhealthy -n kuberhealthy set image deployment/kuberhealthy kuberhealthy=localhost/kuberhealthy:unstable
 build:
 	docker buildx build --platform linux/amd64,linux/arm64 --push -t ${IMAGE}:${TAG} -f Dockerfile ../../
 push:
