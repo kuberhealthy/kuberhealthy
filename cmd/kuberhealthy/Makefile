@@ -12,7 +12,6 @@ kind:
 	@-kind delete cluster --name kuberhealthy
 	kind create cluster --name kuberhealthy
 	podman save -o kuberhealthy.tar kuberhealthy:unstable
-	kind load docker-image kuberhealthy:unstable --name kuberhealthy
 	kind load image-archive kuberhealthy.tar --name kuberhealthy
 	kubectl apply --context=kind-kuberhealthy -f ../../deploy/kuberhealthy.yaml
 	kubectl --context=kind-kuberhealthy -n kuberhealthy set image deployment/kuberhealthy kuberhealthy=kuberhealthy:unstable
