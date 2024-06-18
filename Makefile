@@ -1,4 +1,4 @@
-# This Makefile is imported from each check binary to make the management of all the different Dockerfiles easier.
+# This Makefile is imported from each check binary to make the management of all the different Dockerfiles easier. You should not run this Makefile directly.
 
 IMAGE ?= kuberhealthy
 TAG ?= unstable

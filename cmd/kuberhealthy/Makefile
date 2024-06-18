@@ -1,16 +1,21 @@
 BUILDER := "dockerx-kuberhealthy"
-IMAGE := "kuberhealthy/kuberhealthy"
+IMAGE := "kuberhealthy"
 TAG := "unstable"
 
 .PHONY: test build build-dev push run run-influx
 
 .PHONY: build build-dev push test run run-influx
 
-build-dev:
+kind:
 	podman build -t kuberhealthy:unstable -f Dockerfile ../../
-	podman tag kuberhealthy:unstable harbor.garage/garage/kuberhealthy:unstable
-	podman push --tls-verify=false harbor.garage/garage/kuberhealthy:unstable
 	#docker build -t ${IMAGE}:${TAG} -f Dockerfile ../../
+	@-kind delete cluster --name kuberhealthy
+	kind create cluster --name kuberhealthy
+	podman save -o kuberhealthy.tar kuberhealthy:unstable
+	kind load docker-image kuberhealthy:unstable --name kuberhealthy
+	kind load image-archive kuberhealthy.tar --name kuberhealthy
+	kubectl apply --context=kind-kuberhealthy -f ../../deploy/kuberhealthy.yaml
+	kubectl --context=kind-kuberhealthy -n kuberhealthy set image deployment/kuberhealthy kuberhealthy=kuberhealthy:unstable
 build:
 	docker buildx build --platform linux/amd64,linux/arm64 --push -t ${IMAGE}:${TAG} -f Dockerfile ../../
 push:
