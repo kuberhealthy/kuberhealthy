@@ -157,7 +157,8 @@ func (k *KubernetesAPI) listCompletedCheckerPods(ctx context.Context, namespace 
 
 	ReapCheckerPods = make(map[string]v1.Pod)
 
-	pods, err := k.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: "kuberhealthy-check-name"})
+	// fetch pods from kube-apiserver cache with resourceVersion=0, make etcd relax.
+	pods, err := k.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{ResourceVersion: "0", LabelSelector: "kuberhealthy-check-name"})
 	if err != nil {
 		log.Errorln("checkReaper: Failed to list checker pods")
 		return ReapCheckerPods, err
