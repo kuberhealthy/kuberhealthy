@@ -8,6 +8,14 @@ metadata:
 spec:
   runInterval:  {{ .Values.check.networkConnection.runInterval }}
   timeout: {{ .Values.check.networkConnection.timeout }}
+  {{- if .Values.check.networkConnection.extraAnnotations }}
+  extraAnnotations:
+{{- toYaml .Values.check.networkConnection.extraAnnotations | nindent 4 }}
+  {{- end }}
+  {{- if .Values.check.networkConnection.extraLabels }}
+  extraLabels:
+{{- toYaml .Values.check.networkConnection.extraLabels | nindent 4 }}
+  {{- end }}
   podSpec:
     {{- if .Values.securityContext.seccompProfile }}
     securityContext:
@@ -54,4 +62,3 @@ spec:
 {{- toYaml .Values.check.networkConnection.tolerations | nindent 6 }}
     {{- end }}
 {{- end }}
-
