@@ -31,3 +31,4 @@
 - [Ajay Kalambur](https://github.com/kalamburajay)
 - [Lorenzo Setale](https://setale.me/)
 - [Rachel Sheikh](https://github.com/sheikhrachel)
+- [Kevin Nandu](https://github.com/kevin90n)
