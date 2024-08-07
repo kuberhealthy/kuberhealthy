@@ -39,7 +39,7 @@ spec:
             # Provide the name of the ConfigMap containing the files you want
             # to add to the container
             name: kuberhealthy
-      serviceAccountName: kuberhealthy
+      serviceAccountName: {{ template "kuberhealthy.name" . }}
       automountServiceAccountToken: true
       {{- if .Values.deployment.priorityClassName }}
       priorityClassName: {{ .Values.deployment.priorityClassName }}
