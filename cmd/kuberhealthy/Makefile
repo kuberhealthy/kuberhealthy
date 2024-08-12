@@ -25,3 +25,7 @@ test:
 run:
 	go build
 	KH_EXTERNAL_REPORTING_URL=localhost:8006 POD_NAMESPACE=kuberhealthy POD_NAME="kuberhealthy-test" ./kuberhealthy --debug --forceMaster --config ./test/test-config.yaml
+
+run-dev:
+	podman build --platform linux/amd64 -t docker.io/integrii/kuberhealthy:unstable -f Dockerfile ../../
+	podman push docker.io/integrii/kuberhealthy:unstable

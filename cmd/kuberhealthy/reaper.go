@@ -9,7 +9,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
+	khcrds "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/comcast.github.io/v1"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
@@ -291,7 +291,7 @@ func (r *Reaper) deletePod(ctx context.Context, pod v1.Pod) error {
 }
 
 // jobConditions returns true if conditions are met to be deleted for khjob
-func (r *Reaper) jobConditions(job khjobv1.KuberhealthyJob, duration time.Duration, phase khjobv1.JobPhase) bool {
+func (r *Reaper) jobConditions(job khcrds.KuberhealthyJob, duration time.Duration, phase khcrds.JobPhase) bool {
 	if time.Since(job.CreationTimestamp.Time) > duration && job.Spec.Phase == phase {
 		log.Infoln("checkReaper: Found khjob older than", duration, "minutes in status", phase)
 		return true
@@ -306,7 +306,7 @@ func (r *Reaper) khJobDelete(ctx context.Context, namespace string) error {
 	del := metav1.DeleteOptions{}
 
 	// list khjobs in Namespace
-	list, err := KuberhealthyClient.KhjobV1().KuberhealthyJobs(namespace).List(ctx, opts)
+	list, err := KuberhealthyClient.ComcastV1().KuberhealthyJobs(namespace).List(ctx, opts)
 	if err != nil {
 		log.Errorln("checkReaper: Error: failed to retrieve khjob list with error", err)
 		return err
@@ -318,7 +318,7 @@ func (r *Reaper) khJobDelete(ctx context.Context, namespace string) error {
 	for _, j := range list.Items {
 		if r.jobConditions(j, cfg.MaxKHJobAge, "Completed") {
 			log.Infoln("checkReaper: Deleting khjob", j.Name)
-			err := KuberhealthyClient.KhjobV1().KuberhealthyJobs(namespace).Delete(ctx, j.Name, del)
+			err := KuberhealthyClient.ComcastV1().KuberhealthyJobs(namespace).Delete(ctx, j.Name, del)
 			if err != nil {
 				log.Errorln("checkReaper: Failure to delete khjob", j.Name, "with error:", err)
 				return err

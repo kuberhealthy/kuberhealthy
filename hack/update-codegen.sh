@@ -8,9 +8,18 @@ set -o nounset
 set -o pipefail
 
 # Ensure tooling is installed
-if [[ -z `which client-gen` ]]; then go install k8s.io/code-generator/cmd/client-gen@latest; fi
-if [[ -z `which deepcopy-gen` ]]; then go install k8s.io/code-generator/cmd/deepcopy-gen@latest; fi
-if [[ -z `which register-gen` ]]; then go install k8s.io/code-generator/cmd/register-gen@latest; fi
+if [[ -z `which client-gen` ]]; then 
+    echo 'go install k8s.io/code-generator/cmd/client-gen@latest'
+    go install k8s.io/code-generator/cmd/client-gen@latest
+fi
+if [[ -z `which deepcopy-gen` ]]; then 
+    echo 'go install k8s.io/code-generator/cmd/deepcopy-gen@latest'
+    go install k8s.io/code-generator/cmd/deepcopy-gen@latest
+fi
+if [[ -z `which register-gen` ]]; then 
+    echo 'go install k8s.io/code-generator/cmd/register-gen@latest'
+    go install k8s.io/code-generator/cmd/register-gen@latest 
+fi
 
 SCRIPT_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 THIS_PKG="github.com/kuberhealthy/kuberhealthy/v2"
@@ -23,7 +32,7 @@ source "./kube_codegen.sh"
 #register-gen --go-header-file="./boilerplate.go.txt"
 
 # generate deepcopy
-for CRD in khcheck khjob khstate; do
+for CRD in comcast.github.io; do
     echo "Generating CRD go files for $CRD..."
     deepcopy-gen --bounding-dirs="github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/$CRD/v1" \
                 --output-file="../pkg/apis/$CRD/v1/zz_generated.deepcopy.go" \

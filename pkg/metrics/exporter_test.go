@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
+	khcrds "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/comcast.github.io/v1"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
 )
 
@@ -70,7 +70,7 @@ func TestGenerateMetrics(t *testing.T) {
 	}
 	// Test with checks, one good, one bad
 	state = health.State{
-		CheckDetails: map[string]khstatev1.WorkloadDetails{
+		CheckDetails: map[string]khcrds.WorkloadDetails{
 			"good": {
 				OK: true,
 			},
@@ -100,7 +100,7 @@ func TestGenerateMetrics(t *testing.T) {
 		t.Fatal("Kuberhealthy good check shows as bad")
 	}
 	state = health.State{
-		CheckDetails: map[string]khstatev1.WorkloadDetails{
+		CheckDetails: map[string]khcrds.WorkloadDetails{
 			"bad": {
 				Errors: []string{"12345678910"},
 			},
@@ -122,7 +122,7 @@ func TestGenerateMetrics(t *testing.T) {
 		t.Fatal("Kuberhealthy bad error label check does not match - test 3", metrics)
 	}
 	state = health.State{
-		CheckDetails: map[string]khstatev1.WorkloadDetails{
+		CheckDetails: map[string]khcrds.WorkloadDetails{
 			"bad": {
 				Errors: []string{"123"},
 			},

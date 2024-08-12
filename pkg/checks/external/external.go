@@ -24,9 +24,7 @@ import (
 	policyv1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
-	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khjob/v1"
-	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khstate/v1"
+	khcrds "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/comcast.github.io/v1"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/util"
 	khClient "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned"
 )
@@ -115,11 +113,11 @@ func init() {
 }
 
 // New creates a new external checker
-func New(client kubernetes.Interface, checkConfig *khcheckv1.KuberhealthyCheck, khClient *khClient.Clientset, reportingURL string) *Checker {
+func New(client kubernetes.Interface, checkConfig *khcrds.KuberhealthyCheck, khClient *khClient.Clientset, reportingURL string) *Checker {
 	return NewCheck(client, checkConfig, khClient, reportingURL)
 }
 
-func NewCheck(client kubernetes.Interface, checkConfig *khcheckv1.KuberhealthyCheck, khClient *khClient.Clientset, reportingURL string) *Checker {
+func NewCheck(client kubernetes.Interface, checkConfig *khcrds.KuberhealthyCheck, khClient *khClient.Clientset, reportingURL string) *Checker {
 
 	if len(checkConfig.Namespace) == 0 {
 		checkConfig.Namespace = "kuberhealthy"
@@ -141,7 +139,7 @@ func NewCheck(client kubernetes.Interface, checkConfig *khcheckv1.KuberhealthyCh
 	}
 }
 
-func NewJob(client kubernetes.Interface, jobConfig *khjobv1.KuberhealthyJob, kuberhealthyClient *khClient.Clientset, reportingURL string) *Checker {
+func NewJob(client kubernetes.Interface, jobConfig *khcrds.KuberhealthyJob, kuberhealthyClient *khClient.Clientset, reportingURL string) *Checker {
 
 	if len(jobConfig.Namespace) == 0 {
 		jobConfig.Namespace = "kuberhealthy"
@@ -371,7 +369,7 @@ func (ext *Checker) setUUID(ctx context.Context, uuid string) error {
 	// if the check was not found, we create a new khstate
 	if err != nil && (k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found")) {
 		ext.log("khstate did not exist for", ext.CheckName, ", so a default object will be created")
-		details := khstatev1.WorkloadDetails{
+		details := khcrds.WorkloadDetails{
 			KHWorkload: checkState.Spec.KHWorkload,
 		}
 		details.Namespace = ext.CheckNamespace()
@@ -379,12 +377,12 @@ func (ext *Checker) setUUID(ctx context.Context, uuid string) error {
 		details.OK = true
 		details.CurrentUUID = uuid
 		details.RunDuration = time.Duration(0).String()
-		newState := khstatev1.KuberhealthyState{
+		newState := khcrds.KuberhealthyState{
 			Spec: details,
 		}
 		newState.Namespace = ext.Namespace
 		ext.log("Creating khstate", newState.Name, newState.Namespace, "because it did not exist")
-		_, err = ext.KHClient.KhstateV1().KuberhealthyStates(ext.CheckNamespace()).Create(ctx, &newState, metav1.CreateOptions{})
+		_, err = ext.KHClient.ComcastV1().KuberhealthyStates(ext.CheckNamespace()).Create(ctx, &newState, metav1.CreateOptions{})
 		if err != nil {
 			ext.log("failed to create a khstate after finding that it did not exist:", err)
 			return err
@@ -397,7 +395,7 @@ func (ext *Checker) setUUID(ctx context.Context, uuid string) error {
 	// assign the new uuid to the fetched checkState
 	checkState.Spec.CurrentUUID = uuid
 	ext.log("Updating khstate to CurrentUUID:", checkState.Spec.CurrentUUID)
-	_, err = ext.KHClient.KhstateV1().KuberhealthyStates(ext.CheckNamespace()).Update(ctx, checkState, metav1.UpdateOptions{})
+	_, err = ext.KHClient.ComcastV1().KuberhealthyStates(ext.CheckNamespace()).Update(ctx, checkState, metav1.UpdateOptions{})
 	if err != nil {
 		log.Errorln("failed to update khstate CurrentUUID for check", checkState.Namespace, checkState.Name, "with error:", err)
 	}
@@ -413,7 +411,7 @@ func (ext *Checker) setUUID(ctx context.Context, uuid string) error {
 		tries++
 
 		// fetch the check we just updated and ensure it set properly
-		extCheck, err := ext.KHClient.KhstateV1().KuberhealthyStates(ext.CheckNamespace()).Get(ctx, ext.Name(), metav1.GetOptions{})
+		extCheck, err := ext.KHClient.ComcastV1().KuberhealthyStates(ext.CheckNamespace()).Get(ctx, ext.Name(), metav1.GetOptions{})
 		if err != nil {
 			ext.log("error: failed to get khstate while verifying check uuid:", err)
 			time.Sleep(time.Second)
@@ -435,7 +433,7 @@ func (ext *Checker) setUUID(ctx context.Context, uuid string) error {
 			log.Errorln("failed to fetch khstate for check", checkState.Namespace, checkState.Name, "with error:", err)
 		}
 		checkState.Spec.CurrentUUID = uuid
-		_, err = ext.KHClient.KhstateV1().KuberhealthyStates(ext.CheckNamespace()).Update(ctx, checkState, metav1.UpdateOptions{})
+		_, err = ext.KHClient.ComcastV1().KuberhealthyStates(ext.CheckNamespace()).Update(ctx, checkState, metav1.UpdateOptions{})
 		// _, err = ext.KHClient.KhstateV1.(ext.CheckNamespace()).Update(&checkState)
 		if err != nil {
 			log.Errorln("failed to update khstate CurrentUUID for check", checkState.Namespace, checkState.Name, "with error:", err)
@@ -739,9 +737,9 @@ func (ext *Checker) sanityCheck() error {
 }
 
 // getKHState gets the khstate for this check from the resource in the API server
-func (ext *Checker) getKHState(ctx context.Context) (*khstatev1.KuberhealthyState, error) {
+func (ext *Checker) getKHState(ctx context.Context) (*khcrds.KuberhealthyState, error) {
 	// fetch the khstate as it exists
-	return ext.KHClient.KhstateV1().KuberhealthyStates(ext.Namespace).Get(ctx, ext.CheckName, metav1.GetOptions{})
+	return ext.KHClient.ComcastV1().KuberhealthyStates(ext.Namespace).Get(ctx, ext.CheckName, metav1.GetOptions{})
 }
 
 // getCheckLastUpdateTime fetches the last time the khstate custom resource for this check was updated

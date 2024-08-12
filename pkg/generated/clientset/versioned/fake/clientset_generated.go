@@ -4,12 +4,8 @@ package fake
 
 import (
 	clientset "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned"
-	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/typed/khcheck/v1"
-	fakekhcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/typed/khcheck/v1/fake"
-	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/typed/khjob/v1"
-	fakekhjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/typed/khjob/v1/fake"
-	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/typed/khstate/v1"
-	fakekhstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/typed/khstate/v1/fake"
+	comcastv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/typed/comcast.github.io/v1"
+	fakecomcastv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/typed/comcast.github.io/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -67,17 +63,7 @@ var (
 	_ testing.FakeClient  = &Clientset{}
 )
 
-// KhcheckV1 retrieves the KhcheckV1Client
-func (c *Clientset) KhcheckV1() khcheckv1.KhcheckV1Interface {
-	return &fakekhcheckv1.FakeKhcheckV1{Fake: &c.Fake}
-}
-
-// KhjobV1 retrieves the KhjobV1Client
-func (c *Clientset) KhjobV1() khjobv1.KhjobV1Interface {
-	return &fakekhjobv1.FakeKhjobV1{Fake: &c.Fake}
-}
-
-// KhstateV1 retrieves the KhstateV1Client
-func (c *Clientset) KhstateV1() khstatev1.KhstateV1Interface {
-	return &fakekhstatev1.FakeKhstateV1{Fake: &c.Fake}
+// ComcastV1 retrieves the ComcastV1Client
+func (c *Clientset) ComcastV1() comcastv1.ComcastV1Interface {
+	return &fakecomcastv1.FakeComcastV1{Fake: &c.Fake}
 }

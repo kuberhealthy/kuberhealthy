@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	khCheckV1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
+	khcrds "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/comcast.github.io/v1"
 	fake "k8s.io/client-go/kubernetes/fake"
 )
 
@@ -34,7 +34,7 @@ func newTestChecker() (*Checker, error) {
 
 // newTestCheckFromSpec creates a new test checker but using the supplied
 // spec file for a khcheck
-func newTestCheckFromSpec(checkSpec *khCheckV1.KuberhealthyCheck, reportingURL string) *Checker {
+func newTestCheckFromSpec(checkSpec *khcrds.KuberhealthyCheck, reportingURL string) *Checker {
 	// create a new checker and insert this pod spec
 	checker := New(fakeClient, checkSpec, nil, reportingURL) // external checker does not ever return an error so we drop it
 	checker.Debug = true

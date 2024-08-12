@@ -22,7 +22,7 @@ func GetWhitelistedUUIDForExternalCheck(ctx context.Context, checkNamespace stri
 		return "", err
 	}
 
-	r, err := KuberhealthyClient.KhstateV1().KuberhealthyStates(checkNamespace).Get(ctx, checkName, metav1.GetOptions{})
+	r, err := KuberhealthyClient.ComcastV1().KuberhealthyStates(checkNamespace).Get(ctx, checkName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

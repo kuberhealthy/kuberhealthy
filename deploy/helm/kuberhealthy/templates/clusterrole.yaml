@@ -5,6 +5,21 @@ metadata:
   name: {{ template "kuberhealthy.name" . }}
 rules:
   - apiGroups:
+    - comcast.github.io
+    resources:
+    - khstates
+    - khchecks
+    - khjobs
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - delete
+    - patch
+    - deletecollection
+  - apiGroups:
     - apps
     resources:
     - daemonsets
