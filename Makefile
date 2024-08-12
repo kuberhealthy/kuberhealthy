@@ -20,7 +20,6 @@ push:
 
 
 # https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/generating-clientset.md
-# TODO - What other types of generation do we need here?  Probably deepcopy and others?
 generate:
 	cd hack && ./update-codegen.sh
 

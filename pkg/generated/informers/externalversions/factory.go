@@ -8,10 +8,8 @@ import (
 	time "time"
 
 	versioned "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned"
+	comcastgithubio "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/informers/externalversions/comcast.github.io"
 	internalinterfaces "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/informers/externalversions/internalinterfaces"
-	khcheck "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/informers/externalversions/khcheck"
-	khjob "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/informers/externalversions/khjob"
-	khstate "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/informers/externalversions/khstate"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -239,19 +237,9 @@ type SharedInformerFactory interface {
 	// client.
 	InformerFor(obj runtime.Object, newFunc internalinterfaces.NewInformerFunc) cache.SharedIndexInformer
 
-	Khcheck() khcheck.Interface
-	Khjob() khjob.Interface
-	Khstate() khstate.Interface
+	Comcast() comcastgithubio.Interface
 }
 
-func (f *sharedInformerFactory) Khcheck() khcheck.Interface {
-	return khcheck.New(f, f.namespace, f.tweakListOptions)
-}
-
-func (f *sharedInformerFactory) Khjob() khjob.Interface {
-	return khjob.New(f, f.namespace, f.tweakListOptions)
-}
-
-func (f *sharedInformerFactory) Khstate() khstate.Interface {
-	return khstate.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Comcast() comcastgithubio.Interface {
+	return comcastgithubio.New(f, f.namespace, f.tweakListOptions)
 }

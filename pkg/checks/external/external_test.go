@@ -12,7 +12,7 @@ import (
 
 	apiv1 "k8s.io/api/core/v1"
 
-	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
+	khcrds "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/comcast.github.io/v1"
 )
 
 func init() {
@@ -22,9 +22,9 @@ func init() {
 
 // loadTestPodSpecFile loads a check spec yaml from disk in this
 // the test directory and returns the check struct
-func loadTestPodSpecFile(path string) (*khcheckv1.KuberhealthyCheck, error) {
+func loadTestPodSpecFile(path string) (*khcrds.KuberhealthyCheck, error) {
 
-	podSpec := khcheckv1.KuberhealthyCheck{}
+	podSpec := khcrds.KuberhealthyCheck{}
 
 	// read in all the configuration bytes
 	b, err := os.ReadFile(path)

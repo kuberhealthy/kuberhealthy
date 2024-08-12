@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/typed/khcheck/v1"
-	khjobv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/typed/khjob/v1"
-	khstatev1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/typed/khstate/v1"
+	comcastv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/typed/comcast.github.io/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -16,32 +14,18 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	KhcheckV1() khcheckv1.KhcheckV1Interface
-	KhjobV1() khjobv1.KhjobV1Interface
-	KhstateV1() khstatev1.KhstateV1Interface
+	ComcastV1() comcastv1.ComcastV1Interface
 }
 
 // Clientset contains the clients for groups.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	khcheckV1 *khcheckv1.KhcheckV1Client
-	khjobV1   *khjobv1.KhjobV1Client
-	khstateV1 *khstatev1.KhstateV1Client
+	comcastV1 *comcastv1.ComcastV1Client
 }
 
-// KhcheckV1 retrieves the KhcheckV1Client
-func (c *Clientset) KhcheckV1() khcheckv1.KhcheckV1Interface {
-	return c.khcheckV1
-}
-
-// KhjobV1 retrieves the KhjobV1Client
-func (c *Clientset) KhjobV1() khjobv1.KhjobV1Interface {
-	return c.khjobV1
-}
-
-// KhstateV1 retrieves the KhstateV1Client
-func (c *Clientset) KhstateV1() khstatev1.KhstateV1Interface {
-	return c.khstateV1
+// ComcastV1 retrieves the ComcastV1Client
+func (c *Clientset) ComcastV1() comcastv1.ComcastV1Interface {
+	return c.comcastV1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -88,15 +72,7 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 
 	var cs Clientset
 	var err error
-	cs.khcheckV1, err = khcheckv1.NewForConfigAndClient(&configShallowCopy, httpClient)
-	if err != nil {
-		return nil, err
-	}
-	cs.khjobV1, err = khjobv1.NewForConfigAndClient(&configShallowCopy, httpClient)
-	if err != nil {
-		return nil, err
-	}
-	cs.khstateV1, err = khstatev1.NewForConfigAndClient(&configShallowCopy, httpClient)
+	cs.comcastV1, err = comcastv1.NewForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
 		return nil, err
 	}
@@ -121,9 +97,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.khcheckV1 = khcheckv1.New(c)
-	cs.khjobV1 = khjobv1.New(c)
-	cs.khstateV1 = khstatev1.New(c)
+	cs.comcastV1 = comcastv1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

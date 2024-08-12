@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
-	khcheckv1 "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/khcheck/v1"
+	khcrds "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/comcast.github.io/v1"
 	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external"
 )
 
@@ -27,7 +27,7 @@ func newExternalTestCheck(c *kubernetes.Clientset) (*external.Checker, error) {
 
 // newTestCheckFromSpec creates a new test checker but using the supplied
 // spec file for pods
-func newTestCheckFromSpec(c *kubernetes.Clientset, spec *khcheckv1.KuberhealthyCheck) *external.Checker {
+func newTestCheckFromSpec(c *kubernetes.Clientset, spec *khcrds.KuberhealthyCheck) *external.Checker {
 	// create a new checker and insert this pod spec
 	checker := external.New(c, spec, KuberhealthyClient, cfg.ExternalCheckReportingURL) // external checker does not ever return an error so we drop it
 	checker.Debug = true
@@ -36,9 +36,9 @@ func newTestCheckFromSpec(c *kubernetes.Clientset, spec *khcheckv1.KuberhealthyC
 
 // loadTestPodSpecFile loads a pod spec yaml from disk in this
 // directory and returns the pod spec struct it represents
-func loadTestPodSpecFile(path string) (*khcheckv1.KuberhealthyCheck, error) {
+func loadTestPodSpecFile(path string) (*khcrds.KuberhealthyCheck, error) {
 
-	podSpec := khcheckv1.KuberhealthyCheck{}
+	podSpec := khcrds.KuberhealthyCheck{}
 
 	// open the yaml file
 	f, err := os.Open(path)
