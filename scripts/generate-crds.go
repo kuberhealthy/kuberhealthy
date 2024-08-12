@@ -48,7 +48,7 @@ var (
 			ControllerGenOpts: "crd:crdVersions=v1,preserveUnknownFields=false",
 			YAMLDir:           "./generated",
 			CRDAPIGroup:       "comcast.github.io",
-			ControllerPath:    "../pkg/apis/khcheck/v1",
+			ControllerPath:    "../pkg/apis/comcast.github.io/v1",
 			CRDNames: []crdName{
 				{"khcheck", "khchecks"},
 			},
@@ -60,7 +60,7 @@ var (
 			ControllerGenOpts: "crd:crdVersions=v1,preserveUnknownFields=false",
 			YAMLDir:           "./generated",
 			CRDAPIGroup:       "comcast.github.io",
-			ControllerPath:    "../pkg/apis/khjob/v1",
+			ControllerPath:    "../pkg/apis/comcast.github.io/v1",
 			CRDNames: []crdName{
 				{"khjob", "khjobs"},
 			},
@@ -72,7 +72,7 @@ var (
 			ControllerGenOpts: "crd:crdVersions=v1",
 			YAMLDir:           "./generated",
 			CRDAPIGroup:       "comcast.github.io",
-			ControllerPath:    "../pkg/apis/khstate/v1",
+			ControllerPath:    "../pkg/apis/comcast.github.io/v1",
 			CRDNames: []crdName{
 				{"khstate", "khstates"},
 			},
