@@ -321,6 +321,14 @@ func createContainerConfig(imageURL string) corev1.Container {
 		envs = append(envs, ev)
 	}
 
+	// Make a TCP socket for the probe handler.
+	tcpSocket := corev1.TCPSocketAction{
+		Port: intstr.IntOrString{
+			IntVal: checkContainerPort,
+			StrVal: strconv.Itoa(int(checkContainerPort)),
+		},
+	}
+
 	// Make a handler for the probes.
 	handler := corev1.ProbeHandler{
 		TCPSocket: &tcpSocket,
