@@ -94,7 +94,8 @@ func listPods(ctx context.Context) (*v13.PodList, error) {
 	err := backoff.Retry(func() error {
 		var err error
 		podList, err = getPodClient().List(ctx, metav1.ListOptions{
-			LabelSelector: "kh-app=" + daemonSetName + ",source=kuberhealthy,khcheck=daemonset",
+			LabelSelector:   "kh-app=" + daemonSetName + ",source=kuberhealthy,khcheck=daemonset",
+			ResourceVersion: "0",
 		})
 		return err
 	}, exponentialBackoff)
