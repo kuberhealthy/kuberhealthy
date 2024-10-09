@@ -6,8 +6,11 @@ NOW := `date +%s`
 build: # Build Kuberhealthy's image
 	podman build -f Containerfile -t {{IMAGE}}:{{TAG}} ../../
 
-deploy: # Deploys Kuberhealthy's latest image
+install: # installs kuberhealthy in the current kubernetes context
 	kubectl apply -f ../../deploy/kuberhealthy.yaml
+
+deploy: # Deploys Kuberhealthy's latest image
+	kubectl set image deployment/kuberhealthy kuberhealthy=kuberhealthy:localdev # set the localdev image on the deployment
 	kubectl annotate deployment kuberhealthy deployed-at={{NOW}} --overwrite # updating the timestamp causes a rollout
 
 test: # Run tests locally
