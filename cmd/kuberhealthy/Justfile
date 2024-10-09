@@ -1,0 +1,18 @@
+# This Justfile is for local development. Releases are done via Github Actions workflows. Just make a tag to cause a release.
+IMAGE := "kuberhealthy"
+TAG := "localdev"
+NOW := `date +%s`
+
+build: # Build Kuberhealthy's image
+	podman build -f Containerfile -t {{IMAGE}}:{{TAG}} ../../
+
+deploy: # Deploys Kuberhealthy's latest image
+	kubectl apply -f ../../deploy/kuberhealthy.yaml
+	kubectl annotate deployment kuberhealthy deployed-at={{NOW}} --overwrite # updating the timestamp causes a rollout
+
+test: # Run tests locally
+	POD_NAME="kuberhealthy-test" go test -v -args -- --debug --forceMaster
+
+run: # Run Kuberhealthy locally
+	go build
+	KH_EXTERNAL_REPORTING_URL=localhost:8006 POD_NAMESPACE=kuberhealthy POD_NAME="kuberhealthy-test" ./kuberhealthy --debug --forceMaster --config ./test/test-config.yaml
