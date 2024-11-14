@@ -17,3 +17,16 @@ Return the appropriate apiVersion for RBAC APIs.
 {{- end -}}
 {{- end -}}
 
+{{- define "kuberhealthy.extraLabels" }}
+  {{- if . -}}
+  extraLabels:
+    {{- toYaml . | nindent 2 }}
+  {{- end -}}
+{{ end -}}
+
+{{- define "kuberhealthy.extraAnnotations" }}
+  {{- if . -}}
+  extraAnnotations:
+    {{- toYaml . | nindent 2 }}
+  {{- end -}}
+{{ end -}}

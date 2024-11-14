@@ -8,14 +8,8 @@ metadata:
 spec:
   runInterval:  {{ .Values.check.networkConnection.runInterval }}
   timeout: {{ .Values.check.networkConnection.timeout }}
-  {{- if .Values.check.daemonset.extraAnnotations }}
-  extraAnnotations:
-    {{- toYaml .Values.check.daemonset.extraAnnotations | nindent 4 }}
-  {{- end }}
-  {{- if .Values.check.daemonset.extraLabels }}
-  extraLabels:
-    {{- toYaml .Values.check.daemonset.extraLabels | nindent 4 }}
-  {{- end }}
+  {{- include "kuberhealthy.extraAnnotations" .Values.check.networkConnection.extraAnnotations | nindent 2 }}
+  {{- include "kuberhealthy.extraLabels" .Values.check.networkConnection.extraLabels | nindent 2 }}
   podSpec:
     {{- if .Values.securityContext.seccompProfile }}
     securityContext:

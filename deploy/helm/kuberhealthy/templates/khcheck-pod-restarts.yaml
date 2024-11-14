@@ -7,14 +7,8 @@ metadata:
 spec:
   runInterval: {{ .Values.check.podRestarts.runInterval }}
   timeout: {{ .Values.check.podRestarts.timeout }}
-  {{- if .Values.check.daemonset.extraAnnotations }}
-  extraAnnotations:
-    {{- toYaml .Values.check.daemonset.extraAnnotations | nindent 4 }}
-  {{- end }}
-  {{- if .Values.check.daemonset.extraLabels }}
-  extraLabels:
-    {{- toYaml .Values.check.daemonset.extraLabels | nindent 4 }}
-  {{- end }}
+  {{- include "kuberhealthy.extraAnnotations" .Values.check.podRestarts.extraAnnotations | nindent 2 }}
+  {{- include "kuberhealthy.extraLabels" .Values.check.podRestarts.extraLabels | nindent 2 }}
   podSpec:
     {{- if .Values.securityContext.enabled }}
     securityContext:
