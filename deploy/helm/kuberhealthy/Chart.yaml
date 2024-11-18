@@ -1,7 +1,7 @@
 apiVersion: v2
 name: kuberhealthy
-appVersion: v2.8.0-rc2
-version: 104
+appVersion: v2.8.0-rc3
+version: 105
 home: https://kuberhealthy.github.io/kuberhealthy/
 description: "An operator for synthetic test and monitoring. Works great with Prometheus."
 type: application
@@ -12,6 +12,8 @@ maintainers:
     email: jonathan_phan@comcast.com
   - name: joshulyne
     email: joshulyne_park@comcast.com
+  - name: sheikhrachel
+    email: sheikhrachel97@gmail.com
 keywords:
 - kuberhealthy
 - kubernetes
