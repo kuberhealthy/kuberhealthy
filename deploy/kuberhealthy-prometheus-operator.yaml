@@ -13092,6 +13092,21 @@ metadata:
   name: kuberhealthy
 rules:
   - apiGroups:
+    - comcast.github.io
+    resources:
+    - khstates
+    - khchecks
+    - khjobs
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - delete
+    - patch
+    - deletecollection
+  - apiGroups:
     - apps
     resources:
     - daemonsets
@@ -13159,7 +13174,7 @@ rules:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRole
 metadata:
-  name: kuberhealthy-daemonset-khcheck
+  name: kuberhealthy
 rules:
 - apiGroups:
   - ""
@@ -13199,14 +13214,14 @@ subjects:
 apiVersion: "rbac.authorization.k8s.io/v1"
 kind: ClusterRoleBinding
 metadata:
-  name: kuberhealthy-daemonset-khcheck
+  name: kuberhealthy
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: kuberhealthy-daemonset-khcheck
+  name: kuberhealthy
 subjects:
 - kind: ServiceAccount
-  name: daemonset-khcheck
+  name: kuberhealthy
   namespace: kuberhealthy
 ---
 # Source: kuberhealthy/templates/khcheck-dns-internal.yaml
@@ -13377,7 +13392,7 @@ spec:
                   - kuberhealthy
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - image: "docker.io/kuberhealthy/kuberhealthy:v2.8.0-rc2"
+      - image: "docker.io/kuberhealthy/kuberhealthy:v2.8.0-rc3"
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
