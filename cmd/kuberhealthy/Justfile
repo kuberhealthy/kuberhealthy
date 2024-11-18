@@ -1,5 +1,5 @@
 # This Justfile is for local development. Releases are done via Github Actions workflows. Just make a tag to cause a release.
-IMAGE := "kuberhealthy"
+IMAGE := "docker.io/kuberhealthy/kuberhealthy"
 TAG := "localdev"
 NOW := `date +%s`
 
@@ -9,8 +9,11 @@ build: # Build Kuberhealthy's image
 install: # installs kuberhealthy in the current kubernetes context
 	kubectl apply -f ../../deploy/kuberhealthy.yaml
 
+push: #pushes the image
+	podman push {{IMAGE}}:{{TAG}}
+
 deploy: # Deploys Kuberhealthy's latest image
-	kubectl set image deployment/kuberhealthy kuberhealthy=localhost/kuberhealthy:localdev # set the localdev image on the deployment
+	kubectl set image deployment/kuberhealthy kuberhealthy={{IMAGE}}:{{TAG}} # set the localdev image on the deployment
 	kubectl annotate deployment kuberhealthy deployed-at={{NOW}} --overwrite # updating the timestamp causes a rollout
 
 test: # Run tests locally
