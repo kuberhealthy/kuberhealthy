@@ -76,6 +76,9 @@ deployment:
   # args:
   # - -dsPauseContainerImageOverride
   # - your-repo/google_containers/pause:0.8.0
+  customLabels: {} # Custom labels to be added to the deployment metadata
+pod:
+  customLabels: {} # Custom labels to be added to the pod metadata
 securityContext: # default container security context
   runAsNonRoot: true
   runAsUser: 999
