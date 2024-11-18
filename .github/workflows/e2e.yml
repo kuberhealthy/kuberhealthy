@@ -14,6 +14,7 @@ jobs:
   build:
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+      KIND_EXPERIMENTAL_PROVIDER: podman
     runs-on: ubuntu-latest
     steps:
     - uses: actions/setup-go@v1
