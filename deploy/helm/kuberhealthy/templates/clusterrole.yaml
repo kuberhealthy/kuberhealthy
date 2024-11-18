@@ -97,7 +97,7 @@ rules:
 apiVersion: {{ template "rbac.apiVersion" . }}
 kind: ClusterRole
 metadata:
-  name: {{ template "kuberhealthy.name" . }}-daemonset-khcheck
+  name: {{ template "kuberhealthy.name" . }}
 rules:
 - apiGroups:
   - ""
