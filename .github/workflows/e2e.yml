@@ -14,30 +14,26 @@ jobs:
   build:
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
-      KIND_EXPERIMENTAL_PROVIDER: podman
     runs-on: ubuntu-latest
     steps:
     - uses: actions/setup-go@v1
       with:
-        go-version: '1.23.0'
-    - uses: actions/checkout@v2 # checkout the code
-    - name: Install Podman # install podman on the github actions runner
-      uses: gacts/install-podman@v1
-    - run: podman version # output the podman version for debugging
-    - name: Build container with Podman # build the container using podman build
-      run: podman build --file cmd/kuberhealthy/Containerfile --tag kuberhealthy:${GITHUB_RUN_ID} .
-    - uses: engineerd/setup-kind@v0.5.0 # setup kind
+        go-version: '1.21.5'
+    - uses: actions/checkout@v2
+    - name: build container
+      run: docker build --file cmd/kuberhealthy/Containerfile --tag kuberhealthy:${GITHUB_RUN_ID} .
+    - uses: engineerd/setup-kind@v0.5.0
       with:
           version: "v0.20.0"
-    - name: Testing # deploy our image into kind
+    - name: Testing
       run: |
         kubectl cluster-info
         kubectl get pods -n kube-system
         kubectl get nodes
         echo "current-context:" $(kubectl config current-context)
-        #echo "environment-kubeconfig:" ${KUBECONFIG}
-        echo "loading image to kind:" localhost/kuberhealthy:${GITHUB_RUN_ID}
-        kind load docker-image localhost/kuberhealthy:${GITHUB_RUN_ID}
+        echo "environment-kubeconfig:" ${KUBECONFIG}
+        echo "loading image to kind:" ${GITHUB_RUN_ID}
+        kind load docker-image kuberhealthy:${GITHUB_RUN_ID}
 
-    - name: "running end to end test" # run our e2e tests on the service
+    - name: "running end to end test"
       run: ./.ci/e2e.sh kuberhealthy:${GITHUB_RUN_ID}
