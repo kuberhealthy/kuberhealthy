@@ -6,6 +6,9 @@ metadata:
   namespace: {{ .Values.namespace | default .Release.Namespace }}
   labels:
     app: {{ template "kuberhealthy.name" . }}
+    {{- with .Values.deployment.customLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   replicas: {{ .Values.deployment.replicas }}
   selector:
@@ -26,6 +29,9 @@ spec:
       {{- end }}
       labels:
         app: {{ template "kuberhealthy.name" . }}
+        {{- with .Values.pod.customLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       volumes:
         - name: config-volume
