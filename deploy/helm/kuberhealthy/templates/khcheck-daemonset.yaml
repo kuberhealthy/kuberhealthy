@@ -59,8 +59,13 @@ spec:
           {{- end }}
         {{- if .Values.securityContext.enabled }}
         securityContext:
+          runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
           allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
           readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+          {{- if .Values.securityContext.capabilities }}
+          capabilities:
+            {{- toYaml .Values.securityContext.capabilities | nindent 12 }}
+          {{- end }}
         {{- end}}
     {{- if .Values.check.daemonset.nodeSelector }}
     nodeSelector:
