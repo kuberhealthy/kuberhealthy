@@ -31,10 +31,12 @@ var (
 	targetUnreachable bool
 	checkNamespace    string
 	ctx               context.Context
+	connectionTimeout time.Duration
 )
 
 const (
-	errorMessage = "Failed to complete network connection check in time! Timeout was reached."
+	errorMessage             = "Failed to complete network connection check in time! Timeout was reached."
+	defaultConnectionTimeout = time.Duration(time.Second * 30)
 )
 
 // Checker validates that DNS is functioning correctly
@@ -42,6 +44,7 @@ type Checker struct {
 	client            *kubernetes.Clientset
 	connectionTarget  string
 	targetUnreachable bool
+	connectionTimeout time.Duration
 }
 
 func init() {
@@ -68,6 +71,15 @@ func init() {
 	if err != nil {
 		log.Infoln("CONNECTION_TARGET_UNREACHABLE could not be parsed.")
 		return
+	}
+
+	connectionTimeout = defaultConnectionTimeout
+	if len(os.Getenv("CONNECTION_TIMEOUT")) > 0 {
+		connectionTimeout, err = time.ParseDuration(os.Getenv("CONNECTION_TIMEOUT"))
+		if err != nil {
+			log.Errorln("CONNECTION_TIMEOUT can not be parsed.")
+			return
+		}
 	}
 
 	data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
@@ -107,6 +119,7 @@ func New() *Checker {
 	return &Checker{
 		connectionTarget:  connectionTarget,
 		targetUnreachable: targetUnreachable,
+		connectionTimeout: connectionTimeout,
 	}
 }
 
@@ -126,9 +139,6 @@ func (ncc *Checker) Run(ctx context.Context, cancel context.CancelFunc, client *
 
 	// wait for either a timeout or job completion
 	select {
-	case <-ctx.Done():
-		log.Println("Cancelling check and shutting down due to interrupt.")
-		return reportKHFailure("Cancelling check and shutting down due to interrupt.")
 	case <-runTimeout:
 		cancel()
 		log.Println("Cancelling check and shutting down due to timeout.")
@@ -137,6 +147,9 @@ func (ncc *Checker) Run(ctx context.Context, cancel context.CancelFunc, client *
 		cancel()
 		if err != nil && ncc.targetUnreachable != true {
 			return reportKHFailure(err.Error())
+		}
+		if err == nil && ncc.targetUnreachable == true {
+			return reportKHFailure("Negative test failed! Target was supposed to be unreachable.")
 		}
 		return reportKHSuccess()
 	}
@@ -154,7 +167,7 @@ func (ncc *Checker) doChecks() error {
 		localAddr = &net.TCPAddr{IP: net.ParseIP(ncc.connectionTarget)}
 	}
 
-	d := net.Dialer{LocalAddr: localAddr, Timeout: time.Duration(checkTimeout)}
+	d := net.Dialer{LocalAddr: localAddr, Timeout: time.Duration(ncc.connectionTimeout)}
 	conn, err := d.Dial(network, address)
 	if err != nil {
 		errorMessage := "Network connection check determined that " + ncc.connectionTarget + " is DOWN: " + err.Error()
