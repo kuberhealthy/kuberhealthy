@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -23,13 +24,15 @@ func EnableDebugOutput() {
 // on a given node
 func WaitForKuberhealthy(ctx context.Context) error {
 
-	kuberhealthyEndpoint := os.Getenv(external.KHReportingURL)
-
+	KHReportingURL, err := url.Parse(os.Getenv(external.KHReportingURL))
 	// check the length of the reporting url to make sure we pulled one properly
-	if len(kuberhealthyEndpoint) < 1 {
-		return errors.New("error getting kuberhealthy reporting URL from environment variable " +
-			external.KHReportingURL + " was blank")
+	if err != nil {
+		return errors.New("error parsing kuberhealthy reporting URL from environment variable " +
+			external.KHReportingURL)
 	}
+	// Point endpoint check to the healthcheck path (/), instead of reporting path as it expects check status payload
+	KHReportingURL.Path = "/"
+	kuberhealthyEndpoint := KHReportingURL.String()
 
 	log.Debugln("Checking if the kuberhealthy endpoint:", kuberhealthyEndpoint, "is ready.")
 	select {
@@ -85,13 +88,18 @@ func waitForKuberhealthyEndpointReady(ctx context.Context, kuberhealthyEndpoint 
 			return doneChan
 		default:
 		}
-		_, err := http.Get(kuberhealthyEndpoint)
+		client := &http.Client{Timeout: 5 * time.Second}
+		resp, err := client.Get(kuberhealthyEndpoint)
 		if err == nil {
-			log.Debugln(kuberhealthyEndpoint, "is ready.")
-			doneChan <- nil
-			return doneChan
+			if resp.StatusCode == http.StatusOK {
+				log.Debugln(kuberhealthyEndpoint, "is ready.")
+				doneChan <- nil
+				return doneChan
+			} else {
+				log.Debugf("Endpoint %s is not ready yet... resp code: %d", kuberhealthyEndpoint, resp.StatusCode)
+			}
 		} else {
-			log.Debugln(kuberhealthyEndpoint, "is not ready yet..."+err.Error())
+			log.Debugf("Endpoint %s is not responding yet... err: %s", kuberhealthyEndpoint, err.Error())
 		}
 		time.Sleep(time.Second * 3)
 	}
