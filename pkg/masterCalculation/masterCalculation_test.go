@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/kubeClient"
 	log "github.com/sirupsen/logrus"
 )
 

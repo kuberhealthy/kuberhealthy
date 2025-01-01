@@ -132,7 +132,7 @@ Here is a full check example written in `go`.  Just implement `doCheckStuff` and
 package main
 
 import (
-  "github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
+  "github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external/checkclient"
 )
 
 func main() {

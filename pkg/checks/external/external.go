@@ -24,9 +24,9 @@ import (
 	policyv1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	khcrds "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/comcast.github.io/v1"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/util"
-	khClient "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned"
+	khcrds "github.com/kuberhealthy/kuberhealthy/v3/pkg/apis/comcast.github.io/v1"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external/util"
+	khClient "github.com/kuberhealthy/kuberhealthy/v3/pkg/generated/clientset/versioned"
 )
 
 // KHReportingURL is the environment variable used to tell external checks where to send their status updates

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/codingsince1985/checksum"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/metrics"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/metrics"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )

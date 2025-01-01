@@ -1,6 +1,6 @@
 // Package masterCalculation determines the master pod in multi pod
 // kuberhealthy deployments
-package masterCalculation // import "github.com/kuberhealthy/kuberhealthy/v2/pkg/masterCalculation"
+package masterCalculation // import "github.com/kuberhealthy/kuberhealthy/v3/pkg/masterCalculation"
 
 import (
 	"context"

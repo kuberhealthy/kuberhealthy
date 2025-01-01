@@ -21,13 +21,13 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 
-	khcrds "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/comcast.github.io/v1"
+	khcrds "github.com/kuberhealthy/kuberhealthy/v3/pkg/apis/comcast.github.io/v1"
 
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/status"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/masterCalculation"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/metrics"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external/status"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/health"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/masterCalculation"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/metrics"
 )
 
 // Kuberhealthy represents the kuberhealthy server and its checks
@@ -1372,7 +1372,7 @@ func (k *Kuberhealthy) validatePodReportBySourceIP(ctx context.Context, r *http.
 // externalCheckReportHandler handles requests coming from external checkers reporting their status.
 // This endpoint checks that the external check report is coming from the correct UUID or pod IP before recording
 // the reported status of the corresponding external check.  This endpoint expects a JSON payload of
-// the `State` struct found in the github.com/kuberhealthy/kuberhealthy/v2/pkg/health package.  The request
+// the `State` struct found in the github.com/kuberhealthy/kuberhealthy/v3/pkg/health package.  The request
 // causes a check of the calling pod's spec via the API to ensure that the calling pod is expected
 // to be reporting its status.
 func (k *Kuberhealthy) externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
