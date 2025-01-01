@@ -168,10 +168,10 @@ func configReloadNotifier(ctx context.Context, notifyChan chan struct{}) {
 			log.Errorln("configReloader: Error reloading and setting up config:", err)
 			continue
 		}
-		log.Debugln("configReloader: loaded new configuration:", cfg)
+		log.Debugln("configReloader: loaded new configuration:", GlobalConfig)
 
 		// reparse and set logging level
-		parsedLogLevel, err := log.ParseLevel(cfg.LogLevel)
+		parsedLogLevel, err := log.ParseLevel(GlobalConfig.LogLevel)
 		if err != nil {
 			log.Warningln("Unable to parse log-level flag: ", err)
 		} else {

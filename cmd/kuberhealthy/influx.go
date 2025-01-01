@@ -13,7 +13,7 @@ func configureInflux() (metrics.Client, error) {
 	var metricClient metrics.Client
 
 	// parse influxdb connection url
-	influxURLParsed, err := url.Parse(cfg.InfluxURL)
+	influxURLParsed, err := url.Parse(GlobalConfig.InfluxURL)
 	if err != nil {
 		return metricClient, errors.New("Unable to parse influxUrl: " + err.Error())
 	}
@@ -22,9 +22,9 @@ func configureInflux() (metrics.Client, error) {
 	return metrics.NewInfluxClient(metrics.InfluxClientInput{
 		Config: metrics.InfluxConfig{
 			URL:      *influxURLParsed,
-			Password: cfg.InfluxPassword,
-			Username: cfg.InfluxUsername,
+			Password: GlobalConfig.InfluxPassword,
+			Username: GlobalConfig.InfluxUsername,
 		},
-		Database: cfg.InfluxDB,
+		Database: GlobalConfig.InfluxDB,
 	})
 }

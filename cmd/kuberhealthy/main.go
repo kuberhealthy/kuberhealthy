@@ -15,7 +15,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
-	khClient "github.com/kuberhealthy/kuberhealthy/v3/pkg/generated/clientset/versioned"
 	"github.com/kuberhealthy/kuberhealthy/v3/pkg/kubeClient"
 	"github.com/kuberhealthy/kuberhealthy/v3/pkg/masterCalculation"
 )
@@ -51,15 +50,18 @@ var DefaultTimeout = time.Minute * 5
 // KubernetesClient is the global kubernetes client
 var KubernetesClient *kubernetes.Clientset
 
-// KuberhealthyClient is used for interfacing with Kuberhealthy CRDs
-var KuberhealthyClient *khClient.Clientset
-
 func main() {
 
 	// Initial setup before starting Kuberhealthy. Loading, parsing, and setting flags, config values and environment vars.
 	err := setUp()
 	if err != nil {
 		log.Fatalln("Error setting up Kuberhealthy:", err)
+	}
+
+	// start the CRD manager
+	err = crdManager(cfg)
+	if err != nil {
+		log.Fatalln("Error setting up Kuberhealthy CRD manager:", err)
 	}
 
 	// Create a new Kuberhealthy struct
@@ -115,14 +117,12 @@ func listenForInterrupts(k *Kuberhealthy) {
 func initKubernetesClients() error {
 
 	// make a new kuberhealthy client
-	clientSet, restConfig, err := kubeClient.Create(cfg.kubeConfigFile)
+	clientSet, _, err := kubeClient.Create(cfg.kubeConfigFile)
 	if err != nil {
 		return err
 	}
 	KubernetesClient = clientSet
 
-	// make a new kuberhealthy clientset
-	KuberhealthyClient, err = khClient.NewForConfig(restConfig)
 	return err
 }
 
