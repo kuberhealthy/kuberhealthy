@@ -10,13 +10,13 @@ import (
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	khcrds "github.com/kuberhealthy/kuberhealthy/v3/pkg/apis/comcast.github.io/v1"
+	khcrds "github.com/kuberhealthy/crds/api/v1"
 	"github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external"
 )
 
 // setCheckStateResource puts a check state's state into the specified CRD resource.  It sets the AuthoritativePod
 // to the server's hostname and sets the LastUpdate time to now.
-func setCheckStateResource(ctx context.Context, checkName string, checkNamespace string, state khcrds.WorkloadDetails) error {
+func setCheckStateResource(ctx context.Context, checkName string, checkNamespace string, state khcrds.KuberhealthyState) error {
 
 	name := sanitizeResourceName(checkName)
 
@@ -29,9 +29,9 @@ func setCheckStateResource(ctx context.Context, checkName string, checkNamespace
 	resourceVersion := existingState.GetResourceVersion()
 
 	// set the pod name that wrote the khstate
-	state.AuthoritativePod = podHostname
+	state.Spec.AuthoritativePod = podHostname
 	now := metav1.Now() // set the time the khstate was last
-	state.LastRun = &now
+	state.Spec.LastRun = &now
 
 	khState := khcrds.KuberhealthyState{}
 	khState.Name = name
@@ -40,7 +40,7 @@ func setCheckStateResource(ctx context.Context, checkName string, checkNamespace
 
 	// TODO - if "try again" message found in error, then try again
 
-	log.Debugln(checkNamespace, checkName, "writing khstate with ok:", state.OK, "and errors:", state.Errors, "at last run:", state.LastRun)
+	log.Debugln(checkNamespace, checkName, "writing khstate with ok:", state.Spec.OK, "and errors:", state.Spec.Errors, "at last run:", state.Spec.LastRun)
 	_, err = KuberhealthyClient.ComcastV1().KuberhealthyStates(checkNamespace).Update(ctx, &khState, metav1.UpdateOptions{})
 	return err
 }
@@ -83,9 +83,9 @@ func ensureStateResourceExists(ctx context.Context, checkName string, checkNames
 
 // // getCheckState retrieves the check values from the kuberhealthy khstate
 // // custom resource
-func getCheckState(ctx context.Context, c *external.Checker) (khcrds.WorkloadDetails, error) {
+func getCheckState(ctx context.Context, c *external.Checker) (khcrds.KuberhealthyState, error) {
 
-	var state = khcrds.WorkloadDetails{}
+	var state = khcrds.KuberhealthyState{}
 	var err error
 	name := sanitizeResourceName(c.Name())
 
@@ -106,10 +106,14 @@ func getCheckState(ctx context.Context, c *external.Checker) (khcrds.WorkloadDet
 
 // // getCheckState retrieves the check values from the kuberhealthy khstate
 // // custom resource
-func getJobState(ctx context.Context, j *external.Checker) (khcrds.WorkloadDetails, error) {
+func getJobState(ctx context.Context, j *external.Checker) (khcrds.KuberhealthyState, error) {
 
-	state := khcrds.WorkloadDetails{
-		KHWorkload: khcrds.KHJob,
+	// create a new khjob state spec
+	khjob := khcrds.KHWorkload("KHJob")
+	state := khcrds.KuberhealthyState{
+		Spec: khcrds.KuberhealthyStateSpec{
+			KHWorkload: &khjob,
+		},
 	}
 	// var state = khstatev1.NewWorkloadDetails(khstatev1.KHJob)
 	var err error
