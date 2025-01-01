@@ -1,4 +1,4 @@
-package kubeClient // import "github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
+package kubeClient // import "github.com/kuberhealthy/kuberhealthy/v3/pkg/kubeClient"
 
 import (
 	"k8s.io/client-go/kubernetes"

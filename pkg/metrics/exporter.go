@@ -1,4 +1,4 @@
-package metrics // import "github.com/kuberhealthy/kuberhealthy/v2/pkg/metrics"
+package metrics // import "github.com/kuberhealthy/kuberhealthy/v3/pkg/metrics"
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/health"
 )
 
 type PromMetricsConfig struct {

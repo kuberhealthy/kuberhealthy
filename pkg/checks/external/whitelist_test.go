@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
-	khClient "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned"
+	khClient "github.com/kuberhealthy/kuberhealthy/v3/pkg/generated/clientset/versioned"
 )
 
 // GetWhitelistedUUIDForExternalCheck fetches the current allowed UUID for an

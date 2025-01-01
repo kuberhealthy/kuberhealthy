@@ -3,7 +3,7 @@ package health_test
 import (
 	"testing"
 
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/health"
 	"github.com/stretchr/testify/assert"
 )
 

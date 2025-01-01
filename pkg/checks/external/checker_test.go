@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	khcrds "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/comcast.github.io/v1"
+	khcrds "github.com/kuberhealthy/kuberhealthy/v3/pkg/apis/comcast.github.io/v1"
 	fake "k8s.io/client-go/kubernetes/fake"
 )
 

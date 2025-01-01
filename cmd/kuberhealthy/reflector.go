@@ -11,8 +11,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	khcrds "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/comcast.github.io/v1"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
+	khcrds "github.com/kuberhealthy/kuberhealthy/v3/pkg/apis/comcast.github.io/v1"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/health"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 )
 

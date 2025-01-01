@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	khv1fake "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned/fake"
+	khv1fake "github.com/kuberhealthy/kuberhealthy/v3/pkg/generated/clientset/versioned/fake"
 	yaml "gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

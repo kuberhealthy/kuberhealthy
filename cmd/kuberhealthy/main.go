@@ -15,9 +15,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
-	khClient "github.com/kuberhealthy/kuberhealthy/v2/pkg/generated/clientset/versioned"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/kubeClient"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/masterCalculation"
+	khClient "github.com/kuberhealthy/kuberhealthy/v3/pkg/generated/clientset/versioned"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/kubeClient"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/masterCalculation"
 )
 
 // KHCheckNameAnnotationKey is the key used in the annotation that holds the check's short name

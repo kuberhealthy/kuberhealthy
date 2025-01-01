@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	khcrds "github.com/kuberhealthy/kuberhealthy/v2/pkg/apis/comcast.github.io/v1"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/health"
+	khcrds "github.com/kuberhealthy/kuberhealthy/v3/pkg/apis/comcast.github.io/v1"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/health"
 )
 
 func parseMetrics(metricOutput string) map[string]string {
