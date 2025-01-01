@@ -47,11 +47,11 @@ type Kuberhealthy struct {
 
 // NewKuberhealthy creates a new kuberhealthy checker instance restricted to the desired
 // namespace.  If this instance should apply to all namespaces, pass a blank here.
-func NewKuberhealthy(cfg *Config) *Kuberhealthy {
+func NewKuberhealthy(GlobalConfig *Config) *Kuberhealthy {
 	kh := &Kuberhealthy{
-		TargetNamespace: cfg.TargetNamespace,
-		ListenAddr:      cfg.ListenAddress,
-		config:          cfg,
+		TargetNamespace: GlobalConfig.TargetNamespace,
+		ListenAddr:      GlobalConfig.ListenAddress,
+		config:          GlobalConfig,
 	}
 	kh.stateReflector = NewStateReflector(kh.TargetNamespace)
 	return kh
@@ -173,7 +173,7 @@ func (k *Kuberhealthy) Start(ctx context.Context) {
 	go k.stateReflector.Start()
 
 	// if influxdb is enabled, configure it
-	if cfg.EnableInflux {
+	if GlobalConfig.EnableInflux {
 		k.configureInfluxForwarding()
 	}
 
@@ -650,7 +650,7 @@ func (k *Kuberhealthy) addExternalChecks(ctx context.Context) error {
 
 		// create a new kubernetes client for this external checker
 		log.Infoln("Enabling external check:", kc.Name)
-		c := external.New(KubernetesClient, &kc, KuberhealthyClient, cfg.ExternalCheckReportingURL)
+		c := external.New(KubernetesClient, &kc, KuberhealthyClient, GlobalConfig.ExternalCheckReportingURL)
 
 		// parse the run interval string from the custom resource and setup the run interval
 		c.RunInterval, err = time.ParseDuration(kc.Spec.RunInterval)
@@ -699,7 +699,7 @@ func (k *Kuberhealthy) configureJob(job *khcrds.KuberhealthyJob) *external.Check
 
 	// create a new kubernetes client for this external checker
 	log.Infoln("Enabling external job:", job.Name)
-	kj := external.NewJob(KubernetesClient, job, KuberhealthyClient, cfg.ExternalCheckReportingURL)
+	kj := external.NewJob(KubernetesClient, job, KuberhealthyClient, GlobalConfig.ExternalCheckReportingURL)
 
 	var err error
 	// parse the user specified timeout if present
@@ -1496,7 +1496,7 @@ func (k *Kuberhealthy) prometheusMetricsHandler(w http.ResponseWriter, r *http.R
 	log.Infoln("Client connected to prometheus metrics endpoint from", r.RemoteAddr, r.UserAgent())
 	state := k.getCurrentState(r.Context(), []string{})
 
-	m := metrics.GenerateMetrics(state, cfg.PromMetricsConfig)
+	m := metrics.GenerateMetrics(state, GlobalConfig.PromMetricsConfig)
 	// write summarized health check results back to caller
 	_, err := w.Write([]byte(m))
 	if err != nil {
@@ -1563,8 +1563,8 @@ func (k *Kuberhealthy) getCurrentState(ctx context.Context, namespaces []string)
 	}
 
 	currentState.CurrentMaster = currentMaster
-	if len(cfg.StateMetadata) != 0 {
-		currentState.Metadata = cfg.StateMetadata
+	if len(GlobalConfig.StateMetadata) != 0 {
+		currentState.Metadata = GlobalConfig.StateMetadata
 	}
 
 	return currentState

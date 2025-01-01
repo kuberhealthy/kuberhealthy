@@ -13,15 +13,15 @@ import (
 func TestRenderConfig(t *testing.T) {
 
 	// make a new default config
-	cfg := Config{}
-	cfg.EnableForceMaster = false
-	cfg.EnableInflux = false
-	cfg.ExternalCheckReportingURL = "http://localhost:8006"
-	cfg.ListenAddress = "http://localhost:8006"
-	cfg.LogLevel = "debug"
+	GlobalConfig := Config{}
+	GlobalConfig.EnableForceMaster = false
+	GlobalConfig.EnableInflux = false
+	GlobalConfig.ExternalCheckReportingURL = "http://localhost:8006"
+	GlobalConfig.ListenAddress = "http://localhost:8006"
+	GlobalConfig.LogLevel = "debug"
 
 	// render it as yaml
-	b, err := yaml.Marshal(cfg)
+	b, err := yaml.Marshal(GlobalConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
