@@ -30,7 +30,16 @@ type Config struct {
 	StateMetadata             map[string]string         `yaml:"stateMetadata,omitempty"`
 	PromMetricsConfig         metrics.PromMetricsConfig `yaml:"promMetricsConfig,omitempty"`
 	TargetNamespace           string                    `yaml:"namespace"` // TargetNamespace sets the namespace that Kuberhealthy will operate in.  By default, this is blank, which means
-	// all namespaces.  However, for multi-tennant environments you may wish to set this.
+	CRDManager                CRDManagerConfig          `yaml:"crdManager"`
+}
+
+// CRDManagerConfig holds the input values for the CRDManager
+type CRDManagerConfig struct {
+	metricsAddr          string
+	enableLeaderElection bool
+	probeAddr            string
+	secureMetrics        bool
+	enableHTTP2          bool
 }
 
 // Load loads file from disk

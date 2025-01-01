@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 
-	khcrds "github.com/kuberhealthy/kuberhealthy/v3/pkg/apis/comcast.github.io/v1"
+	khcrds "github.com/kuberhealthy/crds/api/v1"
 
 	"github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external"
 	"github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external/status"
@@ -83,8 +83,10 @@ func (k *Kuberhealthy) setCheckExecutionError(ctx context.Context, checkName str
 // setJobExecutionError sets an execution error for a job name in its crd status
 func (k *Kuberhealthy) setJobExecutionError(ctx context.Context, jobName string, jobNamespace string, exErr error) error {
 
-	details := khcrds.WorkloadDetails{
-		KHWorkload: khcrds.KHJob,
+	// create a job spec
+	workloadType := khcrds.KHJob
+	details := khcrds.KuberhealthyStateSpec{
+		KHWorkload: &workloadType,
 	}
 
 	job, err := k.getJob(ctx, jobName, jobNamespace)
@@ -106,7 +108,7 @@ func (k *Kuberhealthy) setJobExecutionError(ctx context.Context, jobName string,
 	if err != nil {
 		return fmt.Errorf("error when setting execution error on job (getting job state for current UUID) %s %s %w", jobName, jobNamespace, err)
 	}
-	details.CurrentUUID = jobState.CurrentUUID
+	details.CurrentUUID = jobState.Spec.CurrentUUID
 
 	log.Debugln("Setting execution state of job", jobName, "to", details.OK, details.Errors, details.CurrentUUID, details.KHWorkload)
 
