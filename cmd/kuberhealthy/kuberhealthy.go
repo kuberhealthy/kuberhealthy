@@ -298,6 +298,7 @@ func (k *Kuberhealthy) khStateResourceReaper(ctx context.Context, namespace stri
 func (k *Kuberhealthy) reapKHStateResources(ctx context.Context, namespace string) error {
 
 	// list all khStates in the cluster
+	c := CRDManager.GetClient()
 	khStates, err := KuberhealthyClient.ComcastV1().KuberhealthyStates(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("khState reaper: error listing khStates for reaping: %w", err)

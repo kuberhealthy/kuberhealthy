@@ -61,6 +61,8 @@ func main() {
 		log.Fatalln("Error starting CRD manager:", err)
 	}
 
+	crdClient := CRDManager.GetClient()
+
 	// Create a new Kuberhealthy struct
 	kuberhealthy := NewKuberhealthy(GlobalConfig)
 
