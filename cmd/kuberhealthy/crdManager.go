@@ -25,9 +25,6 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -36,21 +33,9 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v1"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
 	// +kubebuilder:scaffold:imports
 )
-
-var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
-)
-
-func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(comcastgithubiov1.AddToScheme(scheme))
-	// +kubebuilder:scaffold:scheme
-}
 
 // newCRDManager holds the event handlers for the Kuberhealthy CRDs as well as the Kubernetes clients
 func newCRDManager() (manager.Manager, error) {
@@ -119,7 +104,7 @@ func newCRDManager() (manager.Manager, error) {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
+		Scheme:                 customScheme,
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
 		HealthProbeBindAddress: GlobalConfig.CRDManager.probeAddr,
