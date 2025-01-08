@@ -15,7 +15,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-        image: kuberhealthy/dns-resolution-check:v1.5.1
+        image: kuberhealthy/dns-resolution-check:v1.6.0
         imagePullPolicy: IfNotPresent
         name: main
         resources:
