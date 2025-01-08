@@ -2,4 +2,4 @@ include ../../Makefile
 
 BUILDER := "dockerx-test-check"
 IMAGE := "kuberhealthy/test-check"
-TAG := "v1.4.1"
+TAG := "v1.5.0"

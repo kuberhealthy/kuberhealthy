@@ -1,0 +1,13 @@
+{
+  "name": "build",
+  "engineVersion": "v0.15.1",
+  "sdk": "go",
+  "dependencies": [
+    {
+      "name": "go",
+      "source": "github.com/sagikazarmark/daggerverse/go@go/v0.9.0",
+      "pin": "d9ba06776c4c1ccf6f329bd862b9b439c4582ab6"
+    }
+  ],
+  "source": "."
+}

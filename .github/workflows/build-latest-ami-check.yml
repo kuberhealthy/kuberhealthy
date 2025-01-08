@@ -13,16 +13,35 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4.2.2
     - name: dockerfile sweep for best practices
-      uses: burdzwastaken/hadolint-action@master
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        HADOLINT_ACTION_DOCKERFILE_FOLDER: cmd/ami-check
-        HADOLINT_ACTION_COMMENT: false
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: cmd/ami-check/Dockerfile
+    - name: Set up QEMU 🔀
+      uses: docker/setup-qemu-action@v3.2.0 
+    - name: Set up Docker Buildx 🛠
+      id: buildx 
+      uses: docker/setup-buildx-action@v3.8.0
+      with:
+        driver-opts: network=host
+    - name: Build and push to local registry 🔨
+      uses: docker/build-push-action@v6
+      with:
+        context: docker/freshclam
+        push: true
+        tags: localhost:5000/kuberhealthy/ami-check:latest
+    - name: Scan image 💉
+      uses: anchore/scan-action@v6
+      id: scan
+      with:
+        image: "localhost:5000/kuberhealthy/ami-check:latest"
+        fail-build: true
+        severity-cutoff: critical
+        output-format: table
     - name: Log into docker hub
       run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u integrii --password-stdin
     - name: Push new latest image
+      run: make -C cmd/daemonset-check push
+    - name: Push new latest image
       run: make -C cmd/ami-check push
-    - name: scan docker image for vulnerabilities
-      run: curl -s https://ci-tools.anchore.io/inline_scan-v0.6.0 | bash -s -- -p -r kuberhealthy/$IMAGE_NAME:latest

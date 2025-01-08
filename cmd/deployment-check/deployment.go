@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	resource "k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	watchpkg "k8s.io/apimachinery/pkg/watch"
@@ -26,10 +26,6 @@ const (
 	defaultLabelKey        = "deployment-timestamp"
 	defaultLabelValueBase  = "unix-"
 	defaultMinReadySeconds = 5
-
-	// Default deployment strategy values.
-	defaultMaxSurge       = 2
-	defaultMaxUnavailable = 2
 
 	// Default container values.
 	defaultImagePullPolicy = "IfNotPresent"
@@ -58,7 +54,7 @@ func createDeploymentConfig(image string) *v1.Deployment {
 	// Make a k8s deployment.
 	deployment := &v1.Deployment{}
 
-	// Use a different image if useRollImage is true, to
+	// Use a different image if useRollImage is true, too
 	checkImage := image
 
 	log.Infoln("Creating deployment resource with", checkDeploymentReplicas, "replica(s) in", checkNamespace, "namespace using image ["+checkImage+"] with environment variables:", additionalEnvVars)
@@ -242,7 +238,8 @@ func createDeployment(ctx context.Context, deploymentConfig *v1.Deployment, dead
 			for event := range watch.ResultChan() { // Watch for deployment events.
 
 				d, ok := event.Object.(*v1.Deployment)
-				if !ok { // Skip the event if it cannot be casted as a v1.Deployment.
+				if !ok {
+					// Skip the event if it cannot be cast as a v1.Deployment.
 					log.Infoln("Got a watch event for a non-deployment object -- ignoring.")
 					continue
 				}
@@ -693,7 +690,7 @@ func waitForDeploymentToDelete(ctx context.Context) chan bool {
 }
 
 // rollingUpdateComplete checks the deployment's container images and their statuses and returns
-// a boolean based on whether or not the rolling-update is complete.
+// a boolean based on whether the rolling-update is complete.
 func rollingUpdateComplete(ctx context.Context, statuses map[string]bool, oldPodNames []string) bool {
 
 	// Should be looking at pod and pod names NOT containers.
@@ -799,7 +796,7 @@ func getPodNames(ctx context.Context) []string {
 	return names
 }
 
-// containsString returns a boolean value based on whether or not a slice of strings contains
+// containsString returns a boolean value based on whether a slice of strings contains
 // a string.
 func containsString(s string, list []string) bool {
 	for _, str := range list {

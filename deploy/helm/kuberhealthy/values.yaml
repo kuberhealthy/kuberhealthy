@@ -307,8 +307,8 @@ check:
       repository: chrishirsch/kuberhealthy-storage-check
       tag: v0.0.1
     extraEnvs:
-      CHECK_STORAGE_IMAGE: bitnami/nginx:1.19
-      CHECK_STORAGE_INIT_IMAGE: bitnami/nginx:1.19
+      CHECK_STORAGE_IMAGE: bitnami/nginx:1.27
+      CHECK_STORAGE_INIT_IMAGE: bitnami/nginx:1.27
     nodeSelector: {}
     tolerations: []
     #- key: "key"
