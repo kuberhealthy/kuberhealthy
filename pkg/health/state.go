@@ -6,7 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	khcrds "github.com/kuberhealthy/kuberhealthy/v3/pkg/apis/comcast.github.io/v1"
+	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v1"
 )
 
 // State represents the results of all checks being managed along with a top-level OK and Error state. This is displayed
@@ -14,8 +14,8 @@ import (
 type State struct {
 	OK            bool
 	Errors        []string
-	CheckDetails  map[string]khcrds.WorkloadDetails // map of check names to last run timestamp
-	JobDetails    map[string]khcrds.WorkloadDetails // map of job names to last run timestamp
+	CheckDetails  map[string]comcastgithubiov1.KHWorkload // map of check names to last run timestamp
+	JobDetails    map[string]comcastgithubiov1.KHWorkload // map of job names to last run timestamp
 	CurrentMaster string
 	Metadata      map[string]string
 }
@@ -59,8 +59,8 @@ func NewState() State {
 	s := State{}
 	s.OK = true
 	s.Errors = []string{}
-	s.CheckDetails = make(map[string]khcrds.WorkloadDetails)
-	s.JobDetails = make(map[string]khcrds.WorkloadDetails)
+	s.CheckDetails = make(map[string]comcastgithubiov1.KHWorkload)
+	s.JobDetails = make(map[string]comcastgithubiov1.KHWorkload)
 	s.Metadata = map[string]string{}
 	return s
 }
