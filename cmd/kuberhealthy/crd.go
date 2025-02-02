@@ -22,7 +22,7 @@ func setCheckStateResource(ctx context.Context, checkName string, checkNamespace
 
 	// we must fetch the existing state to use the current resource version
 	// int found within
-	existingState, err := KuberhealthyClient.ComcastV1().KuberhealthyStates(checkNamespace).Get(ctx, name, metav1.GetOptions{})
+	existingState, err := KubernetesClient.GetKuberhealthyState(checkName, checkNamespace)
 	if err != nil {
 		return errors.New("Error retrieving CRD for: " + name + " " + err.Error())
 	}
@@ -33,15 +33,12 @@ func setCheckStateResource(ctx context.Context, checkName string, checkNamespace
 	now := metav1.Now() // set the time the khstate was last
 	state.Spec.LastRun = &now
 
-	khState := khcrds.KuberhealthyState{}
-	khState.Name = name
-	khState.Namespace = checkNamespace
-	khState.SetResourceVersion(resourceVersion)
-
-	// TODO - if "try again" message found in error, then try again
+	state.Name = name
+	state.Namespace = checkNamespace
+	state.SetResourceVersion(resourceVersion)
 
 	log.Debugln(checkNamespace, checkName, "writing khstate with ok:", state.Spec.OK, "and errors:", state.Spec.Errors, "at last run:", state.Spec.LastRun)
-	_, err = KuberhealthyClient.ComcastV1().KuberhealthyStates(checkNamespace).Update(ctx, &khState, metav1.UpdateOptions{})
+	err = KubernetesClient.UpdateKuberhealthyState(&state)
 	return err
 }
 
@@ -62,12 +59,22 @@ func ensureStateResourceExists(ctx context.Context, checkName string, checkNames
 	name := sanitizeResourceName(checkName)
 
 	log.Debugln("Checking existence of custom resource:", name)
-	state, err := KuberhealthyClient.ComcastV1().KuberhealthyStates(checkNamespace).Get(ctx, name, metav1.GetOptions{})
+	state, err := KubernetesClient.GetKuberhealthyState(checkName, checkNamespace)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) || strings.Contains(err.Error(), "not found") {
 			log.Infoln("Custom resource not found, creating resource:", name, " - ", err)
-			initialState := khcrds.KuberhealthyState{}
-			_, err := KuberhealthyClient.ComcastV1().KuberhealthyStates(checkNamespace).Create(ctx, &initialState, metav1.CreateOptions{})
+			newKHState := &khcrds.KuberhealthyState{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "",
+					APIVersion: "v1",
+				},
+				Spec: khcrds.KuberhealthyStateSpec{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      checkName,
+					Namespace: checkNamespace,
+				},
+			}
+			err = KubernetesClient.CreateKuberhealthyState(newKHState)
 			if err != nil {
 				return errors.New("Error creating custom resource: " + name + ": " + err.Error())
 			}
@@ -81,40 +88,31 @@ func ensureStateResourceExists(ctx context.Context, checkName string, checkNames
 	return nil
 }
 
-// // getCheckState retrieves the check values from the kuberhealthy khstate
-// // custom resource
-func getCheckState(ctx context.Context, c *external.Checker) (khcrds.KuberhealthyState, error) {
+// getCheckState retrieves the check values from the kuberhealthy khstate custom resource
+func getCheckState(ctx context.Context, c *external.Checker) (*khcrds.KuberhealthyState, error) {
 
-	var state = khcrds.KuberhealthyState{}
 	var err error
 	name := sanitizeResourceName(c.Name())
 
 	// make sure the CRD exists, even when checking status
 	err = ensureStateResourceExists(ctx, c.Name(), c.CheckNamespace())
 	if err != nil {
-		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
+		return nil, errors.New("Error validating CRD exists: " + name + " " + err.Error())
 	}
 
 	log.Debugln("Retrieving khstate custom resource for:", name)
-	khstate, err := KuberhealthyClient.ComcastV1().KuberhealthyStates(c.CheckNamespace()).Get(ctx, name, metav1.GetOptions{})
+
+	khstate, err := KubernetesClient.GetKuberhealthyState(name, c.Namespace)
 	if err != nil {
-		return state, errors.New("Error retrieving custom khstate resource: " + name + " " + err.Error())
+		return nil, errors.New("Error retrieving custom khstate resource: " + name + " " + err.Error())
 	}
 	log.Debugln("Successfully retrieved khstate resource:", name)
-	return khstate.Spec, nil
+	return khstate, nil
 }
 
-// // getCheckState retrieves the check values from the kuberhealthy khstate
-// // custom resource
-func getJobState(ctx context.Context, j *external.Checker) (khcrds.KuberhealthyState, error) {
+// getCheckState retrieves the check values from the kuberhealthy khstate custom resource
+func getJobState(ctx context.Context, j *external.Checker) (*khcrds.KuberhealthyState, error) {
 
-	// create a new khjob state spec
-	khjob := khcrds.KHWorkload("KHJob")
-	state := khcrds.KuberhealthyState{
-		Spec: khcrds.KuberhealthyStateSpec{
-			KHWorkload: &khjob,
-		},
-	}
 	// var state = khstatev1.NewWorkloadDetails(khstatev1.KHJob)
 	var err error
 	name := sanitizeResourceName(j.Name())
@@ -122,22 +120,22 @@ func getJobState(ctx context.Context, j *external.Checker) (khcrds.KuberhealthyS
 	// make sure the CRD exists, even when checking status
 	err = ensureStateResourceExists(ctx, j.Name(), j.CheckNamespace())
 	if err != nil {
-		return state, errors.New("Error validating CRD exists: " + name + " " + err.Error())
+		return nil, errors.New("Error validating CRD exists: " + name + " " + err.Error())
 	}
 
 	log.Debugln("Retrieving khstate custom resource for:", name)
-	khstate, err := KuberhealthyClient.ComcastV1().KuberhealthyStates(j.CheckNamespace()).Get(ctx, name, metav1.GetOptions{})
+	khstate, err := KubernetesClient.GetKuberhealthyState(name, j.Namespace)
 	if err != nil {
-		return state, errors.New("Error retrieving custom khstate resource: " + name + " " + err.Error())
+		return khstate, errors.New("Error retrieving custom khstate resource: " + name + " " + err.Error())
 	}
 	log.Debugln("Successfully retrieved khstate resource:", name)
-	return khstate.Spec, nil
+	return khstate, nil
 }
 
 // setJobPhase updates the kuberhealthy job phase depending on the state of its run.
 func setJobPhase(ctx context.Context, jobName string, jobNamespace string, jobPhase khcrds.JobPhase) error {
 
-	kj, err := KuberhealthyClient.ComcastV1().KuberhealthyJobs(jobNamespace).Get(ctx, jobName, metav1.GetOptions{})
+	kj, err := KubernetesClient.GetKuberhealthyJob(jobName, jobNamespace)
 	if err != nil {
 		log.Errorln("error getting khjob:", jobName, err)
 		return err
@@ -145,6 +143,5 @@ func setJobPhase(ctx context.Context, jobName string, jobNamespace string, jobPh
 	kj.Spec.Phase = jobPhase
 	log.Infoln("Setting khjob phase to:", jobPhase)
 
-	_, err = KuberhealthyClient.ComcastV1().KuberhealthyJobs(jobNamespace).Update(ctx, kj, metav1.UpdateOptions{})
-	return err
+	return KubernetesClient.UpdateKuberhealthyJob(kj)
 }
