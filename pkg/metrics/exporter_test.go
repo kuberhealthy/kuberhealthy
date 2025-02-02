@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	khcrds "github.com/kuberhealthy/kuberhealthy/v3/pkg/apis/comcast.github.io/v1"
+	khcrds "github.com/kuberhealthy/crds/api/v1"
 	"github.com/kuberhealthy/kuberhealthy/v3/pkg/health"
 )
 
@@ -70,7 +70,7 @@ func TestGenerateMetrics(t *testing.T) {
 	}
 	// Test with checks, one good, one bad
 	state = health.State{
-		CheckDetails: map[string]khcrds.WorkloadDetails{
+		CheckDetails: map[string]khcrds.KuberhealthyJobStatus{
 			"good": {
 				OK: true,
 			},

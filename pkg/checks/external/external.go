@@ -24,9 +24,9 @@ import (
 	policyv1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	khcrds "github.com/kuberhealthy/kuberhealthy/v3/pkg/apis/comcast.github.io/v1"
+	khcrds "github.com/kuberhealthy/crds/api/v1"
 	"github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external/util"
-	khClient "github.com/kuberhealthy/kuberhealthy/v3/pkg/generated/clientset/versioned"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/kubeclient"
 )
 
 // KHReportingURL is the environment variable used to tell external checks where to send their status updates
@@ -88,7 +88,7 @@ type Checker struct {
 	RunInterval              time.Duration // how often this check runs a loop
 	RunTimeout               time.Duration // time check must run completely within
 	KubeClientInterface      kubernetes.Interface
-	KHClient                 *khClient.Clientset
+	KHClient                 *kubeclient.KHClient
 	PodSpec                  apiv1.PodSpec // the current pod spec we are using after enforcement of settings
 	OriginalPodSpec          apiv1.PodSpec // the user-provided spec of the pod
 	RunID                    string        // the uuid of the current run
@@ -113,11 +113,11 @@ func init() {
 }
 
 // New creates a new external checker
-func New(client kubernetes.Interface, checkConfig *khcrds.KuberhealthyCheck, khClient *khClient.Clientset, reportingURL string) *Checker {
+func New(client kubernetes.Interface, checkConfig *khcrds.KuberhealthyCheck, khClient *kubeclient.KHClient, reportingURL string) *Checker {
 	return NewCheck(client, checkConfig, khClient, reportingURL)
 }
 
-func NewCheck(client kubernetes.Interface, checkConfig *khcrds.KuberhealthyCheck, khClient *khClient.Clientset, reportingURL string) *Checker {
+func NewCheck(client kubernetes.Interface, checkConfig *khcrds.KuberhealthyCheck, khClient *kubeclient.KHClient, reportingURL string) *Checker {
 
 	if len(checkConfig.Namespace) == 0 {
 		checkConfig.Namespace = "kuberhealthy"
@@ -139,7 +139,7 @@ func NewCheck(client kubernetes.Interface, checkConfig *khcrds.KuberhealthyCheck
 	}
 }
 
-func NewJob(client kubernetes.Interface, jobConfig *khcrds.KuberhealthyJob, kuberhealthyClient *khClient.Clientset, reportingURL string) *Checker {
+func NewJob(client kubernetes.Interface, jobConfig *khcrds.KuberhealthyJob, kuberhealthyClient *kubeclient.KHClient, reportingURL string) *Checker {
 
 	if len(jobConfig.Namespace) == 0 {
 		jobConfig.Namespace = "kuberhealthy"
