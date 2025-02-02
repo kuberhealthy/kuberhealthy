@@ -100,18 +100,12 @@ func (khc *KHClient) UpdateKuberhealthyJob(khJob *comcastgithubiov1.Kuberhealthy
 }
 
 // ListKuberhealthyStates lists all KuberhealthyState resources in a given namespace with optional ListOptions.
-func (khc *KHClient) ListKuberhealthyStates(namespace string, opts *metav1.ListOptions) (*comcastgithubiov1.KuberhealthyStateList, error) {
+func (khc *KHClient) ListKuberhealthyStates(namespace string, opts *client.ListOptions) (*comcastgithubiov1.KuberhealthyStateList, error) {
 	ctx := context.Background()
 	khStateList := &comcastgithubiov1.KuberhealthyStateList{}
-	listOpts := []client.ListOption{client.InNamespace(namespace)}
+	opts.Namespace = namespace // enforce the namespace setting that the user supplied
 
-	if opts != nil {
-		if len(opts.LabelSelector) > 0 {
-			listOpts = append(listOpts, client.MatchingLabelsSelector{Selector: opts.LabelSelector})
-		}
-	}
-
-	err := khc.Client.List(ctx, khStateList, listOpts...)
+	err := khc.Client.List(ctx, khStateList, opts)
 	if err != nil {
 		return nil, fmt.Errorf("error listing KuberhealthyStates: %w", err)
 	}
@@ -119,18 +113,12 @@ func (khc *KHClient) ListKuberhealthyStates(namespace string, opts *metav1.ListO
 }
 
 // ListKuberhealthyChecks lists all KuberhealthyCheck resources in a given namespace with optional ListOptions.
-func (khc *KHClient) ListKuberhealthyChecks(namespace string, opts *metav1.ListOptions) (*comcastgithubiov1.KuberhealthyCheckList, error) {
+func (khc *KHClient) ListKuberhealthyChecks(namespace string, opts *client.ListOptions) (*comcastgithubiov1.KuberhealthyCheckList, error) {
 	ctx := context.Background()
 	khCheckList := &comcastgithubiov1.KuberhealthyCheckList{}
-	listOpts := []client.ListOption{client.InNamespace(namespace)}
+	opts.Namespace = namespace // enforce the namespace setting that the user supplied
 
-	if opts != nil {
-		if len(opts.LabelSelector) > 0 {
-			listOpts = append(listOpts, client.MatchingLabelsSelector{Selector: opts.LabelSelector})
-		}
-	}
-
-	err := khc.Client.List(ctx, khCheckList, listOpts...)
+	err := khc.Client.List(ctx, khCheckList, opts)
 	if err != nil {
 		return nil, fmt.Errorf("error listing KuberhealthyChecks: %w", err)
 	}
@@ -138,18 +126,12 @@ func (khc *KHClient) ListKuberhealthyChecks(namespace string, opts *metav1.ListO
 }
 
 // ListKuberhealthyJobs lists all KuberhealthyJob resources in a given namespace with optional ListOptions.
-func (khc *KHClient) ListKuberhealthyJobs(namespace string, opts *metav1.ListOptions) (*comcastgithubiov1.KuberhealthyJobList, error) {
+func (khc *KHClient) ListKuberhealthyJobs(namespace string, opts *client.ListOptions) (*comcastgithubiov1.KuberhealthyJobList, error) {
 	ctx := context.Background()
 	khJobList := &comcastgithubiov1.KuberhealthyJobList{}
-	listOpts := []client.ListOption{client.InNamespace(namespace)}
+	opts.Namespace = namespace // enforce the namespace setting that the user supplied
 
-	if opts != nil {
-		if len(opts.LabelSelector) > 0 {
-			listOpts = append(listOpts, client.MatchingLabelsSelector{Selector: opts.LabelSelector})
-		}
-	}
-
-	err := khc.Client.List(ctx, khJobList, listOpts...)
+	err := khc.Client.List(ctx, khJobList, opts)
 	if err != nil {
 		return nil, fmt.Errorf("error listing KuberhealthyJobs: %w", err)
 	}
