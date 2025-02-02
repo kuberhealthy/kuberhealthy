@@ -8,8 +8,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	khcrds "github.com/kuberhealthy/kuberhealthy/v3/pkg/apis/comcast.github.io/v1"
+	khcrds "github.com/kuberhealthy/crds/api/v1"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/kubeclient"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
@@ -151,16 +153,20 @@ func (r *Reaper) runJobReap(ctx context.Context, namespace string) {
 func (r *Reaper) listCompletedCheckerPods(ctx context.Context, namespace string) (map[string]v1.Pod, error) {
 	log.Infoln("checkReaper: Listing checker pods")
 
-	r.ReapCheckerPods = make(map[string]v1.Pod)
-	pods, err := KubernetesClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: "kuberhealthy-check-name"})
+	r.ReapCheckerPods = make(map[string]v1.Pod) // pods to reap
+
+	// fetch all pods with the label kuberhealthy-check-name in the supplied namespace
+	podList := &v1.PodList{}
+	listOpts := []client.ListOption{client.InNamespace(namespace), client.HasLabels{"kuberhealthy-check-name"}}
+	err := KubernetesClient.Client.List(ctx, podList, listOpts...)
 	if err != nil {
 		log.Errorln("checkReaper: Failed to list checker pods")
 		return r.ReapCheckerPods, err
 	}
 
-	log.Infoln("checkReaper: Found:", len(pods.Items), "checker pods")
+	log.Infoln("checkReaper: Found:", len(podList.Items), "checker pods")
 
-	for _, p := range pods.Items {
+	for _, p := range podList.Items {
 		if p.Status.Phase == v1.PodSucceeded || p.Status.Phase == v1.PodFailed {
 			r.ReapCheckerPods[p.Namespace+"/"+p.Name] = p
 		}
@@ -185,7 +191,8 @@ func (r *Reaper) deleteFilteredCheckerPods(ctx context.Context, reapCheckerPods 
 		if p.Status.Phase == v1.PodSucceeded && time.Since(podTerminatedTime) > GlobalConfig.MaxCheckPodAge {
 			log.Infoln("checkReaper: Found completed pod older than:", GlobalConfig.MaxCheckPodAge, "in status `Succeeded`. Deleting pod:", p)
 
-			err = KubernetesClient.CoreV1().Pods(p.Namespace).Delete(ctx, p.Name, metav1.DeleteOptions{})
+			err = KubernetesClient.Client.Delete(ctx, &p)
+			// err = KubernetesClient.CoreV1().Pods(p.Namespace).Delete(ctx, p.Name, metav1.DeleteOptions{})
 			if err != nil {
 				log.Errorln("checkReaper: Failed to delete pod:", p, err)
 				continue
@@ -197,7 +204,8 @@ func (r *Reaper) deleteFilteredCheckerPods(ctx context.Context, reapCheckerPods 
 		if p.Status.Phase == v1.PodFailed && time.Since(podTerminatedTime) > GlobalConfig.MaxCheckPodAge {
 			log.Infoln("checkReaper: Found completed pod older than:", GlobalConfig.MaxCheckPodAge, "in status `Failed`. Deleting pod:", p.Name)
 
-			err = KubernetesClient.CoreV1().Pods(p.Namespace).Delete(ctx, p.Name, metav1.DeleteOptions{})
+			err = KubernetesClient.Client.Delete(ctx, &p)
+			// err = KubernetesClient.CoreV1().Pods(p.Namespace).Delete(ctx, p.Name, metav1.DeleteOptions{})
 			if err != nil {
 				log.Errorln("checkReaper: Failed to delete pod:", p, err)
 				continue
@@ -283,11 +291,8 @@ func (r *Reaper) getAllCompletedPodsWithCheckName(reapCheckerPods map[string]v1.
 
 // deletePod deletes a given pod
 func (r *Reaper) deletePod(ctx context.Context, pod v1.Pod) error {
-
 	log.Infoln("checkReaper: Deleting Pod: ", pod.Name, " in namespace: ", pod.Namespace)
-	propagationForeground := metav1.DeletePropagationForeground
-	options := metav1.DeleteOptions{PropagationPolicy: &propagationForeground}
-	return KubernetesClient.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, options)
+	return KubernetesClient.Client.Delete(ctx, &pod, kubeclient.ForegroundDeleteOption())
 }
 
 // jobConditions returns true if conditions are met to be deleted for khjob
@@ -299,14 +304,14 @@ func (r *Reaper) jobConditions(job khcrds.KuberhealthyJob, duration time.Duratio
 	return false
 }
 
-// khJobDelete fetches a list of khjobs in a namespace and will delete them if they meet given criteria
+// khJobDelete fetches a list of khjobs in a namespace and will delete them if they meet specific criteria
 func (r *Reaper) khJobDelete(ctx context.Context, namespace string) error {
 
 	opts := metav1.ListOptions{}
-	del := metav1.DeleteOptions{}
+	delOpts := metav1.DeleteOptions{}
 
 	// list khjobs in Namespace
-	list, err := KuberhealthyClient.ComcastV1().KuberhealthyJobs(namespace).List(ctx, opts)
+	list, err := KubernetesClient.ListKuberhealthyJobs(namespace, &opts)
 	if err != nil {
 		log.Errorln("checkReaper: Error: failed to retrieve khjob list with error", err)
 		return err
@@ -318,7 +323,7 @@ func (r *Reaper) khJobDelete(ctx context.Context, namespace string) error {
 	for _, j := range list.Items {
 		if r.jobConditions(j, GlobalConfig.MaxKHJobAge, "Completed") {
 			log.Infoln("checkReaper: Deleting khjob", j.Name)
-			err := KuberhealthyClient.ComcastV1().KuberhealthyJobs(namespace).Delete(ctx, j.Name, del)
+			err = KubernetesClient.DeleteKuberhealthyJob(j.Name, j.Namespace, &delOpts)
 			if err != nil {
 				log.Errorln("checkReaper: Failure to delete khjob", j.Name, "with error:", err)
 				return err
