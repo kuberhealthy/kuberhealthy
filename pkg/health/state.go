@@ -14,8 +14,8 @@ import (
 type State struct {
 	OK            bool
 	Errors        []string
-	CheckDetails  map[string]comcastgithubiov1.KHWorkload // map of check names to last run timestamp
-	JobDetails    map[string]comcastgithubiov1.KHWorkload // map of job names to last run timestamp
+	CheckDetails  map[string]comcastgithubiov1.KuberhealthyCheckSpec // map of check names to last run timestamp
+	JobDetails    map[string]comcastgithubiov1.KuberhealthyJobSpec   // map of job names to last run timestamp
 	CurrentMaster string
 	Metadata      map[string]string
 }
@@ -59,8 +59,8 @@ func NewState() State {
 	s := State{}
 	s.OK = true
 	s.Errors = []string{}
-	s.CheckDetails = make(map[string]comcastgithubiov1.KHWorkload)
-	s.JobDetails = make(map[string]comcastgithubiov1.KHWorkload)
+	s.CheckDetails = make(map[string]comcastgithubiov1.KuberhealthyCheckSpec)
+	s.JobDetails = make(map[string]comcastgithubiov1.KuberhealthyJobSpec)
 	s.Metadata = map[string]string{}
 	return s
 }
