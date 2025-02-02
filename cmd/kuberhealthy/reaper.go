@@ -7,7 +7,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	khcrds "github.com/kuberhealthy/crds/api/v1"
@@ -307,8 +306,8 @@ func (r *Reaper) jobConditions(job khcrds.KuberhealthyJob, duration time.Duratio
 // khJobDelete fetches a list of khjobs in a namespace and will delete them if they meet specific criteria
 func (r *Reaper) khJobDelete(ctx context.Context, namespace string) error {
 
-	opts := metav1.ListOptions{}
-	delOpts := metav1.DeleteOptions{}
+	opts := client.ListOptions{}
+	delOpts := client.DeleteOptions{}
 
 	// list khjobs in Namespace
 	list, err := KubernetesClient.ListKuberhealthyJobs(namespace, &opts)

@@ -171,7 +171,7 @@ func (khc *KHClient) DeleteKuberhealthyCheck(name, namespace string, opts *metav
 }
 
 // DeleteKuberhealthyJob deletes a KuberhealthyJob resource with optional DeleteOptions.
-func (khc *KHClient) DeleteKuberhealthyJob(name, namespace string, opts *metav1.DeleteOptions) error {
+func (khc *KHClient) DeleteKuberhealthyJob(name, namespace string, opts *client.DeleteOptions) error {
 	ctx := context.Background()
 	khJob, err := khc.GetKuberhealthyJob(name, namespace)
 	if err != nil {
