@@ -17,8 +17,10 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
-// setupKubernetesClient creates a new kubernetes client with kuberhealthy CRDs working
-func New() (client.Client, error) {
+// NewKHClient creates a new kubernetes client with kuberhealthy CRDs working.  This is useful, but
+// it's probably better to use the KHClient struct that has pre-made CRUD operations on it. To get
+// a new KHClient struct, use New().
+func NewKHClient() (client.Client, error) {
 	// Create a new kubernetes client Scheme
 	customScheme := runtime.NewScheme()
 	err := clientgoscheme.AddToScheme(customScheme)

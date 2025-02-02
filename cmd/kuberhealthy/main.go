@@ -13,7 +13,6 @@ import (
 
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	manager "sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/kuberhealthy/kuberhealthy/v3/pkg/kubeclient"
@@ -28,7 +27,7 @@ const KHCheckNameAnnotationKey = "comcast.github.io/check-name" // KHCheckNameAn
 const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"      // KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
 const DefaultRunInterval = time.Minute * 10                     // DefaultRunInterval is the default run interval for checks set by kuberhealthy
 
-var KubernetesClient client.Client                                  // KubernetesClient is the global kubernetes client
+var KubernetesClient *kubeclient.KHClient                           // KubernetesClient is the global kubernetes client
 var CRDManager manager.Manager                                      // CRDManager holds the event handlers for CRDs as well as the Kuberhealthy CRD Clients
 var podNamespace = os.Getenv("POD_NAMESPACE")                       // the namespace the pod runs in
 var checkReaperRunInterval = os.Getenv("CHECK_REAPER_RUN_INTERVAL") // Interval for how often check pods should get reaped. Default is 30s.
@@ -55,6 +54,7 @@ func main() {
 		log.Fatalln("Error setting up Kuberhealthy client for Kubernetes:", err)
 	}
 
+	KubernetesClient.GetKuberhealthyState("test", "default")
 	// init the CRD manager
 	CRDManager, err = newCRDManager()
 	if err != nil {
