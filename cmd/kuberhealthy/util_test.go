@@ -3,14 +3,14 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/ghodss/yaml"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
-	khcrds "github.com/kuberhealthy/kuberhealthy/v3/pkg/apis/comcast.github.io/v1"
+	khcrds "github.com/kuberhealthy/crds/api/v1"
 	"github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external"
 )
 
@@ -29,7 +29,7 @@ func newExternalTestCheck(c *kubernetes.Clientset) (*external.Checker, error) {
 // spec file for pods
 func newTestCheckFromSpec(c *kubernetes.Clientset, spec *khcrds.KuberhealthyCheck) *external.Checker {
 	// create a new checker and insert this pod spec
-	checker := external.New(c, spec, KuberhealthyClient, GlobalConfig.ExternalCheckReportingURL) // external checker does not ever return an error so we drop it
+	checker := external.New(c, spec, KubernetesClient, GlobalConfig.ExternalCheckReportingURL) // external checker does not ever return an error so we drop it
 	checker.Debug = true
 	return checker
 }
@@ -47,7 +47,7 @@ func loadTestPodSpecFile(path string) (*khcrds.KuberhealthyCheck, error) {
 	}
 
 	// read in all the configuration bytes
-	b, err := ioutil.ReadAll(f)
+	b, err := io.ReadAll(f)
 	if err != nil {
 		return &podSpec, err
 	}
