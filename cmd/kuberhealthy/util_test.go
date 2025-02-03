@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	khcrds "github.com/kuberhealthy/crds/api/v1"
-	"github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external"
+	"github.com/kuberhealthy/kuberhealthy/v4/pkg/checks/external"
 )
 
 // newExternalTestCheck creates a new external test checker struct with a basic set of defaults
@@ -29,7 +29,7 @@ func newExternalTestCheck(c *kubernetes.Clientset) (*external.Checker, error) {
 // spec file for pods
 func newTestCheckFromSpec(c *kubernetes.Clientset, spec *khcrds.KuberhealthyCheck) *external.Checker {
 	// create a new checker and insert this pod spec
-	checker := external.New(c, spec, KubernetesClient, GlobalConfig.ExternalCheckReportingURL) // external checker does not ever return an error so we drop it
+	checker := external.New(c, spec, KHClient, GlobalConfig.ExternalCheckReportingURL) // external checker does not ever return an error so we drop it
 	checker.Debug = true
 	return checker
 }

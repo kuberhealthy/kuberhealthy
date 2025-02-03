@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright 2025 Kuberhealthy Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v1"
+	kuberhealthygithubiov4 "github.com/kuberhealthy/crds/api/v4"
 )
 
 // KuberhealthyJobReconciler reconciles a KuberhealthyJob object
@@ -33,9 +33,9 @@ type KuberhealthyJobReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=comcast.github.io.comcast.github.io,resources=kuberhealthyjobs,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=comcast.github.io.comcast.github.io,resources=kuberhealthyjobs/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=comcast.github.io.comcast.github.io,resources=kuberhealthyjobs/finalizers,verbs=update
+// +kubebuilder:rbac:groups=kuberhealthy.github.io.kuberhealthy.github.io,resources=kuberhealthyjobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kuberhealthy.github.io.kuberhealthy.github.io,resources=kuberhealthyjobs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=kuberhealthy.github.io.kuberhealthy.github.io,resources=kuberhealthyjobs/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -57,6 +57,6 @@ func (r *KuberhealthyJobReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 // SetupWithManager sets up the controller with the Manager.
 func (r *KuberhealthyJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&comcastgithubiov1.KuberhealthyJob{}).
+		For(&kuberhealthygithubiov4.KuberhealthyJob{}).
 		Complete(r)
 }

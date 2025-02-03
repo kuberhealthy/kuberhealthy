@@ -12,7 +12,7 @@ import (
 
 	apiv1 "k8s.io/api/core/v1"
 
-	khcrds "github.com/kuberhealthy/kuberhealthy/v3/pkg/apis/comcast.github.io/v1"
+	khcrds "github.com/kuberhealthy/kuberhealthy/v4/pkg/apis/comcast.github.io/v1"
 )
 
 func init() {

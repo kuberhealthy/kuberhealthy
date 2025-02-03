@@ -22,19 +22,19 @@ var (
 // a new KHClient struct, use New().
 func NewKHClient() (client.Client, error) {
 	// Create a new kubernetes client Scheme
-	customScheme := runtime.NewScheme()
-	err := clientgoscheme.AddToScheme(customScheme)
+	khScheme := runtime.NewScheme()
+	err := clientgoscheme.AddToScheme(khScheme)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add custom scheme: %v", err)
 	}
 
 	// Add Kubernetes core types to the scheme
-	if err := scheme.AddToScheme(customScheme); err != nil {
+	if err := scheme.AddToScheme(khScheme); err != nil {
 		return nil, fmt.Errorf("failed to add Kubernetes core scheme to client: %v", err)
 	}
 
 	// Add Kuberhealthy's custom CRDs to the scheme
-	if err = comcastgithubiov1.AddToScheme(customScheme); err != nil {
+	if err = comcastgithubiov1.AddToScheme(khScheme); err != nil {
 		return nil, fmt.Errorf("failed to add Kuberhealthy's custom CRDs to scheme: %v", err)
 	}
 
@@ -46,7 +46,7 @@ func NewKHClient() (client.Client, error) {
 
 	// Create a dynamic client with the customScheme and in cluster config
 	// then set the client globally
-	kubeClient, err := client.New(config, client.Options{Scheme: customScheme})
+	kubeClient, err := client.New(config, client.Options{Scheme: khScheme})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create kuberhealthy-enabled kubernetes client: %v", err)
 	}

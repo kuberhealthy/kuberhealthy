@@ -16,8 +16,8 @@ import (
 
 	"github.com/cenkalti/backoff"
 
-	"github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external"
-	"github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external/status"
+	"github.com/kuberhealthy/kuberhealthy/v4/pkg/checks/external"
+	"github.com/kuberhealthy/kuberhealthy/v4/pkg/checks/external/status"
 )
 
 var (

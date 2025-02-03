@@ -1,4 +1,4 @@
-module github.com/kuberhealthy/kuberhealthy/v3
+module github.com/kuberhealthy/kuberhealthy/v4
 
 go 1.23.4
 

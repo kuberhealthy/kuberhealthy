@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright 2025 Kuberhealthy Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,14 +32,14 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v1"
+	kuberhealthygithubiov4 "github.com/kuberhealthy/crds/api/v4"
 	// +kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var GlobalConfig *rest.Config
+var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
 
@@ -67,17 +67,17 @@ var _ = BeforeSuite(func() {
 	}
 
 	var err error
-	// GlobalConfig is defined in this file globally.
-	GlobalConfig, err = testEnv.Start()
+	// cfg is defined in this file globally.
+	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
-	Expect(GlobalConfig).NotTo(BeNil())
+	Expect(cfg).NotTo(BeNil())
 
-	err = comcastgithubiov1.AddToScheme(scheme.Scheme)
+	err = kuberhealthygithubiov4.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
 
-	k8sClient, err = client.New(GlobalConfig, client.Options{Scheme: scheme.Scheme})
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	khcrds "github.com/kuberhealthy/crds/api/v1"
-	"github.com/kuberhealthy/kuberhealthy/v3/pkg/health"
+	"github.com/kuberhealthy/kuberhealthy/v4/pkg/health"
 )
 
 func parseMetrics(metricOutput string) map[string]string {

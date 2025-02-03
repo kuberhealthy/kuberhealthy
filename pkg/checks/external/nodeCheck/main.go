@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external"
+	"github.com/kuberhealthy/kuberhealthy/v4/pkg/checks/external"
 )
 
 // EnableDebugOutput enables debug logging for this package
