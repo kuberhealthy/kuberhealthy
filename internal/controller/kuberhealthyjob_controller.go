@@ -19,12 +19,12 @@ package controller
 import (
 	"context"
 
+	kuberhealthygithubiov4 "github.com/kuberhealthy/crds/api/v4"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	kuberhealthygithubiov4 "github.com/kuberhealthy/crds/api/v4"
 )
 
 // KuberhealthyJobReconciler reconciles a KuberhealthyJob object
@@ -36,6 +36,13 @@ type KuberhealthyJobReconciler struct {
 // +kubebuilder:rbac:groups=kuberhealthy.github.io.kuberhealthy.github.io,resources=kuberhealthyjobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kuberhealthy.github.io.kuberhealthy.github.io,resources=kuberhealthyjobs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=kuberhealthy.github.io.kuberhealthy.github.io,resources=kuberhealthyjobs/finalizers,verbs=update
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *KuberhealthyJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&kuberhealthygithubiov4.KuberhealthyJob{}).
+		Complete(r)
+}
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -49,14 +56,53 @@ type KuberhealthyJobReconciler struct {
 func (r *KuberhealthyJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	log := log.FromContext(ctx)
+	log.Info("Reconciling KuberhealthyJob", "name", req.NamespacedName)
 
+	// Fetch the KuberhealthyCheck instance
+	var khCheck kuberhealthygithubiov4.KuberhealthyCheck
+	err := r.Get(ctx, req.NamespacedName, &khCheck)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Handle Delete event
+			return r.handleDelete(ctx, req)
+		}
+		log.Error(err, "Failed to get KuberhealthyJob")
+		return ctrl.Result{}, err
+	}
+
+	// Determine if it's a Create or Update
+	if khCheck.CreationTimestamp.IsZero() {
+		return r.handleCreate(ctx, &khCheck)
+	} else {
+		return r.handleUpdate(ctx, &khCheck)
+	}
+}
+
+// Handle Create Event
+func (r *KuberhealthyJobReconciler) handleCreate(ctx context.Context, khCheck *kuberhealthygithubiov4.KuberhealthyCheck) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
+	log.Info("Handling Create Event", "name", khCheck.Name)
+
+	// TODO: Add logic for creation
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *KuberhealthyJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&kuberhealthygithubiov4.KuberhealthyJob{}).
-		Complete(r)
+// Handle Update Event
+func (r *KuberhealthyJobReconciler) handleUpdate(ctx context.Context, khCheck *kuberhealthygithubiov4.KuberhealthyCheck) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
+	log.Info("Handling Update Event", "name", khCheck.Name)
+
+	// TODO: Add logic for update
+	return ctrl.Result{}, nil
+}
+
+// Handle Delete Event
+func (r *KuberhealthyJobReconciler) handleDelete(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
+	log.Info("Handling Delete Event", "name", req.NamespacedName)
+
+	// TODO: Add cleanup logic
+	return ctrl.Result{}, nil
 }
