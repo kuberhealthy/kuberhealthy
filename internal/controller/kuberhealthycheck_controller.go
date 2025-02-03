@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	kuberhealthygithubiov4 "github.com/kuberhealthy/kuberhealthy/v4/internal/controller"
+	kuberhealthygithubiov4 "github.com/kuberhealthy/crds/api/v4"
 )
 
 // KuberhealthyCheckReconciler reconciles a KuberhealthyCheck object
