@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright 2025 Kuberhealthy Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v1"
+	kuberhealthygithubiov4 "github.com/kuberhealthy/crds/api/v4"
 )
 
 var _ = Describe("KuberhealthyJob Controller", func() {
@@ -40,13 +40,13 @@ var _ = Describe("KuberhealthyJob Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		kuberhealthyjob := &comcastgithubiov1.KuberhealthyJob{}
+		kuberhealthyjob := &kuberhealthygithubiov4.KuberhealthyJob{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind KuberhealthyJob")
 			err := k8sClient.Get(ctx, typeNamespacedName, kuberhealthyjob)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &comcastgithubiov1.KuberhealthyJob{
+				resource := &kuberhealthygithubiov4.KuberhealthyJob{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -59,7 +59,7 @@ var _ = Describe("KuberhealthyJob Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &comcastgithubiov1.KuberhealthyJob{}
+			resource := &kuberhealthygithubiov4.KuberhealthyJob{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 

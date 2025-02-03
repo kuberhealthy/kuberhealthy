@@ -25,8 +25,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	khcrds "github.com/kuberhealthy/crds/api/v1"
-	"github.com/kuberhealthy/kuberhealthy/v3/pkg/checks/external/util"
-	"github.com/kuberhealthy/kuberhealthy/v3/pkg/kubeclient"
+	"github.com/kuberhealthy/kuberhealthy/v4/pkg/checks/external/util"
+	"github.com/kuberhealthy/kuberhealthy/v4/pkg/kubeclient"
 )
 
 // KHReportingURL is the environment variable used to tell external checks where to send their status updates

@@ -13,30 +13,22 @@ import (
 
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 	manager "sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/kuberhealthy/kuberhealthy/v3/pkg/kubeclient"
-	"github.com/kuberhealthy/kuberhealthy/v3/pkg/masterCalculation"
+	"github.com/kuberhealthy/kuberhealthy/v4/pkg/kubeclient"
 )
 
 // GlobalConfig holds the configuration settings for Kuberhealthy
 var GlobalConfig *Config
 var configPath = "/etc/config/kuberhealthy.yaml"
 
-const KHCheckNameAnnotationKey = "comcast.github.io/check-name" // KHCheckNameAnnotationKey is the key used in the annotation that holds the check's short name
-const KHExternalReportingURL = "KH_EXTERNAL_REPORTING_URL"      // KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
-const DefaultRunInterval = time.Minute * 10                     // DefaultRunInterval is the default run interval for checks set by kuberhealthy
+var KHClient *kubeclient.KHClient    // KubernetesClient is the global kubernetes client
+var KubeClient *kubernetes.Clientset // global k8s client used by all things
+var CRDManager manager.Manager       // CRDManager holds the event handlers for CRDs as well as the Kuberhealthy CRD Clients
 
-var KubernetesClient *kubeclient.KHClient                           // KubernetesClient is the global kubernetes client
-var CRDManager manager.Manager                                      // CRDManager holds the event handlers for CRDs as well as the Kuberhealthy CRD Clients
-var podNamespace = os.Getenv("POD_NAMESPACE")                       // the namespace the pod runs in
-var checkReaperRunInterval = os.Getenv("CHECK_REAPER_RUN_INTERVAL") // Interval for how often check pods should get reaped. Default is 30s.
-var podHostname string                                              // the hostname of this pod
-var isMaster bool                                                   // indicates this instance is the master and should be running checks
-var upcomingMasterState bool                                        // the upcoming master state on next interval
-var lastMasterChangeTime time.Time                                  // indicates the last time a master change was seen
-var terminationGracePeriod = time.Minute * 5                        // keep calibrated with kubernetes terminationGracePeriodSeconds
-var DefaultTimeout = time.Minute * 5                                // DefaultTimeout is the default timeout for external checks
+var terminationGracePeriod = time.Minute * 5 // keep calibrated with kubernetes terminationGracePeriodSeconds
+var DefaultTimeout = time.Minute * 5         // DefaultTimeout is the default timeout for external checks
 
 func main() {
 
@@ -49,12 +41,11 @@ func main() {
 	}
 
 	// init the global kubernetes client
-	KubernetesClient, err = kubeclient.New()
+	KHClient, err = kubeclient.New()
 	if err != nil {
 		log.Fatalln("Error setting up Kuberhealthy client for Kubernetes:", err)
 	}
 
-	KubernetesClient.GetKuberhealthyState("test", "default")
 	// init the CRD manager
 	CRDManager, err = newCRDManager()
 	if err != nil {
@@ -68,15 +59,15 @@ func main() {
 	}
 
 	// Create a new Kuberhealthy struct
-	kuberhealthy := NewKuberhealthy(GlobalConfig)
+	// kuberhealthy := NewKuberhealthy(GlobalConfig)
 
 	// create run context and start listening for shutdown interrupts
-	khRunCtx, khRunCtxCancelFunc := context.WithCancel(context.Background())
-	kuberhealthy.shutdownCtxFunc = khRunCtxCancelFunc // load the KH struct with a func to shutdown its control system
-	go listenForInterrupts(kuberhealthy)
+	// khRunCtx, khRunCtxCancelFunc := context.WithCancel(ctx)
+	// kuberhealthy.shutdownCtxFunc = khRunCtxCancelFunc // load the KH struct with a func to shutdown its control system
+	// go listenForInterrupts(kuberhealthy)
 
 	// tell Kuberhealthy to start all checks and master change monitoring
-	kuberhealthy.Start(khRunCtx)
+	// kuberhealthy.Start(khRunCtx)
 
 	time.Sleep(time.Second * 90) // give the interrupt handler a period of time to call exit before we shutdown
 	<-time.After(terminationGracePeriod + (time.Second * 10))
@@ -131,13 +122,14 @@ func setUpConfig() error {
 	}
 
 	// set env variables into config if specified. otherwise set external check URL to default
-	externalCheckURL, err := getEnvVar(KHExternalReportingURL)
+	externalCheckURL, err := getEnvVar("KH_CHECK_REPORT_URL")
 	if err != nil {
-		if len(podNamespace) == 0 {
-			return errors.New("env KH_EXTERNAL_REPORTING_URL not set and POD_NAMESPACE environment variable was blank")
+		if len(GlobalConfig.TargetNamespace) == 0 {
+			return errors.New("env KH_CHECK_REPORT_URL not set and POD_NAMESPACE environment variable was blank.")
+			// TODO - autoconfigure reporting URL based off of current pod namespace
 		}
-		log.Infoln("KH_EXTERNAL_REPORTING_URL environment variable not set, using default value")
-		externalCheckURL = "http://kuberhealthy." + podNamespace + ".svc.cluster.local/externalCheckStatus"
+		log.Infoln("KH_CHECK_REPORT_URL environment variable not set, using default value")
+		externalCheckURL = "http://kuberhealthy." + GlobalConfig.TargetNamespace + ".svc.cluster.local/externalCheckStatus"
 	}
 	GlobalConfig.ExternalCheckReportingURL = externalCheckURL
 	log.Infoln("External check reporting URL set to:", GlobalConfig.ExternalCheckReportingURL)
@@ -159,7 +151,6 @@ func setUp() error {
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
 	flaggy.String(&configPath, "c", "config", "Absolute path to the kuberhealthy config file")
 	flaggy.Bool(&useDebugMode, "d", "debug", "Set to true to enable debug.")
-	flaggy.Bool(&GlobalConfig.EnableForceMaster, "", "forceMaster", "Set to force master responsibilities on.")
 	flaggy.Parse()
 
 	// parse and set logging level
@@ -178,19 +169,6 @@ func setUp() error {
 	if useDebugMode {
 		log.Infoln("Setting debug output on because user specified flag")
 		log.SetLevel(log.DebugLevel)
-	}
-
-	// Handle force master mode
-	if GlobalConfig.EnableForceMaster {
-		log.Infoln("Enabling forced master mode")
-		masterCalculation.DebugAlwaysMasterOn()
-	}
-
-	// determine the name of this pod from the POD_NAME environment variable
-	podHostname, err = getEnvVar("POD_NAME")
-	if err != nil {
-		err := fmt.Errorf("failed to determine my hostname: %s", err)
-		return err
 	}
 
 	// determine the name of this pod from the POD_NAME environment variable

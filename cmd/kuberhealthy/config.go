@@ -6,40 +6,34 @@ import (
 	"time"
 
 	"github.com/codingsince1985/checksum"
-	"github.com/kuberhealthy/kuberhealthy/v3/pkg/metrics"
+	"github.com/kuberhealthy/kuberhealthy/v4/pkg/metrics"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
+// KuberhealthyConfigFile holds the file location that contains the Kuberhealthy configuration
+var KuberhealthyConfigFile string
+
 // Config holds all configurable options
 type Config struct {
-	kubeConfigFile            string                    `yaml:"kubeConfigFile"`
 	ListenAddress             string                    `yaml:"listenAddress"`
-	EnableForceMaster         bool                      `yaml:"enableForceMaster"`
 	LogLevel                  string                    `yaml:"logLevel"`
-	InfluxUsername            string                    `yaml:"influxUsername"`
-	InfluxPassword            string                    `yaml:"influxPassword"`
-	InfluxURL                 string                    `yaml:"influxURL"`
-	InfluxDB                  string                    `yaml:"influxDB"`
-	EnableInflux              bool                      `yaml:"enableInflux"`
 	ExternalCheckReportingURL string                    `yaml:"externalCheckReportingURL"`
 	MaxKHJobAge               time.Duration             `yaml:"maxKHJobAge"`
 	MaxCheckPodAge            time.Duration             `yaml:"maxCheckPodAge"`
 	MaxCompletedPodCount      int                       `yaml:"maxCompletedPodCount"`
 	MaxErrorPodCount          int                       `yaml:"maxErrorPodCount"`
-	StateMetadata             map[string]string         `yaml:"stateMetadata,omitempty"`
 	PromMetricsConfig         metrics.PromMetricsConfig `yaml:"promMetricsConfig,omitempty"`
 	TargetNamespace           string                    `yaml:"namespace"` // TargetNamespace sets the namespace that Kuberhealthy will operate in.  By default, this is blank, which means
-	CRDManager                CRDManagerConfig          `yaml:"crdManager"`
+	DefaultRunInterval        time.Duration             `yaml:defaultRunInterval`
+	CheckReportingURL         string                    `yaml:checkReportingURL` // this is the URL that checker pods will report in on
 }
 
-// CRDManagerConfig holds the input values for the CRDManager
-type CRDManagerConfig struct {
-	metricsAddr          string
-	enableLeaderElection bool
-	probeAddr            string
-	secureMetrics        bool
-	enableHTTP2          bool
+func New() *Config {
+	return &Config{
+		CheckReportingURL:  "http://kuberhealthy.kuberhealthy.svc.cluster.local", // KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
+		DefaultRunInterval: time.Minute * 10,                                     // DefaultRunInterval is the default run interval for checks set by kuberhealthy
+	}
 }
 
 // Load loads file from disk
