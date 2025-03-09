@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v1"
+	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -25,30 +25,6 @@ func New() (*KHClient, error) {
 	}
 
 	return &KHClient{Client: crdClient}, nil
-}
-
-// GetKuberhealthyState fetches a KuberhealthyState resource.
-func (khc *KHClient) GetKuberhealthyState(name, namespace string) (*comcastgithubiov1.KuberhealthyState, error) {
-	ctx := context.Background()
-	key := client.ObjectKey{Name: name, Namespace: namespace}
-	khState := &comcastgithubiov1.KuberhealthyState{}
-
-	if err := khc.Client.Get(ctx, key, khState); err != nil {
-		return nil, fmt.Errorf("error fetching KuberhealthyState: %w", err)
-	}
-	return khState, nil
-}
-
-// CreateKuberhealthyState creates a new KuberhealthyState resource.
-func (khc *KHClient) CreateKuberhealthyState(khState *comcastgithubiov1.KuberhealthyState) error {
-	ctx := context.Background()
-	return khc.Client.Create(ctx, khState)
-}
-
-// UpdateKuberhealthyState updates an existing KuberhealthyState resource.
-func (khc *KHClient) UpdateKuberhealthyState(khState *comcastgithubiov1.KuberhealthyState) error {
-	ctx := context.Background()
-	return khc.Client.Update(ctx, khState)
 }
 
 // GetKuberhealthyCheck fetches a KuberhealthyCheck resource.
@@ -75,43 +51,6 @@ func (khc *KHClient) UpdateKuberhealthyCheck(khCheck *comcastgithubiov1.Kuberhea
 	return khc.Client.Update(ctx, khCheck)
 }
 
-// GetKuberhealthyJob fetches a KuberhealthyJob resource.
-func (khc *KHClient) GetKuberhealthyJob(name, namespace string) (*comcastgithubiov1.KuberhealthyJob, error) {
-	ctx := context.Background()
-	key := client.ObjectKey{Name: name, Namespace: namespace}
-	khJob := &comcastgithubiov1.KuberhealthyJob{}
-
-	if err := khc.Client.Get(ctx, key, khJob); err != nil {
-		return nil, fmt.Errorf("error fetching KuberhealthyJob: %w", err)
-	}
-	return khJob, nil
-}
-
-// CreateKuberhealthyJob creates a new KuberhealthyJob resource.
-func (khc *KHClient) CreateKuberhealthyJob(khJob *comcastgithubiov1.KuberhealthyJob) error {
-	ctx := context.Background()
-	return khc.Client.Create(ctx, khJob)
-}
-
-// UpdateKuberhealthyJob updates an existing KuberhealthyJob resource.
-func (khc *KHClient) UpdateKuberhealthyJob(khJob *comcastgithubiov1.KuberhealthyJob) error {
-	ctx := context.Background()
-	return khc.Client.Update(ctx, khJob)
-}
-
-// ListKuberhealthyStates lists all KuberhealthyState resources in a given namespace with optional ListOptions.
-func (khc *KHClient) ListKuberhealthyStates(namespace string, opts *client.ListOptions) (*comcastgithubiov1.KuberhealthyStateList, error) {
-	ctx := context.Background()
-	khStateList := &comcastgithubiov1.KuberhealthyStateList{}
-	opts.Namespace = namespace // enforce the namespace setting that the user supplied
-
-	err := khc.Client.List(ctx, khStateList, opts)
-	if err != nil {
-		return nil, fmt.Errorf("error listing KuberhealthyStates: %w", err)
-	}
-	return khStateList, nil
-}
-
 // ListKuberhealthyChecks lists all KuberhealthyCheck resources in a given namespace with optional ListOptions.
 func (khc *KHClient) ListKuberhealthyChecks(namespace string, opts *client.ListOptions) (*comcastgithubiov1.KuberhealthyCheckList, error) {
 	ctx := context.Background()
@@ -123,35 +62,6 @@ func (khc *KHClient) ListKuberhealthyChecks(namespace string, opts *client.ListO
 		return nil, fmt.Errorf("error listing KuberhealthyChecks: %w", err)
 	}
 	return khCheckList, nil
-}
-
-// ListKuberhealthyJobs lists all KuberhealthyJob resources in a given namespace with optional ListOptions.
-func (khc *KHClient) ListKuberhealthyJobs(namespace string, opts *client.ListOptions) (*comcastgithubiov1.KuberhealthyJobList, error) {
-	ctx := context.Background()
-	khJobList := &comcastgithubiov1.KuberhealthyJobList{}
-	opts.Namespace = namespace // enforce the namespace setting that the user supplied
-
-	err := khc.Client.List(ctx, khJobList, opts)
-	if err != nil {
-		return nil, fmt.Errorf("error listing KuberhealthyJobs: %w", err)
-	}
-	return khJobList, nil
-}
-
-// DeleteKuberhealthyState deletes a KuberhealthyState resource with optional DeleteOptions.
-func (khc *KHClient) DeleteKuberhealthyState(name, namespace string, opts *metav1.DeleteOptions) error {
-	ctx := context.Background()
-	khState, err := khc.GetKuberhealthyState(name, namespace)
-	if err != nil {
-		return err
-	}
-
-	deleteOpts := []client.DeleteOption{}
-	if opts != nil {
-		deleteOpts = append(deleteOpts, client.PropagationPolicy(*opts.PropagationPolicy))
-	}
-
-	return khc.Client.Delete(ctx, khState, deleteOpts...)
 }
 
 // DeleteKuberhealthyCheck deletes a KuberhealthyCheck resource with optional DeleteOptions.
@@ -168,20 +78,4 @@ func (khc *KHClient) DeleteKuberhealthyCheck(name, namespace string, opts *metav
 	}
 
 	return khc.Client.Delete(ctx, khCheck, deleteOpts...)
-}
-
-// DeleteKuberhealthyJob deletes a KuberhealthyJob resource with optional DeleteOptions.
-func (khc *KHClient) DeleteKuberhealthyJob(name, namespace string, opts *client.DeleteOptions) error {
-	ctx := context.Background()
-	khJob, err := khc.GetKuberhealthyJob(name, namespace)
-	if err != nil {
-		return err
-	}
-
-	deleteOpts := []client.DeleteOption{}
-	if opts != nil {
-		deleteOpts = append(deleteOpts, client.PropagationPolicy(*opts.PropagationPolicy))
-	}
-
-	return khc.Client.Delete(ctx, khJob, deleteOpts...)
 }

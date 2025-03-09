@@ -16,8 +16,8 @@ import (
 
 	"github.com/cenkalti/backoff"
 
-	"github.com/kuberhealthy/kuberhealthy/v4/pkg/checks/external"
-	"github.com/kuberhealthy/kuberhealthy/v4/pkg/checks/external/status"
+	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v2"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
 )
 
 var (
@@ -35,7 +35,9 @@ func ReportSuccess() error {
 	writeLog("DEBUG: Reporting SUCCESS")
 
 	// make a new report without errors
-	newReport := status.NewReport([]string{})
+	newReport := comcastgithubiov1.KuberhealthyCheckStatus{}
+	newReport.OK = true
+	newReport.Errors = []string{}
 
 	// send the payload
 	return sendReport(newReport)
@@ -50,7 +52,9 @@ func ReportFailure(errorMessages []string) error {
 	writeLog("DEBUG: Reporting FAILURE")
 
 	// make a new report without errors
-	newReport := status.NewReport(errorMessages)
+	newReport := comcastgithubiov1.KuberhealthyCheckStatus{}
+	newReport.OK = false
+	newReport.Errors = errorMessages
 
 	// send it
 	return sendReport(newReport)
@@ -65,7 +69,7 @@ func writeLog(i ...interface{}) {
 
 // sendReport marshals the report and sends it to the kuberhealthy endpoint
 // as shown in the environment variables.
-func sendReport(s status.Report) error {
+func sendReport(s comcastgithubiov1.KuberhealthyCheckStatus) error {
 
 	writeLog("DEBUG: Sending report with error length of:", len(s.Errors))
 	writeLog("DEBUG: Sending report with ok state of:", s.OK)
@@ -134,12 +138,12 @@ func sendReport(s status.Report) error {
 // status report to from the environment variables
 func getKuberhealthyURL() (string, error) {
 
-	reportingURL := os.Getenv(external.KHReportingURL)
+	reportingURL := os.Getenv(envs.KHReportingURL)
 
 	// check the length of the reporting url to make sure we pulled one properly
 	if len(reportingURL) < 1 {
-		writeLog("ERROR: kuberhealthy reporting URL from environment variable", external.KHReportingURL, "was blank")
-		return "", fmt.Errorf("fetched %s environment variable but it was blank", external.KHReportingURL)
+		writeLog("ERROR: kuberhealthy reporting URL from environment variable", envs.KHReportingURL, "was blank")
+		return "", fmt.Errorf("fetched %s environment variable but it was blank", envs.KHReportingURL)
 	}
 
 	return reportingURL, nil
@@ -149,12 +153,12 @@ func getKuberhealthyURL() (string, error) {
 // status to report to from the environment variable
 func getKuberhealthyRunUUID() (string, error) {
 
-	khRunUUID := os.Getenv(external.KHRunUUID)
+	khRunUUID := os.Getenv(envs.KHRunUUID)
 
 	// check the length of the UUID to make sure we pulled one properly
 	if len(khRunUUID) < 1 {
-		writeLog("ERROR: kuberhealthy run UUID from environment variable", external.KHRunUUID, "was blank")
-		return "", fmt.Errorf("fetched %s environment variable but it was blank", external.KHRunUUID)
+		writeLog("ERROR: kuberhealthy run UUID from environment variable", envs.KHReportingURL, "was blank")
+		return "", fmt.Errorf("fetched %s environment variable but it was blank", envs.KHReportingURL)
 	}
 
 	return khRunUUID, nil
@@ -163,17 +167,17 @@ func getKuberhealthyRunUUID() (string, error) {
 // GetDeadline fetches the KH_CHECK_RUN_DEADLINE environment variable and returns it.
 // Checks are given up to the deadline to complete their check runs.
 func GetDeadline() (time.Time, error) {
-	unixDeadline := os.Getenv(external.KHDeadline)
+	unixDeadline := os.Getenv(envs.KHDeadline)
 
 	if len(unixDeadline) < 1 {
-		writeLog("ERROR: kuberhealthy check deadline from environment variable", external.KHDeadline, "was blank")
-		return time.Time{}, fmt.Errorf("fetched %s environment variable but it was blank", external.KHDeadline)
+		writeLog("ERROR: kuberhealthy check deadline from environment variable", envs.KHReportingURL, "was blank")
+		return time.Time{}, fmt.Errorf("fetched %s environment variable but it was blank", envs.KHReportingURL)
 	}
 
 	unixDeadlineInt, err := strconv.Atoi(unixDeadline)
 	if err != nil {
-		writeLog("ERROR: unable to parse", external.KHDeadline+": "+err.Error())
-		return time.Time{}, fmt.Errorf("unable to parse %s: %s", external.KHDeadline, err.Error())
+		writeLog("ERROR: unable to parse", envs.KHDeadline+": "+err.Error())
+		return time.Time{}, fmt.Errorf("unable to parse %s: %s", envs.KHDeadline, err.Error())
 	}
 
 	return time.Unix(int64(unixDeadlineInt), 0), nil

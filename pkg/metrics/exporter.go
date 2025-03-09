@@ -1,4 +1,4 @@
-package metrics // import "github.com/kuberhealthy/kuberhealthy/v4/pkg/metrics"
+package metrics
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/kuberhealthy/kuberhealthy/v4/pkg/health"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/health"
 )
 
 type PromMetricsConfig struct {
@@ -55,8 +55,6 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 
 	metricCheckState := make(map[string]string)
 	metricCheckDuration := make(map[string]string)
-	metricJobState := make(map[string]string)
-	metricJobDuration := make(map[string]string)
 
 	// Parse through all check details and append to metricState
 	for c, d := range state.CheckDetails {
@@ -82,27 +80,6 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 		metricCheckDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
 	}
 
-	// Parse through all job details and append to metricState
-	for c, d := range state.JobDetails {
-		jobStatus := "0"
-		if d.OK {
-			jobStatus = "1"
-		}
-		metricName := promMetricName(config, "job", c, d.Namespace, jobStatus, d.Errors)
-		metricDurationName := fmt.Sprintf("kuberhealthy_job_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
-		metricJobState[metricName] = jobStatus
-
-		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
-		if d.RunDuration == "" {
-			d.RunDuration = time.Duration(0).String()
-		}
-		runDuration, err := time.ParseDuration(d.RunDuration)
-		if err != nil {
-			log.Errorln("Error parsing run duration:", d.RunDuration, "for metric:", metricName, "error:", err)
-		}
-		metricJobDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
-	}
-
 	// Add each metric format individually. This addresses issue https://github.com/kuberhealthy/kuberhealthy/issues/813.
 	// Unless metric help and type are followed by the metric, datadog cannot process Kuberhealthy metrics.
 	// Kuberhealthy check metrics
@@ -114,17 +91,6 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 	metricsOutput += "# HELP kuberhealthy_check_duration_seconds Shows the check run duration of a Kuberhealthy check\n"
 	metricsOutput += "# TYPE kuberhealthy_check_duration_seconds gauge\n"
 	for m, v := range metricCheckDuration {
-		metricsOutput += fmt.Sprintf("%s %s\n", m, v)
-	}
-	// Kuberhealthy job metrics
-	metricsOutput += "# HELP kuberhealthy_job Shows the status of a Kuberhealthy job\n"
-	metricsOutput += "# TYPE kuberhealthy_job gauge\n"
-	for m, v := range metricJobState {
-		metricsOutput += fmt.Sprintf("%s %s\n", m, v)
-	}
-	metricsOutput += "# HELP kuberhealthy_job_duration_seconds Shows the job run duration of a Kuberhealthy job\n"
-	metricsOutput += "# TYPE kuberhealthy_job_duration_seconds gauge\n"
-	for m, v := range metricJobDuration {
 		metricsOutput += fmt.Sprintf("%s %s\n", m, v)
 	}
 

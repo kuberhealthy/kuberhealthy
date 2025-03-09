@@ -6,13 +6,12 @@ import (
 	"testing"
 
 	"github.com/ghodss/yaml"
+	khcrds "github.com/kuberhealthy/crds/api/v2"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	log "github.com/sirupsen/logrus"
 
 	apiv1 "k8s.io/api/core/v1"
-
-	khcrds "github.com/kuberhealthy/kuberhealthy/v4/pkg/apis/comcast.github.io/v1"
 )
 
 func init() {

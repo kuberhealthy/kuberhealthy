@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -16,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	manager "sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/kuberhealthy/kuberhealthy/v4/pkg/kubeclient"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/kubeclient"
 )
 
 // GlobalConfig holds the configuration settings for Kuberhealthy
@@ -32,7 +31,9 @@ var DefaultTimeout = time.Minute * 5         // DefaultTimeout is the default ti
 
 func main() {
 
+	// root context of application
 	ctx := context.Background()
+	defer ctx.Done()
 
 	// Initial setup before starting Kuberhealthy. Loading, parsing, and setting flags, config values and environment vars.
 	err := setUp()
@@ -46,28 +47,13 @@ func main() {
 		log.Fatalln("Error setting up Kuberhealthy client for Kubernetes:", err)
 	}
 
-	// init the CRD manager
-	CRDManager, err = newCRDManager()
-	if err != nil {
-		log.Fatalln("Error setting up Kuberhealthy CRD manager:", err)
-	}
+	// // init the CRD manager
+	// err = startReconcilers(ctx)
+	// if err != nil {
+	// 	log.Fatalln("Error setting up Kuberhealthy CRD manager:", err)
+	// }
 
-	// start the CRD manager
-	err = CRDManager.Start(ctx)
-	if err != nil {
-		log.Fatalln("Error starting CRD manager:", err)
-	}
-
-	// Create a new Kuberhealthy struct
-	// kuberhealthy := NewKuberhealthy(GlobalConfig)
-
-	// create run context and start listening for shutdown interrupts
-	// khRunCtx, khRunCtxCancelFunc := context.WithCancel(ctx)
-	// kuberhealthy.shutdownCtxFunc = khRunCtxCancelFunc // load the KH struct with a func to shutdown its control system
 	// go listenForInterrupts(kuberhealthy)
-
-	// tell Kuberhealthy to start all checks and master change monitoring
-	// kuberhealthy.Start(khRunCtx)
 
 	time.Sleep(time.Second * 90) // give the interrupt handler a period of time to call exit before we shutdown
 	<-time.After(terminationGracePeriod + (time.Second * 10))
@@ -76,7 +62,7 @@ func main() {
 }
 
 // listenForInterrupts watches for termination signals and acts on them
-func listenForInterrupts(k *Kuberhealthy) {
+func listenForInterrupts() {
 	// shutdown signal handling
 	sigChan := make(chan os.Signal, 1)
 
@@ -88,7 +74,7 @@ func listenForInterrupts(k *Kuberhealthy) {
 
 	// wait for check to fully shutdown before exiting
 	doneChan := make(chan struct{})
-	go k.Shutdown(doneChan)
+	// go k.Shutdown(doneChan) // TODO - cause shutdown of reconciler
 
 	// wait for checks to be done shutting down before exiting
 	select {
@@ -111,8 +97,8 @@ func listenForInterrupts(k *Kuberhealthy) {
 // Everytime kuberhealthy sees a configuration change, configurations should reload and reset
 func setUpConfig() error {
 	GlobalConfig = &Config{
-		kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),
-		LogLevel:       "info",
+		// kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),
+		LogLevel: "info",
 	}
 
 	// attempt to load config file from disk
@@ -122,7 +108,7 @@ func setUpConfig() error {
 	}
 
 	// set env variables into config if specified. otherwise set external check URL to default
-	externalCheckURL, err := getEnvVar("KH_CHECK_REPORT_URL")
+	externalCheckURL := os.Getenv("KH_CHECK_REPORT_URL")
 	if err != nil {
 		if len(GlobalConfig.TargetNamespace) == 0 {
 			return errors.New("env KH_CHECK_REPORT_URL not set and POD_NAMESPACE environment variable was blank.")

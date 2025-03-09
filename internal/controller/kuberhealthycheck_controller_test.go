@@ -27,7 +27,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	kuberhealthygithubiov4 "github.com/kuberhealthy/crds/api/v4"
+	kuberhealthygithubiov2 "github.com/kuberhealthy/crds/api/v2"
 )
 
 var _ = Describe("KuberhealthyCheck Controller", func() {
@@ -40,13 +40,13 @@ var _ = Describe("KuberhealthyCheck Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		kuberhealthycheck := &kuberhealthygithubiov4.KuberhealthyCheck{}
+		kuberhealthycheck := &kuberhealthygithubiov2.KuberhealthyCheck{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind KuberhealthyCheck")
 			err := k8sClient.Get(ctx, typeNamespacedName, kuberhealthycheck)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &kuberhealthygithubiov4.KuberhealthyCheck{
+				resource := &kuberhealthygithubiov2.KuberhealthyCheck{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -59,7 +59,7 @@ var _ = Describe("KuberhealthyCheck Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &kuberhealthygithubiov4.KuberhealthyCheck{}
+			resource := &kuberhealthygithubiov2.KuberhealthyCheck{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 

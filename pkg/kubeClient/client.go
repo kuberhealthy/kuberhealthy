@@ -3,7 +3,7 @@ package kubeclient
 import (
 	"fmt"
 
-	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v1"
+	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"

@@ -1,7 +1,7 @@
 // Package status holds a struct that can be used to
 // report external check status to the Kuberhealthy
 // status reporting endpoint.
-package status
+package health
 
 // Report is the format expected by the /externalCheckStatus endpoint
 type Report struct {

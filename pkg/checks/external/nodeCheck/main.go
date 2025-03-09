@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/kuberhealthy/kuberhealthy/v4/pkg/checks/external"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
 )
 
 // EnableDebugOutput enables debug logging for this package
@@ -23,12 +23,12 @@ func EnableDebugOutput() {
 // on a given node
 func WaitForKuberhealthy(ctx context.Context) error {
 
-	kuberhealthyEndpoint := os.Getenv(external.KHReportingURL)
+	kuberhealthyEndpoint := os.Getenv(envs.KHReportingURL)
 
 	// check the length of the reporting url to make sure we pulled one properly
 	if len(kuberhealthyEndpoint) < 1 {
 		return errors.New("error getting kuberhealthy reporting URL from environment variable " +
-			external.KHReportingURL + " was blank")
+			envs.KHReportingURL + " was blank")
 	}
 
 	log.Debugln("Checking if the kuberhealthy endpoint:", kuberhealthyEndpoint, "is ready.")
