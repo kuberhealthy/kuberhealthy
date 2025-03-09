@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/codingsince1985/checksum"
-	"github.com/kuberhealthy/kuberhealthy/v4/pkg/metrics"
+	"github.com/kuberhealthy/kuberhealthy/v3/pkg/metrics"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -25,8 +25,8 @@ type Config struct {
 	MaxErrorPodCount          int                       `yaml:"maxErrorPodCount"`
 	PromMetricsConfig         metrics.PromMetricsConfig `yaml:"promMetricsConfig,omitempty"`
 	TargetNamespace           string                    `yaml:"namespace"` // TargetNamespace sets the namespace that Kuberhealthy will operate in.  By default, this is blank, which means
-	DefaultRunInterval        time.Duration             `yaml:defaultRunInterval`
-	CheckReportingURL         string                    `yaml:checkReportingURL` // this is the URL that checker pods will report in on
+	DefaultRunInterval        time.Duration             `yaml:"defaultRunInterval"`
+	CheckReportingURL         string                    `yaml:"checkReportingURL"` // this is the URL that checker pods will report in on
 }
 
 func New() *Config {

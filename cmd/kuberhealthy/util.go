@@ -1,23 +1,11 @@
 package main
 
 import (
-	"errors"
-	"os"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
-
-// getEnvVar attempts to retrieve and then validates an environmental variable
-func getEnvVar(v string) (string, error) {
-	var err error
-	envVar := os.Getenv(v)
-	if len(envVar) < 1 {
-		err = errors.New("Could not retrieve Environment variable, or it had no content. " + v)
-	}
-	return envVar, err
-}
 
 // getAllLogLevels fetches a string list of possible log levels that can be set
 func getAllLogLevels() string {

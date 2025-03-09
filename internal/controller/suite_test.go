@@ -29,8 +29,10 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	kuberhealthygithubiov4 "github.com/kuberhealthy/crds/api/v4"
+	kuberhealthygithubiov2 "github.com/kuberhealthy/crds/api/v2"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -48,6 +50,7 @@ func TestControllers(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
@@ -69,7 +72,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = kuberhealthygithubiov4.AddToScheme(scheme.Scheme)
+	err = kuberhealthygithubiov2.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme

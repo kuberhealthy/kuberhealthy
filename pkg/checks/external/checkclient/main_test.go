@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kuberhealthy/kuberhealthy/v4/pkg/checks/external"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
 )
 
 // TestGetKuberhealthyURL ensures that KH_REPORTING_URL env var can be fetched
@@ -22,7 +22,7 @@ func TestGetKuberhealthyURL(t *testing.T) {
 
 	for _, tc := range testCases {
 
-		os.Setenv(external.KHReportingURL, tc.input)
+		os.Setenv(envs.KHReportingURL, tc.input)
 		result, err := getKuberhealthyURL()
 		if err != nil {
 			if err.Error() != tc.err {
@@ -53,7 +53,7 @@ func TestGetKuberhealthyRunUUID(t *testing.T) {
 
 	for _, tc := range testCases {
 
-		os.Setenv(external.KHRunUUID, tc.input)
+		os.Setenv(envs.KHRunUUID, tc.input)
 		result, err := getKuberhealthyRunUUID()
 		if err != nil {
 			if err.Error() != tc.err {
@@ -86,7 +86,7 @@ func TestGetDeadline(t *testing.T) {
 
 	for _, tc := range testCases {
 
-		os.Setenv(external.KHDeadline, tc.input)
+		os.Setenv(envs.KHDeadline, tc.input)
 		result, err := GetDeadline()
 		if err != nil {
 			if err.Error() != tc.err {
