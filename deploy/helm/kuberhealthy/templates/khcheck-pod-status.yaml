@@ -7,6 +7,8 @@ metadata:
 spec:
   runInterval: {{ .Values.check.podStatus.runInterval }}
   timeout: {{ .Values.check.podStatus.timeout }}
+  {{- include "kuberhealthy.extraAnnotations" .Values.check.podStatus.extraAnnotations | nindent 2 }}
+  {{- include "kuberhealthy.extraLabels" .Values.check.podStatus.extraLabels | nindent 2 }}
   podSpec:
     {{- if .Values.securityContext.enabled }}
     securityContext:

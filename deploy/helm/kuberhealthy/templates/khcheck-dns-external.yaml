@@ -8,6 +8,8 @@ metadata:
 spec:
   runInterval: {{ .Values.check.dnsExternal.runInterval }}
   timeout: {{ .Values.check.dnsExternal.timeout }}
+  {{- include "kuberhealthy.extraAnnotations" .Values.check.dnsExternal.extraAnnotations | nindent 2 }}
+  {{- include "kuberhealthy.extraLabels" .Values.check.dnsExternal.extraLabels | nindent 2 }}
   podSpec:
     {{- if .Values.securityContext.enabled }}
     securityContext:

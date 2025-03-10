@@ -172,6 +172,8 @@ check:
     enabled: true
     runInterval: 15m
     timeout: 12m
+    extraAnnotations: {}
+    extraLabels: {}
     image:
       registry: docker.io
       repository: kuberhealthy/daemonset-check
@@ -191,6 +193,8 @@ check:
     enabled: true
     runInterval: 10m
     timeout: 15m
+    extraAnnotations: {}
+    extraLabels: {}
     image:
       registry: docker.io
       repository: kuberhealthy/deployment-check
@@ -215,6 +219,8 @@ check:
     enabled: true
     runInterval: 2m
     timeout: 15m
+    extraAnnotations: {}
+    extraLabels: {}
     image:
       registry: docker.io
       repository: kuberhealthy/dns-resolution-check
@@ -235,6 +241,8 @@ check:
     enabled: false
     runInterval: 2m
     timeout: 15m
+    extraAnnotations: {}
+    extraLabels: {}
     image:
       registry: docker.io
       repository: kuberhealthy/dns-resolution-check
@@ -255,6 +263,8 @@ check:
     enabled: false
     runInterval: 5m
     timeout: 10m
+    extraAnnotations: {}
+    extraLabels: {}
     image:
       registry: docker.io
       repository: kuberhealthy/pod-restarts-check
@@ -276,6 +286,8 @@ check:
     enabled: false
     runInterval: 5m
     timeout: 15m
+    extraAnnotations: {}
+    extraLabels: {}
     image:
       registry: docker.io
       repository: kuberhealthy/pod-status-check
@@ -302,6 +314,8 @@ check:
     storageClass: [""]
     runInterval: 5m
     timeout: 10m
+    extraAnnotations: {}
+    extraLabels: {}
     image:
       registry: docker.io
       repository: chrishirsch/kuberhealthy-storage-check
@@ -323,6 +337,8 @@ check:
     enabled: false
     runInterval: 30m
     timeout: 10m
+    extraAnnotations: {}
+    extraLabels: {}
     image:
       registry: docker.io
       repository: kuberhealthy/network-connection-check

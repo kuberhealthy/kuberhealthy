@@ -10,6 +10,8 @@ metadata:
 spec:
   runInterval: {{ $.Values.check.storage.runInterval }}
   timeout: {{ $.Values.check.storage.timeout }}
+  {{- include "kuberhealthy.extraAnnotations" .Values.check.storage.extraAnnotations | nindent 2 }}
+  {{- include "kuberhealthy.extraLabels" .Values.check.storage.extraLabels | nindent 2 }}
   podSpec:
     {{- if $.Values.securityContext.enabled }}
     securityContext:

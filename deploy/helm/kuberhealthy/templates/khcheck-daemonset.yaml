@@ -8,6 +8,8 @@ metadata:
 spec:
   runInterval:  {{ .Values.check.daemonset.runInterval }}
   timeout: {{ .Values.check.daemonset.timeout }}
+  {{- include "kuberhealthy.extraAnnotations" .Values.check.daemonset.extraAnnotations | nindent 2 }}
+  {{- include "kuberhealthy.extraLabels" .Values.check.daemonset.extraLabels | nindent 2 }}
   podSpec:
     {{- if .Values.check.daemonset.serviceAccountName }}
     serviceAccountName: {{ .Values.check.daemonset.serviceAccountName }}
