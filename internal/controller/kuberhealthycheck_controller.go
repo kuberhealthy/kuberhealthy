@@ -18,45 +18,86 @@ package controller
 
 import (
 	"context"
+	"log"
 
+	kuberhealthy "github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
 	"k8s.io/apimachinery/pkg/runtime"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	kuberhealthygithubiov2 "github.com/kuberhealthy/crds/api/v2"
+	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
 )
 
-// KuberhealthyCheckReconciler reconciles a KuberhealthyCheck object
+// KuberhealthyCheckReconciler reconciles KuberhealthyCheck resources
 type KuberhealthyCheckReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme       *runtime.Scheme
+	Kuberhealthy *kuberhealthy.Kuberhealthy
 }
 
-// +kubebuilder:rbac:groups=kuberhealthy.github.io.kuberhealthy.github.io,resources=kuberhealthychecks,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kuberhealthy.github.io.kuberhealthy.github.io,resources=kuberhealthychecks/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=kuberhealthy.github.io.kuberhealthy.github.io,resources=kuberhealthychecks/finalizers,verbs=update
-
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the KuberhealthyCheck object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.18.4/pkg/reconcile
 func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	var check khcrdsv2.KuberhealthyCheck
+	if err := r.Get(ctx, req.NamespacedName, &check); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 
-	// TODO(user): your logic here
+	finalizer := "kuberhealthy.com/finalizer"
+
+	// DELETE
+	if !check.ObjectMeta.DeletionTimestamp.IsZero() {
+		if controllerutil.ContainsFinalizer(&check, finalizer) {
+			// Stop Kuberhealthy process before deletion
+			r.Kuberhealthy.StopCheck(req.NamespacedName.Namespace, req.NamespacedName.Name) // Stop old instance of check
+
+			// Remove finalizer and update the resource
+			controllerutil.RemoveFinalizer(&check, finalizer)
+			if err := r.Update(ctx, &check); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Ensure finalizer is set
+	if !controllerutil.ContainsFinalizer(&check, finalizer) {
+		controllerutil.AddFinalizer(&check, finalizer)
+		if err := r.Update(ctx, &check); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Optionally update status of the kuberhealthycheck resource
+	// check.Status.Phase = "Running"
+	if err := r.Status().Update(ctx, &check); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager sets up the controller with the Manager.
+// SetupWithManager registers the controller with filtering for create events
 func (r *KuberhealthyCheckReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&kuberhealthygithubiov2.KuberhealthyCheck{}).
+		For(&khcrdsv2.KuberhealthyCheck{}).
+		WithEventFilter(predicate.Funcs{
+			CreateFunc: func(e event.CreateEvent) bool {
+				log.Println("Create event detected for:", e.Object.GetName())
+				r.Kuberhealthy.StartCheck(e.Object.GetNamespace(), e.Object.GetName()) // Start new instance of check
+				return true                                                            // true indicates we need to write something to the custom resource
+			},
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				r.Kuberhealthy.StopCheck(e.ObjectOld.GetNamespace(), e.ObjectOld.GetName())  // Start new instance of check
+				r.Kuberhealthy.StartCheck(e.ObjectNew.GetNamespace(), e.ObjectNew.GetName()) // Start new instance of check
+				return false                                                                 // efalse indicates we do not need to write something to the custom resource
+			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				r.Kuberhealthy.StopCheck(e.Object.GetNamespace(), e.Object.GetName()) // Start new instance of check
+				return false                                                          // efalse indicates we do not need to write something to the custom resource
+			},
+		}).
 		Complete(r)
 }
