@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v2"
+	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,7 +13,7 @@ import (
 type State struct {
 	OK            bool
 	Errors        []string
-	CheckDetails  map[string]comcastgithubiov1.KuberhealthyCheckStatus // map of job names to last run timestamp
+	CheckDetails  map[string]kuberhealthycheckv2.KuberhealthyCheckStatus // map of job names to last run timestamp
 	CurrentMaster string
 	Metadata      map[string]string
 }
@@ -57,7 +57,7 @@ func NewState() State {
 	s := State{}
 	s.OK = true
 	s.Errors = []string{}
-	s.CheckDetails = make(map[string]comcastgithubiov1.KuberhealthyCheckStatus)
+	s.CheckDetails = make(map[string]kuberhealthycheckv2.KuberhealthyCheckStatus)
 	s.Metadata = map[string]string{}
 	return s
 }

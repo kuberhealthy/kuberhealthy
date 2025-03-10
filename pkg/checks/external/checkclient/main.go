@@ -16,7 +16,7 @@ import (
 
 	"github.com/cenkalti/backoff"
 
-	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v2"
+	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
 )
 
@@ -35,7 +35,7 @@ func ReportSuccess() error {
 	writeLog("DEBUG: Reporting SUCCESS")
 
 	// make a new report without errors
-	newReport := comcastgithubiov1.KuberhealthyCheckStatus{}
+	newReport := kuberhealthycheckv2.KuberhealthyCheckStatus{}
 	newReport.OK = true
 	newReport.Errors = []string{}
 
@@ -52,7 +52,7 @@ func ReportFailure(errorMessages []string) error {
 	writeLog("DEBUG: Reporting FAILURE")
 
 	// make a new report without errors
-	newReport := comcastgithubiov1.KuberhealthyCheckStatus{}
+	newReport := kuberhealthycheckv2.KuberhealthyCheckStatus{}
 	newReport.OK = false
 	newReport.Errors = errorMessages
 
@@ -69,7 +69,7 @@ func writeLog(i ...interface{}) {
 
 // sendReport marshals the report and sends it to the kuberhealthy endpoint
 // as shown in the environment variables.
-func sendReport(s comcastgithubiov1.KuberhealthyCheckStatus) error {
+func sendReport(s kuberhealthycheckv2.KuberhealthyCheckStatus) error {
 
 	writeLog("DEBUG: Sending report with error length of:", len(s.Errors))
 	writeLog("DEBUG: Sending report with ok state of:", s.OK)

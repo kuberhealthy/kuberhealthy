@@ -3,7 +3,7 @@ package kubeclient
 import (
 	"fmt"
 
-	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v2"
+	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -34,7 +34,7 @@ func NewKHClient() (client.Client, error) {
 	}
 
 	// Add Kuberhealthy's custom CRDs to the scheme
-	if err = comcastgithubiov1.AddToScheme(khScheme); err != nil {
+	if err = kuberhealthycheckv2.AddToScheme(khScheme); err != nil {
 		return nil, fmt.Errorf("failed to add Kuberhealthy's custom CRDs to scheme: %v", err)
 	}
 
