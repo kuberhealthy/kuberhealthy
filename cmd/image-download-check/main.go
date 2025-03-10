@@ -1,7 +1,9 @@
 package main
 
 import (
+	"github.com/google/go-containerregistry/pkg/authn"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -19,6 +21,15 @@ var (
 	// timeoutLimit sets the maximum amount of time in seconds that an expected
 	// image pull from a configured registry should not breach
 	timeoutLimit = os.Getenv("TIMEOUT_LIMIT")
+
+	// login is a boolean that determines if the registry requires login. Read from LOGIN_REQUIRED
+	login = false
+
+	// username is the username for the registry
+	username = os.Getenv("REGISTRY_USERNAME")
+
+	// password is the password for the registry
+	password = os.Getenv("REGISTRY_PASSWORD")
 )
 
 func init() {
@@ -35,6 +46,11 @@ func init() {
 func main() {
 
 	var err error
+
+	// set login to true if the LOGIN_REQUIRED env var is set to true
+	if strings.ToLower(os.Getenv("LOGIN_REQUIRED")) == "true" {
+		login = true
+	}
 
 	// run check
 	pass := checkPass()
@@ -91,9 +107,20 @@ func checkPass() bool {
 
 // downloadImage pulls an image from a specified fullImageURL
 func downloadImage() (v1.Image, error) {
+	var i v1.Image
+	var err error
 
-	// pull image
-	i, err := crane.Pull(fullImageURL)
+	if login == "true" {
+		auth := &authn.Basic{
+			Username: username,
+			Password: password,
+		}
+		// pull image
+		i, err = crane.Pull(fullImageURL, crane.WithAuth(auth))
+	} else {
+		// pull image
+		i, err = crane.Pull(fullImageURL)
+	}
 	if err != nil {
 		return nil, err
 	}
