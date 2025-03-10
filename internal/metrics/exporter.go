@@ -8,7 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/kuberhealthy/kuberhealthy/v3/pkg/health"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
 )
 
 type PromMetricsConfig struct {
