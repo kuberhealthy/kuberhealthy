@@ -13376,7 +13376,7 @@ spec:
                   - kuberhealthy
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - image: "docker.io/kuberhealthy/kuberhealthy:v2.8.0-rc2"
+      - image: "docker.io/kuberhealthy/kuberhealthy:v2.8.0-rc3"
         command: [/app/kuberhealthy]
         ports:
         - containerPort: 8080
@@ -13439,6 +13439,8 @@ metadata:
 spec:
   runInterval:  15m
   timeout: 12m
+  
+  
   podSpec:
     securityContext:
       runAsUser: 999
@@ -13472,6 +13474,8 @@ metadata:
 spec:
   runInterval:  10m
   timeout: 15m
+  
+  
   podSpec:
     securityContext:
       runAsUser: 999
@@ -13510,6 +13514,8 @@ metadata:
 spec:
   runInterval: 2m
   timeout: 15m
+  
+  
   podSpec:
     securityContext:
       runAsUser: 999
