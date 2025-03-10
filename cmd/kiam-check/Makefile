@@ -2,4 +2,4 @@ include ../../Makefile
 
 BUILDER := "dockerx-kiam-check"
 IMAGE := "kuberhealthy/kiam-check"
-TAG := "v1.3.1"
+TAG := "v1.4.0"

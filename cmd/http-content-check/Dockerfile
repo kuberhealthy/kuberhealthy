@@ -1,4 +1,4 @@
-FROM golang:1.20 AS builder
+FROM golang:1.23 AS builder
 COPY . /build
 RUN ls -alR /build
 WORKDIR /build/cmd/http-content-check
