@@ -11,6 +11,7 @@
 - Create a branch describing your change
 - Develop your feature and push changes to a branch in your fork
 - Add your name to the `CONTRIBUTORS.md` file
+- Add your company to the `ADOPTERS.md` file (optional)
 - Open a pull request from your branch branch in your fork to the master branch on github.com/kuberhealthy/kuberhealthy
 - Wait for a project maintainer to address your change and merge your code.  Keep an eye on your open PR.
 - Celebrate! 🎉
