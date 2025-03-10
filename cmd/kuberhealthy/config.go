@@ -16,23 +16,28 @@ var KuberhealthyConfigFile string
 
 // Config holds all configurable options
 type Config struct {
-	ListenAddress             string                    `yaml:"listenAddress"`
-	LogLevel                  string                    `yaml:"logLevel"`
-	ExternalCheckReportingURL string                    `yaml:"externalCheckReportingURL"`
-	MaxKHJobAge               time.Duration             `yaml:"maxKHJobAge"`
-	MaxCheckPodAge            time.Duration             `yaml:"maxCheckPodAge"`
-	MaxCompletedPodCount      int                       `yaml:"maxCompletedPodCount"`
-	MaxErrorPodCount          int                       `yaml:"maxErrorPodCount"`
-	PromMetricsConfig         metrics.PromMetricsConfig `yaml:"promMetricsConfig,omitempty"`
-	TargetNamespace           string                    `yaml:"namespace"` // TargetNamespace sets the namespace that Kuberhealthy will operate in.  By default, this is blank, which means
-	DefaultRunInterval        time.Duration             `yaml:"defaultRunInterval"`
-	CheckReportingURL         string                    `yaml:"checkReportingURL"` // this is the URL that checker pods will report in on
+	ListenAddress                 string                    `yaml:"listenAddress"`
+	LogLevel                      string                    `yaml:"logLevel"`
+	ExternalCheckReportingURL     string                    `yaml:"externalCheckReportingURL"`
+	MaxKHJobAge                   time.Duration             `yaml:"maxKHJobAge"`
+	MaxCheckPodAge                time.Duration             `yaml:"maxCheckPodAge"`
+	MaxCompletedPodCount          int                       `yaml:"maxCompletedPodCount"`
+	MaxErrorPodCount              int                       `yaml:"maxErrorPodCount"`
+	PromMetricsConfig             metrics.PromMetricsConfig `yaml:"promMetricsConfig,omitempty"`
+	TargetNamespace               string                    `yaml:"namespace"` // TargetNamespace sets the namespace that Kuberhealthy will operate in.  By default, this is blank, which means
+	DefaultRunInterval            time.Duration             `yaml:"defaultRunInterval"`
+	CheckReportingURL             string                    `yaml:"checkReportingURL"`             // this is the URL that checker pods will report in on
+	TerminationGracePeriodSeconds time.Duration             `yaml:"terminationGracePeriodSeconds"` // this must be calibrated with the setting on our pods
+	DefaultCheckTimeout           time.Duration             `yaml:"defaultCheckTimeout"`           // if not otherwise specified, this is how long checker pods have to run
+	DebugMode                     bool                      `yaml:"debugMode"`
 }
 
 func New() *Config {
 	return &Config{
-		CheckReportingURL:  "http://kuberhealthy.kuberhealthy.svc.cluster.local", // KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
-		DefaultRunInterval: time.Minute * 10,                                     // DefaultRunInterval is the default run interval for checks set by kuberhealthy
+		CheckReportingURL:             "http://kuberhealthy.kuberhealthy.svc.cluster.local", // KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
+		DefaultRunInterval:            time.Minute * 10,                                     // DefaultRunInterval is the default run interval for checks set by kuberhealthy
+		TerminationGracePeriodSeconds: time.Minute * 5,
+		DefaultCheckTimeout:           time.Minute * 5,
 	}
 }
 
@@ -166,7 +171,7 @@ func configReloadNotifier(ctx context.Context, notifyChan chan struct{}) {
 		log.Debugln("configReloader: loading new configuration")
 
 		// setup config
-		err := setUpConfig()
+		err := initConfig()
 		if err != nil {
 			log.Errorln("configReloader: Error reloading and setting up config:", err)
 			continue
