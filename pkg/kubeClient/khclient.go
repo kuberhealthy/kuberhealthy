@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	comcastgithubiov1 "github.com/kuberhealthy/crds/api/v2"
+	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,10 +28,10 @@ func New() (*KHClient, error) {
 }
 
 // GetKuberhealthyCheck fetches a KuberhealthyCheck resource.
-func (khc *KHClient) GetKuberhealthyCheck(name, namespace string) (*comcastgithubiov1.KuberhealthyCheck, error) {
+func (khc *KHClient) GetKuberhealthyCheck(name, namespace string) (*kuberhealthycheckv2.KuberhealthyCheck, error) {
 	ctx := context.Background()
 	key := client.ObjectKey{Name: name, Namespace: namespace}
-	khCheck := &comcastgithubiov1.KuberhealthyCheck{}
+	khCheck := &kuberhealthycheckv2.KuberhealthyCheck{}
 
 	if err := khc.Client.Get(ctx, key, khCheck); err != nil {
 		return nil, fmt.Errorf("error fetching KuberhealthyCheck: %w", err)
@@ -40,21 +40,21 @@ func (khc *KHClient) GetKuberhealthyCheck(name, namespace string) (*comcastgithu
 }
 
 // CreateKuberhealthyCheck creates a new KuberhealthyCheck resource.
-func (khc *KHClient) CreateKuberhealthyCheck(khCheck *comcastgithubiov1.KuberhealthyCheck) error {
+func (khc *KHClient) CreateKuberhealthyCheck(khCheck *kuberhealthycheckv2.KuberhealthyCheck) error {
 	ctx := context.Background()
 	return khc.Client.Create(ctx, khCheck)
 }
 
 // UpdateKuberhealthyCheck updates an existing KuberhealthyCheck resource.
-func (khc *KHClient) UpdateKuberhealthyCheck(khCheck *comcastgithubiov1.KuberhealthyCheck) error {
+func (khc *KHClient) UpdateKuberhealthyCheck(khCheck *kuberhealthycheckv2.KuberhealthyCheck) error {
 	ctx := context.Background()
 	return khc.Client.Update(ctx, khCheck)
 }
 
 // ListKuberhealthyChecks lists all KuberhealthyCheck resources in a given namespace with optional ListOptions.
-func (khc *KHClient) ListKuberhealthyChecks(namespace string, opts *client.ListOptions) (*comcastgithubiov1.KuberhealthyCheckList, error) {
+func (khc *KHClient) ListKuberhealthyChecks(namespace string, opts *client.ListOptions) (*kuberhealthycheckv2.KuberhealthyCheckList, error) {
 	ctx := context.Background()
-	khCheckList := &comcastgithubiov1.KuberhealthyCheckList{}
+	khCheckList := &kuberhealthycheckv2.KuberhealthyCheckList{}
 	opts.Namespace = namespace // enforce the namespace setting that the user supplied
 
 	err := khc.Client.List(ctx, khCheckList, opts)
