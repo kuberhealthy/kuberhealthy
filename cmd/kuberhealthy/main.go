@@ -14,6 +14,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
 	"github.com/kuberhealthy/kuberhealthy/v3/pkg/kubeclient"
 )
 
@@ -33,18 +35,23 @@ func main() {
 	// Initial setup before starting Kuberhealthy. Loading, parsing, and setting flags, config values and environment vars.
 	err := setUp()
 	if err != nil {
-		log.Fatalln("Error setting up Kuberhealthy:", err)
+		log.Fatalln("startup: error setting up kuberhealthy:", err)
 	}
 
 	// setup a channel to capture when a shutdown is done
 	doneChan := make(chan struct{})
 
-	// initalize the main reconciler for managing kuberhealthycheck resources and all
-	// normal application functionality.
-	// err = startReconcilers(ctx)
-	// if err != nil {
-	// 	log.Fatalln("Error setting up Kuberhealthy CRD manager:", err)
-	// }
+	// make a new Kuberhealthy instance
+	kh, err := kuberhealthy.New()
+	if err != nil {
+		log.Errorln("startup: failed to initalize kuberhealthy:", err)
+	}
+
+	// make a new controller instance
+	ctrl, err := controller.New(kh)
+	if err != nil {
+		log.Errorln("startup: failed to setup kuberhealthy controller with error:", err)
+	}
 
 	// we must know when a shutdown signal is trapped or the main context has been canceled
 	interruptChan := make(chan struct{})

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -56,4 +57,29 @@ func containsString(s string, list []string) bool {
 		}
 	}
 	return false
+}
+
+// GetMyNamespace fetches the pod's local namespace from Kubernetes. If none can be determined, the supplied default is used.
+func GetMyNamespace(defaultNamespace string) string {
+
+	instanceNamespace := defaultNamespace
+
+	// instanceNamespaceEnv is a variable for storing namespace instance information
+	var instanceNamespaceEnv string
+
+	data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		log.Warnln("Failed to open namespace file:", err.Error())
+	}
+	if len(data) != 0 {
+		instanceNamespaceEnv = string(data)
+	}
+	if len(instanceNamespaceEnv) != 0 {
+		log.Infoln("Found instance namespace:", string(data))
+		instanceNamespace = instanceNamespaceEnv
+	} else {
+		log.Infoln("Did not find instance namespace. Using default namespace:", defaultNamespace)
+	}
+
+	return instanceNamespace
 }
