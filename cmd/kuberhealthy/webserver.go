@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/masterCalculation"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
@@ -154,7 +154,7 @@ func prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Infoln("Client connected to prometheus metrics endpoint from", r.RemoteAddr, r.UserAgent())
 	state := getCurrentState([]string{})
 
-	m := metrics.GenerateMetrics(state, cfg.PromMetricsConfig)
+	m := metrics.GenerateMetrics(state, GlobalConfig.PromMetricsConfig)
 	// write summarized health check results back to caller
 	_, err := w.Write([]byte(m))
 	if err != nil {
@@ -193,7 +193,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// fetch the current status from our khstate resources
-	state := k.getCurrentState(namespaces)
+	state := getCurrentState(namespaces)
 
 	// write summarized health check results back to caller
 	err = state.WriteHTTPStatusResponse(w)
@@ -215,27 +215,27 @@ func externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
 
 	ctx := r.Context()
 
-	k.externalCheckReportHandlerLog(requestID, "Client connected to check report handler from", r.UserAgent())
+	log.Println("webserver:", requestID, "Client connected to check report handler from", r.UserAgent())
 
 	// Validate request using the kh-run-uuid header. If the header doesn't exist, or there's an error with validation,
 	// validate using the pod's remote IP.
-	k.externalCheckReportHandlerLog(requestID, "validating external check status report from its reporting kuberhealthy run uuid:", r.Header.Get("kh-run-uuid"))
+	log.Println("webserver:", requestID, "validating external check status report from its reporting kuberhealthy run uuid:", r.Header.Get("kh-run-uuid"))
 	podReport, reportValidated, err := k.validateUsingRequestHeader(ctx, r)
 	if err != nil {
-		k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by its kh-run-uuid header:", r.Header.Get("kh-run-uuid"), err)
+		log.Println("webserver:", requestID, "Failed to look up pod by its kh-run-uuid header:", r.Header.Get("kh-run-uuid"), err)
 	}
 
 	// If the check uuid header is missing, attempt to validate using calling pod's source IP
 	if !reportValidated {
-		k.externalCheckReportHandlerLog(requestID, "validating external check status report from the pod's remote IP:", r.RemoteAddr)
+		log.Println("webserver:", requestID, "validating external check status report from the pod's remote IP:", r.RemoteAddr)
 		podReport, err = k.validatePodReportBySourceIP(ctx, r)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			k.externalCheckReportHandlerLog(requestID, "Failed to look up pod by its IP:", r.RemoteAddr, err)
+			log.Println("webserver:", requestID, "Failed to look up pod by its IP:", r.RemoteAddr, err)
 			return nil
 		}
 	}
-	k.externalCheckReportHandlerLog(requestID, "Calling pod is", podReport.Name, "in namespace", podReport.Namespace)
+	log.Println("webserver:", requestID, "Calling pod is", podReport.Name, "in namespace", podReport.Namespace)
 
 	// append pod info to request id for easy check tracing in logs
 	requestID = requestID + " (" + podReport.Namespace + "/" + podReport.Name + ")"
@@ -244,17 +244,17 @@ func externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		k.externalCheckReportHandlerLog(requestID, "Failed to read request body:", err.Error(), r.RemoteAddr)
+		log.Println("webserver:", requestID, "Failed to read request body:", err.Error(), r.RemoteAddr)
 		return nil
 	}
 	log.Debugln("Check report body:", string(b))
 
 	// decode the bytes into a status struct as used by the client
-	state := health.Status{}
+	state := health.Report{}
 	err = json.Unmarshal(b, &state)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		k.externalCheckReportHandlerLog(requestID, "Failed to unmarshal state json:", err, r.RemoteAddr)
+		log.Println("webserver:", requestID, "Failed to unmarshal state json:", err, r.RemoteAddr)
 		return nil
 	}
 	log.Debugf("Check report after unmarshal: +%v\n", state)
@@ -263,13 +263,13 @@ func externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
 	if !state.OK {
 		if len(state.Errors) == 0 {
 			w.WriteHeader(http.StatusBadRequest)
-			k.externalCheckReportHandlerLog(requestID, "Client attempted to report OK false without any error strings")
+			log.Println("webserver:", requestID, "Client attempted to report OK false without any error strings")
 			return nil
 		}
 		for _, e := range state.Errors {
 			if len(e) == 0 {
 				w.WriteHeader(http.StatusBadRequest)
-				k.externalCheckReportHandlerLog(requestID, "Client attempted to report a blank error string")
+				log.Println("webserver:", requestID, "Client attempted to report a blank error string")
 				return nil
 			}
 		}
@@ -279,35 +279,32 @@ func externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
 	khWorkload := determineKHWorkload(podReport.Name, podReport.Namespace)
 
 	switch khWorkload {
-	case khstatev1.KHCheck:
+	case khstatev2.KHCheck:
 		checkDetails := k.stateReflector.CurrentStatus().CheckDetails
 		checkRunDuration = checkDetails[podReport.Namespace+"/"+podReport.Name].RunDuration
-	case khstatev1.KHJob:
-		jobDetails := k.stateReflector.CurrentStatus().JobDetails
-		checkRunDuration = jobDetails[podReport.Namespace+"/"+podReport.Name].RunDuration
+
+		// create a details object from our incoming status report before storing it as a khstate custom resource
+		details := khstatev2.NewWorkloadDetails(khWorkload)
+		details.Errors = state.Errors
+		details.OK = state.OK
+		details.RunDuration = checkRunDuration
+		details.Namespace = podReport.Namespace
+		details.CurrentUUID = podReport.UUID
+
+		// since the check is validated, we can proceed to update the status now
+		log.Println("webserver:", requestID, "Setting check with name", podReport.Name, "in namespace", podReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID, details.GetKHWorkload())
+		err = k.storeCheckState(podReport.Name, podReport.Namespace, details)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println("webserver:", requestID, "failed to store check state for %s: %w", podReport.Name, err)
+			return fmt.Errorf("failed to store check state for %s: %w", podReport.Name, err)
+		}
+
+		// write ok back to caller
+		w.WriteHeader(http.StatusOK)
+		log.Println("webserver:", requestID, "Request completed successfully.")
+		return nil
 	}
-
-	// create a details object from our incoming status report before storing it as a khstate custom resource
-	details := khstatev1.NewWorkloadDetails(khWorkload)
-	details.Errors = state.Errors
-	details.OK = state.OK
-	details.RunDuration = checkRunDuration
-	details.Namespace = podReport.Namespace
-	details.CurrentUUID = podReport.UUID
-
-	// since the check is validated, we can proceed to update the status now
-	k.externalCheckReportHandlerLog(requestID, "Setting check with name", podReport.Name, "in namespace", podReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID, details.GetKHWorkload())
-	err = k.storeCheckState(podReport.Name, podReport.Namespace, details)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		k.externalCheckReportHandlerLog(requestID, "failed to store check state for %s: %w", podReport.Name, err)
-		return fmt.Errorf("failed to store check state for %s: %w", podReport.Name, err)
-	}
-
-	// write ok back to caller
-	w.WriteHeader(http.StatusOK)
-	k.externalCheckReportHandlerLog(requestID, "Request completed successfully.")
-	return nil
 }
 
 // fetchPodBySelectorForDuration attempts to fetch a pod by a specified selector repeatedly for the supplied duration.
@@ -355,11 +352,6 @@ func isUUIDWhitelistedForCheck(checkName string, checkNamespace string, uuid str
 // this will return the state of ALL found checks.
 // Failures to fetch CRD state return an error.
 func getCurrentState(namespaces []string) health.State {
-
-	currentMaster, err := masterCalculation.CalculateMaster(kubernetesClient)
-	if err != nil {
-		log.Errorln("Failed to calculate master:", err)
-	}
 
 	var currentState health.State
 	if len(namespaces) != 0 {

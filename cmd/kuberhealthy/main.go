@@ -14,8 +14,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
-	"github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
 	"github.com/kuberhealthy/kuberhealthy/v3/pkg/kubeclient"
 )
 
@@ -42,16 +40,17 @@ func main() {
 	doneChan := make(chan struct{})
 
 	// make a new Kuberhealthy instance
-	kh, err := kuberhealthy.New()
-	if err != nil {
-		log.Errorln("startup: failed to initalize kuberhealthy:", err)
-	}
+	// kh, err := kuberhealthy.New()
+	// if err != nil {
+	// 	log.Errorln("startup: failed to initalize kuberhealthy:", err)
+	// }
 
-	// make a new controller instance
-	ctrl, err := controller.New(kh)
-	if err != nil {
-		log.Errorln("startup: failed to setup kuberhealthy controller with error:", err)
-	}
+	// make a new controller instance and start it
+	// ctrlInstance, err := controller.New(kh)
+	// if err != nil {
+	// 	log.Errorln("startup: failed to setup kuberhealthy controller with error:", err)
+	// }
+	// ctrlInstance.
 
 	// we must know when a shutdown signal is trapped or the main context has been canceled
 	interruptChan := make(chan struct{})
