@@ -18,13 +18,17 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"log"
 
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
 	kuberhealthy "github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -100,4 +104,36 @@ func (r *KuberhealthyCheckReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			},
 		}).
 		Complete(r)
+}
+
+func New(kuberhealthy *kuberhealthy.Kuberhealthy) (ctrl.Manager, error) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(khcrdsv2.AddToScheme(scheme))
+
+	// Get Kubernetes config
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error getting kubernetes config: %w", err)
+	}
+
+	// Create a new manager
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme: scheme,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error creating manager: %w", err)
+	}
+
+	// Create and register the reconciler
+	reconciler := &controller.KuberhealthyCheckReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       scheme,
+		Kuberhealthy: kuberhealthy,
+	}
+
+	if err := reconciler.SetupWithManager(mgr); err != nil {
+		return nil, fmt.Errorf("error setting up controller with manager: %w", err)
+	}
+
+	return mgr, nil
 }

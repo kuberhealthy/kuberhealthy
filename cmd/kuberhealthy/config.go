@@ -30,6 +30,11 @@ type Config struct {
 	TerminationGracePeriodSeconds time.Duration             `yaml:"terminationGracePeriodSeconds"` // this must be calibrated with the setting on our pods
 	DefaultCheckTimeout           time.Duration             `yaml:"defaultCheckTimeout"`           // if not otherwise specified, this is how long checker pods have to run
 	DebugMode                     bool                      `yaml:"debugMode"`
+	DefaultNamespace              string                    `yaml:"defaultNamespace"` // this is the namespace kuberhealthy will assume if none can be detected
+	Namespace                     string                    // this is the namespace we're running in
+}
+
+func init() {
 }
 
 func New() *Config {
@@ -38,6 +43,7 @@ func New() *Config {
 		DefaultRunInterval:            time.Minute * 10,                                     // DefaultRunInterval is the default run interval for checks set by kuberhealthy
 		TerminationGracePeriodSeconds: time.Minute * 5,
 		DefaultCheckTimeout:           time.Minute * 5,
+		Namespace:                     GetMyNamespace("kuberhealthy"), // fetch the namespace of kuberhealthy
 	}
 }
 

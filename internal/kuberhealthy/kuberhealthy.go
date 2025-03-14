@@ -16,3 +16,8 @@ func (kh *Kuberhealthy) StopCheck(namespace string, name string) {
 	log.Println("Stopping Kuberhealthy check", namespace, name)
 	// Cleanup logic here
 }
+
+// New creates a new Kuberhealthy instance
+func New() (*Kuberhealthy, error) {
+	return &Kuberhealthy{}, nil
+}
