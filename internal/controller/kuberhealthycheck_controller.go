@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
 	kuberhealthy "github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -106,7 +105,7 @@ func (r *KuberhealthyCheckReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func New(kuberhealthy *kuberhealthy.Kuberhealthy) (ctrl.Manager, error) {
+func New(kuberhealthy *kuberhealthy.Kuberhealthy) (*KuberhealthyCheckReconciler, error) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(khcrdsv2.AddToScheme(scheme))
 
@@ -125,7 +124,7 @@ func New(kuberhealthy *kuberhealthy.Kuberhealthy) (ctrl.Manager, error) {
 	}
 
 	// Create and register the reconciler
-	reconciler := &controller.KuberhealthyCheckReconciler{
+	reconciler := &KuberhealthyCheckReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       scheme,
 		Kuberhealthy: kuberhealthy,
@@ -135,5 +134,5 @@ func New(kuberhealthy *kuberhealthy.Kuberhealthy) (ctrl.Manager, error) {
 		return nil, fmt.Errorf("error setting up controller with manager: %w", err)
 	}
 
-	return mgr, nil
+	return reconciler, nil
 }
