@@ -19,7 +19,7 @@ type KHClient struct {
 
 // New creates a new KHClient struct with working Kubernetes client
 func New() (*KHClient, error) {
-	crdClient, err := NewKHClient()
+	crdClient, err := NewClient()
 	if err != nil {
 		return nil, err
 	}

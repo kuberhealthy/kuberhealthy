@@ -17,10 +17,10 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
-// NewKHClient creates a new kubernetes client with kuberhealthy CRDs working.  This is useful, but
+// NewClient creates a new kubernetes client with kuberhealthy CRDs working.  This is useful, but
 // it's probably better to use the KHClient struct that has pre-made CRUD operations on it. To get
 // a new KHClient struct, use New().
-func NewKHClient() (client.Client, error) {
+func NewClient() (client.Client, error) {
 	// Create a new kubernetes client Scheme
 	khScheme := runtime.NewScheme()
 	err := clientgoscheme.AddToScheme(khScheme)
@@ -46,10 +46,10 @@ func NewKHClient() (client.Client, error) {
 
 	// Create a dynamic client with the customScheme and in cluster config
 	// then set the client globally
-	kubeClient, err := client.New(config, client.Options{Scheme: khScheme})
+	c, err := client.New(config, client.Options{Scheme: khScheme})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create kuberhealthy-enabled kubernetes client: %v", err)
 	}
 
-	return kubeClient, nil
+	return c, nil
 }
