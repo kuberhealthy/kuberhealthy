@@ -6,11 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
@@ -220,7 +223,7 @@ func externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// Validate request using the kh-run-uuid header. If the header doesn't exist, or there's an error with validation,
 	// validate using the pod's remote IP.
 	log.Println("webserver:", requestID, "validating external check status report from its reporting kuberhealthy run uuid:", r.Header.Get("kh-run-uuid"))
-	podReport, reportValidated, err := k.validateUsingRequestHeader(ctx, r)
+	podReport, reportValidated, err := validateUsingRequestHeader(ctx, r)
 	if err != nil {
 		log.Println("webserver:", requestID, "Failed to look up pod by its kh-run-uuid header:", r.Header.Get("kh-run-uuid"), err)
 	}
@@ -228,7 +231,7 @@ func externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// If the check uuid header is missing, attempt to validate using calling pod's source IP
 	if !reportValidated {
 		log.Println("webserver:", requestID, "validating external check status report from the pod's remote IP:", r.RemoteAddr)
-		podReport, err = k.validatePodReportBySourceIP(ctx, r)
+		podReport, err = validatePodReportBySourceIP(ctx, r)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			log.Println("webserver:", requestID, "Failed to look up pod by its IP:", r.RemoteAddr, err)
@@ -275,36 +278,32 @@ func externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	checkRunDuration := time.Duration(0).String()
-	khWorkload := determineKHWorkload(podReport.Name, podReport.Namespace)
+	// checkRunDuration := time.Duration(0).String()
 
-	switch khWorkload {
-	case khstatev2.KHCheck:
-		checkDetails := k.stateReflector.CurrentStatus().CheckDetails
-		checkRunDuration = checkDetails[podReport.Namespace+"/"+podReport.Name].RunDuration
+	// checkDetails := stateReflector.CurrentStatus().CheckDetails
+	// checkRunDuration = checkDetails[podReport.Namespace+"/"+podReport.Name].RunDuration
 
-		// create a details object from our incoming status report before storing it as a khstate custom resource
-		details := khstatev2.NewWorkloadDetails(khWorkload)
-		details.Errors = state.Errors
-		details.OK = state.OK
-		details.RunDuration = checkRunDuration
-		details.Namespace = podReport.Namespace
-		details.CurrentUUID = podReport.UUID
+	// create a details object from our incoming status report before storing it as a khstate custom resource
+	details := &kuberhealthycheckv2.KuberhealthyCheckStatus{}
+	details.Errors = state.Errors
+	details.OK = state.OK
+	// details.RunDuration = checkRunDuration
+	details.Namespace = podReport.Namespace
+	details.CurrentUUID = podReport.UUID
 
-		// since the check is validated, we can proceed to update the status now
-		log.Println("webserver:", requestID, "Setting check with name", podReport.Name, "in namespace", podReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID, details.GetKHWorkload())
-		err = k.storeCheckState(podReport.Name, podReport.Namespace, details)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			log.Println("webserver:", requestID, "failed to store check state for %s: %w", podReport.Name, err)
-			return fmt.Errorf("failed to store check state for %s: %w", podReport.Name, err)
-		}
-
-		// write ok back to caller
-		w.WriteHeader(http.StatusOK)
-		log.Println("webserver:", requestID, "Request completed successfully.")
-		return nil
+	// since the check is validated, we can proceed to update the status now
+	log.Println("webserver:", requestID, "Setting check with name", podReport.Name, "in namespace", podReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID)
+	err = storeCheckState(podReport.Name, podReport.Namespace, details)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println("webserver:", requestID, "failed to store check state for %s: %w", podReport.Name, err)
+		return fmt.Errorf("failed to store check state for %s: %w", podReport.Name, err)
 	}
+
+	// write ok back to caller
+	w.WriteHeader(http.StatusOK)
+	log.Println("webserver:", requestID, "Request completed successfully.")
+	return nil
 }
 
 // fetchPodBySelectorForDuration attempts to fetch a pod by a specified selector repeatedly for the supplied duration.
@@ -317,7 +316,7 @@ func fetchPodBySelectorForDuration(ctx context.Context, selector string, d time.
 			return v1.Pod{}, errors.New("Failed to fetch source pod with selector " + selector + " after trying for " + d.String())
 		}
 
-		p, err := k.fetchPodBySelector(ctx, selector)
+		p, err := fetchPodBySelector(ctx, selector)
 		if err != nil {
 			log.Warningln("was unable to find calling pod with selector " + selector + " while watching for duration. Error: " + err.Error())
 			time.Sleep(time.Second)
@@ -328,6 +327,13 @@ func fetchPodBySelectorForDuration(ctx context.Context, selector string, d time.
 	}
 }
 
+// getCheckStatus fetches the status section of a kuberhealthy check resource and returns it
+func getCheckStatus(checkName string, checkNamespace string) (*kuberhealthycheckv2.KuberhealthyCheckStatus, error) {
+
+	// TODO
+	return &kuberhealthycheckv2.KuberhealthyCheckStatus{}, nil
+}
+
 // isUUIDWhitelistedForCheck determines if the supplied uuid is whitelisted for the
 // check with the supplied name.  Only one UUID can be whitelisted at a time.
 // Operations are not atomic.  Whitelisting prevents expired or invalidated pods from
@@ -335,13 +341,13 @@ func fetchPodBySelectorForDuration(ctx context.Context, selector string, d time.
 func isUUIDWhitelistedForCheck(checkName string, checkNamespace string, uuid string) (bool, error) {
 
 	// get the item in question
-	checkState, err := khStateClient.KuberhealthyStates(checkNamespace).Get(checkName, metav1.GetOptions{})
+	checkStatus, err := getCheckStatus(checkName, checkNamespace)
 	if err != nil {
 		return false, err
 	}
 
-	log.Debugln("Validating current UUID", checkState.Spec.CurrentUUID, "vs incoming UUID:", uuid)
-	if checkState.Spec.CurrentUUID == uuid {
+	log.Debugln("Validating current UUID", checkStatus.CurrentUUID, "vs incoming UUID:", uuid)
+	if checkStatus.CurrentUUID == uuid {
 		return true, nil
 	}
 	return false, nil
@@ -356,14 +362,13 @@ func getCurrentState(namespaces []string) health.State {
 	var currentState health.State
 	if len(namespaces) != 0 {
 		currentState = getCurrentStatusForNamespaces(namespaces)
-	} else {
-		currentState = k.stateReflector.CurrentStatus()
 	}
 
-	currentState.CurrentMaster = currentMaster
-	if len(cfg.StateMetadata) != 0 {
-		currentState.Metadata = cfg.StateMetadata
-	}
+	// currentState.CurrentMaster = currentMaster
+	// if some additional metadata was added, then append it
+	// if len(cfg.StateMetadata) != 0 {
+	// 	currentState.Metadata = cfg.StateMetadata
+	// }
 
 	return currentState
 }
@@ -373,17 +378,144 @@ func getCurrentState(namespaces []string) health.State {
 // Failures to fetch CRD state return an error.
 func getCurrentStatusForNamespaces(namespaces []string) health.State {
 	// if there is are requested namespaces, then filter out checks from namespaces not matching those requested
-	states := k.stateReflector.CurrentStatus()
-	statesForNamespaces := states
-	statesForNamespaces.Errors = []string{}
-	statesForNamespaces.OK = true
-	statesForNamespaces.CheckDetails = make(map[string]khstatev1.WorkloadDetails)
-	statesForNamespaces.JobDetails = make(map[string]khstatev1.WorkloadDetails)
-	if len(namespaces) != 0 {
-		statesForNamespaces = validateCurrentStatusForNamespaces(states.CheckDetails, namespaces, statesForNamespaces, khstatev1.KHCheck)
-		statesForNamespaces = validateCurrentStatusForNamespaces(states.JobDetails, namespaces, statesForNamespaces, khstatev1.KHJob)
+	// states := stateReflector.CurrentStatus(namespaces)
+	// statesForNamespaces := states
+	// statesForNamespaces.Errors = []string{}
+	// statesForNamespaces.OK = true
+	// statesForNamespaces.CheckDetails = make(map[string]khstatev1.WorkloadDetails)
+	// statesForNamespaces.JobDetails = make(map[string]khstatev1.WorkloadDetails)
+	// if len(namespaces) != 0 {
+	// 	statesForNamespaces = validateCurrentStatusForNamespaces(states.CheckDetails, namespaces, statesForNamespaces, khstatev1.KHCheck)
+	// 	statesForNamespaces = validateCurrentStatusForNamespaces(states.JobDetails, namespaces, statesForNamespaces, khstatev1.KHJob)
+	// }
+
+	// log.Infoln("khState reflector returning current status on", len(statesForNamespaces.CheckDetails), "check khStates and", len(statesForNamespaces.JobDetails), "job khStates")
+	// return statesForNamespaces
+
+	return health.State{}
+}
+
+// validateUsingRequestHeader gets the header `kh-run-uuid` value from the request and forms a selector with it to
+// validate that the request is coming from a kuberhealthy check pod
+func validateUsingRequestHeader(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
+
+	var podReport PodReportInfo
+	var err error
+	if len(r.Header.Get("kh-run-uuid")) == 0 {
+		return podReport, false, nil
+	}
+	selector := "kuberhealthy-run-id=" + r.Header.Get("kh-run-uuid")
+	podReport, err = validateExternalRequest(ctx, selector)
+	if err != nil {
+		return podReport, false, err
+	}
+	return podReport, true, nil
+}
+
+// validatePodReportBySourceIP parses the remoteAddr from the request and forms a selector with the remote IP to
+// validate that the request is coming from a kuberhealthy check pod
+func validatePodReportBySourceIP(ctx context.Context, r *http.Request) (PodReportInfo, error) {
+
+	var podReport PodReportInfo
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return podReport, err
+	}
+	selector := "status.podIP==" + ip + ",status.phase==Running"
+	podReport, err = validateExternalRequest(ctx, selector)
+	if err != nil {
+		return podReport, err
+	}
+	return podReport, nil
+}
+
+// fetchPodBySelector fetches the pod by it's `kuberhealthy-run-id` label selector or by its `status.podIP` field selector
+func fetchPodBySelector(ctx context.Context, selector string) (v1.Pod, error) {
+	// var pod v1.Pod
+
+	// podClient := kubernetesClient.CoreV1().Pods(TargetNamespace)
+
+	// // Use either label selector or field selector depending on the selector string passed through
+	// // LabelSelector: "kuberhealthy-run-id=" + uuid,
+	// // FieldSelector: "status.podIP==" + remoteIP + ",status.phase==Running",
+	// var listOptions metav1.ListOptions
+	// if strings.Contains(selector, "kuberhealthy-run-id") {
+	// 	listOptions = metav1.ListOptions{
+	// 		LabelSelector: selector,
+	// 	}
+	// }
+
+	// if strings.Contains(selector, "status.podIP") {
+	// 	listOptions = metav1.ListOptions{
+	// 		FieldSelector: selector,
+	// 	}
+	// }
+
+	// podList, err := podClient.List(ctx, listOptions)
+	// if err != nil {
+	// 	return pod, errors.New("failed to fetch pod with selector " + selector + " with error: " + err.Error())
+	// }
+
+	// // ensure that we only got back one pod, because two means something awful has happened and 0 means we
+	// // didnt find one
+	// if len(podList.Items) == 0 {
+	// 	return pod, errors.New("failed to find a pod with selector " + selector)
+	// }
+	// if len(podList.Items) > 1 {
+	// 	return pod, errors.New("failed to fetch pod with selector " + selector + " - found two or more with same label")
+	// }
+
+	// // check if the pod has containers
+	// if len(podList.Items[0].Spec.Containers) == 0 {
+	// 	return pod, errors.New("failed to fetch environment variables from pod with selector" + selector + " - pod had no containers")
+	// }
+
+	// return podList.Items[0], nil
+
+	return v1.Pod{}, nil
+}
+
+// storeCheckState stores the check state in its cluster CRD
+func storeCheckState(checkName string, checkNamespace string, khcheck *kuberhealthycheckv2.KuberhealthyCheckStatus) error {
+
+	// ensure the CRD resource exits
+	// err := ensureStateResourceExists(checkName, checkNamespace, details.GetKHWorkload())
+	// if err != nil {
+	// 	return err
+	// }
+
+	// put the status on the CRD from the check
+	// err := setCheckStateResource(checkName, checkNamespace, details)
+
+	//TODO: Make this retry of updating custom resources repeatable
+	//
+	// We commonly see a race here with the following type of error:
+	// "Error storing CRD state for check: pod-restarts in namespace kuberhealthy Operation cannot be fulfilled on khstates.comcast.github.io \"pod-restarts\": the object
+	// has been modified; please apply your changes to the latest version and try again"
+	//
+	// If we see this error, we fetch the updated object, re-apply our changes, and try again
+	delay := time.Duration(time.Second * 1)
+	maxTries := 7
+	tries := 0
+	var err error
+	for strings.Contains(err.Error(), "the object has been modified") {
+
+		// if too many retires have occurred, we fail up the stack further
+		if tries > maxTries {
+			return fmt.Errorf("failed to update khstate for check %s in namespace %s after %d with error %w", checkName, checkNamespace, maxTries, err)
+		}
+		log.Infoln("Failed to update khstate for check because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
+
+		// sleep and double the delay between checks (exponential backoff)
+		time.Sleep(delay)
+		delay = delay + delay
+
+		// try setting the check state again
+		// err = setCheckStateResource(checkName, checkNamespace, details)
+
+		// count how many times we've retried
+		tries++
 	}
 
-	log.Infoln("khState reflector returning current status on", len(statesForNamespaces.CheckDetails), "check khStates and", len(statesForNamespaces.JobDetails), "job khStates")
-	return statesForNamespaces
+	return err
 }
