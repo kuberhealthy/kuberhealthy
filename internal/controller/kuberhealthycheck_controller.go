@@ -50,9 +50,10 @@ func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	finalizer := "kuberhealthy.com/finalizer"
 
-	// DELETE
+	// DELETE support for finalizer
 	if !check.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(&check, finalizer) {
+			log.Println("controller: DELETE FINALIZER event detected for:", req.Namespace+"/"+req.Name)
 			// Stop Kuberhealthy process before deletion
 			r.Kuberhealthy.StopCheck(req.NamespacedName.Namespace, req.NamespacedName.Name) // Stop old instance of check
 
@@ -82,40 +83,57 @@ func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager registers the controller with filtering for create events. This automatically
+// setupWithManager registers the controller with filtering for create events. This automatically
 // starts the manager that is passed in.
-func (r *KuberhealthyCheckReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&khcrdsv2.KuberhealthyCheck{}).
 		WithEventFilter(predicate.Funcs{
+			// CREATE
 			CreateFunc: func(e event.CreateEvent) bool {
-				log.Println("Create event detected for:", e.Object.GetName())
+				log.Println("controller: CREATE event detected for:", e.Object.GetName())
 				r.Kuberhealthy.StartCheck(e.Object.GetNamespace(), e.Object.GetName()) // Start new instance of check
 				return true                                                            // true indicates we need to write something to the custom resource
 			},
+			// UPDATE
 			UpdateFunc: func(e event.UpdateEvent) bool {
+				log.Println("controller: UPDATE event detected for:", e.ObjectOld.GetName())
 				r.Kuberhealthy.StopCheck(e.ObjectOld.GetNamespace(), e.ObjectOld.GetName())  // Start new instance of check
 				r.Kuberhealthy.StartCheck(e.ObjectNew.GetNamespace(), e.ObjectNew.GetName()) // Start new instance of check
-				return false                                                                 // efalse indicates we do not need to write something to the custom resource
+				return false                                                                 // false indicates we do not need to write something to the custom resource
 			},
+			// DELETE
+			// TODO - do we need this DELETE and the one in Reconcile?
 			DeleteFunc: func(e event.DeleteEvent) bool {
+				log.Println("controller: DELETE event detected for:", e.Object.GetName())
 				r.Kuberhealthy.StopCheck(e.Object.GetNamespace(), e.Object.GetName()) // Start new instance of check
-				return false                                                          // efalse indicates we do not need to write something to the custom resource
+				return false                                                          // false indicates we do not need to write something to the custom resource
 			},
 		}).
 		Complete(r)
 }
 
 // New creates a new KuberhealthyCheckReconciler with a working controller manager from the kubebuilder packages.
-// Expects a kuberhealthy.Kuberhealthy that is already started and runnign to be passed in.
-func New(ctx context.Context, kuberhealthy *kuberhealthy.Kuberhealthy) (*KuberhealthyCheckReconciler, error) {
+// Expects a kuberhealthy.Kuberhealthy that is already started and runnign to be passed in. If it is not started,
+// then this function will start it. First, a Kuberhealthy should be created and started, then this New() func
+// should be called with it.
+func New(ctx context.Context, kh *kuberhealthy.Kuberhealthy) (*KuberhealthyCheckReconciler, error) {
+
+	// check if kuberhealthy is started
+	if !kh.IsStarted() {
+		err := kh.Start(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("controller: error starting kuberhealthy:", err)
+		}
+	}
+
 	scheme := runtime.NewScheme()
 	utilruntime.Must(khcrdsv2.AddToScheme(scheme))
 
 	// Get Kubernetes config
 	cfg, err := config.GetConfig()
 	if err != nil {
-		return nil, fmt.Errorf("error getting kubernetes config: %w", err)
+		return nil, fmt.Errorf("controller: error getting kubernetes config: %w", err)
 	}
 
 	// Create a new manager
@@ -123,18 +141,18 @@ func New(ctx context.Context, kuberhealthy *kuberhealthy.Kuberhealthy) (*Kuberhe
 		Scheme: scheme,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error creating manager: %w", err)
+		return nil, fmt.Errorf("controller: error creating manager: %w", err)
 	}
 
 	// Create and register the reconciler
 	reconciler := &KuberhealthyCheckReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       scheme,
-		Kuberhealthy: kuberhealthy,
+		Kuberhealthy: kh,
 	}
 
-	if err := reconciler.SetupWithManager(mgr); err != nil {
-		return nil, fmt.Errorf("error setting up controller with manager: %w", err)
+	if err := reconciler.setupWithManager(mgr); err != nil {
+		return nil, fmt.Errorf("controller: error setting up controller with manager: %w", err)
 	}
 
 	return reconciler, nil

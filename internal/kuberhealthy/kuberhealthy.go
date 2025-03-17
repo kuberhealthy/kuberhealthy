@@ -8,6 +8,7 @@ import (
 // Kuberhealthy handles background processing for checks
 type Kuberhealthy struct {
 	Context context.Context
+	Running bool // indicates that Start() has been called and this instance is running
 }
 
 // New creates a new Kuberhealthy instance
@@ -32,4 +33,9 @@ func (kh *Kuberhealthy) StopCheck(namespace string, name string) {
 func (kh *Kuberhealthy) Start(ctx context.Context) error {
 
 	return nil
+}
+
+// IsStarted returns if this instance is running or not
+func (kh *Kuberhealthy) IsStarted() bool {
+	return kh.Running
 }
