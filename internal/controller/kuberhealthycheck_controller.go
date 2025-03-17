@@ -82,7 +82,8 @@ func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager registers the controller with filtering for create events
+// SetupWithManager registers the controller with filtering for create events. This automatically
+// starts the manager that is passed in.
 func (r *KuberhealthyCheckReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&khcrdsv2.KuberhealthyCheck{}).
@@ -105,7 +106,9 @@ func (r *KuberhealthyCheckReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func New(kuberhealthy *kuberhealthy.Kuberhealthy) (*KuberhealthyCheckReconciler, error) {
+// New creates a new KuberhealthyCheckReconciler with a working controller manager from the kubebuilder packages.
+// Expects a kuberhealthy.Kuberhealthy that is already started and runnign to be passed in.
+func New(ctx context.Context, kuberhealthy *kuberhealthy.Kuberhealthy) (*KuberhealthyCheckReconciler, error) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(khcrdsv2.AddToScheme(scheme))
 

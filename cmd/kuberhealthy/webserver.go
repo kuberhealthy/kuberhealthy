@@ -33,23 +33,34 @@ func StartWebServer() {
 		}
 	})
 
-	// visit /json to see a json representation of all current checks for easy automation
-	http.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
-		// otherwise show the status page
+	// Visit /healthz to run a health check. This is used for all k8s healthchecks
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		err := healthCheckHandler(w, r)
 		if err != nil {
 			log.Errorln(err)
 		}
 	})
 
-	// Accept status reports coming from external checker pods. This is the old Endpoint
-	// for reporting check status from Kuberhealthy V2.
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	// visit /json to see a json representation of all current checks for easy automation
+	http.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
+		// TODO - display a formatted json representation of all currently
+		// tracked checks. allow for ?namespace= filtering.
+	})
+
+	// Accept status reports coming from external checker pods.
+	http.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
 		err := externalCheckReportHandler(w, r)
 		if err != nil {
 			log.Errorln("externalCheckStatus endpoint error:", err)
 		}
 
+	})
+
+	// Accept status reports coming from external checker pods. This is the old Endpoint
+	// for reporting check status from Kuberhealthy V2.
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// until a UI is developed, just redirect to /json
+		http.Redirect(w, r, "/json", http.StatusTemporaryRedirect)
 	})
 
 	// start web server and restart it any time it exits
