@@ -114,9 +114,7 @@ func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
 }
 
 // New creates a new KuberhealthyCheckReconciler with a working controller manager from the kubebuilder packages.
-// Expects a kuberhealthy.Kuberhealthy that is already started and runnign to be passed in. If it is not started,
-// then this function will start it. First, a Kuberhealthy should be created and started, then this New() func
-// should be called with it.
+// Expects a kuberhealthy.Kuberhealthy. If it is not started, then this function will start it.
 func New(ctx context.Context, kh *kuberhealthy.Kuberhealthy) (*KuberhealthyCheckReconciler, error) {
 
 	// check if kuberhealthy is started

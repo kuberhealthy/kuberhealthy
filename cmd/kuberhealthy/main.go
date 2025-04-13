@@ -12,17 +12,18 @@ import (
 
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
-	"k8s.io/client-go/kubernetes"
 
-	"github.com/kuberhealthy/kuberhealthy/v3/pkg/kubeclient"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
 )
 
 // GlobalConfig holds the configuration settings for Kuberhealthy
 var GlobalConfig *Config
 var configPath = "/etc/config/kuberhealthy.yaml"
 
-var KHClient *kubeclient.KHClient    // KubernetesClient is the global kubernetes client
-var KubeClient *kubernetes.Clientset // global k8s client used by all things
+// var KHClient *kubeclient.KHClient    // KubernetesClient is the global kubernetes client
+// var KubeClient *kubernetes.Clientset // global k8s client used by all things
+var KHController *controller.KuberhealthyCheckReconciler
 
 func main() {
 
@@ -40,17 +41,17 @@ func main() {
 	doneChan := make(chan struct{})
 
 	// make a new Kuberhealthy instance
-	// kh, err := kuberhealthy.New()
-	// if err != nil {
-	// 	log.Errorln("startup: failed to initalize kuberhealthy:", err)
-	// }
+	kh, err := kuberhealthy.New(ctx)
+	if err != nil {
+		log.Errorln("startup: failed to initalize kuberhealthy:", err)
+	}
 
-	// make a new controller instance and start it
-	// ctrlInstance, err := controller.New(kh)
-	// if err != nil {
-	// 	log.Errorln("startup: failed to setup kuberhealthy controller with error:", err)
-	// }
-	// ctrlInstance.
+	// Make a new kubebuilder controller instance with the kuberhealthy instance in it.
+	// This is will be used as a global client
+	KHController, err = controller.New(ctx, kh)
+	if err != nil {
+		log.Errorln("startup: failed to setup kuberhealthy controller with error:", err)
+	}
 
 	// we must know when a shutdown signal is trapped or the main context has been canceled
 	interruptChan := make(chan struct{})
@@ -154,10 +155,11 @@ func setUp() error {
 	GlobalConfig.TargetNamespace = os.Getenv("TARGET_NAMESPACE")
 
 	// init the global kubernetes client
-	KHClient, err = kubeclient.New()
-	if err != nil {
-		return fmt.Errorf("Error setting up Kuberhealthy client for Kubernetes: %w", err)
-	}
+	// integrii: Removed because we can use the global controller instance KHController for this
+	// KHClient, err = kubeclient.New()
+	// if err != nil {
+	// 	return fmt.Errorf("Error setting up Kuberhealthy client for Kubernetes: %w", err)
+	// }
 
 	return nil
 }

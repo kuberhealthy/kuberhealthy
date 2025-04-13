@@ -12,8 +12,10 @@ type Kuberhealthy struct {
 }
 
 // New creates a new Kuberhealthy instance
-func New() (*Kuberhealthy, error) {
-	return &Kuberhealthy{}, nil
+func New(ctx context.Context) (*Kuberhealthy, error) {
+	return &Kuberhealthy{
+		Context: ctx,
+	}, nil
 }
 
 // StartCheck begins tracking and managing a khcheck
