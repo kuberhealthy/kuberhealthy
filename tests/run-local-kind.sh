@@ -13,6 +13,13 @@ if ! command -v kind &>/dev/null; then
 fi
 echo "kind found in PATH"
 
+# Ensure kustomize is installed
+if ! command -v kustomize &>/dev/null; then
+  echo "❌ kustomize not found in PATH. Aborting."
+  exit 1
+fi
+echo "kustomize found in PATH"
+
 echo "📦 Building Docker image: $IMAGE"
 # this is meant to be run with `just kind` from the root of the repo
 docker build -f cmd/kuberhealthy/Containerfile -t "$IMAGE" .
@@ -31,54 +38,15 @@ kind load docker-image "$IMAGE" --name "$CLUSTER_NAME"
 
 echo "📤 Deploying Kuberhealthy to namespace: $TARGET_NAMESPACE"
 kubectl delete namespace "$TARGET_NAMESPACE" --ignore-not-found=true
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: $TARGET_NAMESPACE
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kuberhealthy
-  namespace: $TARGET_NAMESPACE
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: kuberhealthy
-  template:
-    metadata:
-      labels:
-        app: kuberhealthy
-    spec:
-      containers:
-      - name: kuberhealthy
-        image: $IMAGE
-        imagePullPolicy: Never
-        env:
-        - name: TARGET_NAMESPACE
-          value: "$TARGET_NAMESPACE"
-        - name: KH_CHECK_REPORT_URL
-          value: "$KH_CHECK_REPORT_URL"
-        ports:
-        - containerPort: 8080
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: kuberhealthy
-  namespace: $TARGET_NAMESPACE
-spec:
-  selector:
-    app: kuberhealthy
-  ports:
-  - port: 8080
-    targetPort: 8080
-EOF
+kustomize build deploy/ | kubectl apply -f -
 
-echo "⏳ Waiting for Kuberhealthy pod..."
-kubectl wait --for=condition=available deployment/kuberhealthy -n kuberhealthy --timeout=60s
+echo "⏳ Waiting for Kuberhealthy deployment to apply..."
+until kubectl get deployment kuberhealthy -n kuberhealthy >/dev/null 2>&1; do
+  sleep 1
+done
+kubectl get events -n kuberhealthy --field-selector involvedObject.kind=Deployment,involvedObject.name=kuberhealthy --sort-by=.lastTimestamp
+
+# Wait for Kuberhealthy pods to be online
 kubectl wait --for=condition=Ready pod -l app=kuberhealthy -n "$TARGET_NAMESPACE" --timeout=60s
 
 echo "📄 Tailing Kuberhealthy logs:"
