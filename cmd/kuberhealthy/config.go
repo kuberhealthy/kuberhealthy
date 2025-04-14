@@ -24,7 +24,7 @@ type Config struct {
 	MaxCompletedPodCount          int                       `yaml:"maxCompletedPodCount"`
 	MaxErrorPodCount              int                       `yaml:"maxErrorPodCount"`
 	PromMetricsConfig             metrics.PromMetricsConfig `yaml:"promMetricsConfig,omitempty"`
-	TargetNamespace               string                    `yaml:"namespace"` // TargetNamespace sets the namespace that Kuberhealthy will operate in.  By default, this is blank, which means
+	TargetNamespace               string                    `yaml:"namespace"` // TargetNamespace sets the namespace that Kuberhealthy will operate in.  By default, this is blank, which means all namespaces are watched for khcheck resources.
 	DefaultRunInterval            time.Duration             `yaml:"defaultRunInterval"`
 	CheckReportingURL             string                    `yaml:"checkReportingURL"`             // this is the URL that checker pods will report in on
 	TerminationGracePeriodSeconds time.Duration             `yaml:"terminationGracePeriodSeconds"` // this must be calibrated with the setting on our pods

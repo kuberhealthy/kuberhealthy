@@ -151,8 +151,8 @@ func setUp() error {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	// determine the name of this pod from the POD_NAME environment variable
-	GlobalConfig.TargetNamespace = os.Getenv("TARGET_NAMESPACE")
+	// Set the target namespace to whatever the KH_TARGET_NAMESPACE env var is
+	GlobalConfig.TargetNamespace = os.Getenv("KH_TARGET_NAMESPACE")
 
 	// init the global kubernetes client
 	// integrii: Removed because we can use the global controller instance KHController for this
