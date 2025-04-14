@@ -41,13 +41,19 @@ kubectl delete namespace "$TARGET_NAMESPACE" --ignore-not-found=true
 kustomize build deploy/ | kubectl apply -f -
 
 echo "⏳ Waiting for Kuberhealthy deployment to apply..."
-until kubectl get deployment kuberhealthy -n kuberhealthy >/dev/null 2>&1; do
+for i in {1..30}; do
+  kubectl get deployment kuberhealthy -n $TARGET_NAMESPACE # >/dev/null 2>&1; do
+  kubectl get events -n $TARGET_NAMESPACE #--field-selector involvedObject.kind=Deployment,involvedObject.name=kuberhealthy
   sleep 1
 done
-kubectl get events -n kuberhealthy --field-selector involvedObject.kind=Deployment,involvedObject.name=kuberhealthy --sort-by=.lastTimestamp
 
 # Wait for Kuberhealthy pods to be online
-kubectl wait --for=condition=Ready pod -l app=kuberhealthy -n "$TARGET_NAMESPACE" --timeout=60s
+echo "⏳ Waiting for Kuberhealthy pods to be online..."
+for i in {1..30}; do
+  kubectl get pods -n $TARGET_NAMESPACE -l app=kuberhealthy --no-headers | grep -q .
+  sleep 1
+done
 
-echo "📄 Tailing Kuberhealthy logs:"
-kubectl logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy -f
+# watch the logs, but if we cant because the pod is crashed, find whatever logs are on the pod
+kubectl logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy # if the pod is not running, this is necessary to get logs
+kubectl logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy -f # this is needed to follow logs for a running pod
