@@ -78,6 +78,7 @@ spec:
 EOF
 
 echo "⏳ Waiting for Kuberhealthy pod..."
+kubectl wait --for=condition=available deployment/kuberhealthy -n kuberhealthy --timeout=60s
 kubectl wait --for=condition=Ready pod -l app=kuberhealthy -n "$TARGET_NAMESPACE" --timeout=60s
 
 echo "📄 Tailing Kuberhealthy logs:"
