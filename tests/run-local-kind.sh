@@ -41,19 +41,45 @@ kubectl delete namespace "$TARGET_NAMESPACE" --ignore-not-found=true
 kustomize build deploy/ | kubectl apply -f -
 
 echo "⏳ Waiting for Kuberhealthy deployment to apply..."
+FOUND_DEPLOYMENT=FALSE
 for i in {1..30}; do
-  kubectl get deployment kuberhealthy -n $TARGET_NAMESPACE # >/dev/null 2>&1; do
-  kubectl get events -n $TARGET_NAMESPACE #--field-selector involvedObject.kind=Deployment,involvedObject.name=kuberhealthy
-  sleep 1
+  if kubectl get deployment kuberhealthy -n kuberhealthy &> /dev/null; then
+    echo "✅ Kuberhealthy deployment exists"
+    FOUND_DEPLOYMENT=TRUE
+    break
+  else
+    echo "⏱️ Waiting for deployment..."
+    sleep 2
+  fi
 done
+if [ "$FOUND_DEPLOYMENT" = false ]; then
+  echo "‼️ Kuberhealthy deployment did not appear in KIND cluster"
+  exit 1
+fi
+
 
 # Wait for Kuberhealthy pods to be online
 echo "⏳ Waiting for Kuberhealthy pods to be online..."
+FOUND_POD=FALSE
 for i in {1..30}; do
-  kubectl get pods -n $TARGET_NAMESPACE -l app=kuberhealthy --no-headers | grep -q .
-  sleep 1
+  if kubectl get pods -n kuberhealthy -l app=kuberhealthy --no-headers 2>/dev/null | grep -v Pending | grep -q .; then
+    echo "✅ Kuberhealthy pod exists"
+    FOUND_POD=TRUE
+    break
+  else
+    echo "⏱️ Waiting for pod..."
+    sleep 2
+  fi
 done
 
+# if the pod did not come up, but the deployment did, we fetch the logs of the dead pod and exit
+if [ "$FOUND_POD" = false ]; then
+  echo "‼️ Pod did not appear, running log command for troubleshooting..."
+  kubectl logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy # if the pod is not running, this is necessary to get logs
+  exit 1
+fi
+
 # watch the logs, but if we cant because the pod is crashed, find whatever logs are on the pod
-kubectl logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy # if the pod is not running, this is necessary to get logs
+echo "🪵 Tailing Kuberhealthy logs..."
+kubectl get pod -n "$TARGET_NAMESPACE"
 kubectl logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy -f # this is needed to follow logs for a running pod

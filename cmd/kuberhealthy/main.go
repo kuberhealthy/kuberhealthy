@@ -113,7 +113,7 @@ func initConfig() error {
 		log.Infoln("KH_CHECK_REPORT_HOSTNAME environment variable not set. Using kuberhealthy.kuberhealthy.svc.cluster.local.")
 	}
 	GlobalConfig.checkReportURL = checkReportURL
-	log.Infoln("External check reporting URL set to:", GlobalConfig.checkReportURL)
+	log.Infoln("External check reporting URL set to:", GlobalConfig.ReportingURL())
 
 	return nil
 }
