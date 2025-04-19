@@ -62,7 +62,7 @@ fi
 echo "⏳ Waiting for Kuberhealthy pods to be online..."
 FOUND_POD=FALSE
 for i in {1..30}; do
-  if kubectl get pods -n kuberhealthy -l app=kuberhealthy --no-headers 2>/dev/null | grep -v Pending | grep -q .; then
+  if kubectl get pods -n kuberhealthy -l app=kuberhealthy --no-headers 2>/dev/null | grep -v Pending | grep -v ContainerCreating | grep -q .; then
     echo "✅ Kuberhealthy pod exists"
     FOUND_POD=TRUE
     break
