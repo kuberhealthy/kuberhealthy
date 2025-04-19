@@ -11,3 +11,11 @@ spec:
       - image: busybox
         command: ["sh", "-c", "exit 0"]
     restartPolicy: Never
+  status:
+    ok: true
+    errors: []
+    currentUUID: "a456-426614174000"
+    runDuration: "2s"
+    namespace: "default"
+    lastRunUnix: 1713460000
+    additionalMetadata: "manual test resource"
