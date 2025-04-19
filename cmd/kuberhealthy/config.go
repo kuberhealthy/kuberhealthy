@@ -38,7 +38,7 @@ func init() {
 
 func New() *Config {
 	return &Config{
-		CheckReportURL:                "kuberhealthy.kuberhealthy.svc.cluster.local", // KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
+		checkReportURL:                "kuberhealthy.kuberhealthy.svc.cluster.local", // KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
 		DefaultRunInterval:            time.Minute * 10,                              // DefaultRunInterval is the default run interval for checks set by kuberhealthy
 		TerminationGracePeriodSeconds: time.Minute * 5,
 		DefaultCheckTimeout:           time.Minute * 5,
