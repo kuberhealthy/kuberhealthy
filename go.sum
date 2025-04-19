@@ -104,6 +104,8 @@ github.com/kuberhealthy/crds v0.5.1 h1:zndhFAAH5sH2HpNGMT91bkxTP90LDPcF4se/Rr1vG
 github.com/kuberhealthy/crds v0.5.1/go.mod h1:WNZMCtqdrtqb3e8/MFCVERwtxiuTUvtgafZ0MJTMrIg=
 github.com/kuberhealthy/crds v0.5.2 h1:PiAKjTE4wqqbQWV0A24J9ta7U4WGkIwQsz4i1EGhhUM=
 github.com/kuberhealthy/crds v0.5.2/go.mod h1:WNZMCtqdrtqb3e8/MFCVERwtxiuTUvtgafZ0MJTMrIg=
+github.com/kuberhealthy/crds v0.6.0 h1:pA3DSbA+0ylBJyi8u+ZeMaOBD3B2Dt6Pz7mAxeGaJgs=
+github.com/kuberhealthy/crds v0.6.0/go.mod h1:WNZMCtqdrtqb3e8/MFCVERwtxiuTUvtgafZ0MJTMrIg=
 github.com/kuberhealthy/crds/v2 v2.1.1 h1:YA4Jz1tdYijLVnZ90fLDXA0tbDYie7y4TUCAh7KUG7A=
 github.com/kuberhealthy/crds/v2 v2.1.1/go.mod h1:yHmn3RuyeIjefQQF5x4Eg2dSDYAYoIZT/jAxOBYpUj4=
 github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0=

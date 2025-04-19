@@ -5,7 +5,7 @@ go 1.23.4
 require (
 	github.com/codingsince1985/checksum v1.3.0
 	github.com/integrii/flaggy v1.5.2
-	github.com/kuberhealthy/crds v0.5.2
+	github.com/kuberhealthy/crds v0.6.0
 	sigs.k8s.io/controller-runtime v0.20.1
 )
 
