@@ -1,0 +1,13 @@
+apiVersion: kuberhealthy.github.io.kuberhealthy.github.io/v2
+kind: KuberhealthyCheck
+metadata:
+  name: test-kh-check
+  namespace: default
+spec:
+  name: test-check
+  singleRunOnly: true
+  podSpec:
+    containers:
+      - image: busybox
+        command: ["sh", "-c", "exit 0"]
+    restartPolicy: Never
