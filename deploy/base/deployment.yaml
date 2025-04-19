@@ -22,7 +22,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        - name: KH_CHECK_REPORT_URL
-          value: "http://kuberhealthy.kuberhealthy.svc.cluster.local/externalCheckStatus"
+        - name: KH_CHECK_REPORT_HOSTNAME
+          value: "kuberhealthy.kuberhealthy.svc.cluster.local"
         ports:
         - containerPort: 8080

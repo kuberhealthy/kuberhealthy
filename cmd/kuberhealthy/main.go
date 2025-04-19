@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -103,18 +102,19 @@ func initConfig() error {
 		log.Println("WARNING: Failed to read configuration file from disk:", err)
 	}
 
+	// Set the target namespace to whatever the KH_TARGET_NAMESPACE env var is.  Defaults to blank, which means all, if unset.
+	GlobalConfig.TargetNamespace = os.Getenv("KH_TARGET_NAMESPACE")
+
+	// External Check URL
 	// set env variables into config if specified. otherwise set external check URL to default
-	externalCheckURL := os.Getenv("KH_CHECK_REPORT_URL")
-	if err != nil {
-		if len(GlobalConfig.TargetNamespace) == 0 {
-			return errors.New("env KH_CHECK_REPORT_URL not set and POD_NAMESPACE environment variable was blank.")
-			// TODO - autoconfigure reporting URL based off of current pod namespace
-		}
-		log.Infoln("KH_CHECK_REPORT_URL environment variable not set, using default value")
-		externalCheckURL = "http://kuberhealthy." + GlobalConfig.TargetNamespace + ".svc.cluster.local/externalCheckStatus"
+	checkReportURL := os.Getenv("KH_CHECK_REPORT_HOSTNAME")
+	if len(checkReportURL) == 0 {
+		// autoconfigure reporting URL based off of current pod namespace
+		log.Infoln("KH_CHECK_REPORT_HOSTNAME environment variable not set. Using kuberhealthy.kuberhealthy.svc.cluster.local.")
 	}
-	GlobalConfig.ExternalCheckReportingURL = externalCheckURL
-	log.Infoln("External check reporting URL set to:", GlobalConfig.ExternalCheckReportingURL)
+	GlobalConfig.checkReportURL = checkReportURL
+	log.Infoln("External check reporting URL set to:", GlobalConfig.checkReportURL)
+
 	return nil
 }
 
@@ -150,9 +150,6 @@ func setUp() error {
 		log.Infoln("Setting debug output on because user specified flag")
 		log.SetLevel(log.DebugLevel)
 	}
-
-	// Set the target namespace to whatever the KH_TARGET_NAMESPACE env var is
-	GlobalConfig.TargetNamespace = os.Getenv("KH_TARGET_NAMESPACE")
 
 	// init the global kubernetes client
 	// integrii: Removed because we can use the global controller instance KHController for this

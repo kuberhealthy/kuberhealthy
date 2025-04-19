@@ -49,9 +49,9 @@ func StartWebServer() {
 
 	// Accept status reports coming from external checker pods.
 	http.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
-		err := externalCheckReportHandler(w, r)
+		err := checkReportHandler(w, r)
 		if err != nil {
-			log.Errorln("externalCheckStatus endpoint error:", err)
+			log.Errorln("checkStatus endpoint error:", err)
 		}
 
 	})
@@ -217,13 +217,13 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) error {
 	return err
 }
 
-// externalCheckReportHandler handles requests coming from external checkers reporting their status.
+// checkReportHandler handles requests coming from external checkers reporting their status.
 // This endpoint checks that the external check report is coming from the correct UUID or pod IP before recording
 // the reported status of the corresponding external check.  This endpoint expects a JSON payload of
 // the `State` struct found in the github.com/kuberhealthy/kuberhealthy/v2/pkg/health package.  The request
 // causes a check of the calling pod's spec via the API to ensure that the calling pod is expected
 // to be reporting its status.
-func externalCheckReportHandler(w http.ResponseWriter, r *http.Request) error {
+func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// make a request ID for tracking this request
 	requestID := "web: " + uuid.New().String()
 

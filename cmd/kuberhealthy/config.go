@@ -18,7 +18,6 @@ var KuberhealthyConfigFile string
 type Config struct {
 	ListenAddress                 string                    `yaml:"listenAddress"`
 	LogLevel                      string                    `yaml:"logLevel"`
-	ExternalCheckReportingURL     string                    `yaml:"externalCheckReportingURL"`
 	MaxKHJobAge                   time.Duration             `yaml:"maxKHJobAge"`
 	MaxCheckPodAge                time.Duration             `yaml:"maxCheckPodAge"`
 	MaxCompletedPodCount          int                       `yaml:"maxCompletedPodCount"`
@@ -26,7 +25,7 @@ type Config struct {
 	PromMetricsConfig             metrics.PromMetricsConfig `yaml:"promMetricsConfig,omitempty"`
 	TargetNamespace               string                    `yaml:"namespace"` // TargetNamespace sets the namespace that Kuberhealthy will operate in.  By default, this is blank, which means all namespaces are watched for khcheck resources.
 	DefaultRunInterval            time.Duration             `yaml:"defaultRunInterval"`
-	CheckReportingURL             string                    `yaml:"checkReportingURL"`             // this is the URL that checker pods will report in on
+	checkReportURL                string                    `yaml:"checkReportingURL"`             // this is the URL that checker pods will report in on
 	TerminationGracePeriodSeconds time.Duration             `yaml:"terminationGracePeriodSeconds"` // this must be calibrated with the setting on our pods
 	DefaultCheckTimeout           time.Duration             `yaml:"defaultCheckTimeout"`           // if not otherwise specified, this is how long checker pods have to run
 	DebugMode                     bool                      `yaml:"debugMode"`
@@ -39,8 +38,8 @@ func init() {
 
 func New() *Config {
 	return &Config{
-		CheckReportingURL:             "http://kuberhealthy.kuberhealthy.svc.cluster.local", // KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
-		DefaultRunInterval:            time.Minute * 10,                                     // DefaultRunInterval is the default run interval for checks set by kuberhealthy
+		CheckReportURL:                "kuberhealthy.kuberhealthy.svc.cluster.local", // KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
+		DefaultRunInterval:            time.Minute * 10,                              // DefaultRunInterval is the default run interval for checks set by kuberhealthy
 		TerminationGracePeriodSeconds: time.Minute * 5,
 		DefaultCheckTimeout:           time.Minute * 5,
 		Namespace:                     GetMyNamespace("kuberhealthy"), // fetch the namespace of kuberhealthy
@@ -55,6 +54,11 @@ func (c *Config) Load(file string) error {
 	}
 
 	return yaml.Unmarshal(b, c)
+}
+
+// ReportingURL formulates and returns the full URL for check reporting
+func (c *Config) ReportingURL() string {
+	return "http://" + c.checkReportURL + "/check"
 }
 
 // watchConfig watches the target file (not directory) and notfies the supplied channel with the new md5sum

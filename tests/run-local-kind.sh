@@ -4,7 +4,7 @@ set -euo pipefail
 CLUSTER_NAME="kuberhealthy-dev"
 IMAGE="docker.io/kuberhealthy/kuberhealthy:localdev"
 TARGET_NAMESPACE="kuberhealthy"
-KH_CHECK_REPORT_URL="http://kuberhealthy.${TARGET_NAMESPACE}.svc.cluster.local/externalCheckStatus"
+KH_CHECK_REPORT_HOSTNAME="kuberhealthy.${TARGET_NAMESPACE}.svc.cluster.local"
 
 # Ensure kind is installed
 if ! command -v kind &>/dev/null; then

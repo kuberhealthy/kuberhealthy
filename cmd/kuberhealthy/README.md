@@ -12,5 +12,5 @@ If you don't have `just` or `podman` installed, install them.
 # Environment Variables
 ```
 KH_TARGET_NAMESPACE="kuberhealthy"
-KH_CHECK_REPORT_URL="kuberhealthy"
+KH_CHECK_REPORT_HOSTNAME="kuberhealthy.kuberhealthy.svc.cluster.local"
 ```
