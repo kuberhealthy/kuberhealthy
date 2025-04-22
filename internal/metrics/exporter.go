@@ -67,15 +67,15 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 		metricCheckState[metricName] = checkStatus
 
 		// sometimes the run duration
-		d.RunDuration = strings.Trim(d.RunDuration, "'\"")
+		d.LastRunDuration = strings.Trim(d.LastRunDuration, "'\"")
 
 		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
-		if d.RunDuration == "" {
-			d.RunDuration = time.Duration(0).String()
+		if d.LastRunDuration == "" {
+			d.LastRunDuration = time.Duration(0).String()
 		}
-		runDuration, err := time.ParseDuration(d.RunDuration)
+		runDuration, err := time.ParseDuration(d.LastRunDuration)
 		if err != nil {
-			log.Errorln("Error parsing run duration:", d.RunDuration, "for metric:", metricName, "error:", err)
+			log.Errorln("Error parsing run duration:", d.LastRunDuration, "for metric:", metricName, "error:", err)
 		}
 		metricCheckDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
 	}

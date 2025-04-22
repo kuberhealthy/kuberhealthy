@@ -15,5 +15,6 @@ test: # Run tests locally
 	go test -v cmd/...
 
 run: # Run Kuberhealthy locally
-	go build
+	cd cmd/kuberhealthy && \
+	go build -v && \
 	KH_EXTERNAL_REPORTING_URL=localhost:8006 POD_NAMESPACE=kuberhealthy POD_NAME="kuberhealthy-test" ./kuberhealthy --debug --config ./test/test-config.yaml
