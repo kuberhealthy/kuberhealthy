@@ -77,14 +77,13 @@ func main() {
 // listenForInterrupts watches for termination signals and acts on them
 func listenForInterrupts(ctx context.Context, interruptChan chan struct{}) {
 
-	// shutdown signal handling requires a channel to recieve the signals
-	sigChan := make(chan os.Signal, 1)
-
 	// register for shutdown events on sigChan
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	ctx, ctxCancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer ctxCancel()
+
 	log.Infoln("shutdown: waiting for sigChan notification...")
-	<-sigChan                   // wait for signal to occur
-	interruptChan <- struct{}{} // notify that we go ta signal
+	<-ctx.Done()                // wait for signal to occur
+	interruptChan <- struct{}{} // notify that we got a signal
 
 }
 

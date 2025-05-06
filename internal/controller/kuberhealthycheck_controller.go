@@ -43,6 +43,7 @@ type KuberhealthyCheckReconciler struct {
 }
 
 func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	fmt.Println("-- controller Reconcile")
 	var check khcrdsv2.KuberhealthyCheck
 	if err := r.Get(ctx, req.NamespacedName, &check); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -86,6 +87,7 @@ func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Re
 // setupWithManager registers the controller with filtering for create events. This automatically
 // starts the manager that is passed in.
 func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
+	fmt.Println("-- controller setupWithManager")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&khcrdsv2.KuberhealthyCheck{}).
 		WithEventFilter(predicate.Funcs{
@@ -116,6 +118,7 @@ func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
 // New creates a new KuberhealthyCheckReconciler with a working controller manager from the kubebuilder packages.
 // Expects a kuberhealthy.Kuberhealthy. If it is not started, then this function will start it.
 func New(ctx context.Context, kh *kuberhealthy.Kuberhealthy) (*KuberhealthyCheckReconciler, error) {
+	fmt.Println("-- controller New")
 
 	// check if kuberhealthy is started
 	if !kh.IsStarted() {
@@ -152,6 +155,10 @@ func New(ctx context.Context, kh *kuberhealthy.Kuberhealthy) (*KuberhealthyCheck
 	if err := reconciler.setupWithManager(mgr); err != nil {
 		return nil, fmt.Errorf("controller: error setting up controller with manager: %w", err)
 	}
+
+	// Start the manager with our reconciler in it
+	log.Println("-- controller start")
+	err = mgr.Start(ctx)
 
 	return reconciler, nil
 }
