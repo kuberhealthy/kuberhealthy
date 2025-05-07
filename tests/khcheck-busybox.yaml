@@ -4,7 +4,7 @@ metadata:
   name: test-kh-check
   namespace: default
 spec:
-  name: test-check
+  name: testcheck
   singleRunOnly: true
   podSpec:
     containers:
