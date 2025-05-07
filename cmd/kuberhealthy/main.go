@@ -12,6 +12,9 @@ import (
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
 
+	zaplog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
 )
@@ -156,6 +159,10 @@ func setUp() error {
 	// if err != nil {
 	// 	return fmt.Errorf("Error setting up Kuberhealthy client for Kubernetes: %w", err)
 	// }
+
+	// set zap to log to stdout
+	zapLogger := zap.New(zap.UseDevMode(GlobalConfig.DebugMode), zap.WriteTo(os.Stdout))
+	zaplog.SetLogger(zapLogger)
 
 	return nil
 }

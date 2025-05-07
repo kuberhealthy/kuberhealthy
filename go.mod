@@ -6,6 +6,7 @@ require (
 	github.com/codingsince1985/checksum v1.3.0
 	github.com/integrii/flaggy v1.5.2
 	github.com/kuberhealthy/crds v0.6.2
+	go.uber.org/zap v1.27.0
 	sigs.k8s.io/controller-runtime v0.20.1
 )
 
@@ -48,7 +49,6 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c // indirect
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/oauth2 v0.25.0 // indirect

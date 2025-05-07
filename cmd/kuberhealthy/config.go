@@ -30,7 +30,7 @@ type Config struct {
 	DefaultCheckTimeout           time.Duration             `yaml:"defaultCheckTimeout"`           // if not otherwise specified, this is how long checker pods have to run
 	DebugMode                     bool                      `yaml:"debugMode"`
 	DefaultNamespace              string                    `yaml:"defaultNamespace"` // this is the namespace kuberhealthy will assume if none can be detected
-	Namespace                     string                    // this is the namespace we're running in
+	Namespace                     string                    // this is the namespace kh is running in
 }
 
 func init() {
