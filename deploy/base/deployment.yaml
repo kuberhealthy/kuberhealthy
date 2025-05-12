@@ -13,6 +13,7 @@ spec:
       labels:
         app: kuberhealthy
     spec:
+      serviceAccountName: kuberhealthy
       containers:
       - name: kuberhealthy
         image: docker.io/kuberhealthy/kuberhealthy:localdev

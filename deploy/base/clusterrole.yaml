@@ -1,22 +1,45 @@
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: kuberhealthy-check-reader
-rules:
-  - apiGroups: ["kuberhealthy.github.io.kuberhealthy.github.io"]
-    resources: ["kuberhealthychecks"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: kuberhealthy-check-reader-binding
+  name: kuberhealthy-manager
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: kuberhealthy-check-reader
+  name: kuberhealthy-manager
 subjects:
   - kind: ServiceAccount
-    name: default
+    name: kuberhealthy
     namespace: kuberhealthy
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kuberhealthy-manager
+rules:
+- apiGroups:
+  - kuberhealthy.github.io
+  resources:
+  - kuberhealthychecks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kuberhealthy.github.io
+  resources:
+  - kuberhealthychecks/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kuberhealthy.github.io
+  resources:
+  - kuberhealthychecks/status
+  verbs:
+  - get
+  - patch
+  - update

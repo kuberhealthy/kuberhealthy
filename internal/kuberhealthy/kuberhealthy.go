@@ -2,6 +2,7 @@ package kuberhealthy
 
 import (
 	"context"
+	"fmt"
 	"log"
 )
 
@@ -36,6 +37,9 @@ func (kh *Kuberhealthy) StopCheck(namespace string, name string) error {
 // Start starts a new Kuberhealthy manager (this is the thing that kubebuilder makes)
 // along with other various processes needed to manager Kuberhealthy checks.
 func (kh *Kuberhealthy) Start(ctx context.Context) error {
+	if kh.IsStarted() {
+		return fmt.Errorf("error: kuberhealthy main controller was started but it was already running")
+	}
 	log.Println("Kuberhealthy start")
 	return nil
 }

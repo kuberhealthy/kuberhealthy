@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: kuberhealthychecks.kuberhealthy.github.io.kuberhealthy.github.io
+  name: kuberhealthychecks.kuberhealthy.github.io
 spec:
-  group: kuberhealthy.github.io.kuberhealthy.github.io
+  group: kuberhealthy.github.io
   names:
     kind: KuberhealthyCheck
     listKind: KuberhealthyCheckList
@@ -43,84 +43,51 @@ spec:
           spec:
             description: KuberhealthyCheckSpec defines the desired state of KuberhealthyCheck
             properties:
-              name:
-                description: Foo is an example field of KuberhealthyCheck. Edit kuberhealthycheck_types.go
-                  to remove/update
-                type: string
               podSpec:
-                description: PodSpec   v1.PodSpec              `json:"podSpec"`
+                description: 'PodSpec is a corev1.PodSpec from the Kubernetes documentation:
+                  https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/'
                 x-kubernetes-preserve-unknown-fields: true
               singleRunOnly:
+                description: SingleRun indicates that this KuberhealthyCheck will
+                  run only once.
                 type: boolean
-              status:
-                description: KuberhealthyCheckStatus defines the observed state of
-                  KuberhealthyCheck
-                properties:
-                  additionalMetadata:
-                    type: string
-                  currentUUID:
-                    type: string
-                  errors:
-                    items:
-                      type: string
-                    type: array
-                  lastRunUnix:
-                    format: int64
-                    type: integer
-                  namespace:
-                    type: string
-                  ok:
-                    description: |-
-                      INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-                      Important: Run "make" to regenerate code after modifying this file
-                    type: boolean
-                  runDuration:
-                    type: string
-                required:
-                - additionalMetadata
-                - currentUUID
-                - errors
-                - lastRunUnix
-                - namespace
-                - ok
-                - runDuration
-                type: object
-            required:
-            - name
-            - status
             type: object
             x-kubernetes-preserve-unknown-fields: true
           status:
             description: KuberhealthyCheckStatus defines the observed state of KuberhealthyCheck
             properties:
               additionalMetadata:
+                description: AdditionalMetadata is used to store additional metadata
+                  bout this check that appears in the JSON status.
                 type: string
               currentUUID:
+                description: CurrentUUID is used to ensure only the most recent checker
+                  pod reports a status for this check.
                 type: string
               errors:
+                description: Errors holds a slice of error messages from the check
+                  results.
                 items:
                   type: string
                 type: array
               lastRunUnix:
+                description: LastRunUnix is the last time that this check was scheduled
+                  to run.
                 format: int64
                 type: integer
               namespace:
+                description: Namespace is the Kubernetes namespace this pod ran in.
                 type: string
               ok:
                 description: |-
                   INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
                   Important: Run "make" to regenerate code after modifying this file
+                  OK indicates if this check is currently throwing an error or not.
                 type: boolean
               runDuration:
+                description: LastRunDuration is the execution time that the checker
+                  pod took to execute.
                 type: string
-            required:
-            - additionalMetadata
-            - currentUUID
-            - errors
-            - lastRunUnix
-            - namespace
-            - ok
-            - runDuration
             type: object
         type: object
     served: true

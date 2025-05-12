@@ -1,8 +1,8 @@
-apiVersion: kuberhealthy.github.io.kuberhealthy.github.io/v2
+apiVersion: kuberhealthy.github.io/v2
 kind: KuberhealthyCheck
 metadata:
   name: test-kh-check
-  namespace: default
+  namespace: kuberhealthy
 spec:
   name: testcheck
   singleRunOnly: true

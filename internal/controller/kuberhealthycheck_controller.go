@@ -19,20 +19,14 @@ package controller
 import (
 	"context"
 	"fmt"
-	"log"
 
-	kuberhealthy "github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
+	kuberhealthy "github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
 )
 
 // KuberhealthyCheckReconciler reconciles KuberhealthyCheck resources
@@ -42,6 +36,19 @@ type KuberhealthyCheckReconciler struct {
 	Kuberhealthy *kuberhealthy.Kuberhealthy
 }
 
+// +kubebuilder:rbac:groups=kuberhealthy.kuberhealthy.github.io,resources=kuberhealthychecks,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kuberhealthy.kuberhealthy.github.io,resources=kuberhealthychecks/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=kuberhealthy.kuberhealthy.github.io,resources=kuberhealthychecks/finalizers,verbs=update
+
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+// TODO(user): Modify the Reconcile function to compare the state specified by
+// the KuberhealthyCheck object against the actual cluster state, and then
+// perform operations to make the cluster state reflect the state specified by
+// the user.
+//
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.18.4/pkg/reconcile
 func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	fmt.Println("-- controller Reconcile")
 	var check khcrdsv2.KuberhealthyCheck
@@ -54,7 +61,7 @@ func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// DELETE support for finalizer
 	if !check.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(&check, finalizer) {
-			log.Println("controller: DELETE FINALIZER event detected for:", req.Namespace+"/"+req.Name)
+			// log.Println("controller: DELETE FINALIZER event detected for:", req.Namespace+"/"+req.Name)
 			// Stop Kuberhealthy process before deletion
 			r.Kuberhealthy.StopCheck(req.NamespacedName.Namespace, req.NamespacedName.Name) // Stop old instance of check
 
@@ -82,83 +89,4 @@ func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	return ctrl.Result{}, nil
-}
-
-// setupWithManager registers the controller with filtering for create events. This automatically
-// starts the manager that is passed in.
-func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
-	fmt.Println("-- controller setupWithManager")
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&khcrdsv2.KuberhealthyCheck{}).
-		WithEventFilter(predicate.Funcs{
-			// CREATE
-			CreateFunc: func(e event.CreateEvent) bool {
-				log.Println("controller: CREATE event detected for:", e.Object.GetName())
-				r.Kuberhealthy.StartCheck(e.Object.GetNamespace(), e.Object.GetName()) // Start new instance of check
-				return true                                                            // true indicates we need to write something to the custom resource
-			},
-			// UPDATE
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				log.Println("controller: UPDATE event detected for:", e.ObjectOld.GetName())
-				r.Kuberhealthy.StopCheck(e.ObjectOld.GetNamespace(), e.ObjectOld.GetName())  // Start new instance of check
-				r.Kuberhealthy.StartCheck(e.ObjectNew.GetNamespace(), e.ObjectNew.GetName()) // Start new instance of check
-				return false                                                                 // false indicates we do not need to write something to the custom resource
-			},
-			// DELETE
-			// TODO - do we need this DELETE and the one in Reconcile?
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				log.Println("controller: DELETE event detected for:", e.Object.GetName())
-				r.Kuberhealthy.StopCheck(e.Object.GetNamespace(), e.Object.GetName()) // Start new instance of check
-				return false                                                          // false indicates we do not need to write something to the custom resource
-			},
-		}).
-		Complete(r)
-}
-
-// New creates a new KuberhealthyCheckReconciler with a working controller manager from the kubebuilder packages.
-// Expects a kuberhealthy.Kuberhealthy. If it is not started, then this function will start it.
-func New(ctx context.Context, kh *kuberhealthy.Kuberhealthy) (*KuberhealthyCheckReconciler, error) {
-	fmt.Println("-- controller New")
-
-	// check if kuberhealthy is started
-	if !kh.IsStarted() {
-		err := kh.Start(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("controller: error starting kuberhealthy:", err)
-		}
-	}
-
-	scheme := runtime.NewScheme()
-	utilruntime.Must(khcrdsv2.AddToScheme(scheme))
-
-	// Get Kubernetes config
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("controller: error getting kubernetes config: %w", err)
-	}
-
-	// Create a new manager
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: scheme,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("controller: error creating manager: %w", err)
-	}
-
-	// Create and register the reconciler
-	reconciler := &KuberhealthyCheckReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       scheme,
-		Kuberhealthy: kh,
-	}
-
-	if err := reconciler.setupWithManager(mgr); err != nil {
-		return nil, fmt.Errorf("controller: error setting up controller with manager: %w", err)
-	}
-
-	// Start the manager with our reconciler in it
-	log.Println("-- controller start")
-	err = mgr.Start(ctx)
-
-	return reconciler, nil
 }
