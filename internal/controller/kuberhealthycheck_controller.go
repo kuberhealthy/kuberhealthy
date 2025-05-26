@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -61,9 +62,7 @@ func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// DELETE support for finalizer
 	if !check.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(&check, finalizer) {
-			// log.Println("controller: DELETE FINALIZER event detected for:", req.Namespace+"/"+req.Name)
-			// Stop Kuberhealthy process before deletion
-			r.Kuberhealthy.StopCheck(req.NamespacedName.Namespace, req.NamespacedName.Name) // Stop old instance of check
+			log.Println("controller: FINALIZER DELETE event detected for:", req.Namespace+"/"+req.Name)
 
 			// Remove finalizer and update the resource
 			controllerutil.RemoveFinalizer(&check, finalizer)

@@ -3,8 +3,10 @@ package controller
 import (
 	"fmt"
 	"log"
+	"reflect"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -21,24 +23,54 @@ func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
 			// CREATE
 			CreateFunc: func(e event.CreateEvent) bool {
 				log.Println("controller: CREATE event detected for:", e.Object.GetName())
-				r.Kuberhealthy.StartCheck(e.Object.GetNamespace(), e.Object.GetName()) // Start new instance of check
-				return true                                                            // true indicates we need to write something to the custom resource
+				khcheck, err := convertToKHCheck(e.Object)
+				if err != nil {
+					log.Println("error:", err.Error())
+					return false
+				}
+				err = r.Kuberhealthy.StartCheck(mgr.GetClient(), khcheck) // Start new instance of check
+				return true                                               // true indicates we need to write something to the custom resource
 			},
 			// UPDATE
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				log.Println("controller: UPDATE event detected for:", e.ObjectOld.GetName())
-				r.Kuberhealthy.StopCheck(e.ObjectOld.GetNamespace(), e.ObjectOld.GetName())  // Start new instance of check
-				r.Kuberhealthy.StartCheck(e.ObjectNew.GetNamespace(), e.ObjectNew.GetName()) // Start new instance of check
-				return true                                                                  // false indicates we do not need to write something to the custom resource
-				// return true // TODO - why do delete events come in as UPDATE?
+				oldKHCheck, err := convertToKHCheck(e.ObjectOld)
+				if err != nil {
+					log.Println("error:", err.Error())
+					return false
+				}
+				newKHCheck, err := convertToKHCheck(e.ObjectNew)
+				if err != nil {
+					log.Println("error:", err.Error())
+					return false
+				}
+				r.Kuberhealthy.StopCheck(mgr.GetClient(), oldKHCheck)  // stop old instance of check
+				r.Kuberhealthy.StartCheck(mgr.GetClient(), newKHCheck) // Start new instance of check
+				return true                                            // true here means that we need to write changes back to the CRD
 			},
 			// DELETE
 			// TODO - do we need this DELETE and the one in Reconcile?
 			DeleteFunc: func(e event.DeleteEvent) bool {
 				log.Println("controller: DELETE event detected for:", e.Object.GetName())
-				r.Kuberhealthy.StopCheck(e.Object.GetNamespace(), e.Object.GetName()) // Start new instance of check
-				return true                                                           // we return true to indicate that we must write something back to the cusotm resource, such as removing the finalizer
+				khcheck, err := convertToKHCheck(e.Object)
+				if err != nil {
+					log.Println("error:", err.Error())
+					return false
+				}
+				err = r.Kuberhealthy.StopCheck(mgr.GetClient(), khcheck) // Start new instance of check
+				return true                                              // we return true to indicate that we must write something back to the cusotm resource, such as removing the finalizer
 			},
 		}).
 		Complete(r)
+}
+
+// convertToKHChecks casts the old and new objects to KuberhealthyCheck CRDs
+func convertToKHCheck(obj client.Object) (*khcrdsv2.KuberhealthyCheck, error) {
+	oldKHCheck, ok := obj.(*khcrdsv2.KuberhealthyCheck)
+	if !ok {
+		actualType := reflect.TypeOf(obj)
+		return nil, fmt.Errorf("unexpected object type recieved by controller for khcheck: %s", actualType.String())
+	}
+
+	return oldKHCheck, nil
 }

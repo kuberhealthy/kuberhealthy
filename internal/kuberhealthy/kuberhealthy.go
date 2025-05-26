@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+
+	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Kuberhealthy handles background processing for checks
@@ -21,15 +24,15 @@ func New(ctx context.Context) (*Kuberhealthy, error) {
 }
 
 // StartCheck begins tracking and managing a khcheck
-func (kh *Kuberhealthy) StartCheck(namespace string, name string) error {
-	log.Println("Starting Kuberhealthy check", namespace, name)
+func (kh *Kuberhealthy) StartCheck(client client.Client, khcheck *khcrdsv2.KuberhealthyCheck) error {
+	log.Println("Starting Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
 	// Start background logic here
 	return nil
 }
 
 // StartCheck stops tracking and managing a khcheck
-func (kh *Kuberhealthy) StopCheck(namespace string, name string) error {
-	log.Println("Stopping Kuberhealthy check", namespace, name)
+func (kh *Kuberhealthy) StopCheck(client client.Client, khcheck *khcrdsv2.KuberhealthyCheck) error {
+	log.Println("Stopping Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
 	// Cleanup logic here
 	return nil
 }

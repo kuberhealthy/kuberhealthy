@@ -18,7 +18,7 @@ import (
 func New(ctx context.Context, kh *kuberhealthy.Kuberhealthy) (*KuberhealthyCheckReconciler, error) {
 	fmt.Println("-- controller New")
 
-	// check if kuberhealthy is started
+	// check if kuberhealthy is started and start it if not
 	if !kh.IsStarted() {
 		err := kh.Start(ctx)
 		if err != nil {
