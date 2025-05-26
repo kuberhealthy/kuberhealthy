@@ -29,8 +29,8 @@ func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
 				log.Println("controller: UPDATE event detected for:", e.ObjectOld.GetName())
 				r.Kuberhealthy.StopCheck(e.ObjectOld.GetNamespace(), e.ObjectOld.GetName())  // Start new instance of check
 				r.Kuberhealthy.StartCheck(e.ObjectNew.GetNamespace(), e.ObjectNew.GetName()) // Start new instance of check
-				// return false                                                                  // false indicates we do not need to write something to the custom resource
-				return true // TODO - why do delete events come in as UPDATE?
+				return true                                                                  // false indicates we do not need to write something to the custom resource
+				// return true // TODO - why do delete events come in as UPDATE?
 			},
 			// DELETE
 			// TODO - do we need this DELETE and the one in Reconcile?

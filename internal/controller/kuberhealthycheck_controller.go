@@ -56,7 +56,7 @@ func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	finalizer := "github.com/kuberhealthy/kuberhealthy/finalizer"
+	finalizer := "kuberhealthy.github.io/finalizer"
 
 	// DELETE support for finalizer
 	if !check.ObjectMeta.DeletionTimestamp.IsZero() {
