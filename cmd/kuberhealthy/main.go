@@ -43,10 +43,7 @@ func main() {
 	doneChan := make(chan struct{})
 
 	// make a new Kuberhealthy instance
-	kh, err := kuberhealthy.New(ctx)
-	if err != nil {
-		log.Errorln("startup: failed to initalize kuberhealthy:", err)
-	}
+	kh := kuberhealthy.New(ctx, KHController.Kuberhealthy.CheckClient)
 
 	// Make a new kubebuilder controller instance with the kuberhealthy instance in it.
 	// This is will be used as a global client

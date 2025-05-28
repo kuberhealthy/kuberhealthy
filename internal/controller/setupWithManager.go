@@ -28,8 +28,8 @@ func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
 					log.Println("error:", err.Error())
 					return false
 				}
-				err = r.Kuberhealthy.StartCheck(mgr.GetClient(), khcheck) // Start new instance of check
-				return true                                               // true indicates we need to write something to the custom resource
+				err = r.Kuberhealthy.StartCheck(khcheck) // Start new instance of check
+				return true                              // true indicates we need to write something to the custom resource
 			},
 			// UPDATE
 			UpdateFunc: func(e event.UpdateEvent) bool {
@@ -44,9 +44,8 @@ func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
 					log.Println("error:", err.Error())
 					return false
 				}
-				r.Kuberhealthy.StopCheck(mgr.GetClient(), oldKHCheck)  // stop old instance of check
-				r.Kuberhealthy.StartCheck(mgr.GetClient(), newKHCheck) // Start new instance of check
-				return true                                            // true here means that we need to write changes back to the CRD
+				r.Kuberhealthy.UpdateCheck(oldKHCheck, newKHCheck)
+				return true // true here means that we need to write changes back to the CRD
 			},
 			// DELETE
 			// TODO - do we need this DELETE and the one in Reconcile?
@@ -57,8 +56,8 @@ func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
 					log.Println("error:", err.Error())
 					return false
 				}
-				err = r.Kuberhealthy.StopCheck(mgr.GetClient(), khcheck) // Start new instance of check
-				return true                                              // we return true to indicate that we must write something back to the cusotm resource, such as removing the finalizer
+				err = r.Kuberhealthy.StopCheck(khcheck) // Start new instance of check
+				return true                             // we return true to indicate that we must write something back to the cusotm resource, such as removing the finalizer
 			},
 		}).
 		Complete(r)
@@ -66,11 +65,11 @@ func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
 
 // convertToKHChecks casts the old and new objects to KuberhealthyCheck CRDs
 func convertToKHCheck(obj client.Object) (*khcrdsv2.KuberhealthyCheck, error) {
-	oldKHCheck, ok := obj.(*khcrdsv2.KuberhealthyCheck)
+	khcheck, ok := obj.(*khcrdsv2.KuberhealthyCheck)
 	if !ok {
 		actualType := reflect.TypeOf(obj)
 		return nil, fmt.Errorf("unexpected object type recieved by controller for khcheck: %s", actualType.String())
 	}
 
-	return oldKHCheck, nil
+	return khcheck, nil
 }

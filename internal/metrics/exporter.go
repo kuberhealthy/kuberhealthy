@@ -66,18 +66,11 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 		metricDurationName := fmt.Sprintf("kuberhealthy_check_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		metricCheckState[metricName] = checkStatus
 
-		// sometimes the run duration
-		d.LastRunDuration = strings.Trim(d.LastRunDuration, "'\"")
-
 		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
-		if d.LastRunDuration == "" {
-			d.LastRunDuration = time.Duration(0).String()
+		if d.LastRunDuration == 0 {
+			d.LastRunDuration = time.Duration(0)
 		}
-		runDuration, err := time.ParseDuration(d.LastRunDuration)
-		if err != nil {
-			log.Errorln("Error parsing run duration:", d.LastRunDuration, "for metric:", metricName, "error:", err)
-		}
-		metricCheckDuration[metricDurationName] = fmt.Sprintf("%f", runDuration.Seconds())
+		metricCheckDuration[metricDurationName] = fmt.Sprintf("%f", d.LastRunDuration.Seconds())
 	}
 
 	// Add each metric format individually. This addresses issue https://github.com/kuberhealthy/kuberhealthy/issues/813.
