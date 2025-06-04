@@ -41,14 +41,55 @@ func (kh *Kuberhealthy) Start(ctx context.Context) error {
 // StartCheck begins tracking and managing a khcheck
 func (kh *Kuberhealthy) StartCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 	log.Println("Starting Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
-	// Start background logic here
+
+	// create a NamespacedName for additional calls
+	checkName := types.NamespacedName{
+		Namespace: khcheck.GetNamespace(),
+		Name:      khcheck.GetName(),
+	}
+
+	// use CurrentUUID to signal the check is running
+	if err := kh.setFreshUUID(checkName); err != nil {
+		return fmt.Errorf("unable to set running UUID: %w", err)
+	}
+
+	// record the start time
+	if err := kh.setLastRunTime(checkName, time.Now()); err != nil {
+		return fmt.Errorf("unable to set check start time: %w", err)
+	}
+
+	// TODO: launch background check logic here
+
 	return nil
 }
 
 // StartCheck stops tracking and managing a khcheck
 func (kh *Kuberhealthy) StopCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 	log.Println("Stopping Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
-	// Cleanup logic here
+
+	checkName := types.NamespacedName{
+		Namespace: khcheck.GetNamespace(),
+		Name:      khcheck.GetName(),
+	}
+
+	// clear CurrentUUID to indicate the check is no longer running
+	kh.clearUUID(checkName)
+
+	// calculate the run time and record it
+	lastRunTime, err := kh.getLastRunTime(checkName)
+	if err != nil {
+		return err
+	}
+
+	// calculate the last run duration and store it
+	runTime := time.Now().Sub(lastRunTime)
+	err = kh.setRunDuration(checkName, runTime)
+	if err != nil {
+		return err
+	}
+
+	// TODO: additional cleanup logic here
+
 	return nil
 }
 
@@ -110,7 +151,28 @@ func (k *Kuberhealthy) setUUID(checkName types.NamespacedName, uuid string) erro
 	return nil
 }
 
-// setFreshUUID generates a UUID and sets it on the check. The UUID is returned.
+// clearUUID clears the UUID assigned to the check, which indicates
+// that it is not running.
+func (k *Kuberhealthy) clearUUID(checkName types.NamespacedName) error {
+
+	// get the check as it is right now
+	khCheck, err := k.getCheck(checkName)
+	if err != nil {
+		return fmt.Errorf("failed to get check: %w", err)
+	}
+
+	// set the errors
+	khCheck.Status.CurrentUUID = ""
+
+	// update the khcheck resource
+	err = k.CheckClient.Status().Update(k.Context, khCheck)
+	if err != nil {
+		return fmt.Errorf("failed to update check with fresh uuid with error: %w", err)
+	}
+	return nil
+}
+
+// setFreshUUID generates a UUID and sets it on the check.
 func (k *Kuberhealthy) setFreshUUID(checkName types.NamespacedName) error {
 
 	// get the check as it is right now
@@ -120,7 +182,7 @@ func (k *Kuberhealthy) setFreshUUID(checkName types.NamespacedName) error {
 	}
 
 	// set the errors
-	khCheck.Status.CurrentUUID = uuid.New().String()
+	khCheck.Status.CurrentUUID = uuid.NewString()
 
 	// update the khcheck resource
 	err = k.CheckClient.Status().Update(k.Context, khCheck)
@@ -147,7 +209,19 @@ func (k *Kuberhealthy) setOK(checkName types.NamespacedName, ok bool) error {
 	return nil
 }
 
-// setLastRunTime sets the last run time unix time
+// getLastRunTime gets the last run start time unix time
+func (k *Kuberhealthy) getLastRunTime(checkName types.NamespacedName) (time.Time, error) {
+	khCheck, err := k.getCheck(checkName)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to get check: %w", err)
+	}
+
+	// secs is your Unix timestamp in seconds (int64)
+	t := time.Unix(khCheck.Status.LastRunUnix, 0).UTC()
+	return t, nil
+}
+
+// setLastRunTime sets the last run start time unix time
 func (k *Kuberhealthy) setLastRunTime(checkName types.NamespacedName, lastRunTime time.Time) error {
 	khCheck, err := k.getCheck(checkName)
 	if err != nil {
@@ -179,4 +253,23 @@ func (k *Kuberhealthy) setRunDuration(checkName types.NamespacedName, runDuratio
 	}
 
 	return nil
+}
+
+// isCheckRunning returns true if the check's CurrentUUID is set because we assume
+// checks only have a CurrentUUID when they are running.
+func (k *Kuberhealthy) isCheckRunning(checkName types.NamespacedName) (bool, error) {
+	uuid, err := k.getCurrentUUID(checkName)
+	if err != nil {
+		return false, err
+	}
+	return uuid != "", nil
+}
+
+// getCurrentUUID returns the CurrentUUID string for the specified check.
+func (k *Kuberhealthy) getCurrentUUID(checkName types.NamespacedName) (string, error) {
+	khCheck, err := k.getCheck(checkName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get check: %w", err)
+	}
+	return khCheck.Status.CurrentUUID, nil
 }
