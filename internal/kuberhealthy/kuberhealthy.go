@@ -2,7 +2,6 @@ package kuberhealthy
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -33,7 +33,7 @@ func New(ctx context.Context, checkClient client.Client) *Kuberhealthy {
 // Start starts a new Kuberhealthy manager (this is the thing that kubebuilder makes)
 // along with other various processes needed to manager Kuberhealthy checks.
 func (kh *Kuberhealthy) Start(ctx context.Context) error {
-	if kh.isStarted() {
+	if kh.IsStarted() {
 		return fmt.Errorf("error: kuberhealthy main controller was started but it was already running")
 	}
 	log.Println("Kuberhealthy start")
@@ -60,18 +60,41 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 		return fmt.Errorf("unable to set check start time: %w", err)
 	}
 
-	// TODO: launch a pod using the khcheck.PodSpec
+	// craft a full pod spec using the check's pod spec
+	podSpec := kh.CheckPodSpec(khcheck)
 
-	// TODO: launch background check logic here
+	// create the checker pod
+	if err := kh.CheckClient.Create(kh.Context, podSpec); err != nil {
+		return fmt.Errorf("failed to create check pod: %w", err)
+	}
 
 	return nil
 }
 
-// ParseCheckPodSpec parses the pod spec that is part of a khcheck into a corev1.PodSpec
-func (kh *Kuberhealthy) ParseCheckPodSpec(khcheck *khcrdsv2.KuberhealthyCheck) (corev1.PodSpec, error) {
-	var podSpec corev1.PodSpec
-	err := json.Unmarshal(khcheck.Spec.PodSpec.Raw, &podSpec)
-	return podSpec, err
+// CheckPodSpec returns the corev1.PodSpec for this check's pods
+func (kh *Kuberhealthy) CheckPodSpec(khcheck *khcrdsv2.KuberhealthyCheck) *corev1.Pod {
+
+	// formulate a full pod spec
+	podSpec := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:    khcheck.GetNamespace(),
+			GenerateName: khcheck.GetName(),
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(khcheck, khcheck.GroupVersionKind()),
+			},
+		},
+		Spec: khcheck.Spec.PodSpec.Spec,
+	}
+
+	// add required annotations
+	podSpec.Annotations["createdBy"] = "kuberhealthy"
+	podSpec.Annotations["kuberhealthyCheckName"] = khcheck.Name
+	podSpec.Annotations["createdTime"] = time.Now().String()
+
+	// add required labels
+	podSpec.Labels["khcheck"] = khcheck.Name
+
+	return podSpec
 }
 
 // StartCheck stops tracking and managing a khcheck
@@ -111,14 +134,14 @@ func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khcrdsv2.KuberhealthyCheck, newK
 }
 
 // IsStarted returns if this instance is running or not
-func (kh *Kuberhealthy) isStarted() bool {
+func (kh *Kuberhealthy) IsStarted() bool {
 	return kh.Running
 }
 
 // getCheck fetches a check based on its name and namespace
 func (k *Kuberhealthy) getCheck(checkName types.NamespacedName) (*khcrdsv2.KuberhealthyCheck, error) {
 	khCheck := &khcrdsv2.KuberhealthyCheck{}
-	err := k.CheckClient.Get(k.Context, checkName, khCheck) // TODO - what get options go here?
+	err := k.CheckClient.Get(k.Context, checkName, khCheck)
 	return khCheck, err
 }
 
