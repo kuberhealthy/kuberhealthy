@@ -2,12 +2,14 @@ package kuberhealthy
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/google/uuid"
 	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -31,7 +33,7 @@ func New(ctx context.Context, checkClient client.Client) *Kuberhealthy {
 // Start starts a new Kuberhealthy manager (this is the thing that kubebuilder makes)
 // along with other various processes needed to manager Kuberhealthy checks.
 func (kh *Kuberhealthy) Start(ctx context.Context) error {
-	if kh.IsStarted() {
+	if kh.isStarted() {
 		return fmt.Errorf("error: kuberhealthy main controller was started but it was already running")
 	}
 	log.Println("Kuberhealthy start")
@@ -58,9 +60,18 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 		return fmt.Errorf("unable to set check start time: %w", err)
 	}
 
+	// TODO: launch a pod using the khcheck.PodSpec
+
 	// TODO: launch background check logic here
 
 	return nil
+}
+
+// ParseCheckPodSpec parses the pod spec that is part of a khcheck into a corev1.PodSpec
+func (kh *Kuberhealthy) ParseCheckPodSpec(khcheck *khcrdsv2.KuberhealthyCheck) (corev1.PodSpec, error) {
+	var podSpec corev1.PodSpec
+	err := json.Unmarshal(khcheck.Spec.PodSpec.Raw, &podSpec)
+	return podSpec, err
 }
 
 // StartCheck stops tracking and managing a khcheck
@@ -100,7 +111,7 @@ func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khcrdsv2.KuberhealthyCheck, newK
 }
 
 // IsStarted returns if this instance is running or not
-func (kh *Kuberhealthy) IsStarted() bool {
+func (kh *Kuberhealthy) isStarted() bool {
 	return kh.Running
 }
 
