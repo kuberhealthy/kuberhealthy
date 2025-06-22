@@ -68,6 +68,10 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 		return fmt.Errorf("failed to create check pod: %w", err)
 	}
 
+	// write the name of the pod to the khcheck CRD's status
+	if err := kh.setCheckPodName(checkName, podSpec.Name); err != nil {
+		return fmt.Errorf("unable to set check pod name: %w", err)
+	}
 	return nil
 }
 
@@ -130,8 +134,6 @@ func (kh *Kuberhealthy) StopCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 	if err != nil {
 		return err
 	}
-
-	// TODO: additional cleanup logic here
 
 	return nil
 }
@@ -295,6 +297,19 @@ func (k *Kuberhealthy) setRunDuration(checkName types.NamespacedName, runDuratio
 		return fmt.Errorf("failed to update RunDuration: %w", err)
 	}
 
+	return nil
+}
+
+// setCheckPodName writes the name of the recently created checker pod to the check's status
+func (k *Kuberhealthy) setCheckPodName(checkName types.NamespacedName, podName string) error {
+	khCheck, err := k.getCheck(checkName)
+	if err != nil {
+		return fmt.Errorf("failed to get check: %w", err)
+	}
+	khCheck.Status.AdditionalMetadata = podName
+	if err := k.CheckClient.Status().Update(k.Context, khCheck); err != nil {
+		return fmt.Errorf("failed to update check pod name: %w", err)
+	}
 	return nil
 }
 
