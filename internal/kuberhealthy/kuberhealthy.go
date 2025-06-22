@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,7 +41,7 @@ func (kh *Kuberhealthy) Start(ctx context.Context) error {
 	return nil
 }
 
-// StartCheck begins tracking and managing a khcheck
+// StartCheck begins tracking and managing a khcheck. This occurs when a khcheck is added.
 func (kh *Kuberhealthy) StartCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 	log.Println("Starting Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
 
@@ -110,16 +111,12 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khcrdsv2.KuberhealthyCheck) *corev
 	return podSpec
 }
 
-// StartCheck stops tracking and managing a khcheck
+// StartCheck stops tracking and managing a khcheck. This occurs when a khcheck is removed.
 func (kh *Kuberhealthy) StopCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 	log.Println("Stopping Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
 
-	checkName := types.NamespacedName{
-		Namespace: khcheck.GetNamespace(),
-		Name:      khcheck.GetName(),
-	}
-
 	// clear CurrentUUID to indicate the check is no longer running
+	checkName := createNamespacedName(khcheck.GetName(), khcheck.GetNamespace())
 	kh.clearUUID(checkName)
 
 	// calculate the run time and record it
@@ -135,7 +132,48 @@ func (kh *Kuberhealthy) StopCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 		return err
 	}
 
+	// fetch the current running pod's name
+	podName, err := kh.getCurrentPodName(khcheck)
+	if err != nil {
+		return fmt.Errorf("failed to get check status for cleanup: %w", err)
+	}
+
+	// if the pod name is not set, we have nothing to do
+	if podName == "" {
+		return nil
+	}
+
+	// delete the checker pod
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: khcheck.GetNamespace(),
+			Name:      podName,
+		},
+	}
+	if err := kh.CheckClient.Delete(kh.Context, pod); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("failed to delete checker pod %s: %w", podName, err)
+		}
+	}
+	// clear stored pod name in status
+	if err := kh.setCheckPodName(checkName, ""); err != nil {
+		return fmt.Errorf("failed to clear checker pod name: %w", err)
+	}
+
 	return nil
+}
+
+// getCurrentPodName fetches the current pod's name for the provided khcheck from the control plane
+func (kh *Kuberhealthy) getCurrentPodName(khcheck *khcrdsv2.KuberhealthyCheck) (string, error) {
+	namespacedName := types.NamespacedName{
+		Namespace: khcheck.GetNamespace(),
+		Name:      khcheck.GetName(),
+	}
+	check, err := kh.getCheck(namespacedName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get check status for cleanup: %w", err)
+	}
+	return check.Status.PodName, nil
 }
 
 // UpdateCheck handles the event of a check getting upcated in place
@@ -306,7 +344,7 @@ func (k *Kuberhealthy) setCheckPodName(checkName types.NamespacedName, podName s
 	if err != nil {
 		return fmt.Errorf("failed to get check: %w", err)
 	}
-	khCheck.Status.AdditionalMetadata = podName
+	khCheck.Status.PodName = podName
 	if err := k.CheckClient.Status().Update(k.Context, khCheck); err != nil {
 		return fmt.Errorf("failed to update check pod name: %w", err)
 	}
