@@ -16,7 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
-	"github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
 )
 
 // GlobalConfig holds the configuration settings for Kuberhealthy
@@ -42,12 +41,9 @@ func main() {
 	// setup a channel to capture when a shutdown is done
 	doneChan := make(chan struct{})
 
-	// make a new Kuberhealthy instance
-	kh := kuberhealthy.New(ctx, KHController.Kuberhealthy.CheckClient)
-
 	// Make a new kubebuilder controller instance with the kuberhealthy instance in it.
 	// This is will be used as a global client
-	KHController, err = controller.New(ctx, kh)
+	KHController, err = controller.New(ctx)
 	if err != nil {
 		log.Errorln("startup: failed to setup kuberhealthy controller with error:", err)
 	}

@@ -31,12 +31,25 @@ func New(ctx context.Context, checkClient client.Client) *Kuberhealthy {
 	}
 }
 
+// SetCheckClient sets the controller's kube client for API operatons against the control plane. This must
+// bet set before Start() is invoked, but can not be in the constructor because of an interdependency between
+// the controller embedding the Kuberhealthy sturuct and the Kuberhealthy struct needing a client.Client.
+// Using the same client.Client concurrently can cause rare memory access race conditions.
+func (kh *Kuberhealthy) SetCheckClient(checkClient client.Client) {
+	kh.CheckClient = checkClient
+}
+
 // Start starts a new Kuberhealthy manager (this is the thing that kubebuilder makes)
 // along with other various processes needed to manager Kuberhealthy checks.
 func (kh *Kuberhealthy) Start(ctx context.Context) error {
 	if kh.IsStarted() {
 		return fmt.Errorf("error: kuberhealthy main controller was started but it was already running")
 	}
+
+	if kh.CheckClient == nil {
+		return fmt.Errorf("error: kuberhealthy main controller was started but it did not have a check client set. Use SetClient to set.")
+	}
+
 	log.Println("Kuberhealthy start")
 	return nil
 }
