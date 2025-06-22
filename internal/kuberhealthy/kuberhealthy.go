@@ -74,11 +74,20 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 // CheckPodSpec returns the corev1.PodSpec for this check's pods
 func (kh *Kuberhealthy) CheckPodSpec(khcheck *khcrdsv2.KuberhealthyCheck) *corev1.Pod {
 
+	// generate a random suffix and concatenate a unique pod name
+	suffix := uuid.NewString()
+	if len(suffix) > 5 {
+		suffix = suffix[:5]
+	}
+	podName := fmt.Sprintf("%s-%s", khcheck.GetName(), suffix)
+
 	// formulate a full pod spec
 	podSpec := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace:    khcheck.GetNamespace(),
-			GenerateName: khcheck.GetName(),
+			Name:        podName,
+			Namespace:   khcheck.GetNamespace(),
+			Annotations: map[string]string{},
+			Labels:      map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(khcheck, khcheck.GroupVersionKind()),
 			},
