@@ -41,9 +41,32 @@ If you prefer to review the manifests first, run:
 kustomize build "github.com/kuberhealthy/kuberhealthy/deploy?ref=<tag>" | kubectl apply -f -
 ```
 
+After installation you can reach the Kuberhealthy graphical status page locally with:
+
+```sh
+kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
+```
+
+Then open [http://localhost:8080](http://localhost:8080) in your browser.
+
 #### Configure Service
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to clients outside of the cluster, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer` or otherwise expose the service yourself.
+
+Optional kustomize overlays are available to automatically expose the service:
+
+- **AWS EKS with AWS Load Balancer Controller**
+  ```sh
+  kubectl apply -k "github.com/kuberhealthy/kuberhealthy/deploy/aws-lb-controller?ref=<tag>"
+  ```
+- **GCP GKE with GKE load balancer controller**
+  ```sh
+  kubectl apply -k "github.com/kuberhealthy/kuberhealthy/deploy/gcp-lb-controller?ref=<tag>"
+  ```
+- **Generic ingress controller**
+  ```sh
+  kubectl apply -k "github.com/kuberhealthy/kuberhealthy/deploy/ingress?ref=<tag>"
+  ```
 
 
 #### Configure Environment Variables
