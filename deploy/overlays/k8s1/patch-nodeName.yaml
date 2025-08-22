@@ -1,0 +1,9 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuberhealthy
+spec:
+  template:
+    spec:
+      nodeName: k8s1
+
