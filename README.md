@@ -29,21 +29,42 @@ Kuberhealthy requires Kubernetes 1.16 or above.
 #### Using Kustomize
 
 ```sh
-kubectl apply -k "github.com/kuberhealthy/kuberhealthy/deploy?ref=$(curl -sSL https://api.github.com/repos/kuberhealthy/kuberhealthy/releases/latest | jq -r '.tag_name')"
+kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy
 ```
 
 This installs the latest release into the cluster referenced by your local `kubectl` context using the [kustomize](https://kustomize.io/) manifests in the `deploy` directory.
 
-To pin to a specific version, choose a release tag from the [Kuberhealthy releases page](https://github.com/kuberhealthy/kuberhealthy/releases) and substitute it for the `ref` value.
-
 If you prefer to review the manifests first, run:
 ```sh
-kustomize build "github.com/kuberhealthy/kuberhealthy/deploy?ref=<tag>" | kubectl apply -f -
+kustomize build github.com/kuberhealthy/kuberhealthy/deploy | kubectl apply -f -
 ```
+
+After installation you can reach the Kuberhealthy graphical status page locally with:
+
+```sh
+kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
+```
+
+Then open [http://localhost:8080](http://localhost:8080) in your browser.
 
 #### Configure Service
 
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to clients outside of the cluster, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer` or otherwise expose the service yourself.
+
+Optional kustomize overlays are available to automatically expose the service:
+
+- **AWS EKS with AWS Load Balancer Controller**
+  ```sh
+  kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/aws-lb-controller
+  ```
+- **GCP GKE with GKE load balancer controller**
+  ```sh
+  kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/gcp-lb-controller
+  ```
+- **Generic ingress controller**
+  ```sh
+  kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/ingress
+  ```
 
 
 #### Edit Configuration Settings
