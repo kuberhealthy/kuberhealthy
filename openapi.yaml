@@ -1,0 +1,147 @@
+openapi: 3.0.0
+info:
+  title: Kuberhealthy API
+  version: "0.1.0"
+servers:
+  - url: /
+paths:
+  /metrics:
+    get:
+      summary: Retrieve Prometheus metrics for checks
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+  /healthz:
+    get:
+      summary: Get current status of all checks
+      parameters:
+        - in: query
+          name: namespace
+          schema:
+            type: string
+          description: Comma-separated namespaces to filter by
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/State'
+  /json:
+    get:
+      summary: Get current status of all checks
+      parameters:
+        - in: query
+          name: namespace
+          schema:
+            type: string
+          description: Comma-separated namespaces to filter by
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/State'
+  /check:
+    post:
+      summary: Report an external check result
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Report'
+      responses:
+        '200':
+          description: Report accepted
+        '400':
+          description: Invalid report
+  /:
+    get:
+      summary: HTML status page
+      responses:
+        '200':
+          description: Status page
+          content:
+            text/html:
+              schema:
+                type: string
+    post:
+      summary: Report an external check result (legacy)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Report'
+      responses:
+        '200':
+          description: Report accepted
+        '400':
+          description: Invalid report
+components:
+  schemas:
+    State:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: string
+        checkDetails:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CheckStatus'
+        currentMaster:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - ok
+        - errors
+        - checkDetails
+    CheckStatus:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: string
+        runDuration:
+          type: string
+          description: Execution time of the last run
+        namespace:
+          type: string
+        podName:
+          type: string
+        currentUUID:
+          type: string
+        lastRunUnix:
+          type: integer
+          format: int64
+        additionalMetadata:
+          type: string
+      required:
+        - ok
+    Report:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: string
+        ok:
+          type: boolean
+      required:
+        - ok

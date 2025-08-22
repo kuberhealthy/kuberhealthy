@@ -43,6 +43,7 @@ func (h *State) WriteHTTPStatusResponse(w http.ResponseWriter) error {
 	}
 
 	// write the output to the caller
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	_, err = w.Write(b)
 	if err != nil {
 		log.Errorln("Error writing response to caller:", err)
