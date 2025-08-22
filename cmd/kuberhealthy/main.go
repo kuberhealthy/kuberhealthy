@@ -20,7 +20,6 @@ import (
 
 // GlobalConfig holds the configuration settings for Kuberhealthy
 var GlobalConfig *Config
-var configPath = "/etc/config/kuberhealthy.yaml"
 
 // var KHClient *kubeclient.KHClient    // KubernetesClient is the global kubernetes client
 // var KubeClient *kubernetes.Clientset // global k8s client used by all things
@@ -86,34 +85,11 @@ func listenForInterrupts(ctx context.Context, interruptChan chan struct{}) {
 // initConfig loads and sets default Kuberhealthy configurations
 // Everytime kuberhealthy sees a configuration change, configurations should reload and reset
 func initConfig() error {
-	GlobalConfig = &Config{
-		// kubeConfigFile: filepath.Join(os.Getenv("HOME"), ".kube", "config"),
-		LogLevel: "info",
+	GlobalConfig = New()
+	if err := GlobalConfig.LoadFromEnv(); err != nil {
+		return err
 	}
-
-	// attempt to load config file from disk
-	err := GlobalConfig.Load(configPath)
-	if err != nil {
-		log.Println("WARNING: Failed to read configuration file from disk:", err)
-	}
-
-	if len(GlobalConfig.ListenAddress) == 0 {
-		GlobalConfig.ListenAddress = ":8080"
-	}
-
-	// Set the target namespace to whatever the KH_TARGET_NAMESPACE env var is.  Defaults to blank, which means all, if unset.
-	GlobalConfig.TargetNamespace = os.Getenv("KH_TARGET_NAMESPACE")
-
-	// External Check URL
-	// set env variables into config if specified. otherwise set external check URL to default
-	checkReportURL := os.Getenv("KH_CHECK_REPORT_HOSTNAME")
-	if len(checkReportURL) == 0 {
-		// autoconfigure reporting URL based off of current pod namespace
-		log.Infoln("KH_CHECK_REPORT_HOSTNAME environment variable not set. Using kuberhealthy.kuberhealthy.svc.cluster.local.")
-	}
-	GlobalConfig.checkReportURL = checkReportURL
 	log.Infoln("External check reporting URL set to:", GlobalConfig.ReportingURL())
-
 	return nil
 }
 
@@ -128,7 +104,6 @@ func setUp() error {
 
 	// setup flaggy
 	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
-	flaggy.String(&configPath, "c", "config", "Absolute path to the kuberhealthy config file")
 	flaggy.Bool(&GlobalConfig.DebugMode, "d", "debug", "Set to true to enable debug.")
 	flaggy.Parse()
 
