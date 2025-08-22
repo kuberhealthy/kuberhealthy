@@ -145,6 +145,13 @@ type PodReportInfo struct {
 	Namespace string
 }
 
+// function variables allow tests to stub dependencies
+var (
+	validateUsingRequestHeaderFunc  = validateUsingRequestHeader
+	validatePodReportBySourceIPFunc = validatePodReportBySourceIP
+	storeCheckStateFunc             = storeCheckState
+)
+
 // validateExternalRequest calls the Kubernetes API to fetch details about a pod using a selector string.
 // It validates that the pod is allowed to report the status of a check. The pod is also expected
 // to have the environment variable KH_CHECK_NAME
@@ -298,7 +305,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// Validate request using the kh-run-uuid header. If the header doesn't exist, or there's an error with validation,
 	// validate using the pod's remote IP.
 	log.Println("webserver:", requestID, "validating external check status report from its reporting kuberhealthy run uuid:", r.Header.Get("kh-run-uuid"))
-	podReport, reportValidated, err := validateUsingRequestHeader(ctx, r)
+	podReport, reportValidated, err := validateUsingRequestHeaderFunc(ctx, r)
 	if err != nil {
 		log.Println("webserver:", requestID, "Failed to look up pod by its kh-run-uuid header:", r.Header.Get("kh-run-uuid"), err)
 	}
@@ -306,7 +313,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// If the check uuid header is missing, attempt to validate using calling pod's source IP
 	if !reportValidated {
 		log.Println("webserver:", requestID, "validating external check status report from the pod's remote IP:", r.RemoteAddr)
-		podReport, err = validatePodReportBySourceIP(ctx, r)
+		podReport, err = validatePodReportBySourceIPFunc(ctx, r)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			log.Println("webserver:", requestID, "Failed to look up pod by its IP:", r.RemoteAddr, err)
@@ -368,7 +375,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 
 	// since the check is validated, we can proceed to update the status now
 	log.Println("webserver:", requestID, "Setting check with name", podReport.Name, "in namespace", podReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID)
-	err = storeCheckState(podReport.Name, podReport.Namespace, details)
+	err = storeCheckStateFunc(podReport.Name, podReport.Namespace, details)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println("webserver:", requestID, "failed to store check state for %s: %w", podReport.Name, err)
