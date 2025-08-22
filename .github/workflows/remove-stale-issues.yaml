@@ -10,8 +10,8 @@ jobs:
     steps:
       - uses: actions/stale@v9
         with:
-          stale-issue-message: 'This issue is stale because it has been open 30 days with no activity. Remove stale label or comment on the issue or this will be closed in 15 days.'
-          close-issue-message: 'This issue was closed because it has been stalled for 15 days with no activity. Please reopen and comment on the issue if you believe it should stay open.'
-          days-before-stale: 30
-          days-before-close: 15
+          stale-issue-message: 'This issue is stale because it has been open 60 days with no activity. Remove stale label or comment on the issue or this will be closed in 90 days.'
+          close-issue-message: 'This issue was closed because it has been stalled for 90 days with no activity. Please reopen and comment on the issue if you believe it should stay open.'
+          days-before-stale: 60
+          days-before-close: 90
           exempt-issue-labels: 'in progress, do-not-close'
