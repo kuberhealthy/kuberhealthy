@@ -46,11 +46,9 @@ kustomize build "github.com/kuberhealthy/kuberhealthy/deploy?ref=<tag>" | kubect
 After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to clients outside of the cluster, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer` or otherwise expose the service yourself.
 
 
-#### Edit Configuration Settings
+#### Configure Environment Variables
 
-You can edit the Kuberhealthy configmap as well and it will be automatically reloaded by Kuberhealthy.  All configmap options are set to their defaults to make configuration easy.
-
-`kubectl edit -n kuberhealthy configmap kuberhealthy`
+Kuberhealthy is configured entirely with environment variables. The deployment manifest in this repository includes default values for all options. Modify the container's environment variables to tune Kuberhealthy for your cluster.
 
 #### See Configured Checks
 
@@ -59,10 +57,7 @@ You can see checks that are configured with `kubectl -n kuberhealthy get khcheck
 
 ### Further Configuration
 
-
-To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CONFIGURATION.md).
-
-More installation options, including flat YAML manifests for the current v3 branch, are available in the [/deploy](/deploy) directory.
+A full list of flags and environment variables is available in [docs/FLAGS.md](docs/FLAGS.md). More installation options, including flat YAML manifests for the current v3 branch, are available in the [/deploy](/deploy) directory.
 
 ## Visualized
 
