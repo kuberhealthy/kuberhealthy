@@ -17,7 +17,6 @@ spec:
     - khc
     singular: khcheck
   scope: Namespaced
-  preserveUnknownFields: false
   versions:
   - name: v1
     schema:

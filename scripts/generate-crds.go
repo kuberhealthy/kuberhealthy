@@ -45,7 +45,7 @@ var (
 
 	crdGenerators = []crdGenerator{
 		{
-			ControllerGenOpts: "crd:crdVersions=v1,preserveUnknownFields=false",
+			ControllerGenOpts: "crd:crdVersions=v1",
 			YAMLDir:           "./generated",
 			CRDAPIGroup:       "comcast.github.io",
 			ControllerPath:    "../pkg/apis/khcheck/v1",
@@ -57,7 +57,7 @@ var (
 			},
 		},
 		{
-			ControllerGenOpts: "crd:crdVersions=v1,preserveUnknownFields=false",
+			ControllerGenOpts: "crd:crdVersions=v1",
 			YAMLDir:           "./generated",
 			CRDAPIGroup:       "comcast.github.io",
 			ControllerPath:    "../pkg/apis/khjob/v1",

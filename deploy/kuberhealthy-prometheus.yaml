@@ -17,7 +17,6 @@ spec:
     - khc
     singular: khcheck
   scope: Namespaced
-  preserveUnknownFields: false
   versions:
   - name: v1
     schema:
@@ -6479,7 +6478,6 @@ spec:
     - khj
     singular: khjob
   scope: Namespaced
-  preserveUnknownFields: false
   versions:
   - name: v1
     schema:
