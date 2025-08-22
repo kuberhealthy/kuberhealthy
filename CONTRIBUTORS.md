@@ -1,16 +1,16 @@
+- [Eric Greer](https://ericgreer.info) - project creator/maintainer
 - [Adrian Aneci](mailto:aneci.adrian@gmail.com)
 - [Babak Ghadiri](mailto:bbkghadiri6@gmail.com)
 - [Chad Bitzer](https://github.com/chadbitzer)
 - [Chris Hirsch](mailto:chris@base2technology.com)
 - [Doug Muth](https://github.com/dmuth)
 - [Edvin Norling](https://github.com/NissesSenap)
-- [Eric Greer](mailto:eric.greer@comcast.com) - project creator/maintainer
 - [Hanfei Shen](mailto:qqshfox@gmail.com)
 - [Ian Hoegen](mailto:ianhoegen@gmail.com)
 - [Jake Martin](https://github.com/lolimjake)
 - [James Rawlings](https://github.com/rawlingsj)
-- [Jonathan Phan](https://github.com/jonnydawg) - maintainer
-- [Joshulyne Park](https://github.com/joshulyne) - maintainer
+- [Jonathan Phan](https://github.com/jonnydawg)
+- [Joshulyne Park](https://github.com/joshulyne)
 - [jsvk](https://github.com/jsvk)
 - [Justin Downie](https://github.com/jdowni000)
 - [Mario Constanti](https://github.com/bavarianbidi)
