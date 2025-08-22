@@ -157,8 +157,8 @@ func getKuberhealthyRunUUID() (string, error) {
 
 	// check the length of the UUID to make sure we pulled one properly
 	if len(khRunUUID) < 1 {
-		writeLog("ERROR: kuberhealthy run UUID from environment variable", envs.KHReportingURL, "was blank")
-		return "", fmt.Errorf("fetched %s environment variable but it was blank", envs.KHReportingURL)
+		writeLog("ERROR: kuberhealthy run UUID from environment variable", envs.KHRunUUID, "was blank")
+		return "", fmt.Errorf("fetched %s environment variable but it was blank", envs.KHRunUUID)
 	}
 
 	return khRunUUID, nil
@@ -170,8 +170,8 @@ func GetDeadline() (time.Time, error) {
 	unixDeadline := os.Getenv(envs.KHDeadline)
 
 	if len(unixDeadline) < 1 {
-		writeLog("ERROR: kuberhealthy check deadline from environment variable", envs.KHReportingURL, "was blank")
-		return time.Time{}, fmt.Errorf("fetched %s environment variable but it was blank", envs.KHReportingURL)
+		writeLog("ERROR: kuberhealthy check deadline from environment variable", envs.KHDeadline, "was blank")
+		return time.Time{}, fmt.Errorf("fetched %s environment variable but it was blank", envs.KHDeadline)
 	}
 
 	unixDeadlineInt, err := strconv.Atoi(unixDeadline)

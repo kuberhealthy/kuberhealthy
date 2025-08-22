@@ -11,7 +11,7 @@
 
 ## What is Kuberhealthy?
 
-Kuberhealthy lets you continuously verify that your applications and Kubernetes clusters are working as expected. By creating a custom resource (a [`KuberhealthyCheck`](hhttps://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CHECKS.md#khcheck-anatomy)) in your cluster, you can easily enable [various synthetic tests](docs/CHECKS_REGISTRY.md) and get Prometheus metrics for them.
+Kuberhealthy lets you continuously verify that your applications and Kubernetes clusters are working as expected. By creating a custom resource (a [`KuberhealthyCheck`](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CHECKS.md#khcheck-anatomy)) in your cluster, you can easily enable [various synthetic tests](docs/CHECKS_REGISTRY.md) and get Prometheus metrics for them.
 
 Kuberhealthy comes with [lots of useful checks already available](docs/CHECKS_REGISTRY.md) to ensure the core functionality of Kubernetes, but checks can be used to test anything you like.  We encourage you to [write your own check container](docs/CHECK_CREATION.md) in any language to test your own applications.  It really is quick and easy!
 
@@ -94,7 +94,7 @@ More installation options, including static yaml files are available in the [/de
 
 Here is an illustration of how Kuberhealthy provisions and operates checker pods.  The following process is illustrated:
 
-- An admin creates a [`KuberhealthyCheck`](hhttps://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CHECKS.md#khcheck-anatomy) resource that calls for a synthetic Kubernetes daemonset to be deployed and tested every 15 minutes.  This will ensure that all nodes in the Kubernetes cluster can provision containers properly.
+- An admin creates a [`KuberhealthyCheck`](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CHECKS.md#khcheck-anatomy) resource that calls for a synthetic Kubernetes daemonset to be deployed and tested every 15 minutes.  This will ensure that all nodes in the Kubernetes cluster can provision containers properly.
 - Kuberhealthy observes this new `KuberhealthyCheck` resource.
 - Kuberhealthy schedules a checker pod to manage the lifecycle of this check.
 - The checker pod creates a daemonset using the Kubernetes API.

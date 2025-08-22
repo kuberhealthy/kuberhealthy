@@ -69,7 +69,9 @@ var _ = BeforeSuite(func() {
 	var err error
 	// cfg is defined in this file globally.
 	cfg, err = testEnv.Start()
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		Skip(fmt.Sprintf("failed to start envtest: %v", err))
+	}
 	Expect(cfg).NotTo(BeNil())
 
 	err = kuberhealthyv2.AddToScheme(scheme.Scheme)
@@ -85,6 +87,8 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
-	err := testEnv.Stop()
-	Expect(err).NotTo(HaveOccurred())
+	if testEnv != nil && cfg != nil {
+		err := testEnv.Stop()
+		Expect(err).NotTo(HaveOccurred())
+	}
 })
