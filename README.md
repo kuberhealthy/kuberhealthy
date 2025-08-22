@@ -26,43 +26,19 @@ Kuberhealthy serves the status of all checks on a simple JSON status page, a [Pr
 
 Kuberhealthy requires Kubernetes 1.16 or above.  
 
-#### Using Plain Ole' YAML
-
-If you just want the rendered default specs without Helm, you can [use the static flat file](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy.yaml) or the [static flat file for Prometheus](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy-prometheus.yaml) or even the [static flat file for Prometheus Operator](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy-prometheus-operator.yaml).
-
-Here are the one-line installation commands for those same specs:
-```sh
-# If you don't use Prometheus:
-kubectl create namespace kuberhealthy
-kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/deploy/kuberhealthy.yaml
-
-# If you use Prometheus, but not with Prometheus Operator:
-kubectl create namespace kuberhealthy
-kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/deploy/kuberhealthy-prometheus.yaml
-
-# If you use Prometheus Operator:
-kubectl create namespace kuberhealthy
-kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/deploy/kuberhealthy-prometheus-operator.yaml
-```
-
-#### Using Helm
+#### Using Kustomize
 
 ```sh
-kubectl create namespace kuberhealthy
-helm repo add kuberhealthy https://kuberhealthy.github.io/kuberhealthy/helm-repos
-helm install -n kuberhealthy kuberhealthy kuberhealthy/kuberhealthy
+kubectl apply -k "github.com/kuberhealthy/kuberhealthy/deploy?ref=$(curl -sSL https://api.github.com/repos/kuberhealthy/kuberhealthy/releases/latest | jq -r '.tag_name')"
 ```
 
-If you have Prometheus
+This installs the latest release into the cluster referenced by your local `kubectl` context using the [kustomize](https://kustomize.io/) manifests in the `deploy` directory.
 
-```
-helm install --set prometheus.enabled=true -n kuberhealthy kuberhealthy kuberhealthy/kuberhealthy
-```
+To pin to a specific version, choose a release tag from the [Kuberhealthy releases page](https://github.com/kuberhealthy/kuberhealthy/releases) and substitute it for the `ref` value.
 
-If you have Prometheus via Prometheus Operator:
-
-```
-helm install --set prometheus.enabled=true --set prometheus.serviceMonitor.enabled=true -n kuberhealthy kuberhealthy kuberhealthy/kuberhealthy
+If you prefer to review the manifests first, run:
+```sh
+kustomize build "github.com/kuberhealthy/kuberhealthy/deploy?ref=<tag>" | kubectl apply -f -
 ```
 
 #### Configure Service
@@ -86,9 +62,7 @@ You can see checks that are configured with `kubectl -n kuberhealthy get khcheck
 
 To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CONFIGURATION.md).
 
-Details on using the helm chart are [documented here](https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy).  The Helm installation of Kuberhealthy is automatically updated to use the latest [Kuberhealthy release](https://github.com/kuberhealthy/kuberhealthy/releases).
-
-More installation options, including static yaml files are available in the [/deploy](/deploy) directory. These flat spec files contain the most recent changes to Kuberhealthy, or the master branch. Use this if you would like to test master branch updates.
+More installation options, including flat YAML manifests for the current v3 branch, are available in the [/deploy](/deploy) directory.
 
 ## Visualized
 
