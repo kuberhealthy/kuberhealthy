@@ -1,207 +1,156 @@
 package main
 
 import (
-	"context"
+	"fmt"
 	"os"
+	"strconv"
 	"time"
 
-	"github.com/codingsince1985/checksum"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 )
 
-// KuberhealthyConfigFile holds the file location that contains the Kuberhealthy configuration
-var KuberhealthyConfigFile string
-
 // Config holds all configurable options
+// Values are primarily sourced from environment variables.
 type Config struct {
-	ListenAddress                 string                    `yaml:"listenAddress"`
-	LogLevel                      string                    `yaml:"logLevel"`
-	MaxKHJobAge                   time.Duration             `yaml:"maxKHJobAge"`
-	MaxCheckPodAge                time.Duration             `yaml:"maxCheckPodAge"`
-	MaxCompletedPodCount          int                       `yaml:"maxCompletedPodCount"`
-	MaxErrorPodCount              int                       `yaml:"maxErrorPodCount"`
-	PromMetricsConfig             metrics.PromMetricsConfig `yaml:"promMetricsConfig,omitempty"`
-	TargetNamespace               string                    `yaml:"namespace"` // TargetNamespace sets the namespace that Kuberhealthy will operate in.  By default, this is blank, which means all namespaces are watched for khcheck resources.
-	DefaultRunInterval            time.Duration             `yaml:"defaultRunInterval"`
-	checkReportURL                string                    `yaml:"checkReportingURL"`             // this is the URL that checker pods will report in on
-	TerminationGracePeriodSeconds time.Duration             `yaml:"terminationGracePeriodSeconds"` // this must be calibrated with the setting on our pods
-	DefaultCheckTimeout           time.Duration             `yaml:"defaultCheckTimeout"`           // if not otherwise specified, this is how long checker pods have to run
-	DebugMode                     bool                      `yaml:"debugMode"`
-	DefaultNamespace              string                    `yaml:"defaultNamespace"` // this is the namespace kuberhealthy will assume if none can be detected
-	Namespace                     string                    // this is the namespace kh is running in
+	ListenAddress                 string
+	LogLevel                      string
+	MaxKHJobAge                   time.Duration
+	MaxCheckPodAge                time.Duration
+	MaxCompletedPodCount          int
+	MaxErrorPodCount              int
+	PromMetricsConfig             metrics.PromMetricsConfig
+	TargetNamespace               string
+	DefaultRunInterval            time.Duration
+	checkReportURL                string // the hostname checks will report to
+	TerminationGracePeriodSeconds time.Duration
+	DefaultCheckTimeout           time.Duration
+	DebugMode                     bool
+	DefaultNamespace              string
+	Namespace                     string // the namespace kh is running in
 }
 
-func init() {
-}
-
+// New creates a Config populated with sane defaults.
 func New() *Config {
 	return &Config{
-		checkReportURL:                "kuberhealthy.kuberhealthy.svc.cluster.local", // KHExternalReportingURL is the environment variable key used to override the URL checks will be asked to report in to
-		DefaultRunInterval:            time.Minute * 10,                              // DefaultRunInterval is the default run interval for checks set by kuberhealthy
+		ListenAddress:                 ":8080",
+		LogLevel:                      "info",
+		checkReportURL:                "kuberhealthy.kuberhealthy.svc.cluster.local",
+		DefaultRunInterval:            time.Minute * 10,
 		TerminationGracePeriodSeconds: time.Minute * 5,
 		DefaultCheckTimeout:           time.Minute * 5,
-		Namespace:                     GetMyNamespace("kuberhealthy"), // fetch the namespace of kuberhealthy
+		Namespace:                     GetMyNamespace("kuberhealthy"),
 	}
 }
 
-// Load loads file from disk
-func (c *Config) Load(file string) error {
-	b, err := os.ReadFile(file)
-	if err != nil {
-		return err
+// LoadFromEnv populates the config from environment variables.
+func (c *Config) LoadFromEnv() error {
+	if v := os.Getenv("KH_LISTEN_ADDRESS"); v != "" {
+		c.ListenAddress = v
 	}
 
-	return yaml.Unmarshal(b, c)
+	if v := os.Getenv("KH_LOG_LEVEL"); v != "" {
+		c.LogLevel = v
+	}
+
+	if v := os.Getenv("KH_MAX_JOB_AGE"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return fmt.Errorf("invalid KH_MAX_JOB_AGE: %w", err)
+		}
+		c.MaxKHJobAge = d
+	}
+
+	if v := os.Getenv("KH_MAX_CHECK_POD_AGE"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return fmt.Errorf("invalid KH_MAX_CHECK_POD_AGE: %w", err)
+		}
+		c.MaxCheckPodAge = d
+	}
+
+	if v := os.Getenv("KH_MAX_COMPLETED_POD_COUNT"); v != "" {
+		i, err := strconv.Atoi(v)
+		if err != nil || i < 0 {
+			return fmt.Errorf("invalid KH_MAX_COMPLETED_POD_COUNT: %v", err)
+		}
+		c.MaxCompletedPodCount = i
+	}
+
+	if v := os.Getenv("KH_MAX_ERROR_POD_COUNT"); v != "" {
+		i, err := strconv.Atoi(v)
+		if err != nil || i < 0 {
+			return fmt.Errorf("invalid KH_MAX_ERROR_POD_COUNT: %v", err)
+		}
+		c.MaxErrorPodCount = i
+	}
+
+	if v := os.Getenv("KH_PROM_SUPPRESS_ERROR_LABEL"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return fmt.Errorf("invalid KH_PROM_SUPPRESS_ERROR_LABEL: %w", err)
+		}
+		c.PromMetricsConfig.SuppressErrorLabel = b
+	}
+
+	if v := os.Getenv("KH_PROM_ERROR_LABEL_MAX_LENGTH"); v != "" {
+		i, err := strconv.Atoi(v)
+		if err != nil || i < 0 {
+			return fmt.Errorf("invalid KH_PROM_ERROR_LABEL_MAX_LENGTH: %v", err)
+		}
+		c.PromMetricsConfig.ErrorLabelMaxLength = i
+	}
+
+	if v := os.Getenv("KH_TARGET_NAMESPACE"); v != "" {
+		c.TargetNamespace = v
+	}
+
+	if v := os.Getenv("KH_DEFAULT_RUN_INTERVAL"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return fmt.Errorf("invalid KH_DEFAULT_RUN_INTERVAL: %w", err)
+		}
+		c.DefaultRunInterval = d
+	}
+
+	if v := os.Getenv("KH_CHECK_REPORT_HOSTNAME"); v != "" {
+		c.checkReportURL = v
+	} else {
+		log.Infoln("KH_CHECK_REPORT_HOSTNAME environment variable not set. Using", c.checkReportURL)
+	}
+
+	if v := os.Getenv("KH_TERMINATION_GRACE_PERIOD"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return fmt.Errorf("invalid KH_TERMINATION_GRACE_PERIOD: %w", err)
+		}
+		c.TerminationGracePeriodSeconds = d
+	}
+
+	if v := os.Getenv("KH_DEFAULT_CHECK_TIMEOUT"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return fmt.Errorf("invalid KH_DEFAULT_CHECK_TIMEOUT: %w", err)
+		}
+		c.DefaultCheckTimeout = d
+	}
+
+	if v := os.Getenv("KH_DEBUG_MODE"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return fmt.Errorf("invalid KH_DEBUG_MODE: %w", err)
+		}
+		c.DebugMode = b
+	}
+
+	if v := os.Getenv("KH_DEFAULT_NAMESPACE"); v != "" {
+		c.DefaultNamespace = v
+	}
+
+	return nil
 }
 
 // ReportingURL formulates and returns the full URL for check reporting
 func (c *Config) ReportingURL() string {
 	return "http://" + c.checkReportURL + "/check"
-}
-
-// watchConfig watches the target file (not directory) and notfies the supplied channel with the new md5sum
-// when the content changes.  The interval supplied will be how often the file is polled.  To stop the
-// watcher, close the supplied channel.
-func watchConfig(ctx context.Context, filePath string, interval time.Duration) (chan string, error) {
-
-	log.Infoln("watchConfig: Watching", filePath, "for changes")
-	c := make(chan string, 1)
-
-	md5sum, err := hashCreator(filePath)
-	if err != nil {
-		return c, err
-	}
-	log.Infoln("watchConfig: initial hash for", filePath, "is", md5sum)
-
-	// start watching for changes until the context ends
-	go func() {
-		// make a new ticker
-		log.Debugln("watchConfig: starting a ticker with an interval of", interval)
-		ticker := time.NewTicker(interval)
-
-		// watch the ticker and survey the file
-		for range ticker.C {
-			// log.Debugln("watchConfig: starting a tick")
-			// check if context is still valid and break the loop if it isnt
-			select {
-			case <-ctx.Done():
-				ticker.Stop()
-				close(c)
-				log.Debugln("watchConfig: context closed. shutting down output")
-				return
-			default:
-				// do nothing
-			}
-
-			// claculate md5sum differences
-			newMD5Sum, err := hashCreator(filePath)
-			if err != nil {
-				log.Errorln("Error when calculating hash of:", filePath, err)
-			}
-			if newMD5Sum != md5sum {
-				md5sum = newMD5Sum
-				log.Debugln("watchConfig: sending file change notification")
-				select {
-				case c <- md5sum:
-					log.Debugln("watchConfig: queued reload notification")
-				default:
-					log.Debugln("watchConfig: skipping reload notification because config reload already queued")
-				}
-				log.Debugln("watchConfig: done sending file change notification")
-			}
-		}
-		log.Debugln("watchConfig: shutting down")
-	}()
-
-	return c, nil
-}
-
-// startConfigReloadMonitoring watches the target filepath for changes and smooths the output so
-// that multiple signals do not come too rapidly.  Call the returned CancelFunc to shutdown
-// all the background routines safely.
-func startConfigReloadMonitoring(ctx context.Context, filePath string) (chan struct{}, error) {
-	return startConfigReloadMonitoringWithSmoothing(ctx, filePath, time.Second*2, time.Second*6)
-}
-
-func startConfigReloadMonitoringWithSmoothing(ctx context.Context, filePath string, scrapeInterval time.Duration, maxNotificationSpeed time.Duration) (chan struct{}, error) {
-
-	// make channels needed for limiter and spawn limiter in background
-	outChan := make(chan struct{})
-
-	log.Infoln("configReloader: begin monitoring of configmap change events")
-
-	// begin watching the configuration file for changes in the background
-	fsNotificationChan, err := watchConfig(ctx, filePath, scrapeInterval)
-	if err != nil {
-		return outChan, err
-	}
-
-	// spawn a go routine to watch for notifications and send them every interval
-	go func(ctx context.Context, fsNotificationChan chan string) {
-		for {
-			time.Sleep(maxNotificationSpeed) // sleep the maximum notifciation time before sending
-			select {
-			case <-ctx.Done(): // end when context killed
-				log.Debugln("configReloader: shutting down")
-				return
-			case <-fsNotificationChan:
-				outChan <- struct{}{}
-				log.Debugln("configReloader: configuration file hash has changed")
-			default:
-				log.Debugln("configReloader: no configuration reload this tick")
-			}
-		}
-	}(ctx, fsNotificationChan)
-
-	return outChan, nil
-}
-
-// configReloadNotifier watchers for events in file, reloads the configuration, and notifies upstream to restart checks
-func configReloadNotifier(ctx context.Context, notifyChan chan struct{}) {
-
-	outChan, err := startConfigReloadMonitoring(ctx, configPath)
-	if err != nil {
-		log.Errorln("configReloader: Error watching configuration file for changes:", err)
-		log.Errorln("configReloader: configuration reloading disabled due to errors")
-		return
-	}
-
-	// when outChan gets events, reload configuration and checks
-	for range outChan {
-		// if the context has expired, then shut down the config reload notifier entirely
-		select {
-		case <-ctx.Done():
-			log.Debugln("configReloader: stopped notifying config reloads due to context cancellation")
-			return
-		default:
-		}
-
-		log.Debugln("configReloader: loading new configuration")
-
-		// setup config
-		err := initConfig()
-		if err != nil {
-			log.Errorln("configReloader: Error reloading and setting up config:", err)
-			continue
-		}
-		log.Debugln("configReloader: loaded new configuration:", GlobalConfig)
-
-		// reparse and set logging level
-		parsedLogLevel, err := log.ParseLevel(GlobalConfig.LogLevel)
-		if err != nil {
-			log.Warningln("Unable to parse log-level flag: ", err)
-		} else {
-			log.Infoln("Setting log level to:", parsedLogLevel)
-			log.SetLevel(parsedLogLevel)
-		}
-		notifyChan <- struct{}{}
-	}
-	log.Infoln("configReloader: shutting down because no more signals are coming from outChan")
-}
-
-// hashcreator opens up a file and creates a hash of the file
-func hashCreator(file string) (string, error) {
-	return checksum.MD5sum(file)
 }

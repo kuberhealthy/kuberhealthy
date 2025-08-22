@@ -23,11 +23,37 @@ spec:
         image: docker.io/kuberhealthy/kuberhealthy:localdev
         imagePullPolicy: Never
         env:
-        - name: TARGET_NAMESPACE
+        - name: KH_LISTEN_ADDRESS
+          value: ":8080"
+        - name: KH_LOG_LEVEL
+          value: "info"
+        - name: KH_MAX_JOB_AGE
+          value: ""
+        - name: KH_MAX_CHECK_POD_AGE
+          value: ""
+        - name: KH_MAX_COMPLETED_POD_COUNT
+          value: "0"
+        - name: KH_MAX_ERROR_POD_COUNT
+          value: "0"
+        - name: KH_PROM_SUPPRESS_ERROR_LABEL
+          value: "false"
+        - name: KH_PROM_ERROR_LABEL_MAX_LENGTH
+          value: "0"
+        - name: KH_TARGET_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        - name: KH_DEFAULT_RUN_INTERVAL
+          value: "10m"
         - name: KH_CHECK_REPORT_HOSTNAME
           value: "kuberhealthy.kuberhealthy.svc.cluster.local"
+        - name: KH_TERMINATION_GRACE_PERIOD
+          value: "5m"
+        - name: KH_DEFAULT_CHECK_TIMEOUT
+          value: "5m"
+        - name: KH_DEBUG_MODE
+          value: "false"
+        - name: KH_DEFAULT_NAMESPACE
+          value: "kuberhealthy"
         ports:
         - containerPort: 8080
