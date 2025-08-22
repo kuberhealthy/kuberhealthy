@@ -5,6 +5,8 @@
 # In the long run I hope that we can use it to run test cases.
 #####
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Set NS
 NS=kuberhealthy
 name=kuberhealthy
@@ -21,7 +23,7 @@ sleep 2
 
 # Use helm to install kuberhealthy
 # the image repository and tag must match the build that just took place
-helm install -n $NS --set imageURL=$IMAGE_URL -f .ci/values.yaml  $name deploy/helm/kuberhealthy
+helm install -n $NS --set imageURL=$IMAGE_URL -f "$SCRIPT_DIR/values.yaml"  $name deploy/helm/kuberhealthy
 
 # list khchecks
 kubectl -n $NS get khc

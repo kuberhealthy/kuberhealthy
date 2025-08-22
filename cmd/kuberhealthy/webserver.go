@@ -21,6 +21,48 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+const statusPageHTML = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Kuberhealthy Status</title>
+<style>
+body{font-family:sans-serif;}
+.check{margin-bottom:0.5em;}
+</style>
+<script>
+async function refresh(){
+  try{
+    const resp = await fetch('/json');
+    const data = await resp.json();
+    const container = document.getElementById('checks');
+    container.innerHTML = '';
+    const details = data.CheckDetails || {};
+    Object.keys(details).forEach(function(name){
+      const st = details[name];
+      var icon = st.ok ? '✅' : '❌';
+      if (st.podName){ icon = '⏳'; }
+      var lastRun = st.lastRunUnix ? new Date(st.lastRunUnix*1000).toLocaleString() : 'never';
+      var statusText = 'OK';
+      if (!st.ok && st.errors && st.errors.length > 0){
+        statusText = st.errors.join('; ');
+      }
+      var div = document.createElement('div');
+      div.className = 'check';
+      div.textContent = icon + ' ' + name + ' - Last Run: ' + lastRun + ' - ' + statusText;
+      container.appendChild(div);
+    });
+  }catch(e){ console.error('failed to fetch status', e); }
+}
+setInterval(refresh,2000); window.onload = refresh;
+</script>
+</head>
+<body>
+<h1>Kuberhealthy Checks</h1>
+<div id="checks"></div>
+</body>
+</html>`
+
 // StartWebServer starts a JSON status web server at the specified listener.
 func StartWebServer() {
 	log.Infoln("Configuring web server")
@@ -43,8 +85,10 @@ func StartWebServer() {
 
 	// visit /json to see a json representation of all current checks for easy automation
 	http.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
-		// TODO - display a formatted json representation of all currently
-		// tracked checks. allow for ?namespace= filtering.
+		err := healthCheckHandler(w, r)
+		if err != nil {
+			log.Errorln(err)
+		}
 	})
 
 	// Accept status reports coming from external checker pods.
@@ -56,11 +100,20 @@ func StartWebServer() {
 
 	})
 
-	// Accept status reports coming from external checker pods. This is the old Endpoint
-	// for reporting check status from Kuberhealthy V2.
+	// Root path serves the HTML status page. POST requests are treated as old style
+	// external check reports for backwards compatibility.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// until a UI is developed, just redirect to /json
-		http.Redirect(w, r, "/json", http.StatusTemporaryRedirect)
+		if r.Method == http.MethodPost {
+			err := checkReportHandler(w, r)
+			if err != nil {
+				log.Errorln("checkStatus endpoint error:", err)
+			}
+			return
+		}
+		err := statusPageHandler(w, r)
+		if err != nil {
+			log.Errorln(err)
+		}
 	})
 
 	// start web server and restart it any time it exits
@@ -74,12 +127,30 @@ func StartWebServer() {
 	}
 }
 
+// statusPageHandler serves a basic HTML page that polls the JSON endpoint
+// to show the status of all configured checks.
+func statusPageHandler(w http.ResponseWriter, r *http.Request) error {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, err := w.Write([]byte(statusPageHTML))
+	if err != nil {
+		log.Warningln("Error writing status page:", err)
+	}
+	return err
+}
+
 // PodReportInfo holds info about an incoming IP to the external check reporting endpoint
 type PodReportInfo struct {
 	Name      string
 	UUID      string
 	Namespace string
 }
+
+// function variables allow tests to stub dependencies
+var (
+	validateUsingRequestHeaderFunc  = validateUsingRequestHeader
+	validatePodReportBySourceIPFunc = validatePodReportBySourceIP
+	storeCheckStateFunc             = storeCheckState
+)
 
 // validateExternalRequest calls the Kubernetes API to fetch details about a pod using a selector string.
 // It validates that the pod is allowed to report the status of a check. The pod is also expected
@@ -234,7 +305,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// Validate request using the kh-run-uuid header. If the header doesn't exist, or there's an error with validation,
 	// validate using the pod's remote IP.
 	log.Println("webserver:", requestID, "validating external check status report from its reporting kuberhealthy run uuid:", r.Header.Get("kh-run-uuid"))
-	podReport, reportValidated, err := validateUsingRequestHeader(ctx, r)
+	podReport, reportValidated, err := validateUsingRequestHeaderFunc(ctx, r)
 	if err != nil {
 		log.Println("webserver:", requestID, "Failed to look up pod by its kh-run-uuid header:", r.Header.Get("kh-run-uuid"), err)
 	}
@@ -242,7 +313,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// If the check uuid header is missing, attempt to validate using calling pod's source IP
 	if !reportValidated {
 		log.Println("webserver:", requestID, "validating external check status report from the pod's remote IP:", r.RemoteAddr)
-		podReport, err = validatePodReportBySourceIP(ctx, r)
+		podReport, err = validatePodReportBySourceIPFunc(ctx, r)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			log.Println("webserver:", requestID, "Failed to look up pod by its IP:", r.RemoteAddr, err)
@@ -304,7 +375,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 
 	// since the check is validated, we can proceed to update the status now
 	log.Println("webserver:", requestID, "Setting check with name", podReport.Name, "in namespace", podReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID)
-	err = storeCheckState(podReport.Name, podReport.Namespace, details)
+	err = storeCheckStateFunc(podReport.Name, podReport.Namespace, details)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println("webserver:", requestID, "failed to store check state for %s: %w", podReport.Name, err)

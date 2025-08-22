@@ -36,4 +36,4 @@ jobs:
         kind load docker-image kuberhealthy:${GITHUB_RUN_ID}
 
     - name: "running end to end test"
-      run: ./.ci/e2e.sh kuberhealthy:${GITHUB_RUN_ID}
+      run: ./tests/.ci/e2e.sh kuberhealthy:${GITHUB_RUN_ID}
