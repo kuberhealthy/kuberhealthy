@@ -97,6 +97,10 @@ func initConfig() error {
 		log.Println("WARNING: Failed to read configuration file from disk:", err)
 	}
 
+	if len(GlobalConfig.ListenAddress) == 0 {
+		GlobalConfig.ListenAddress = ":8080"
+	}
+
 	// Set the target namespace to whatever the KH_TARGET_NAMESPACE env var is.  Defaults to blank, which means all, if unset.
 	GlobalConfig.TargetNamespace = os.Getenv("KH_TARGET_NAMESPACE")
 
