@@ -19,6 +19,7 @@ import (
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const statusPageHTML = `<!DOCTYPE html>
@@ -440,41 +441,48 @@ func isUUIDWhitelistedForCheck(checkName string, checkNamespace string, uuid str
 // this will return the state of ALL found checks.
 // Failures to fetch CRD state return an error.
 func getCurrentState(namespaces []string) health.State {
-
-	var currentState health.State
-	if len(namespaces) != 0 {
-		currentState = getCurrentStatusForNamespaces(namespaces)
-	}
-
-	// currentState.CurrentMaster = currentMaster
-	// if some additional metadata was added, then append it
-	// if len(cfg.StateMetadata) != 0 {
-	// 	currentState.Metadata = cfg.StateMetadata
-	// }
-
-	return currentState
+	return getCurrentStatusForNamespaces(namespaces)
 }
 
 // getCurrentState fetches the current state of all checks from the requested namespaces
 // their CRD objects and returns the summary as a health.State.
 // Failures to fetch CRD state return an error.
 func getCurrentStatusForNamespaces(namespaces []string) health.State {
-	// if there is are requested namespaces, then filter out checks from namespaces not matching those requested
-	// states := stateReflector.CurrentStatus(namespaces)
-	// statesForNamespaces := states
-	// statesForNamespaces.Errors = []string{}
-	// statesForNamespaces.OK = true
-	// statesForNamespaces.CheckDetails = make(map[string]khstatev1.WorkloadDetails)
-	// statesForNamespaces.JobDetails = make(map[string]khstatev1.WorkloadDetails)
-	// if len(namespaces) != 0 {
-	// 	statesForNamespaces = validateCurrentStatusForNamespaces(states.CheckDetails, namespaces, statesForNamespaces, khstatev1.KHCheck)
-	// 	statesForNamespaces = validateCurrentStatusForNamespaces(states.JobDetails, namespaces, statesForNamespaces, khstatev1.KHJob)
-	// }
+	state := health.NewState()
+	if KHController == nil {
+		state.OK = false
+		state.AddError("kuberhealthy controller not initialized")
+		return state
+	}
 
-	// log.Infoln("khState reflector returning current status on", len(statesForNamespaces.CheckDetails), "check khStates and", len(statesForNamespaces.JobDetails), "job khStates")
-	// return statesForNamespaces
+	ctx := context.Background()
+	var checkList kuberhealthycheckv2.KuberhealthyCheckList
+	var opts []client.ListOption
+	if len(namespaces) == 1 {
+		opts = append(opts, client.InNamespace(namespaces[0]))
+	}
+	if err := KHController.Client.List(ctx, &checkList, opts...); err != nil {
+		state.OK = false
+		state.AddError(err.Error())
+		return state
+	}
 
-	return health.State{}
+	for _, c := range checkList.Items {
+		if len(namespaces) > 1 && !containsString(c.Namespace, namespaces) {
+			continue
+		}
+		status := c.Status
+		if status.Namespace == "" {
+			status.Namespace = c.Namespace
+		}
+		state.CheckDetails[c.Name] = status
+		if !status.OK {
+			state.OK = false
+			state.AddError(status.Errors...)
+		}
+	}
+
+	return state
 }
 
 // validateUsingRequestHeader gets the header `kh-run-uuid` value from the request and forms a selector with it to
