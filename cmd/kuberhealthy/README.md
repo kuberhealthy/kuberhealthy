@@ -1,7 +1,8 @@
 # Building Locally
+- If you don't have `just` or `podman` installed, install them. 
+- The `Justfile` from the root of the repository will be found if you run `just` from this directory. Use `just -l` to list all commands.
 
-If you don't have `just` or `podman` installed, install them.
-
+## Just Commands
 - To run tests, use `just test`
 - To build locally, run `just build`
 - The image will build as `kuberhealthy:localdev`
