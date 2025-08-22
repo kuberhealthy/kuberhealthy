@@ -2,11 +2,11 @@
 
 If you don't have `just` or `podman` installed, install them.
 
-- To run tests, use `just build`
+- To run tests, use `just test`
 - To build locally, run `just build`
 - The image will build as `kuberhealthy:localdev`
-- To deploy Kuberhealthy on a Kubernetes cluster, apply the Kubernetes flat file spec to your cluster with `just install`
-- To run your image on the target Kubernetes cluster, use `just deploy`
+- To apply the Kubernetes specs to a cluster, run `just kustomize`
+- To run the image locally, use `just run`
 
 
 # Environment Variables

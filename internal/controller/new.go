@@ -48,7 +48,7 @@ func New(ctx context.Context) (*KuberhealthyCheckReconciler, error) {
 	if !kh.IsStarted() {
 		err := kh.Start(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("controller: error starting kuberhealthy:", err)
+			return nil, fmt.Errorf("controller: error starting kuberhealthy: %w", err)
 		}
 	}
 
