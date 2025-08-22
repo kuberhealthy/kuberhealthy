@@ -1,0 +1,43 @@
+name: Validate Kubernetes Manifests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+      - release/*
+      - actions
+      - v3
+    paths:
+      - 'deploy/**'
+  push:
+    branches:
+      - master
+      - release/*
+      - actions
+      - v3
+    paths:
+      - 'deploy/**'
+
+jobs:
+  kustomize:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Validate kustomize specs
+      uses: stefanprodan/kube-tools@v1
+      with:
+        kubectl: 1.29.2
+        kustomize: 5.4.1
+        command: |
+          set -e
+          echo "Checking kustomizations"
+          find deploy -type f \( -name kustomization.yaml -o -name kustomization.yml \) | while read k; do
+            echo "Validating ${k}"
+            dir=$(dirname "$k")
+            kustomize build "$dir" | kubectl apply --dry-run=client --validate=true -f -
+          done
+          echo "Validating flat manifests"
+          find deploy -maxdepth 1 -type f -name '*.yaml' | while read f; do
+            kubectl apply --dry-run=client --validate=true -f "$f"
+          done

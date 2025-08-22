@@ -1,14 +1,19 @@
 name: End to End Kuberhealthy Test
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - master
+      - release/*
+      - actions # for testing this build spec
+      - v3
   push:
     branches:
-    - master
-    - release/*
-    - actions # for testing this build spec
+      - master
+      - release/*
+      - actions # for testing this build spec
+      - v3
 
 jobs:
   build:
