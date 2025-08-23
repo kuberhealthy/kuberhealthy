@@ -47,6 +47,13 @@ func main() {
 		log.Errorln("startup: failed to setup kuberhealthy controller with error:", err)
 	}
 
+	// start the web status server
+	go func() {
+		if err := StartWebServer(); err != nil {
+			log.Errorln("web server error:", err)
+		}
+	}()
+
 	// we must know when a shutdown signal is trapped or the main context has been canceled
 	interruptChan := make(chan struct{})
 	go listenForInterrupts(ctx, interruptChan)
