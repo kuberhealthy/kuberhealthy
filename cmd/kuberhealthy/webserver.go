@@ -64,68 +64,54 @@ setInterval(refresh,2000); window.onload = refresh;
 </body>
 </html>`
 
-// StartWebServer starts a JSON status web server at the specified listener.
-func StartWebServer() {
-	log.Infoln("Configuring web server")
+// newServeMux configures and returns a mux with all web handlers mounted.
+func newServeMux() *http.ServeMux {
+	mux := http.NewServeMux()
 
-	// Serve metrics for our checks
-	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		err := prometheusMetricsHandler(w, r)
-		if err != nil {
+	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		if err := prometheusMetricsHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
-	// Visit /healthz to run a health check. This is used for all k8s healthchecks
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		err := healthCheckHandler(w, r)
-		if err != nil {
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if err := healthCheckHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
-	// visit /json to see a json representation of all current checks for easy automation
-	http.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
-		err := healthCheckHandler(w, r)
-		if err != nil {
+	mux.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
+		if err := healthCheckHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
-	// Accept status reports coming from external checker pods.
-	http.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
-		err := checkReportHandler(w, r)
-		if err != nil {
+	mux.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
+		if err := checkReportHandler(w, r); err != nil {
 			log.Errorln("checkStatus endpoint error:", err)
 		}
-
 	})
 
-	// Root path serves the HTML status page. POST requests are treated as old style
-	// external check reports for backwards compatibility.
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
-			err := checkReportHandler(w, r)
-			if err != nil {
+			if err := checkReportHandler(w, r); err != nil {
 				log.Errorln("checkStatus endpoint error:", err)
 			}
 			return
 		}
-		err := statusPageHandler(w, r)
-		if err != nil {
+		if err := statusPageHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
-	// start web server and restart it any time it exits
-	for {
-		log.Infoln("Starting web services on port", GlobalConfig.ListenAddress)
-		err := http.ListenAndServe(GlobalConfig.ListenAddress, nil)
-		if err != nil {
-			log.Errorln("Web server ERROR:", err)
-		}
-		time.Sleep(time.Second / 2)
-	}
+	return mux
+}
+
+// StartWebServer starts a JSON status web server at the specified listener.
+func StartWebServer() error {
+	mux := newServeMux()
+	log.Infoln("Starting web services on port", GlobalConfig.ListenAddress)
+	return http.ListenAndServe(GlobalConfig.ListenAddress, mux)
 }
 
 // statusPageHandler serves a basic HTML page that polls the JSON endpoint
