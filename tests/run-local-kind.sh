@@ -5,6 +5,7 @@ CLUSTER_NAME="kuberhealthy-dev"
 IMAGE="docker.io/kuberhealthy/kuberhealthy:localdev"
 TARGET_NAMESPACE="kuberhealthy"
 KH_CHECK_REPORT_HOSTNAME="kuberhealthy.${TARGET_NAMESPACE}.svc.cluster.local"
+export KIND_EXPERIMENTAL_PROVIDER=podman
 
 # Ensure kind is installed
 if ! command -v kind &>/dev/null; then
@@ -20,9 +21,9 @@ if ! command -v kustomize &>/dev/null; then
 fi
 echo "kustomize found in PATH"
 
-echo "📦 Building Docker image: $IMAGE"
+echo "📦 Building Podman image: $IMAGE"
 # this is meant to be run with `just kind` from the root of the repo
-docker build -f cmd/kuberhealthy/Containerfile -t "$IMAGE" .
+podman build -f cmd/kuberhealthy/Podfile -t "$IMAGE" .
 
 # Delete existing cluster
 if kind get clusters | grep -q "$CLUSTER_NAME"; then
@@ -34,7 +35,9 @@ echo "🚀 Creating kind cluster: $CLUSTER_NAME"
 kind create cluster --name "$CLUSTER_NAME" --image kindest/node:v1.29.0
 
 echo "📤 Loading image into kind"
-kind load docker-image "$IMAGE" --name "$CLUSTER_NAME"
+podman save "$IMAGE" -o /tmp/kuberhealthy-image.tar
+kind load image-archive /tmp/kuberhealthy-image.tar --name "$CLUSTER_NAME"
+rm /tmp/kuberhealthy-image.tar
 
 echo "📤 Deploying Kuberhealthy to namespace: $TARGET_NAMESPACE"
 kubectl delete namespace "$TARGET_NAMESPACE" --ignore-not-found=true
