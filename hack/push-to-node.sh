@@ -67,11 +67,11 @@ set -euo pipefail
 [ "${DEBUG:-}" = "1" ] && set -x
 IMAGE="${IMAGE:-docker.io/kuberhealthy/kuberhealthy:localdev}"
 BUILD_DIR="${BUILD_DIR:-/tmp/kuberhealthy-build}"
-CONTAINERFILE="${CONTAINERFILE:-$BUILD_DIR/cmd/kuberhealthy/Containerfile}"
+PODFILE="${PODFILE:-$BUILD_DIR/cmd/kuberhealthy/Podfile}"
 
 echo "IMAGE: $IMAGE"
 echo "BUILD_DIR: $BUILD_DIR"
-echo "CONTAINERFILE: $CONTAINERFILE"
+echo "PODFILE: $PODFILE"
 
 CTR_BIN="$(command -v ctr || true)"
 if [ -z "$CTR_BIN" ]; then
@@ -88,30 +88,30 @@ success=0
 
 if command -v nerdctl >/dev/null 2>&1; then
   echo "Trying nerdctl to build directly into containerd (k8s.io)"
-  if nerdctl --namespace k8s.io build -t "$IMAGE" -f "$CONTAINERFILE" "$BUILD_DIR"; then
+  if nerdctl --namespace k8s.io build -t "$IMAGE" -f "$PODFILE" "$BUILD_DIR"; then
     success=1
   else
     echo "nerdctl build failed; will try docker/podman" >&2
   fi
 fi
 
-if [ "$success" -eq 0 ] && command -v docker >/dev/null 2>&1; then
-  echo "Trying docker to build, then import into containerd"
-  if docker build -t "$IMAGE" -f "$CONTAINERFILE" "$BUILD_DIR" && \
-     docker save "$IMAGE" | "$CTR_BIN" -n k8s.io images import -; then
-    success=1
-  else
-    echo "docker path failed; will try podman if present" >&2
-  fi
-fi
-
 if [ "$success" -eq 0 ] && command -v podman >/dev/null 2>&1; then
   echo "Trying podman to build, then import into containerd"
-  if podman build -t "$IMAGE" -f "$CONTAINERFILE" "$BUILD_DIR" && \
+  if podman build -t "$IMAGE" -f "$PODFILE" "$BUILD_DIR" && \
      podman image save --format oci-archive "$IMAGE" | "$CTR_BIN" -n k8s.io images import -; then
     success=1
   else
-    echo "podman path failed" >&2
+    echo "podman path failed; will try docker if present" >&2
+  fi
+fi
+
+if [ "$success" -eq 0 ] && command -v docker >/dev/null 2>&1; then
+  echo "Trying docker to build, then import into containerd"
+  if docker build -t "$IMAGE" -f "$PODFILE" "$BUILD_DIR" && \
+     docker save "$IMAGE" | "$CTR_BIN" -n k8s.io images import -; then
+    success=1
+  else
+    echo "docker path failed" >&2
   fi
 fi
 
@@ -122,7 +122,7 @@ fi
 REMOTE_SCRIPT_EOF'
 
 bold "Running remote root build script"
-ssh -tt "$REMOTE" sudo env DEBUG="${DEBUG:-}" IMAGE="$IMAGE" BUILD_DIR="$REMOTE_BUILD_DIR" CONTAINERFILE="$REMOTE_BUILD_DIR/cmd/kuberhealthy/Containerfile" bash "$REMOTE_SCRIPT"
+ssh -tt "$REMOTE" sudo env DEBUG="${DEBUG:-}" IMAGE="$IMAGE" BUILD_DIR="$REMOTE_BUILD_DIR" PODFILE="$REMOTE_BUILD_DIR/cmd/kuberhealthy/Podfile" bash "$REMOTE_SCRIPT"
 
 bold "Ensuring namespace '${NAMESPACE}' exists"
 kubectl get ns "$NAMESPACE" >/dev/null 2>&1 || kubectl create ns "$NAMESPACE"
