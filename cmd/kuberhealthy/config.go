@@ -19,6 +19,7 @@ type Config struct {
 	MaxCheckPodAge                time.Duration
 	MaxCompletedPodCount          int
 	MaxErrorPodCount              int
+	ErrorPodRetentionDays         int
 	PromMetricsConfig             metrics.PromMetricsConfig
 	TargetNamespace               string
 	DefaultRunInterval            time.Duration
@@ -28,18 +29,32 @@ type Config struct {
 	DebugMode                     bool
 	DefaultNamespace              string
 	Namespace                     string // the namespace kh is running in
+	ServiceName                   string // kuberhealthy service name
 }
 
 // New creates a Config populated with sane defaults.
 func New() *Config {
+	ns := os.Getenv("POD_NAMESPACE")
+	if ns == "" {
+		ns = GetMyNamespace("kuberhealthy")
+	}
+
+	svc := os.Getenv("KH_SERVICE_NAME")
+	if svc == "" {
+		svc = "kuberhealthy"
+	}
+
 	return &Config{
 		ListenAddress:                 ":8080",
 		LogLevel:                      "info",
-		checkReportURL:                "kuberhealthy.kuberhealthy.svc.cluster.local",
+		checkReportURL:                fmt.Sprintf("%s.%s.svc.cluster.local", svc, ns),
 		DefaultRunInterval:            time.Minute * 10,
 		TerminationGracePeriodSeconds: time.Minute * 5,
 		DefaultCheckTimeout:           time.Minute * 5,
-		Namespace:                     GetMyNamespace("kuberhealthy"),
+		Namespace:                     ns,
+		ServiceName:                   svc,
+		MaxErrorPodCount:              5,
+		ErrorPodRetentionDays:         4,
 	}
 }
 
@@ -85,6 +100,14 @@ func (c *Config) LoadFromEnv() error {
 		c.MaxErrorPodCount = i
 	}
 
+	if v := os.Getenv("KH_ERROR_POD_RETENTION_DAYS"); v != "" {
+		i, err := strconv.Atoi(v)
+		if err != nil || i < 0 {
+			return fmt.Errorf("invalid KH_ERROR_POD_RETENTION_DAYS: %v", err)
+		}
+		c.ErrorPodRetentionDays = i
+	}
+
 	if v := os.Getenv("KH_PROM_SUPPRESS_ERROR_LABEL"); v != "" {
 		b, err := strconv.ParseBool(v)
 		if err != nil {
@@ -105,6 +128,14 @@ func (c *Config) LoadFromEnv() error {
 		c.TargetNamespace = v
 	}
 
+	if v := os.Getenv("POD_NAMESPACE"); v != "" {
+		c.Namespace = v
+	}
+
+	if v := os.Getenv("KH_SERVICE_NAME"); v != "" {
+		c.ServiceName = v
+	}
+
 	if v := os.Getenv("KH_DEFAULT_RUN_INTERVAL"); v != "" {
 		d, err := time.ParseDuration(v)
 		if err != nil {
@@ -116,6 +147,7 @@ func (c *Config) LoadFromEnv() error {
 	if v := os.Getenv("KH_CHECK_REPORT_HOSTNAME"); v != "" {
 		c.checkReportURL = v
 	} else {
+		c.checkReportURL = fmt.Sprintf("%s.%s.svc.cluster.local", c.ServiceName, c.Namespace)
 		log.Infoln("KH_CHECK_REPORT_HOSTNAME environment variable not set. Using", c.checkReportURL)
 	}
 

@@ -18,7 +18,8 @@ import (
 // Kuberhealthy handles background processing for checks
 type Kuberhealthy struct {
 	Context     context.Context
-	Running     bool          // indicates that Start() has been called and this instance is running
+	cancel      context.CancelFunc
+	running     bool          // indicates that Start() has been called and this instance is running
 	CheckClient client.Client // Kubernetes client for check CRUD
 }
 
@@ -50,8 +51,24 @@ func (kh *Kuberhealthy) Start(ctx context.Context) error {
 		return fmt.Errorf("error: kuberhealthy main controller was started but it did not have a check client set. Use SetClient to set.")
 	}
 
+	kh.Context, kh.cancel = context.WithCancel(ctx)
+	kh.running = true
+
+	go kh.runReaper(kh.Context, time.Minute)
+
 	log.Println("Kuberhealthy start")
 	return nil
+}
+
+// Stop halts background processing for this Kuberhealthy instance.
+func (kh *Kuberhealthy) Stop() {
+	if !kh.running {
+		return
+	}
+	if kh.cancel != nil {
+		kh.cancel()
+	}
+	kh.running = false
 }
 
 // StartCheck begins tracking and managing a khcheck. This occurs when a khcheck is added.
@@ -197,7 +214,7 @@ func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khcrdsv2.KuberhealthyCheck, newK
 
 // IsStarted returns if this instance is running or not
 func (kh *Kuberhealthy) IsStarted() bool {
-	return kh.Running
+	return kh.running
 }
 
 // getCheck fetches a check based on its name and namespace

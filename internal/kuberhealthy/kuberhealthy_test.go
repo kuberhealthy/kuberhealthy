@@ -60,9 +60,9 @@ func TestCheckPodSpec(t *testing.T) {
 }
 
 func TestIsStarted(t *testing.T) {
-	kh := &Kuberhealthy{Running: true}
+	kh := &Kuberhealthy{running: true}
 	require.True(t, kh.IsStarted())
-	kh.Running = false
+	kh.running = false
 	require.False(t, kh.IsStarted())
 }
 

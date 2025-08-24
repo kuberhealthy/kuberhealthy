@@ -12,6 +12,7 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("KH_MAX_CHECK_POD_AGE", "15m")
 	t.Setenv("KH_MAX_COMPLETED_POD_COUNT", "5")
 	t.Setenv("KH_MAX_ERROR_POD_COUNT", "2")
+	t.Setenv("KH_ERROR_POD_RETENTION_DAYS", "3")
 	t.Setenv("KH_PROM_SUPPRESS_ERROR_LABEL", "true")
 	t.Setenv("KH_PROM_ERROR_LABEL_MAX_LENGTH", "20")
 	t.Setenv("KH_TARGET_NAMESPACE", "testing")
@@ -21,6 +22,8 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("KH_DEFAULT_CHECK_TIMEOUT", "1m")
 	t.Setenv("KH_DEBUG_MODE", "true")
 	t.Setenv("KH_DEFAULT_NAMESPACE", "fallback")
+	t.Setenv("POD_NAMESPACE", "podns")
+	t.Setenv("KH_SERVICE_NAME", "svcname")
 
 	cfg := New()
 	if err := cfg.LoadFromEnv(); err != nil {
@@ -45,6 +48,9 @@ func TestLoadFromEnv(t *testing.T) {
 	if cfg.MaxErrorPodCount != 2 {
 		t.Errorf("MaxErrorPodCount parsed incorrectly: %d", cfg.MaxErrorPodCount)
 	}
+	if cfg.ErrorPodRetentionDays != 3 {
+		t.Errorf("ErrorPodRetentionDays parsed incorrectly: %d", cfg.ErrorPodRetentionDays)
+	}
 	if !cfg.PromMetricsConfig.SuppressErrorLabel {
 		t.Errorf("PromMetricsConfig.SuppressErrorLabel parsed incorrectly")
 	}
@@ -59,6 +65,12 @@ func TestLoadFromEnv(t *testing.T) {
 	}
 	if cfg.ReportingURL() != "http://example.com/check" {
 		t.Errorf("ReportingURL parsed incorrectly: %s", cfg.ReportingURL())
+	}
+	if cfg.Namespace != "podns" {
+		t.Errorf("Namespace parsed incorrectly: %s", cfg.Namespace)
+	}
+	if cfg.ServiceName != "svcname" {
+		t.Errorf("ServiceName parsed incorrectly: %s", cfg.ServiceName)
 	}
 	if cfg.TerminationGracePeriodSeconds != 30*time.Second {
 		t.Errorf("TerminationGracePeriodSeconds parsed incorrectly: %v", cfg.TerminationGracePeriodSeconds)
@@ -79,5 +91,20 @@ func TestLoadFromEnvInvalid(t *testing.T) {
 	cfg := New()
 	if err := cfg.LoadFromEnv(); err == nil {
 		t.Fatalf("expected error for invalid duration")
+	}
+}
+
+func TestReportingURLFromServiceAndNamespace(t *testing.T) {
+	t.Setenv("POD_NAMESPACE", "ns1")
+	t.Setenv("KH_SERVICE_NAME", "svc1")
+
+	cfg := New()
+	if err := cfg.LoadFromEnv(); err != nil {
+		t.Fatalf("LoadFromEnv returned error: %v", err)
+	}
+
+	expected := "http://svc1.ns1.svc.cluster.local/check"
+	if cfg.ReportingURL() != expected {
+		t.Errorf("ReportingURL parsed incorrectly: %s", cfg.ReportingURL())
 	}
 }
