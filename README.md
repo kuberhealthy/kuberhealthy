@@ -136,7 +136,7 @@ func main() {
 
 ```
 
-You can read more about [how checks are configured](docs/CHECKS.md) and [learn how to create your own check container](docs/CHECK_CREATION.md). Checks can be written in any language and helpful clients for checks not written in Go can be found in the [clients directory](/clients).
+You can read more about [how checks are configured](docs/CHECKS.md) and [learn how to create your own check container](docs/CHECK_CREATION.md). Checks can be written in any language.
 
 ### Status Page
 
