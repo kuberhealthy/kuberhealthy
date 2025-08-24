@@ -29,7 +29,7 @@ const (
 type Kuberhealthy struct {
 	Context     context.Context
 	cancel      context.CancelFunc
-	Running     bool          // indicates that Start() has been called and this instance is running
+	running     bool          // indicates that Start() has been called and this instance is running
 	CheckClient client.Client // Kubernetes client for check CRUD
 
 	loopMu      sync.Mutex
@@ -65,8 +65,10 @@ func (kh *Kuberhealthy) Start(ctx context.Context) error {
 	}
 
 	kh.Context, kh.cancel = context.WithCancel(ctx)
-	kh.Running = true
+	kh.running = true
 	go kh.startScheduleLoop()
+	go kh.runReaper(kh.Context, time.Minute)
+
 
 	log.Println("Kuberhealthy start")
 	return nil
@@ -80,7 +82,7 @@ func (kh *Kuberhealthy) Stop() {
 	if kh.cancel != nil {
 		kh.cancel()
 	}
-	kh.Running = false
+	kh.running = false
 }
 
 // setLoopRunning sets the loopRunning flag in a threadsafe manner. When setting
@@ -301,7 +303,7 @@ func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khcrdsv2.KuberhealthyCheck, newK
 
 // IsStarted returns if this instance is running or not
 func (kh *Kuberhealthy) IsStarted() bool {
-	return kh.Running
+	return kh.running
 }
 
 // getCheck fetches a check based on its name and namespace

@@ -12,19 +12,21 @@
 
 # Environment Variables
 ```
-KH_LISTEN_ADDRESS=":8080"
-KH_LOG_LEVEL="info"
-KH_MAX_JOB_AGE=""
-KH_MAX_CHECK_POD_AGE=""
-KH_MAX_COMPLETED_POD_COUNT="0"
-KH_MAX_ERROR_POD_COUNT="0"
-KH_PROM_SUPPRESS_ERROR_LABEL="false"
-KH_PROM_ERROR_LABEL_MAX_LENGTH="0"
-KH_TARGET_NAMESPACE="kuberhealthy"
-KH_DEFAULT_RUN_INTERVAL="10m"
-KH_CHECK_REPORT_HOSTNAME="kuberhealthy.kuberhealthy.svc.cluster.local"
-KH_TERMINATION_GRACE_PERIOD="5m"
-KH_DEFAULT_CHECK_TIMEOUT="5m"
-KH_DEBUG_MODE="false"
-KH_DEFAULT_NAMESPACE="kuberhealthy"
+KH_LISTEN_ADDRESS=":8080" # web server listen address
+KH_LOG_LEVEL="info" # log verbosity
+KH_MAX_JOB_AGE="" # max age for check jobs
+KH_MAX_CHECK_POD_AGE="" # max age for check pods
+KH_MAX_COMPLETED_POD_COUNT="0" # completed pods to retain
+KH_MAX_ERROR_POD_COUNT="5" # errored pods to retain for debugging
+KH_ERROR_POD_RETENTION_DAYS="4" # days to keep failed pods
+KH_PROM_SUPPRESS_ERROR_LABEL="false" # omit error label in metrics
+KH_PROM_ERROR_LABEL_MAX_LENGTH="0" # max length for error label
+KH_TARGET_NAMESPACE="kuberhealthy" # namespace to watch for checks
+POD_NAMESPACE="kuberhealthy" # namespace Kuberhealthy runs in
+KH_SERVICE_NAME="kuberhealthy" # service name used for reports
+KH_DEFAULT_RUN_INTERVAL="10m" # default check run interval
+KH_TERMINATION_GRACE_PERIOD="5m" # shutdown grace period
+KH_DEFAULT_CHECK_TIMEOUT="5m" # default check timeout
+KH_DEBUG_MODE="false" # enable debug mode
+KH_DEFAULT_NAMESPACE="kuberhealthy" # fallback namespace
 ```
