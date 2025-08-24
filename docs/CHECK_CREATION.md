@@ -24,17 +24,11 @@ func main() {
   checkclient.ReportSuccess()
 }
 
-```
+```go
 
-An example check with working Dockerfile is available to use as an example [here](https://github.com/kuberhealthy/kuberhealthy/blob/master/cmd/test-check/main.go).
+An example check with a working Podfile is available to use as an example [here](https://github.com/kuberhealthy/kuberhealthy/blob/master/cmd/test-check/main.go). Kuberhealthy uses a `Podfile` for container builds.
 
 ### Using JavaScript
-
-#### Reference Sample:
-
-If you would like to write a check in JavaScript, there is a sample client for checks found [here](https://github.com/kuberhealthy/kuberhealthy/tree/master/clients/js/).
-
-Please see the [example check](https://github.com/kuberhealthy/kuberhealthy/tree/master/clients/js/example) under the same folder with a Dockerfile for reference.
 
 #### NPM:
 
@@ -83,8 +77,6 @@ Your check only needs to do a few things:
 > Never send `"OK": true` if `Errors` has values or you will be given a `400` return code.
 
 Simply build your program into a container, `docker push` it to somewhere your cluster has access and craft a `khcheck` resource to enable it in your cluster where Kuberhealthy is installed.
-
-Clients outside of Go can be found in the [clients directory](https://github.com/kuberhealthy/kuberhealthy/tree/master/clients).
 
 #### Injected Check Pod Environment Variables
 The following environment variables are injected into every checker pod that Kuberhealthy runs.  When writing your checker code, you can depend on these environment variables always being available to you, even if you do not specify them in your `khcheck` spec.
