@@ -19,6 +19,9 @@ import (
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -264,7 +267,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	// fetch the current status from our khstate resources
+	// fetch the current status from our khcheck resources
 	state := getCurrentState(namespaces)
 
 	// write summarized health check results back to caller
@@ -352,7 +355,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// checkDetails := stateReflector.CurrentStatus().CheckDetails
 	// checkRunDuration = checkDetails[podReport.Namespace+"/"+podReport.Name].RunDuration
 
-	// create a details object from our incoming status report before storing it as a khstate custom resource
+	// create a details object from our incoming status report before storing it on the khcheck status field
 	details := &kuberhealthycheckv2.KuberhealthyCheckStatus{}
 	details.Errors = state.Errors
 	details.OK = state.OK
@@ -551,47 +554,90 @@ func fetchPodBySelector(ctx context.Context, selector string) (v1.Pod, error) {
 	return v1.Pod{}, nil
 }
 
-// storeCheckState stores the check state in its cluster CRD
+// storeCheckState stores the check status on its cluster CRD
 func storeCheckState(checkName string, checkNamespace string, khcheck *kuberhealthycheckv2.KuberhealthyCheckStatus) error {
-
-	// ensure the CRD resource exits
-	// err := ensureStateResourceExists(checkName, checkNamespace, details.GetKHWorkload())
-	// if err != nil {
-	// 	return err
-	// }
+	// ensure the CRD resource exists
+	if err := ensureCheckResourceExists(checkName, checkNamespace); err != nil {
+		return err
+	}
 
 	// put the status on the CRD from the check
-	// err := setCheckStateResource(checkName, checkNamespace, details)
+	err := setCheckStatus(checkName, checkNamespace, khcheck)
 
 	//TODO: Make this retry of updating custom resources repeatable
 	//
 	// We commonly see a race here with the following type of error:
-	// "Error storing CRD state for check: pod-restarts in namespace kuberhealthy Operation cannot be fulfilled on khstates.comcast.github.io \"pod-restarts\": the object
+	// "Error storing CRD state for check: pod-restarts in namespace kuberhealthy Operation cannot be fulfilled on kuberhealthychecks, comcast.github.io \"pod-restarts\": the object
 	// has been modified; please apply your changes to the latest version and try again"
 	//
 	// If we see this error, we fetch the updated object, re-apply our changes, and try again
 	delay := time.Duration(time.Second * 1)
 	maxTries := 7
 	tries := 0
-	var err error
-	for strings.Contains(err.Error(), "the object has been modified") {
-
-		// if too many retires have occurred, we fail up the stack further
+	for err != nil && strings.Contains(err.Error(), "the object has been modified") {
+		// if too many retries have occurred, we fail up the stack further
 		if tries > maxTries {
-			return fmt.Errorf("failed to update khstate for check %s in namespace %s after %d with error %w", checkName, checkNamespace, maxTries, err)
+			return fmt.Errorf("failed to update khcheck status for check %s in namespace %s after %d with error %w", checkName, checkNamespace, maxTries, err)
 		}
-		log.Infoln("Failed to update khstate for check because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
+		log.Infoln("Failed to update khcheck status because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
 
 		// sleep and double the delay between checks (exponential backoff)
 		time.Sleep(delay)
 		delay = delay + delay
 
 		// try setting the check state again
-		// err = setCheckStateResource(checkName, checkNamespace, details)
+		err = setCheckStatus(checkName, checkNamespace, khcheck)
 
 		// count how many times we've retried
 		tries++
 	}
 
 	return err
+}
+
+// ensureCheckResourceExists ensures that the khcheck resource exists so that status can be updated
+func ensureCheckResourceExists(checkName string, checkNamespace string) error {
+	if KHController == nil {
+		return fmt.Errorf("kuberhealthy controller not initialized")
+	}
+
+	ctx := context.Background()
+	nn := types.NamespacedName{Name: checkName, Namespace: checkNamespace}
+	khCheck := &kuberhealthycheckv2.KuberhealthyCheck{}
+	if err := KHController.Client.Get(ctx, nn, khCheck); err != nil {
+		if apierrors.IsNotFound(err) {
+			khCheck.ObjectMeta = metav1.ObjectMeta{Name: checkName, Namespace: checkNamespace}
+			if err := KHController.Client.Create(ctx, khCheck); err != nil {
+				return fmt.Errorf("failed to create khcheck %s/%s: %w", checkNamespace, checkName, err)
+			}
+			return nil
+		}
+		return fmt.Errorf("failed to get khcheck %s/%s: %w", checkNamespace, checkName, err)
+	}
+	return nil
+}
+
+// setCheckStatus sets the status on the khcheck custom resource
+func setCheckStatus(checkName string, checkNamespace string, khcheck *kuberhealthycheckv2.KuberhealthyCheckStatus) error {
+	if KHController == nil {
+		return fmt.Errorf("kuberhealthy controller not initialized")
+	}
+
+	ctx := context.Background()
+	nn := types.NamespacedName{Name: checkName, Namespace: checkNamespace}
+	khCheck := &kuberhealthycheckv2.KuberhealthyCheck{}
+	if err := KHController.Client.Get(ctx, nn, khCheck); err != nil {
+		return fmt.Errorf("failed to get khcheck: %w", err)
+	}
+
+	khCheck.Status = *khcheck
+	if khCheck.Status.Namespace == "" {
+		khCheck.Status.Namespace = checkNamespace
+	}
+
+	if err := KHController.Client.Status().Update(ctx, khCheck); err != nil {
+		return fmt.Errorf("failed to update khcheck status: %w", err)
+	}
+
+	return nil
 }
