@@ -15,6 +15,7 @@ import (
 )
 
 func TestCheckPodSpec(t *testing.T) {
+	t.Parallel()
 	kh := New(context.Background(), nil)
 
 	check := &khcrdsv2.KuberhealthyCheck{
@@ -60,6 +61,7 @@ func TestCheckPodSpec(t *testing.T) {
 }
 
 func TestIsStarted(t *testing.T) {
+	t.Parallel()
 	kh := &Kuberhealthy{Running: true}
 	require.True(t, kh.IsStarted())
 	kh.Running = false
@@ -67,6 +69,7 @@ func TestIsStarted(t *testing.T) {
 }
 
 func TestSetAndGetCheckPodName(t *testing.T) {
+	t.Parallel()
 	scheme := runtime.NewScheme()
 	require.NoError(t, khcrdsv2.AddToScheme(scheme))
 
@@ -91,6 +94,7 @@ func TestSetAndGetCheckPodName(t *testing.T) {
 }
 
 func TestSetFreshUUID(t *testing.T) {
+	t.Parallel()
 	scheme := runtime.NewScheme()
 	require.NoError(t, khcrdsv2.AddToScheme(scheme))
 

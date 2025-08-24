@@ -3,6 +3,7 @@ package health
 import "testing"
 
 func TestNewReportDefaultsOK(t *testing.T) {
+	t.Parallel()
 	r := NewReport(nil)
 	if !r.OK {
 		t.Errorf("expected OK true when errors slice is nil")
@@ -15,6 +16,7 @@ func TestNewReportDefaultsOK(t *testing.T) {
 }
 
 func TestNewReportWithErrors(t *testing.T) {
+	t.Parallel()
 	errs := []string{"err1"}
 	r := NewReport(errs)
 	if r.OK {

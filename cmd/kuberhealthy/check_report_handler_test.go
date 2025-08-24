@@ -18,6 +18,7 @@ func TestCheckReportHandler(t *testing.T) {
 	origValidateHeader := validateUsingRequestHeaderFunc
 	origValidateIP := validatePodReportBySourceIPFunc
 	origStore := storeCheckStateFunc
+	t.Parallel()
 	defer func() {
 		validateUsingRequestHeaderFunc = origValidateHeader
 		validatePodReportBySourceIPFunc = origValidateIP

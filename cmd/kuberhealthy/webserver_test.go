@@ -7,6 +7,7 @@ import (
 )
 
 func TestWebServerHandlers(t *testing.T) {
+	t.Parallel()
 	mux := newServeMux()
 	ts := httptest.NewServer(mux)
 	defer ts.Close()

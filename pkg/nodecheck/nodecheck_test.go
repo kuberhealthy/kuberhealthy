@@ -14,6 +14,7 @@ func init() {
 }
 
 func TestWaitForKuberhealthyEndpointReady(t *testing.T) {
+	t.Parallel()
 	khEndpoint := "http://127.0.0.1:65535/"
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err := <-waitForKuberhealthyEndpointReady(ctx, khEndpoint)

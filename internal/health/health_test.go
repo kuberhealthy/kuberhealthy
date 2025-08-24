@@ -9,6 +9,7 @@ import (
 )
 
 func TestAddError(t *testing.T) {
+	t.Parallel()
 	s := NewState()
 	s.AddError("", "error1", "", "error2")
 	if len(s.Errors) != 2 {
@@ -20,6 +21,7 @@ func TestAddError(t *testing.T) {
 }
 
 func TestWriteHTTPStatusResponse(t *testing.T) {
+	t.Parallel()
 	s := State{
 		OK:     true,
 		Errors: []string{"e1"},
@@ -45,6 +47,7 @@ func TestWriteHTTPStatusResponse(t *testing.T) {
 }
 
 func TestNewState(t *testing.T) {
+	t.Parallel()
 	s := NewState()
 	if !s.OK {
 		t.Errorf("expected OK true, got false")

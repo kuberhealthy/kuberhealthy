@@ -14,6 +14,14 @@ import (
 )
 
 func TestPrometheusMetricsEndpoint(t *testing.T) {
+	t.Parallel()
+	origController := KHController
+	origConfig := GlobalConfig
+	t.Cleanup(func() {
+		KHController = origController
+		GlobalConfig = origConfig
+	})
+
 	s := runtime.NewScheme()
 	if err := kuberhealthycheckv2.AddToScheme(s); err != nil {
 		t.Fatalf("failed to add scheme: %v", err)
