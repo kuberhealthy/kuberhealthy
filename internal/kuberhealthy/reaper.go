@@ -16,10 +16,6 @@ import (
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// defaultRunInterval is the interval used when a check does not specify one.
-// This mirrors the default run interval used elsewhere in Kuberhealthy.
-const defaultRunInterval = time.Minute * 10
-
 // defaultRunTimeout is the amount of time a pod is allowed to run before the
 // reaper considers it timed out.
 const defaultRunTimeout = time.Minute * 5
