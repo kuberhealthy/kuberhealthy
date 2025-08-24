@@ -48,6 +48,7 @@ func TestCheckReportHandler(t *testing.T) {
 			t.Fatalf("failed to marshal report: %v", err)
 		}
 		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 
 		if err := checkReportHandler(rr, req); err != nil {
@@ -84,6 +85,7 @@ func TestCheckReportHandler(t *testing.T) {
 			t.Fatalf("failed to marshal report: %v", err)
 		}
 		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 
 		if err := checkReportHandler(rr, req); err != nil {
@@ -94,6 +96,49 @@ func TestCheckReportHandler(t *testing.T) {
 		}
 		if storeCalled {
 			t.Fatalf("storeCheckState should not be called on invalid report")
+		}
+	})
+
+	t.Run("reject non-POST method", func(t *testing.T) {
+		validateUsingRequestHeaderFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
+			t.Fatalf("unexpected call to validateUsingRequestHeaderFunc")
+			return PodReportInfo{}, false, nil
+		}
+		validatePodReportBySourceIPFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, error) {
+			t.Fatalf("unexpected call to validatePodReportBySourceIPFunc")
+			return PodReportInfo{}, nil
+		}
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rr := httptest.NewRecorder()
+
+		if err := checkReportHandler(rr, req); err != nil {
+			t.Fatalf("handler returned error: %v", err)
+		}
+		if rr.Code != http.StatusMethodNotAllowed {
+			t.Fatalf("expected status %d, got %d", http.StatusMethodNotAllowed, rr.Code)
+		}
+	})
+
+	t.Run("reject non-JSON content", func(t *testing.T) {
+		validateUsingRequestHeaderFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
+			t.Fatalf("unexpected call to validateUsingRequestHeaderFunc")
+			return PodReportInfo{}, false, nil
+		}
+		validatePodReportBySourceIPFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, error) {
+			t.Fatalf("unexpected call to validatePodReportBySourceIPFunc")
+			return PodReportInfo{}, nil
+		}
+
+		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte("notjson")))
+		req.Header.Set("Content-Type", "text/plain")
+		rr := httptest.NewRecorder()
+
+		if err := checkReportHandler(rr, req); err != nil {
+			t.Fatalf("handler returned error: %v", err)
+		}
+		if rr.Code != http.StatusUnsupportedMediaType {
+			t.Fatalf("expected status %d, got %d", http.StatusUnsupportedMediaType, rr.Code)
 		}
 	})
 }

@@ -282,6 +282,15 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) error {
 // causes a check of the calling pod's spec via the API to ensure that the calling pod is expected
 // to be reporting its status.
 func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return nil
+	}
+	if ct := r.Header.Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
+		w.WriteHeader(http.StatusUnsupportedMediaType)
+		return nil
+	}
+
 	// make a request ID for tracking this request
 	requestID := "web: " + uuid.New().String()
 
