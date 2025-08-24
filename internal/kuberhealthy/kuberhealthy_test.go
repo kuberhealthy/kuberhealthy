@@ -4,11 +4,13 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -111,4 +113,124 @@ func TestSetFreshUUID(t *testing.T) {
 	fetched, err := kh.getCheck(nn)
 	require.NoError(t, err)
 	require.NotEmpty(t, fetched.Status.CurrentUUID)
+}
+
+func TestScheduleStartsCheck(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	check := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "kuberhealthy.github.io/v2",
+		"kind":       "KuberhealthyCheck",
+		"metadata": map[string]interface{}{
+			"name":            "sched-check",
+			"namespace":       "default",
+			"resourceVersion": "1",
+		},
+		"spec": map[string]interface{}{
+			"runInterval": "1s",
+			"podSpec": map[string]interface{}{
+				"spec": map[string]interface{}{
+					"containers": []interface{}{
+						map[string]interface{}{"name": "test", "image": "busybox"},
+					},
+				},
+			},
+		},
+	}}
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	kh := New(context.Background(), cl)
+
+	kh.scheduleChecks()
+
+	fetched := &khcrdsv2.KuberhealthyCheck{}
+	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "sched-check", Namespace: "default"}, fetched))
+	require.NotEmpty(t, fetched.Status.CurrentUUID)
+	require.NotZero(t, fetched.Status.LastRunUnix)
+}
+
+func TestScheduleSkipsWhenNotDue(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	last := time.Now().Unix()
+	check := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "kuberhealthy.github.io/v2",
+		"kind":       "KuberhealthyCheck",
+		"metadata": map[string]interface{}{
+			"name":            "skip-check",
+			"namespace":       "default",
+			"resourceVersion": "1",
+		},
+		"spec": map[string]interface{}{
+			"runInterval": "1h",
+			"podSpec": map[string]interface{}{
+				"spec": map[string]interface{}{
+					"containers": []interface{}{
+						map[string]interface{}{"name": "test", "image": "busybox"},
+					},
+				},
+			},
+		},
+		"status": map[string]interface{}{
+			"lastRunUnix": last,
+		},
+	}}
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	kh := New(context.Background(), cl)
+
+	kh.scheduleChecks()
+
+	fetched := &khcrdsv2.KuberhealthyCheck{}
+	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "skip-check", Namespace: "default"}, fetched))
+	require.Empty(t, fetched.Status.CurrentUUID)
+	require.Equal(t, last, fetched.Status.LastRunUnix)
+}
+
+func TestScheduleLoopStopsOnStop(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	kh := New(context.Background(), cl)
+	require.NoError(t, kh.Start(context.Background()))
+	// ensure loop has started
+	time.Sleep(50 * time.Millisecond)
+
+	kh.Stop()
+	// give loop time to exit
+	time.Sleep(50 * time.Millisecond)
+
+	kh.loopMu.Lock()
+	running := kh.loopRunning
+	kh.loopMu.Unlock()
+	require.False(t, running)
+}
+
+func TestScheduleLoopOnlyRunsOnce(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	kh := New(context.Background(), cl)
+	require.NoError(t, kh.Start(context.Background()))
+	time.Sleep(50 * time.Millisecond)
+
+	done := make(chan struct{})
+	go func() {
+		kh.startScheduleLoop()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// second invocation exited immediately
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("second schedule loop did not exit")
+	}
+	kh.Stop()
 }
