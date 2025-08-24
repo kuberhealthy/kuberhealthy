@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,8 +12,17 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	// defaultRunInterval is used when a check does not specify a runInterval or it fails to parse.
+	defaultRunInterval = time.Minute * 10
+	// scheduleLoopInterval controls how often Kuberhealthy scans for checks to run.
+	scheduleLoopInterval = 30 * time.Second
 )
 
 // Kuberhealthy handles background processing for checks
@@ -21,6 +31,9 @@ type Kuberhealthy struct {
 	cancel      context.CancelFunc
 	running     bool          // indicates that Start() has been called and this instance is running
 	CheckClient client.Client // Kubernetes client for check CRUD
+
+	loopMu      sync.Mutex
+	loopRunning bool
 }
 
 // New creates a new Kuberhealthy instance
@@ -53,22 +66,98 @@ func (kh *Kuberhealthy) Start(ctx context.Context) error {
 
 	kh.Context, kh.cancel = context.WithCancel(ctx)
 	kh.running = true
-
+	go kh.startScheduleLoop()
 	go kh.runReaper(kh.Context, time.Minute)
+
 
 	log.Println("Kuberhealthy start")
 	return nil
 }
 
-// Stop halts background processing for this Kuberhealthy instance.
+// Stop halts background scheduling and marks the instance as no longer running.
 func (kh *Kuberhealthy) Stop() {
-	if !kh.running {
+	if !kh.IsStarted() {
 		return
 	}
 	if kh.cancel != nil {
 		kh.cancel()
 	}
 	kh.running = false
+}
+
+// setLoopRunning sets the loopRunning flag in a threadsafe manner. When setting
+// to true, it returns false if the loop was already running to prevent
+// duplicates. When setting to false, it always returns true.
+func (kh *Kuberhealthy) setLoopRunning(running bool) bool {
+	kh.loopMu.Lock()
+	defer kh.loopMu.Unlock()
+	if running && kh.loopRunning {
+		return false
+	}
+	kh.loopRunning = running
+	return true
+}
+
+// startScheduleLoop periodically evaluates all known khchecks and starts new runs when due.
+func (kh *Kuberhealthy) startScheduleLoop() {
+	if !kh.setLoopRunning(true) {
+		return
+	}
+	defer kh.setLoopRunning(false)
+
+	ticker := time.NewTicker(scheduleLoopInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-kh.Context.Done():
+			return
+		case <-ticker.C:
+			kh.scheduleChecks()
+		}
+	}
+}
+
+// scheduleChecks iterates through all khchecks and starts any that are due to run.
+func (kh *Kuberhealthy) scheduleChecks() {
+	uList := &unstructured.UnstructuredList{}
+	uList.SetGroupVersionKind(khcrdsv2.GroupVersion.WithKind("KuberhealthyCheckList"))
+	if err := kh.CheckClient.List(kh.Context, uList); err != nil {
+		log.Println("failed to list khchecks:", err)
+		return
+	}
+
+	for _, khcheck := range uList.Items {
+		runInterval := kh.runIntervalForCheck(&khcheck)
+
+		var check khcrdsv2.KuberhealthyCheck
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(khcheck.Object, &check); err != nil {
+			log.Printf("failed to convert check %s/%s: %v", khcheck.GetNamespace(), khcheck.GetName(), err)
+			continue
+		}
+
+		lastStart := time.Unix(check.Status.LastRunUnix, 0)
+		if check.Status.CurrentUUID != "" {
+			continue
+		}
+		if time.Since(lastStart) < runInterval {
+			continue
+		}
+
+		if err := kh.StartCheck(&check); err != nil {
+			log.Printf("failed to start check %s/%s: %v", check.Namespace, check.Name, err)
+		}
+	}
+}
+
+// runIntervalForCheck returns the configured run interval for a check, falling back to the default.
+func (kh *Kuberhealthy) runIntervalForCheck(u *unstructured.Unstructured) time.Duration {
+	if v, found, err := unstructured.NestedString(u.Object, "spec", "runInterval"); err == nil && found && v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			return d
+		}
+		log.Printf("invalid runInterval %q on check %s/%s", v, u.GetNamespace(), u.GetName())
+	}
+	return defaultRunInterval
 }
 
 // StartCheck begins tracking and managing a khcheck. This occurs when a khcheck is added.
