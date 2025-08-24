@@ -331,6 +331,13 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 	log.Debugf("Check report after unmarshal: +%v\n", state)
 
+	// ensure that reports do not contain errors when OK is true
+	if state.OK && len(state.Errors) > 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println("webserver:", requestID, "Client attempted to report OK true with error strings")
+		return nil
+	}
+
 	// ensure that if ok is set to false, then an error is provided
 	if !state.OK {
 		if len(state.Errors) == 0 {
