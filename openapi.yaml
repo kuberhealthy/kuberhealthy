@@ -47,6 +47,89 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/State'
+  /api/pods:
+    get:
+      summary: List checker pods for a check
+      parameters:
+        - in: query
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: khcheck
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pod list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PodSummary'
+        '400':
+          description: Missing parameters
+  /api/logs:
+    get:
+      summary: Retrieve logs for a checker pod
+      parameters:
+        - in: query
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: khcheck
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: pod
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pod logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PodLog'
+        '400':
+          description: Missing parameters
+  /api/logs/stream:
+    get:
+      summary: Stream logs for a running checker pod
+      parameters:
+        - in: query
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: khcheck
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: pod
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Streaming pod logs
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Missing parameters
+        '409':
+          description: Pod not running
   /check:
     post:
       summary: Report an external check result
@@ -145,3 +228,59 @@ components:
           type: boolean
       required:
         - ok
+    PodSummary:
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        phase:
+          type: string
+        startTime:
+          type: integer
+          format: int64
+        durationSeconds:
+          type: integer
+          format: int64
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - name
+        - namespace
+        - phase
+    PodLog:
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        phase:
+          type: string
+        startTime:
+          type: integer
+          format: int64
+        durationSeconds:
+          type: integer
+          format: int64
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+        logs:
+          type: string
+      required:
+        - name
+        - namespace
+        - phase

@@ -8,23 +8,17 @@ import (
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 // New creates a new KuberhealthyCheckReconciler with a working controller manager from the kubebuilder packages.
 // Expects a kuberhealthy.Kuberhealthy. If it is not started, then this function will start it.
-func New(ctx context.Context) (*KuberhealthyCheckReconciler, error) {
+func New(ctx context.Context, cfg *rest.Config) (*KuberhealthyCheckReconciler, error) {
 	fmt.Println("Starting new Kuberhealthy Controller")
 
 	scheme := runtime.NewScheme()
 	utilruntime.Must(khcrdsv2.AddToScheme(scheme))
-
-	// Get Kubernetes config
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("controller: error getting kubernetes config: %w", err)
-	}
 
 	// Create a new manager
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{

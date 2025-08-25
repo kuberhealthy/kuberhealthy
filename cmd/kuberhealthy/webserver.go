@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -25,47 +26,103 @@ import (
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const statusPageHTML = `<!DOCTYPE html>
+const statusPageHTML = `
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8" />
 <title>Kuberhealthy Status</title>
 <style>
-body{font-family:sans-serif;}
-.check{margin-bottom:0.5em;}
+body {font-family:sans-serif; margin:0; display:flex; height:100vh;}
+#menu {width:250px; border-right:1px solid #ccc; overflow-y:auto;}
+#menu .item {padding:8px; cursor:pointer;}
+#menu .item:hover {background:#f0f0f0;}
+#content {flex:1; padding:1em; overflow-y:auto;}
+#pods .pod {cursor:pointer; padding:4px;}
+#pods .pod:hover {background:#eef;}
+pre {background:#f0f0f0; padding:1em; white-space:pre-wrap;}
 </style>
 <script>
+let checks = {};
+let currentCheck = '';
 async function refresh(){
   try{
     const resp = await fetch('/json');
     const data = await resp.json();
-    const container = document.getElementById('checks');
-    container.innerHTML = '';
-    const details = data.CheckDetails || {};
-    Object.keys(details).forEach(function(name){
-      const st = details[name];
-      var icon = st.ok ? '✅' : '❌';
+    checks = data.CheckDetails || {};
+    const menu = document.getElementById('menu');
+    menu.innerHTML = '';
+    Object.keys(checks).forEach(function(name){
+      const st = checks[name];
+      let icon = st.ok ? '✅' : '❌';
       if (st.podName){ icon = '⏳'; }
-      var lastRun = st.lastRunUnix ? new Date(st.lastRunUnix*1000).toLocaleString() : 'never';
-      var statusText = 'OK';
-      if (!st.ok && st.errors && st.errors.length > 0){
-        statusText = st.errors.join('; ');
-      }
-      var div = document.createElement('div');
-      div.className = 'check';
-      div.textContent = icon + ' ' + name + ' - Last Run: ' + lastRun + ' - ' + statusText;
-      container.appendChild(div);
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.textContent = icon + ' ' + name;
+      div.onclick = ()=>showCheck(name);
+      menu.appendChild(div);
     });
   }catch(e){ console.error('failed to fetch status', e); }
 }
-setInterval(refresh,2000); window.onload = refresh;
+async function showCheck(name){
+  currentCheck = name;
+  const st = checks[name];
+  if(!st){return;}
+  const content = document.getElementById('content');
+  content.innerHTML='<h2>'+name+'</h2>'+
+    '<p>Status: '+(st.ok?'OK':'Fail')+'</p>'+
+    (st.errors && st.errors.length ? '<p>Errors: '+st.errors.join('; ')+'</p>' : '')+
+    '<h3>Pods</h3><div id="pods">loading...</div>'+
+    '<h3>Pod Details</h3><div id="pod-info"></div>'+
+    '<h3>Logs</h3><pre id="logs"></pre>';
+  try{
+    const pods = await (await fetch('/api/pods?namespace='+encodeURIComponent(st.namespace)+'&khcheck='+encodeURIComponent(name))).json();
+    const podsDiv = document.getElementById('pods');
+    podsDiv.innerHTML='';
+    pods.forEach(p=>{
+      const div=document.createElement('div');
+      div.className='pod';
+      div.textContent=p.name+' ('+p.phase+')';
+      div.onclick=()=>loadLogs(p);
+      podsDiv.appendChild(div);
+    });
+  }catch(e){console.error(e);}
+}
+async function loadLogs(p){
+  try{
+    const params='namespace='+encodeURIComponent(p.namespace)+'&khcheck='+encodeURIComponent(currentCheck)+'&pod='+encodeURIComponent(p.name);
+    const res = await (await fetch('/api/logs?'+params)).json();
+    document.getElementById('pod-info').textContent='Started: '+(res.startTime?new Date(res.startTime*1000).toLocaleString():'')+' Duration: '+res.durationSeconds+'s Phase: '+res.phase;
+    const logElem=document.getElementById('logs');
+    logElem.textContent=res.logs || '';
+    if (p.phase === 'Running'){
+      streamLogs('/api/logs/stream?'+params, logElem);
+    }
+  }catch(e){console.error(e);}
+}
+
+async function streamLogs(url, elem){
+  try{
+    const resp = await fetch(url);
+    if(!resp.body) return;
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    while(true){
+      const {value, done} = await reader.read();
+      if(done) break;
+      elem.textContent += decoder.decode(value);
+    }
+  }catch(e){console.error(e);}
+}
+setInterval(refresh,5000); window.onload = refresh;
 </script>
 </head>
 <body>
-<h1>Kuberhealthy Checks</h1>
-<div id="checks"></div>
+<div id="menu"></div>
+<div id="content"><h2>Select a check</h2></div>
 </body>
-</html>`
+</html>
+`
 
 // newServeMux configures and returns a mux with all web handlers mounted.
 func newServeMux() *http.ServeMux {
@@ -85,6 +142,30 @@ func newServeMux() *http.ServeMux {
 
 	mux.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
 		if err := healthCheckHandler(w, r); err != nil {
+			log.Errorln(err)
+		}
+	})
+
+	mux.HandleFunc("/api/pods", func(w http.ResponseWriter, r *http.Request) {
+		if err := podListHandler(w, r); err != nil {
+			log.Errorln(err)
+		}
+	})
+
+	mux.HandleFunc("/api/logs", func(w http.ResponseWriter, r *http.Request) {
+		if err := podLogsHandler(w, r); err != nil {
+			log.Errorln(err)
+		}
+	})
+
+	mux.HandleFunc("/api/logs/stream", func(w http.ResponseWriter, r *http.Request) {
+		if err := podLogsStreamHandler(w, r); err != nil {
+			log.Errorln(err)
+		}
+	})
+
+	mux.HandleFunc("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		if err := openapiSpecHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
@@ -126,6 +207,212 @@ func statusPageHandler(w http.ResponseWriter, r *http.Request) error {
 		log.Warningln("Error writing status page:", err)
 	}
 	return err
+}
+
+// openapiSpecHandler serves the OpenAPI specification for the Kuberhealthy API.
+func openapiSpecHandler(w http.ResponseWriter, r *http.Request) error {
+	data, err := os.ReadFile("openapi.yaml")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	w.Header().Set("Content-Type", "application/yaml; charset=utf-8")
+	_, err = w.Write(data)
+	return err
+}
+
+type podSummary struct {
+	Name            string            `json:"name"`
+	Namespace       string            `json:"namespace"`
+	Phase           string            `json:"phase"`
+	StartTime       int64             `json:"startTime,omitempty"`
+	DurationSeconds int64             `json:"durationSeconds,omitempty"`
+	Labels          map[string]string `json:"labels,omitempty"`
+	Annotations     map[string]string `json:"annotations,omitempty"`
+}
+
+type podLogResponse struct {
+	podSummary
+	Logs string `json:"logs"`
+}
+
+// podListHandler returns a list of pods for a given check.
+func podListHandler(w http.ResponseWriter, r *http.Request) error {
+	khcheck := r.URL.Query().Get("khcheck")
+	namespace := r.URL.Query().Get("namespace")
+	if khcheck == "" || namespace == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return fmt.Errorf("missing parameters")
+	}
+	if KHController == nil || KHController.Client == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kubernetes client not initialized")
+	}
+	khc := &kuberhealthycheckv2.KuberhealthyCheck{}
+	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: khcheck}, khc); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return err
+	}
+	pods := &v1.PodList{}
+	if err := KHController.Client.List(r.Context(), pods, client.InNamespace(namespace), client.MatchingLabels{"khcheck": khcheck}); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	summaries := make([]podSummary, 0, len(pods.Items))
+	for _, p := range pods.Items {
+		s := podSummary{Name: p.Name, Namespace: p.Namespace, Phase: string(p.Status.Phase), Labels: p.Labels, Annotations: p.Annotations}
+		if p.Status.StartTime != nil {
+			s.StartTime = p.Status.StartTime.Unix()
+			s.DurationSeconds = int64(podRunDuration(&p).Seconds())
+		}
+		summaries = append(summaries, s)
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	return json.NewEncoder(w).Encode(summaries)
+}
+
+// podLogsHandler returns logs and details for a specific pod.
+func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
+	podName := r.URL.Query().Get("pod")
+	namespace := r.URL.Query().Get("namespace")
+	khcheck := r.URL.Query().Get("khcheck")
+	if podName == "" || namespace == "" || khcheck == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return fmt.Errorf("missing parameters")
+	}
+	if KHController == nil || KHController.Client == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kubernetes client not initialized")
+	}
+	pod := &v1.Pod{}
+	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: podName}, pod); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	if pod.Labels["khcheck"] != khcheck {
+		w.WriteHeader(http.StatusForbidden)
+		return fmt.Errorf("pod not part of khcheck")
+	}
+	khc := &kuberhealthycheckv2.KuberhealthyCheck{}
+	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: khcheck}, khc); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return err
+	}
+	if kubeClient == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kubernetes client not initialized")
+	}
+	req := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &v1.PodLogOptions{})
+	stream, err := req.Stream(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	defer stream.Close()
+	b, err := io.ReadAll(stream)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	resp := podLogResponse{
+		podSummary: podSummary{
+			Name:        podName,
+			Namespace:   namespace,
+			Phase:       string(pod.Status.Phase),
+			Labels:      pod.Labels,
+			Annotations: pod.Annotations,
+		},
+		Logs: string(b),
+	}
+	if pod.Status.StartTime != nil {
+		resp.StartTime = pod.Status.StartTime.Unix()
+		resp.DurationSeconds = int64(podRunDuration(pod).Seconds())
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	return json.NewEncoder(w).Encode(resp)
+}
+
+// podLogsStreamHandler streams logs for a specific pod in real time.
+func podLogsStreamHandler(w http.ResponseWriter, r *http.Request) error {
+	podName := r.URL.Query().Get("pod")
+	namespace := r.URL.Query().Get("namespace")
+	khcheck := r.URL.Query().Get("khcheck")
+	if podName == "" || namespace == "" || khcheck == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return fmt.Errorf("missing parameters")
+	}
+	if KHController == nil || KHController.Client == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kubernetes client not initialized")
+	}
+	pod := &v1.Pod{}
+	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: podName}, pod); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	if pod.Labels["khcheck"] != khcheck {
+		w.WriteHeader(http.StatusForbidden)
+		return fmt.Errorf("pod not part of khcheck")
+	}
+	if pod.Status.Phase != v1.PodRunning {
+		w.WriteHeader(http.StatusConflict)
+		return fmt.Errorf("pod not running")
+	}
+	khc := &kuberhealthycheckv2.KuberhealthyCheck{}
+	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: khcheck}, khc); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return err
+	}
+	if kubeClient == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kubernetes client not initialized")
+	}
+	req := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &v1.PodLogOptions{Follow: true})
+	stream, err := req.Stream(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	defer stream.Close()
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return fmt.Errorf("streaming not supported")
+	}
+	buf := make([]byte, 1024)
+	for {
+		n, err := stream.Read(buf)
+		if n > 0 {
+			if _, werr := w.Write(buf[:n]); werr != nil {
+				return werr
+			}
+			flusher.Flush()
+		}
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+	}
+}
+
+// podRunDuration returns the runtime of a pod.
+func podRunDuration(p *v1.Pod) time.Duration {
+	if p.Status.StartTime == nil {
+		return 0
+	}
+	start := p.Status.StartTime.Time
+	if p.Status.Phase == v1.PodRunning {
+		return time.Since(start)
+	}
+	for _, cs := range p.Status.ContainerStatuses {
+		if cs.State.Terminated != nil {
+			return cs.State.Terminated.FinishedAt.Sub(cs.State.Terminated.StartedAt.Time)
+		}
+	}
+	return time.Since(start)
 }
 
 // PodReportInfo holds info about an incoming IP to the external check reporting endpoint
