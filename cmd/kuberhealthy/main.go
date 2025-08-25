@@ -12,8 +12,12 @@ import (
 	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
 
+	ctrl "sigs.k8s.io/controller-runtime"
 	zaplog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
 )
@@ -23,7 +27,11 @@ var GlobalConfig *Config
 
 // var KHClient *kubeclient.KHClient    // KubernetesClient is the global kubernetes client
 // var KubeClient *kubernetes.Clientset // global k8s client used by all things
-var KHController *controller.KuberhealthyCheckReconciler
+var (
+	kubeConfig   *rest.Config
+	kubeClient   kubernetes.Interface
+	KHController *controller.KuberhealthyCheckReconciler
+)
 
 func main() {
 
@@ -40,9 +48,19 @@ func main() {
 	// setup a channel to capture when a shutdown is done
 	doneChan := make(chan struct{})
 
+	// Build the Kubernetes config and client once for reuse
+	kubeConfig, err = ctrl.GetConfig()
+	if err != nil {
+		log.Fatalln("startup: failed to get kubernetes config:", err)
+	}
+	kubeClient, err = kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		log.Fatalln("startup: failed to create kubernetes client:", err)
+	}
+
 	// Make a new kubebuilder controller instance with the kuberhealthy instance in it.
-	// This is will be used as a global client
-	KHController, err = controller.New(ctx)
+	// This will be used as a global client
+	KHController, err = controller.New(ctx, kubeConfig)
 	if err != nil {
 		log.Errorln("startup: failed to setup kuberhealthy controller with error:", err)
 	}

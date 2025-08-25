@@ -20,9 +20,6 @@ import (
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -298,20 +295,11 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusNotFound)
 		return err
 	}
-	cfg, err := rest.InClusterConfig()
-	if err != nil {
-		cfg, err = ctrl.GetConfig()
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return err
-		}
+	if kubeClient == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kubernetes client not initialized")
 	}
-	cs, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return err
-	}
-	req := cs.CoreV1().Pods(namespace).GetLogs(podName, &v1.PodLogOptions{})
+	req := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &v1.PodLogOptions{})
 	stream, err := req.Stream(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -372,20 +360,11 @@ func podLogsStreamHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusNotFound)
 		return err
 	}
-	cfg, err := rest.InClusterConfig()
-	if err != nil {
-		cfg, err = ctrl.GetConfig()
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return err
-		}
+	if kubeClient == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kubernetes client not initialized")
 	}
-	cs, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return err
-	}
-	req := cs.CoreV1().Pods(namespace).GetLogs(podName, &v1.PodLogOptions{Follow: true})
+	req := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &v1.PodLogOptions{Follow: true})
 	stream, err := req.Stream(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
