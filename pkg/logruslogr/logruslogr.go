@@ -33,6 +33,10 @@ func (s *sink) Info(level int, msg string, kv ...interface{}) {
 	if s.name != "" {
 		entry = entry.WithField("logger", s.name)
 	}
+	if s.name == "KubeAPIWarningLogger" {
+		entry.Warn(msg)
+		return
+	}
 	if level > 0 {
 		entry.Debug(msg)
 		return

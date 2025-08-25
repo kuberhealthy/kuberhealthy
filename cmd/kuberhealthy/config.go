@@ -147,7 +147,7 @@ func (c *Config) LoadFromEnv() error {
 		c.checkReportURL = v
 	} else {
 		c.checkReportURL = fmt.Sprintf("%s.%s.svc.cluster.local", c.ServiceName, c.Namespace)
-		log.Infoln("KH_CHECK_REPORT_HOSTNAME environment variable not set. Using", c.checkReportURL)
+		log.Warnln("KH_CHECK_REPORT_HOSTNAME environment variable not set. Using", c.checkReportURL)
 	}
 
 	if v := os.Getenv("KH_TERMINATION_GRACE_PERIOD"); v != "" {
