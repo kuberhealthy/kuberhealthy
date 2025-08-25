@@ -124,6 +124,17 @@ setInterval(refresh,5000); window.onload = refresh;
 </html>
 `
 
+// requestLogger logs incoming requests before they reach a handler.
+func requestLogger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// log the HTTP method and path for each request
+		log.Infof("%s %s", r.Method, r.URL.Path)
+
+		// continue handling the request
+		next.ServeHTTP(w, r)
+	})
+}
+
 // newServeMux configures and returns a mux with all web handlers mounted.
 func newServeMux() *http.ServeMux {
 	mux := http.NewServeMux()
@@ -195,7 +206,7 @@ func newServeMux() *http.ServeMux {
 func StartWebServer() error {
 	mux := newServeMux()
 	log.Infoln("Starting web services on port", GlobalConfig.ListenAddress)
-	return http.ListenAndServe(GlobalConfig.ListenAddress, mux)
+	return http.ListenAndServe(GlobalConfig.ListenAddress, requestLogger(mux))
 }
 
 // statusPageHandler serves a basic HTML page that polls the JSON endpoint
