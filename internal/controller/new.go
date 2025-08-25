@@ -21,7 +21,8 @@ func New(ctx context.Context, cfg *rest.Config) (*KuberhealthyCheckReconciler, e
 	scheme := runtime.NewScheme()
 	utilruntime.Must(khcrdsv2.AddToScheme(scheme))
 
-	// Create a new manager
+	// Create a new manager with the default metrics server disabled.
+	// Controller metrics will be served by the web server under /controllerMetrics.
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme,
 	})
@@ -53,7 +54,12 @@ func New(ctx context.Context, cfg *rest.Config) (*KuberhealthyCheckReconciler, e
 	}
 
 	// Start the manager with our reconciler in it
-	err = mgr.Start(ctx)
+	go func() {
+		err = mgr.Start(ctx)
+		if err != nil {
+			log.Fatalln("fatal controller error:", err)
+		}
+	}()
 
 	return reconciler, nil
 }

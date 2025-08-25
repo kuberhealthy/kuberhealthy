@@ -4,7 +4,7 @@ TAG := "localdev"
 NOW := `date +%s`
 
 build: # Build Kuberhealthy's image
-        podman build -f cmd/kuberhealthy/Podfile -t {{IMAGE}}:{{TAG}} .
+	podman build -f cmd/kuberhealthy/Podfile -t {{IMAGE}}:{{TAG}} .
 
 kind: # Run Kuberhealthy locally in a KIND cluster
 	./tests/run-local-kind.sh
@@ -18,6 +18,7 @@ run: # Run Kuberhealthy locally
         cd cmd/kuberhealthy && \
         go build -v && \
         KH_LOG_LEVEL=debug KH_EXTERNAL_REPORTING_URL=localhost:8006 POD_NAMESPACE=kuberhealthy POD_NAME="kuberhealthy-test" ./kuberhealthy
+
 
 kustomize: # Apply Kubernetes specs from deploy/ directory
 	kustomize build deploy/ | kubectl apply -f -

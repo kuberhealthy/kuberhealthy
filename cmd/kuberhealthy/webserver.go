@@ -223,7 +223,7 @@ func statusPageHandler(w http.ResponseWriter, r *http.Request) error {
 
 // openapiSpecHandler serves the OpenAPI specification for the Kuberhealthy API.
 func openapiSpecHandler(w http.ResponseWriter, r *http.Request) error {
-	data, err := os.ReadFile("openapi.yaml")
+	data, err := os.ReadFile("./openapi.yaml")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
