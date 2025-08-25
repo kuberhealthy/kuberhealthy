@@ -98,4 +98,37 @@ func TestCheckReportHandler(t *testing.T) {
 			t.Fatalf("storeCheckState should not be called on invalid report")
 		}
 	})
+
+	t.Run("errors present when OK", func(t *testing.T) {
+		validateUsingRequestHeaderFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
+			return PodReportInfo{Name: "my-check", Namespace: "my-namespace", UUID: "abc"}, true, nil
+		}
+		validatePodReportBySourceIPFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, error) {
+			t.Fatalf("unexpected call to validatePodReportBySourceIPFunc")
+			return PodReportInfo{}, nil
+		}
+		storeCalled := false
+		storeCheckStateFunc = func(string, string, *kuberhealthycheckv2.KuberhealthyCheckStatus) error {
+			storeCalled = true
+			return nil
+		}
+
+		report := health.Report{OK: true, Errors: []string{"error"}}
+		b, err := json.Marshal(report)
+		if err != nil {
+			t.Fatalf("failed to marshal report: %v", err)
+		}
+		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+		rr := httptest.NewRecorder()
+
+		if err := checkReportHandler(rr, req); err != nil {
+			t.Fatalf("handler returned error: %v", err)
+		}
+		if rr.Code != http.StatusBadRequest {
+			t.Fatalf("expected status %d, got %d", http.StatusBadRequest, rr.Code)
+		}
+		if storeCalled {
+			t.Fatalf("storeCheckState should not be called on invalid report")
+		}
+	})
 }
