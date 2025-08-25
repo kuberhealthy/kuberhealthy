@@ -12,7 +12,7 @@
 
 # Environment Variables
 ```
-KH_LISTEN_ADDRESS=":8080" # web server listen address
+KH_LISTEN_ADDRESS=":80" # web server listen address
 KH_LOG_LEVEL="info" # log verbosity
 KH_MAX_JOB_AGE="" # max age for check jobs
 KH_MAX_CHECK_POD_AGE="" # max age for check pods

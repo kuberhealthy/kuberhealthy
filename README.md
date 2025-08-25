@@ -42,7 +42,7 @@ kustomize build github.com/kuberhealthy/kuberhealthy/deploy | kubectl apply -f -
 After installation you can reach the Kuberhealthy graphical status page locally with:
 
 ```sh
-kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
+kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80
 ```
 
 Then open [http://localhost:8080](http://localhost:8080) in your browser.
