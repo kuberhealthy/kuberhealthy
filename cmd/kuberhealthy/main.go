@@ -9,11 +9,11 @@ import (
 	"syscall"
 	"time"
 
+	logruslogr "github.com/kuberhealthy/kuberhealthy/v3/pkg/logruslogr"
 	log "github.com/sirupsen/logrus"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	zaplog "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -138,11 +138,8 @@ func setUp() error {
 	log.SetLevel(parsedLogLevel)
 	log.Infoln("Startup Arguments:", os.Args)
 
-	// no matter what, if debug mode is enabled, use debug log level
-	if GlobalConfig.DebugMode {
-		log.Infoln("Setting debug output on because KH_DEBUG_MODE is true")
-		log.SetLevel(log.DebugLevel)
-	}
+	// set controller-runtime to use logrus
+	logf.SetLogger(logruslogr.New(log.StandardLogger()))
 
 	// init the global kubernetes client
 	// integrii: Removed because we can use the global controller instance KHController for this
@@ -150,10 +147,6 @@ func setUp() error {
 	// if err != nil {
 	// 	return fmt.Errorf("Error setting up Kuberhealthy client for Kubernetes: %w", err)
 	// }
-
-	// set zap to log to stdout
-	zapLogger := zap.New(zap.UseDevMode(GlobalConfig.DebugMode), zap.WriteTo(os.Stdout))
-	zaplog.SetLogger(zapLogger)
 
 	return nil
 }

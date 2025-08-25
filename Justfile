@@ -15,10 +15,10 @@ test: # Run tests locally
 	go test -v cmd/...
 
 run: # Run Kuberhealthy locally
-	cd cmd/kuberhealthy && \
-	go build -v && \
-	cd ../.. && \
-	KH_DEBUG_MODE=true KH_EXTERNAL_REPORTING_URL=localhost:80 POD_NAMESPACE=kuberhealthy POD_NAME="kuberhealthy-test" ./cmd/kuberhealthy/kuberhealthy
+        cd cmd/kuberhealthy && \
+        go build -v && \
+        KH_LOG_LEVEL=debug KH_EXTERNAL_REPORTING_URL=localhost:8006 POD_NAMESPACE=kuberhealthy POD_NAME="kuberhealthy-test" ./kuberhealthy
+
 
 kustomize: # Apply Kubernetes specs from deploy/ directory
 	kustomize build deploy/ | kubectl apply -f -

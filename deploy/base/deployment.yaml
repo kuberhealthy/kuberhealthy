@@ -57,8 +57,6 @@ spec:
           value: "5m"
         - name: KH_DEFAULT_CHECK_TIMEOUT
           value: "5m"
-        - name: KH_DEBUG_MODE
-          value: "false"
         - name: KH_DEFAULT_NAMESPACE
           value: "kuberhealthy"
         ports:

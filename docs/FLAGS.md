@@ -22,5 +22,4 @@ Kuberhealthy is configured via environment variables and does not accept command
 | `KH_CHECK_REPORT_HOSTNAME` | Override hostname used for check reports | constructed |
 | `KH_TERMINATION_GRACE_PERIOD` | Shutdown grace period | `5m` |
 | `KH_DEFAULT_CHECK_TIMEOUT` | Default timeout for checks | `5m` |
-| `KH_DEBUG_MODE` | Enable debug mode | `false` |
 | `KH_DEFAULT_NAMESPACE` | Fallback namespace if detection fails | `kuberhealthy` |

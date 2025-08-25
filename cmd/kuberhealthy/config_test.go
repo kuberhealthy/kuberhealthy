@@ -20,7 +20,6 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("KH_CHECK_REPORT_HOSTNAME", "example.com")
 	t.Setenv("KH_TERMINATION_GRACE_PERIOD", "30s")
 	t.Setenv("KH_DEFAULT_CHECK_TIMEOUT", "1m")
-	t.Setenv("KH_DEBUG_MODE", "true")
 	t.Setenv("KH_DEFAULT_NAMESPACE", "fallback")
 	t.Setenv("POD_NAMESPACE", "podns")
 	t.Setenv("KH_SERVICE_NAME", "svcname")
@@ -77,9 +76,6 @@ func TestLoadFromEnv(t *testing.T) {
 	}
 	if cfg.DefaultCheckTimeout != time.Minute {
 		t.Errorf("DefaultCheckTimeout parsed incorrectly: %v", cfg.DefaultCheckTimeout)
-	}
-	if !cfg.DebugMode {
-		t.Errorf("DebugMode parsed incorrectly: %v", cfg.DebugMode)
 	}
 	if cfg.DefaultNamespace != "fallback" {
 		t.Errorf("DefaultNamespace parsed incorrectly: %s", cfg.DefaultNamespace)
