@@ -21,9 +21,11 @@ func New(ctx context.Context, cfg *rest.Config) (*KuberhealthyCheckReconciler, e
 	scheme := runtime.NewScheme()
 	utilruntime.Must(khcrdsv2.AddToScheme(scheme))
 
-	// Create a new manager
+	// Create a new manager with the default metrics server disabled.
+	// Controller metrics will be served by the web server under /controllerMetrics.
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: scheme,
+		Scheme:             scheme,
+		MetricsBindAddress: "0", // metrics served by web server
 	})
 	if err != nil {
 		return nil, fmt.Errorf("controller: error creating manager: %w", err)

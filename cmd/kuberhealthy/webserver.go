@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
+	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 const statusPageHTML = `
@@ -144,6 +145,9 @@ func newServeMux() *http.ServeMux {
 			log.Errorln(err)
 		}
 	})
+
+	// expose controller-runtime metrics under /controllerMetrics
+	mux.Handle("/controllerMetrics", crmetrics.Handler())
 
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if err := healthCheckHandler(w, r); err != nil {
