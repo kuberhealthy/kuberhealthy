@@ -6,8 +6,9 @@ WORKDIR /src/cmd/kuberhealthy
 RUN go version
 ENV CGO_ENABLED=0
 RUN mkdir /app
-RUN go build -v -o /app/kuberhealthy
 RUN cp /src/openapi.yaml /app/openapi.yaml
+RUN go test -v ./...
+RUN go build -v -o /app/kuberhealthy
 
 FROM scratch
 WORKDIR /app

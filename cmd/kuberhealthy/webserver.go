@@ -24,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
-	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 const statusPageHTML = `
@@ -146,9 +145,6 @@ func newServeMux() *http.ServeMux {
 		}
 	})
 
-	// expose controller-runtime metrics under /controllerMetrics
-	mux.Handle("/controllerMetrics", crmetrics.Handler())
-
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if err := healthCheckHandler(w, r); err != nil {
 			log.Errorln(err)
@@ -227,7 +223,7 @@ func statusPageHandler(w http.ResponseWriter, r *http.Request) error {
 
 // openapiSpecHandler serves the OpenAPI specification for the Kuberhealthy API.
 func openapiSpecHandler(w http.ResponseWriter, r *http.Request) error {
-	data, err := os.ReadFile("openapi.yaml")
+	data, err := os.ReadFile("./openapi.yaml")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err

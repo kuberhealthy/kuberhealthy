@@ -24,8 +24,7 @@ func New(ctx context.Context, cfg *rest.Config) (*KuberhealthyCheckReconciler, e
 	// Create a new manager with the default metrics server disabled.
 	// Controller metrics will be served by the web server under /controllerMetrics.
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: "0", // metrics served by web server
+		Scheme: scheme,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("controller: error creating manager: %w", err)
@@ -55,7 +54,12 @@ func New(ctx context.Context, cfg *rest.Config) (*KuberhealthyCheckReconciler, e
 	}
 
 	// Start the manager with our reconciler in it
-	err = mgr.Start(ctx)
+	go func() {
+		err = mgr.Start(ctx)
+		if err != nil {
+			log.Fatalln("fatal controller error:", err)
+		}
+	}()
 
 	return reconciler, nil
 }

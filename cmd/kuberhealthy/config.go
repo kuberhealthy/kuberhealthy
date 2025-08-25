@@ -45,7 +45,7 @@ func New() *Config {
 	}
 
 	return &Config{
-		ListenAddress:                 ":8080",
+		ListenAddress:                 ":80",
 		LogLevel:                      "info",
 		checkReportURL:                fmt.Sprintf("%s.%s.svc.cluster.local", svc, ns),
 		DefaultRunInterval:            time.Minute * 10,
