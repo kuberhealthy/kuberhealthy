@@ -1,8 +1,10 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -21,5 +23,30 @@ func TestWebServerHandlers(t *testing.T) {
 			t.Fatalf("expected status 200 for %s got %d", p, resp.StatusCode)
 		}
 		resp.Body.Close()
+	}
+}
+
+func TestRootServesUserInterface(t *testing.T) {
+	t.Parallel()
+	mux := newServeMux()
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	for _, u := range []string{ts.URL, ts.URL + "/"} {
+		resp, err := http.Get(u)
+		if err != nil {
+			t.Fatalf("failed to GET %s: %v", u, err)
+		}
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected status 200 for %s got %d", u, resp.StatusCode)
+		}
+		b, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			t.Fatalf("failed to read body: %v", err)
+		}
+		if !strings.Contains(string(b), "<title>Kuberhealthy Status</title>") {
+			t.Fatalf("expected status page HTML for %s", u)
+		}
 	}
 }

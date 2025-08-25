@@ -202,7 +202,8 @@ func StartWebServer() error {
 // to show the status of all configured checks.
 func statusPageHandler(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, err := w.Write([]byte(statusPageHTML))
+	w.WriteHeader(http.StatusOK)
+	_, err := io.WriteString(w, statusPageHTML)
 	if err != nil {
 		log.Warningln("Error writing status page:", err)
 	}
