@@ -4,10 +4,11 @@ metadata:
   name: test-kh-check
   namespace: kuberhealthy
 spec:
-  name: testcheck
   singleRunOnly: true
   podSpec:
-    containers:
-      - image: busybox
-        command: ["sh", "-c", "exit 0"]
-    restartPolicy: Never
+    spec:
+      containers:
+        - image: busybox
+          command: ["sh", "-c", "exit 0"]
+          name: main
+      restartPolicy: Never
