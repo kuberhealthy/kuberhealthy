@@ -1,10 +1,6 @@
-Available flags and environment variables for use in Kuberhealthy
+Available configuration options for use in Kuberhealthy.
 
-# Flags
-
-| Flag      | Description                           | Optional | Default |
-| --------- | ------------------------------------- | -------- | ------- |
-| `--debug` | Bool to enable/disable debug logging. | Yes      | `False` |
+Kuberhealthy is configured via environment variables and does not accept command-line flags.
 
 # Environment Variables
 

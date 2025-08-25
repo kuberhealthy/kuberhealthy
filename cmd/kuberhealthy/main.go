@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/integrii/flaggy"
 	log "github.com/sirupsen/logrus"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -127,11 +126,6 @@ func setUp() error {
 		return err
 	}
 
-	// setup flaggy
-	flaggy.SetDescription("Kuberhealthy is an in-cluster synthetic health checker for Kubernetes.")
-	flaggy.Bool(&GlobalConfig.DebugMode, "d", "debug", "Set to true to enable debug.")
-	flaggy.Parse()
-
 	// parse and set logging level
 	parsedLogLevel, err := log.ParseLevel(GlobalConfig.LogLevel)
 	if err != nil {
@@ -144,9 +138,9 @@ func setUp() error {
 	log.SetLevel(parsedLogLevel)
 	log.Infoln("Startup Arguments:", os.Args)
 
-	// no matter what if user has specified debug leveling, use debug leveling
+	// no matter what, if debug mode is enabled, use debug log level
 	if GlobalConfig.DebugMode {
-		log.Infoln("Setting debug output on because user specified flag")
+		log.Infoln("Setting debug output on because KH_DEBUG_MODE is true")
 		log.SetLevel(log.DebugLevel)
 	}
 
