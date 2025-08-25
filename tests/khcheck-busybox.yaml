@@ -7,7 +7,6 @@ spec:
   singleRunOnly: false
   runInterval: 15s
   podSpec:
-    metadata: {}
     spec:
       containers:
         - image: busybox
