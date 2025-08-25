@@ -44,6 +44,7 @@ pre {background:#f0f0f0; padding:1em; white-space:pre-wrap;}
 </style>
 <script>
 let checks = {};
+let currentCheck = '';
 async function refresh(){
   try{
     const resp = await fetch('/json');
@@ -64,6 +65,7 @@ async function refresh(){
   }catch(e){ console.error('failed to fetch status', e); }
 }
 async function showCheck(name){
+  currentCheck = name;
   const st = checks[name];
   if(!st){return;}
   const content = document.getElementById('content');
@@ -88,9 +90,28 @@ async function showCheck(name){
 }
 async function loadLogs(p){
   try{
-    const res = await (await fetch('/api/logs?namespace='+encodeURIComponent(p.namespace)+'&pod='+encodeURIComponent(p.name))).json();
+    const params='namespace='+encodeURIComponent(p.namespace)+'&check='+encodeURIComponent(currentCheck)+'&pod='+encodeURIComponent(p.name);
+    const res = await (await fetch('/api/logs?'+params)).json();
     document.getElementById('pod-info').textContent='Started: '+(res.startTime?new Date(res.startTime*1000).toLocaleString():'')+' Duration: '+res.durationSeconds+'s Phase: '+res.phase;
-    document.getElementById('logs').textContent=res.logs || '';
+    const logElem=document.getElementById('logs');
+    logElem.textContent=res.logs || '';
+    if (p.phase === 'Running'){
+      streamLogs('/api/logs/stream?'+params, logElem);
+    }
+  }catch(e){console.error(e);}
+}
+
+async function streamLogs(url, elem){
+  try{
+    const resp = await fetch(url);
+    if(!resp.body) return;
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    while(true){
+      const {value, done} = await reader.read();
+      if(done) break;
+      elem.textContent += decoder.decode(value);
+    }
   }catch(e){console.error(e);}
 }
 setInterval(refresh,5000); window.onload = refresh;
@@ -133,6 +154,12 @@ func newServeMux() *http.ServeMux {
 
 	mux.HandleFunc("/api/logs", func(w http.ResponseWriter, r *http.Request) {
 		if err := podLogsHandler(w, r); err != nil {
+			log.Errorln(err)
+		}
+	})
+
+	mux.HandleFunc("/api/logs/stream", func(w http.ResponseWriter, r *http.Request) {
+		if err := podLogsStreamHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
@@ -195,11 +222,13 @@ func openapiSpecHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 type podSummary struct {
-	Name            string `json:"name"`
-	Namespace       string `json:"namespace"`
-	Phase           string `json:"phase"`
-	StartTime       int64  `json:"startTime,omitempty"`
-	DurationSeconds int64  `json:"durationSeconds,omitempty"`
+	Name            string            `json:"name"`
+	Namespace       string            `json:"namespace"`
+	Phase           string            `json:"phase"`
+	StartTime       int64             `json:"startTime,omitempty"`
+	DurationSeconds int64             `json:"durationSeconds,omitempty"`
+	Labels          map[string]string `json:"labels,omitempty"`
+	Annotations     map[string]string `json:"annotations,omitempty"`
 }
 
 type podLogResponse struct {
@@ -219,6 +248,11 @@ func podListHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return fmt.Errorf("kubernetes client not initialized")
 	}
+	khc := &kuberhealthycheckv2.KuberhealthyCheck{}
+	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: check}, khc); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return err
+	}
 	pods := &v1.PodList{}
 	if err := KHController.Client.List(r.Context(), pods, client.InNamespace(namespace), client.MatchingLabels{"khcheck": check}); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -226,7 +260,7 @@ func podListHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 	summaries := make([]podSummary, 0, len(pods.Items))
 	for _, p := range pods.Items {
-		s := podSummary{Name: p.Name, Namespace: p.Namespace, Phase: string(p.Status.Phase)}
+		s := podSummary{Name: p.Name, Namespace: p.Namespace, Phase: string(p.Status.Phase), Labels: p.Labels, Annotations: p.Annotations}
 		if p.Status.StartTime != nil {
 			s.StartTime = p.Status.StartTime.Unix()
 			s.DurationSeconds = int64(podRunDuration(&p).Seconds())
@@ -241,7 +275,8 @@ func podListHandler(w http.ResponseWriter, r *http.Request) error {
 func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 	podName := r.URL.Query().Get("pod")
 	namespace := r.URL.Query().Get("namespace")
-	if podName == "" || namespace == "" {
+	check := r.URL.Query().Get("check")
+	if podName == "" || namespace == "" || check == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return fmt.Errorf("missing parameters")
 	}
@@ -252,6 +287,15 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 	pod := &v1.Pod{}
 	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: podName}, pod); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	if pod.Labels["khcheck"] != check {
+		w.WriteHeader(http.StatusForbidden)
+		return fmt.Errorf("pod not part of khcheck")
+	}
+	khc := &kuberhealthycheckv2.KuberhealthyCheck{}
+	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: check}, khc); err != nil {
+		w.WriteHeader(http.StatusNotFound)
 		return err
 	}
 	cfg, err := rest.InClusterConfig()
@@ -281,9 +325,11 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 	resp := podLogResponse{
 		podSummary: podSummary{
-			Name:      podName,
-			Namespace: namespace,
-			Phase:     string(pod.Status.Phase),
+			Name:        podName,
+			Namespace:   namespace,
+			Phase:       string(pod.Status.Phase),
+			Labels:      pod.Labels,
+			Annotations: pod.Annotations,
 		},
 		Logs: string(b),
 	}
@@ -293,6 +339,77 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	return json.NewEncoder(w).Encode(resp)
+}
+
+// podLogsStreamHandler streams logs for a specific pod in real time.
+func podLogsStreamHandler(w http.ResponseWriter, r *http.Request) error {
+	podName := r.URL.Query().Get("pod")
+	namespace := r.URL.Query().Get("namespace")
+	check := r.URL.Query().Get("check")
+	if podName == "" || namespace == "" || check == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return fmt.Errorf("missing parameters")
+	}
+	if KHController == nil || KHController.Client == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kubernetes client not initialized")
+	}
+	pod := &v1.Pod{}
+	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: podName}, pod); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	if pod.Labels["khcheck"] != check {
+		w.WriteHeader(http.StatusForbidden)
+		return fmt.Errorf("pod not part of khcheck")
+	}
+	khc := &kuberhealthycheckv2.KuberhealthyCheck{}
+	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: check}, khc); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return err
+	}
+	cfg, err := rest.InClusterConfig()
+	if err != nil {
+		cfg, err = ctrl.GetConfig()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return err
+		}
+	}
+	cs, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	req := cs.CoreV1().Pods(namespace).GetLogs(podName, &v1.PodLogOptions{Follow: true})
+	stream, err := req.Stream(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	defer stream.Close()
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return fmt.Errorf("streaming not supported")
+	}
+	buf := make([]byte, 1024)
+	for {
+		n, err := stream.Read(buf)
+		if n > 0 {
+			if _, werr := w.Write(buf[:n]); werr != nil {
+				return werr
+			}
+			flusher.Flush()
+		}
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+	}
 }
 
 // podRunDuration returns the runtime of a pod.

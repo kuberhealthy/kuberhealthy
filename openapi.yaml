@@ -82,6 +82,11 @@ paths:
           schema:
             type: string
         - in: query
+          name: check
+          required: true
+          schema:
+            type: string
+        - in: query
           name: pod
           required: true
           schema:
@@ -93,6 +98,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PodLog'
+        '400':
+          description: Missing parameters
+  /api/logs/stream:
+    get:
+      summary: Stream logs for a running checker pod
+      parameters:
+        - in: query
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: check
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: pod
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Streaming pod logs
+          content:
+            text/plain:
+              schema:
+                type: string
         '400':
           description: Missing parameters
   /check:
@@ -208,6 +241,14 @@ components:
         durationSeconds:
           type: integer
           format: int64
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
       required:
         - name
         - namespace
@@ -227,6 +268,14 @@ components:
         durationSeconds:
           type: integer
           format: int64
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
         logs:
           type: string
       required:
