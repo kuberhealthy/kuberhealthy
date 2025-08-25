@@ -24,7 +24,7 @@ spec:
         imagePullPolicy: Never
         env:
         - name: KH_LISTEN_ADDRESS
-          value: ":8080"
+          value: ":80"
         - name: KH_LOG_LEVEL
           value: "info"
         - name: KH_MAX_JOB_AGE
@@ -60,4 +60,5 @@ spec:
         - name: KH_DEFAULT_NAMESPACE
           value: "kuberhealthy"
         ports:
+        - containerPort: 80
         - containerPort: 8080

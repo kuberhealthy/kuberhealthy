@@ -6,7 +6,7 @@ Kuberhealthy is configured via environment variables and does not accept command
 
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
-| `KH_LISTEN_ADDRESS` | Address for the web server | `:8080` |
+| `KH_LISTEN_ADDRESS` | Address for the web server | `:80` |
 | `KH_LOG_LEVEL` | Log level (trace, debug, info, warn, error, fatal, panic) | `info` |
 | `KH_MAX_JOB_AGE` | Maximum age for check jobs before cleanup | unset |
 | `KH_MAX_CHECK_POD_AGE` | Maximum age for check pods before cleanup | unset |
