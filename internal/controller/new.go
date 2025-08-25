@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -19,6 +20,7 @@ func New(ctx context.Context, cfg *rest.Config) (*KuberhealthyCheckReconciler, e
 	log.Debugln("controller: starting new Kuberhealthy Controller")
 
 	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(khcrdsv2.AddToScheme(scheme))
 
 	// Create a new manager with the default metrics server disabled.
