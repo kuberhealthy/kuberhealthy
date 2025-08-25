@@ -21,6 +21,9 @@ rules:
   - kuberhealthy.github.io
   resources:
   - kuberhealthychecks
+  - kuberhealthychecks/finalizers
+  - kuberhealthychecks/status
+  - pods
   verbs:
   - create
   - delete
@@ -29,17 +32,3 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - kuberhealthy.github.io
-  resources:
-  - kuberhealthychecks/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - kuberhealthy.github.io
-  resources:
-  - kuberhealthychecks/status
-  verbs:
-  - get
-  - patch
-  - update
