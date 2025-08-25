@@ -147,7 +147,7 @@ func requestLogger(next http.Handler) http.Handler {
 			"ua":     ua,
 			"method": r.Method,
 			"path":   r.URL.Path,
-		}).Info("request")
+		}).Info("Client request")
 
 		// continue handling the request
 		next.ServeHTTP(w, r)
