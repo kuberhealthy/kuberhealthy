@@ -2,13 +2,13 @@ package kuberhealthy
 
 import (
 	"context"
-	"log"
 	"os"
 	"sort"
 	"strconv"
 	"time"
 
 	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
+	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,7 +40,7 @@ func (kh *Kuberhealthy) runReaper(ctx context.Context, interval time.Duration) {
 			return
 		case <-ticker.C:
 			if err := kh.reapOnce(); err != nil {
-				log.Println("reaper:", err)
+				log.Errorln("reaper:", err)
 			}
 		}
 	}
@@ -98,7 +98,7 @@ func (kh *Kuberhealthy) reapOnce() error {
 			client.InNamespace(check.Namespace),
 			client.MatchingLabels(map[string]string{"khcheck": check.Name}),
 		); err != nil {
-			log.Printf("reaper: list pods for %s/%s: %v", check.Namespace, check.Name, err)
+			log.Errorf("reaper: list pods for %s/%s: %v", check.Namespace, check.Name, err)
 			continue
 		}
 
@@ -114,7 +114,7 @@ func (kh *Kuberhealthy) reapOnce() error {
 				// terminate pods running longer than the allowed timeout
 				if age > runTimeout {
 					if err := kh.CheckClient.Delete(kh.Context, podRef); err != nil && !apierrors.IsNotFound(err) {
-						log.Printf("reaper: failed deleting timed out pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
+						log.Errorf("reaper: failed deleting timed out pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
 						continue
 					}
 					_ = kh.setCheckExecutionError(checkNN, []string{"check run timed out"})
@@ -128,7 +128,7 @@ func (kh *Kuberhealthy) reapOnce() error {
 				// prune successful pods after three intervals
 				if age > runInterval*3 {
 					if err := kh.CheckClient.Delete(kh.Context, podRef); err != nil && !apierrors.IsNotFound(err) {
-						log.Printf("reaper: failed deleting completed pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
+						log.Errorf("reaper: failed deleting completed pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
 						continue
 					}
 					if check.Status.PodName == podRef.Name {
@@ -139,7 +139,7 @@ func (kh *Kuberhealthy) reapOnce() error {
 				// accumulate failed pods for later pruning
 				failedPods = append(failedPods, *podRef)
 			default:
-				log.Printf("reaper: encountered pod %s/%s with unexpected phase %s", podRef.Namespace, podRef.Name, podRef.Status.Phase)
+				log.Errorf("reaper: encountered pod %s/%s with unexpected phase %s", podRef.Namespace, podRef.Name, podRef.Status.Phase)
 			}
 		}
 
@@ -154,7 +154,7 @@ func (kh *Kuberhealthy) reapOnce() error {
 			age := time.Since(podRef.CreationTimestamp.Time)
 			if pod >= maxFailed || age > retention {
 				if err := kh.CheckClient.Delete(kh.Context, podRef); err != nil && !apierrors.IsNotFound(err) {
-					log.Printf("reaper: failed deleting failed pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
+					log.Errorf("reaper: failed deleting failed pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
 					continue
 				}
 				if check.Status.PodName == podRef.Name {

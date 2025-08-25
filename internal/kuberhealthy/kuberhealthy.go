@@ -3,12 +3,12 @@ package kuberhealthy
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
+	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +38,7 @@ type Kuberhealthy struct {
 
 // New creates a new Kuberhealthy instance
 func New(ctx context.Context, checkClient client.Client) *Kuberhealthy {
-	log.Println("New Kuberhealthy created")
+	log.Infoln("New Kuberhealthy created")
 	return &Kuberhealthy{
 		Context:     ctx,
 		CheckClient: checkClient,
@@ -69,8 +69,7 @@ func (kh *Kuberhealthy) Start(ctx context.Context) error {
 	go kh.startScheduleLoop()
 	go kh.runReaper(kh.Context, time.Minute)
 
-
-	log.Println("Kuberhealthy start")
+	log.Infoln("Kuberhealthy start")
 	return nil
 }
 
@@ -122,7 +121,7 @@ func (kh *Kuberhealthy) scheduleChecks() {
 	uList := &unstructured.UnstructuredList{}
 	uList.SetGroupVersionKind(khcrdsv2.GroupVersion.WithKind("KuberhealthyCheckList"))
 	if err := kh.CheckClient.List(kh.Context, uList); err != nil {
-		log.Println("failed to list khchecks:", err)
+		log.Errorln("failed to list khchecks:", err)
 		return
 	}
 
@@ -131,7 +130,7 @@ func (kh *Kuberhealthy) scheduleChecks() {
 
 		var check khcrdsv2.KuberhealthyCheck
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(khcheck.Object, &check); err != nil {
-			log.Printf("failed to convert check %s/%s: %v", khcheck.GetNamespace(), khcheck.GetName(), err)
+			log.Errorf("failed to convert check %s/%s: %v", khcheck.GetNamespace(), khcheck.GetName(), err)
 			continue
 		}
 
@@ -144,7 +143,7 @@ func (kh *Kuberhealthy) scheduleChecks() {
 		}
 
 		if err := kh.StartCheck(&check); err != nil {
-			log.Printf("failed to start check %s/%s: %v", check.Namespace, check.Name, err)
+			log.Errorf("failed to start check %s/%s: %v", check.Namespace, check.Name, err)
 		}
 	}
 }
@@ -155,14 +154,14 @@ func (kh *Kuberhealthy) runIntervalForCheck(u *unstructured.Unstructured) time.D
 		if d, err := time.ParseDuration(v); err == nil {
 			return d
 		}
-		log.Printf("invalid runInterval %q on check %s/%s", v, u.GetNamespace(), u.GetName())
+		log.Errorf("invalid runInterval %q on check %s/%s", v, u.GetNamespace(), u.GetName())
 	}
 	return defaultRunInterval
 }
 
 // StartCheck begins tracking and managing a khcheck. This occurs when a khcheck is added.
 func (kh *Kuberhealthy) StartCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
-	log.Println("Starting Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
+	log.Infoln("Starting Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
 
 	// create a NamespacedName for additional calls
 	checkName := types.NamespacedName{
@@ -232,7 +231,7 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khcrdsv2.KuberhealthyCheck) *corev
 
 // StartCheck stops tracking and managing a khcheck. This occurs when a khcheck is removed.
 func (kh *Kuberhealthy) StopCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
-	log.Println("Stopping Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
+	log.Infoln("Stopping Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
 
 	// clear CurrentUUID to indicate the check is no longer running
 	checkName := createNamespacedName(khcheck.GetName(), khcheck.GetNamespace())
@@ -297,7 +296,7 @@ func (kh *Kuberhealthy) getCurrentPodName(khcheck *khcrdsv2.KuberhealthyCheck) (
 
 // UpdateCheck handles the event of a check getting upcated in place
 func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khcrdsv2.KuberhealthyCheck, newKHCheck *khcrdsv2.KuberhealthyCheck) error {
-	log.Println("Updating Kuberhealthy check", oldKHCheck.GetNamespace(), oldKHCheck.GetName())
+	log.Infoln("Updating Kuberhealthy check", oldKHCheck.GetNamespace(), oldKHCheck.GetName())
 	return nil
 }
 

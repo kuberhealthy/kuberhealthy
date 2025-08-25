@@ -2,9 +2,9 @@ package controller
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 
+	log "github.com/sirupsen/logrus"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -16,16 +16,16 @@ import (
 // setupWithManager registers the controller with filtering for create events. This automatically
 // starts the manager that is passed in.
 func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
-	fmt.Println("-- controller setupWithManager")
+	log.Debugln("controller: setupWithManager")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&khcrdsv2.KuberhealthyCheck{}).
 		WithEventFilter(predicate.Funcs{
 			// CREATE
 			CreateFunc: func(e event.CreateEvent) bool {
-				log.Println("controller: CREATE event detected for:", e.Object.GetName())
+				log.Infoln("controller: CREATE event detected for:", e.Object.GetName())
 				khcheck, err := convertToKHCheck(e.Object)
 				if err != nil {
-					log.Println("error:", err.Error())
+					log.Errorln("error:", err.Error())
 					return false
 				}
 				err = r.Kuberhealthy.StartCheck(khcheck) // Start new instance of check
@@ -33,15 +33,15 @@ func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
 			},
 			// UPDATE
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				log.Println("controller: UPDATE event detected for:", e.ObjectOld.GetName())
+				log.Infoln("controller: UPDATE event detected for:", e.ObjectOld.GetName())
 				oldKHCheck, err := convertToKHCheck(e.ObjectOld)
 				if err != nil {
-					log.Println("error:", err.Error())
+					log.Errorln("error:", err.Error())
 					return false
 				}
 				newKHCheck, err := convertToKHCheck(e.ObjectNew)
 				if err != nil {
-					log.Println("error:", err.Error())
+					log.Errorln("error:", err.Error())
 					return false
 				}
 				r.Kuberhealthy.UpdateCheck(oldKHCheck, newKHCheck)
@@ -50,10 +50,10 @@ func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
 			// DELETE
 			// TODO - do we need this DELETE and the one in Reconcile?
 			DeleteFunc: func(e event.DeleteEvent) bool {
-				log.Println("controller: DELETE event detected for:", e.Object.GetName())
+				log.Infoln("controller: DELETE event detected for:", e.Object.GetName())
 				khcheck, err := convertToKHCheck(e.Object)
 				if err != nil {
-					log.Println("error:", err.Error())
+					log.Errorln("error:", err.Error())
 					return false
 				}
 				err = r.Kuberhealthy.StopCheck(khcheck) // Start new instance of check
