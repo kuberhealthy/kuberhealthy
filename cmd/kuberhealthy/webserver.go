@@ -33,14 +33,17 @@ const statusPageHTML = `
 <head>
 <meta charset="utf-8" />
 <title>Kuberhealthy Status</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
 <style>
-body {font-family:sans-serif; margin:0; display:flex; height:100vh;}
-#menu {width:250px; border-right:1px solid #ccc; overflow-y:auto;}
+body {font-family:sans-serif; margin:0; display:flex; flex-direction:column; height:100vh; background-color:#e9ecef;}
+#main {flex:1; display:flex;}
+#menu {width:250px; border-right:1px solid #ccc; overflow-y:auto; background:#f8f9fa;}
 #menu .item {padding:8px; cursor:pointer;}
-#menu .item:hover {background:#f0f0f0;}
-#content {flex:1; padding:1em; overflow-y:auto;}
+#menu .item:hover {background:#e2e6ea;}
+#content {flex:1; padding:1em; overflow-y:auto; background:#ffffff;}
 #pods .pod {cursor:pointer; padding:4px;}
 #pods .pod:hover {background:#eef;}
+#events .event {padding:4px; border-bottom:1px solid #ddd;}
 pre {background:#f0f0f0; padding:1em; white-space:pre-wrap;}
 </style>
 <script>
@@ -73,6 +76,7 @@ async function showCheck(name){
   content.innerHTML='<h2>'+name+'</h2>'+
     '<p>Status: '+(st.ok?'OK':'Fail')+'</p>'+
     (st.errors && st.errors.length ? '<p>Errors: '+st.errors.join('; ')+'</p>' : '')+
+    '<h3>Events</h3><div id="events">loading...</div>'+
     '<h3>Pods</h3><div id="pods">loading...</div>'+
     '<h3>Pod Details</h3><div id="pod-info"></div>'+
     '<h3>Logs</h3><pre id="logs"></pre>';
@@ -87,6 +91,19 @@ async function showCheck(name){
       div.onclick=()=>loadLogs(p);
       podsDiv.appendChild(div);
     });
+    try{
+      const evs = await (await fetch('/api/events?namespace='+encodeURIComponent(st.namespace)+'&khcheck='+encodeURIComponent(name))).json();
+      const eventsDiv = document.getElementById('events');
+      eventsDiv.innerHTML='';
+      if(evs.length===0){eventsDiv.textContent='No events found';}
+      evs.forEach(ev=>{
+        const div=document.createElement('div');
+        div.className='event';
+        const ts = ev.lastTimestamp ? new Date(ev.lastTimestamp*1000).toLocaleString()+': ' : '';
+        div.textContent=ts+'['+ev.type+'] '+ev.reason+' - '+ev.message;
+        eventsDiv.appendChild(div);
+      });
+    }catch(e){console.error(e);}
   }catch(e){console.error(e);}
 }
 async function loadLogs(p){
@@ -118,9 +135,13 @@ async function streamLogs(url, elem){
 setInterval(refresh,5000); window.onload = refresh;
 </script>
 </head>
-<body>
-<div id="menu"></div>
-<div id="content"><h2>Select a check</h2></div>
+<body class="d-flex flex-column min-vh-100">
+<header class="bg-dark text-white p-3"><h1 class="h4 m-0">Kuberhealthy Status</h1></header>
+<div id="main">
+  <div id="menu"></div>
+  <div id="content"><h2>Select a check</h2></div>
+</div>
+<footer class="bg-light text-center p-2">Powered by Kuberhealthy</footer>
 </body>
 </html>
 `
@@ -178,6 +199,12 @@ func newServeMux() *http.ServeMux {
 
 	mux.HandleFunc("/api/pods", func(w http.ResponseWriter, r *http.Request) {
 		if err := podListHandler(w, r); err != nil {
+			log.Errorln(err)
+		}
+	})
+
+	mux.HandleFunc("/api/events", func(w http.ResponseWriter, r *http.Request) {
+		if err := eventListHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
@@ -289,6 +316,13 @@ type podLogResponse struct {
 	Logs string `json:"logs"`
 }
 
+type eventSummary struct {
+	Message       string `json:"message"`
+	Reason        string `json:"reason"`
+	Type          string `json:"type"`
+	LastTimestamp int64  `json:"lastTimestamp,omitempty"`
+}
+
 // podListHandler returns a list of pods for a given check.
 func podListHandler(w http.ResponseWriter, r *http.Request) error {
 	khcheck := r.URL.Query().Get("khcheck")
@@ -317,6 +351,36 @@ func podListHandler(w http.ResponseWriter, r *http.Request) error {
 		if p.Status.StartTime != nil {
 			s.StartTime = p.Status.StartTime.Unix()
 			s.DurationSeconds = int64(podRunDuration(&p).Seconds())
+		}
+		summaries = append(summaries, s)
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	return json.NewEncoder(w).Encode(summaries)
+}
+
+// eventListHandler returns events for a given check.
+func eventListHandler(w http.ResponseWriter, r *http.Request) error {
+	khcheck := r.URL.Query().Get("khcheck")
+	namespace := r.URL.Query().Get("namespace")
+	if khcheck == "" || namespace == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return fmt.Errorf("missing parameters")
+	}
+	if kubeClient == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kubernetes client not initialized")
+	}
+	fs := fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=KuberhealthyCheck", khcheck)
+	evList, err := kubeClient.CoreV1().Events(namespace).List(r.Context(), metav1.ListOptions{FieldSelector: fs})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	summaries := make([]eventSummary, 0, len(evList.Items))
+	for _, e := range evList.Items {
+		s := eventSummary{Message: e.Message, Reason: e.Reason, Type: e.Type}
+		if !e.LastTimestamp.IsZero() {
+			s.LastTimestamp = e.LastTimestamp.Unix()
 		}
 		summaries = append(summaries, s)
 	}
