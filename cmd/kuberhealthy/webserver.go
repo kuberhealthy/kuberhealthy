@@ -191,7 +191,7 @@ func newServeMux() *http.ServeMux {
 	return mux
 }
 
-// StartWebServer starts a JSON status web server at the specified listener.
+// StartWebServer starts the web server with all handlers attached to the muxer.
 func StartWebServer() error {
 	mux := newServeMux()
 	log.Infoln("Starting web services on port", GlobalConfig.ListenAddress)

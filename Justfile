@@ -1,5 +1,5 @@
 # This Justfile is for local development. Releases are done via Github Actions workflows. Just make a tag to cause a release.
-IMAGE := "docker.io/kuberhealthy/kuberhealthy"
+IMAGE := "kuberhealthy"
 TAG := "localdev"
 NOW := `date +%s`
 
