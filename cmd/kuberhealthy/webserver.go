@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	yaml "github.com/ghodss/yaml"
 	"github.com/google/uuid"
 	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
@@ -176,7 +177,13 @@ func newServeMux() *http.ServeMux {
 	})
 
 	mux.HandleFunc("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
-		if err := openapiSpecHandler(w, r); err != nil {
+		if err := openapiYAMLHandler(w, r); err != nil {
+			log.Errorln(err)
+		}
+	})
+
+	mux.HandleFunc("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
+		if err := openapiJSONHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
@@ -221,16 +228,32 @@ func statusPageHandler(w http.ResponseWriter, r *http.Request) error {
 	return err
 }
 
-// openapiSpecHandler serves the OpenAPI specification for the Kuberhealthy API.
-func openapiSpecHandler(w http.ResponseWriter, r *http.Request) error {
+// renderOpenAPISpec writes the OpenAPI spec as JSON.
+func renderOpenAPISpec(w http.ResponseWriter) error {
 	data, err := os.ReadFile("./openapi.yaml")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
-	w.Header().Set("Content-Type", "application/yaml; charset=utf-8")
-	_, err = w.Write(data)
+
+	jsonData, err := yaml.YAMLToJSON(data)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_, err = w.Write(jsonData)
 	return err
+}
+
+// openapiYAMLHandler serves the OpenAPI spec at /openapi.yaml as JSON.
+func openapiYAMLHandler(w http.ResponseWriter, r *http.Request) error {
+	return renderOpenAPISpec(w)
+}
+
+// openapiJSONHandler serves the OpenAPI spec at /openapi.json as JSON.
+func openapiJSONHandler(w http.ResponseWriter, r *http.Request) error {
+	return renderOpenAPISpec(w)
 }
 
 type podSummary struct {

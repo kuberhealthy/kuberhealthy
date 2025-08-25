@@ -119,6 +119,7 @@ func TestCheckReportHandler(t *testing.T) {
 			t.Fatalf("failed to marshal report: %v", err)
 		}
 		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 
 		if err := checkReportHandler(rr, req); err != nil {
