@@ -78,7 +78,7 @@ func GetMyNamespace(defaultNamespace string) string {
 		log.Infoln("Found instance namespace:", string(data))
 		instanceNamespace = instanceNamespaceEnv
 	} else {
-		log.Infoln("Did not find instance namespace. Using default namespace:", defaultNamespace)
+		log.Warnln("Did not find instance namespace. Using default namespace:", defaultNamespace)
 	}
 
 	return instanceNamespace
