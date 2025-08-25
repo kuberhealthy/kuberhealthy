@@ -18,9 +18,8 @@ package controller
 
 import (
 	"context"
-	"fmt"
-	"log"
 
+	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,7 +50,7 @@ type KuberhealthyCheckReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.18.4/pkg/reconcile
 func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	fmt.Println("-- controller Reconcile")
+	log.Debugln("controller: Reconcile")
 	var check khcrdsv2.KuberhealthyCheck
 	if err := r.Get(ctx, req.NamespacedName, &check); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -62,7 +61,7 @@ func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// DELETE support for finalizer
 	if !check.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(&check, finalizer) {
-			log.Println("controller: FINALIZER DELETE event detected for:", req.Namespace+"/"+req.Name)
+			log.Infoln("controller: FINALIZER DELETE event detected for:", req.Namespace+"/"+req.Name)
 
 			// Remove finalizer and update the resource
 			controllerutil.RemoveFinalizer(&check, finalizer)

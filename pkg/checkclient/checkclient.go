@@ -8,13 +8,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/cenkalti/backoff"
+	log "github.com/sirupsen/logrus"
 
 	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
@@ -63,7 +63,7 @@ func ReportFailure(errorMessages []string) error {
 // writeLog writes a log entry if debugging is enabled
 func writeLog(i ...interface{}) {
 	if Debug {
-		log.Println("checkClient:", fmt.Sprint(i...))
+		log.Infoln("checkClient:", fmt.Sprint(i...))
 	}
 }
 
