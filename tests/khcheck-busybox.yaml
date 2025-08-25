@@ -4,7 +4,8 @@ metadata:
   name: test-kh-check
   namespace: kuberhealthy
 spec:
-  singleRunOnly: true
+  singleRunOnly: false
+  runInterval: 15s
   podSpec:
     metadata: {}
     spec:

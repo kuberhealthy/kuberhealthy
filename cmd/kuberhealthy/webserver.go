@@ -566,7 +566,7 @@ func validateExternalRequest(ctx context.Context, selector string) (PodReportInf
 
 // prometheusMetricsHandler is a handler for all prometheus metrics requests
 func prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
-	log.Infoln("Client connected to prometheus metrics endpoint from", r.RemoteAddr, r.UserAgent())
+	// log.Infoln("Client connected to prometheus metrics endpoint from", r.RemoteAddr, r.UserAgent())
 	state := getCurrentState([]string{})
 
 	m := metrics.GenerateMetrics(state, GlobalConfig.PromMetricsConfig)
@@ -581,7 +581,7 @@ func prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 // healthCheckHandler returns the current status of checks loaded into Kuberhealthy
 // as JSON to the client. Respects namespace requests via URL query parameters (i.e. /?namespace=default)
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) error {
-	log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
+	// log.Infoln("Client connected to status page from", r.RemoteAddr, r.UserAgent())
 
 	// If a request body was supplied, throw an error to ensure that checks don't report into the wrong url
 	body, err := io.ReadAll(r.Body)
@@ -639,7 +639,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 
 	ctx := r.Context()
 
-	log.Println("webserver:", requestID, "Client connected to check report handler from", r.UserAgent())
+	// log.Println("webserver:", requestID, "Client connected to check report handler from", r.UserAgent())
 
 	// Validate request using the kh-run-uuid header. If the header doesn't exist, or there's an error with validation,
 	// validate using the pod's remote IP.
