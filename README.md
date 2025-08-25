@@ -15,7 +15,7 @@ Kuberhealthy lets you continuously verify that your applications and Kubernetes 
 
 Kuberhealthy comes with [lots of useful checks already available](docs/CHECKS_REGISTRY.md) to ensure the core functionality of Kubernetes, but checks can be used to test anything you like.  We encourage you to [write your own check container](docs/CHECK_CREATION.md) in any language to test your own applications.  It really is quick and easy!
 
-Kuberhealthy serves the status of all checks on a simple JSON status page, a [Prometheus](https://prometheus.io/) metrics endpoint (at `/metrics`), and supports InfluxDB metric forwarding for integration into your choice of alerting solution.
+Kuberhealthy serves the status of all checks on a simple JSON status page, a [Prometheus](https://prometheus.io/) metrics endpoint (at `/metrics`), and supports InfluxDB metric forwarding for integration into your choice of alerting solution. The OpenAPI specification for the API is available at `/openapi.yaml` on the web server.
 
 
 
