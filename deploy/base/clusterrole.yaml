@@ -17,18 +17,17 @@ kind: ClusterRole
 metadata:
   name: kuberhealthy-manager
 rules:
-- apiGroups:
-  - kuberhealthy.github.io
-  resources:
-  - kuberhealthychecks
-  - kuberhealthychecks/finalizers
-  - kuberhealthychecks/status
-  - pods
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
+  # Kuberhealthy CRDs (cluster-wide)
+  - apiGroups: ["kuberhealthy.github.io"]
+    resources:
+      - kuberhealthychecks
+      - kuberhealthychecks/finalizers
+      - kuberhealthychecks/status
+    verbs: ["create","delete","get","list","patch","update","watch"]
+
+  # Core v1 (cluster-wide)
+  - apiGroups: [""]
+    resources:
+      - pods
+      - events
+    verbs: ["create","delete","get","list","patch","update","watch"]
