@@ -5,7 +5,7 @@ set -euo pipefail
 # One-stop: sync build context to node, build image on that node (matching its arch),
 # ensure image is available in containerd, apply/update manifests, and list pods.
 
-IMAGE="docker.io/kuberhealthy/kuberhealthy:localdev"
+IMAGE="kuberhealthy:localdev"
 NODE="${NODE:-k8s1}"
 # Prefer $USER when available to avoid numeric whoami on some systems
 REMOTE_USER="${REMOTE_USER:-${USER:-$(whoami)}}"
