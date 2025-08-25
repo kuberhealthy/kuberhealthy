@@ -76,7 +76,7 @@ async function showCheck(name){
     '<h3>Pod Details</h3><div id="pod-info"></div>'+
     '<h3>Logs</h3><pre id="logs"></pre>';
   try{
-    const pods = await (await fetch('/api/pods?namespace='+encodeURIComponent(st.namespace)+'&check='+encodeURIComponent(name))).json();
+    const pods = await (await fetch('/api/pods?namespace='+encodeURIComponent(st.namespace)+'&khcheck='+encodeURIComponent(name))).json();
     const podsDiv = document.getElementById('pods');
     podsDiv.innerHTML='';
     pods.forEach(p=>{
@@ -90,7 +90,7 @@ async function showCheck(name){
 }
 async function loadLogs(p){
   try{
-    const params='namespace='+encodeURIComponent(p.namespace)+'&check='+encodeURIComponent(currentCheck)+'&pod='+encodeURIComponent(p.name);
+    const params='namespace='+encodeURIComponent(p.namespace)+'&khcheck='+encodeURIComponent(currentCheck)+'&pod='+encodeURIComponent(p.name);
     const res = await (await fetch('/api/logs?'+params)).json();
     document.getElementById('pod-info').textContent='Started: '+(res.startTime?new Date(res.startTime*1000).toLocaleString():'')+' Duration: '+res.durationSeconds+'s Phase: '+res.phase;
     const logElem=document.getElementById('logs');
@@ -238,9 +238,9 @@ type podLogResponse struct {
 
 // podListHandler returns a list of pods for a given check.
 func podListHandler(w http.ResponseWriter, r *http.Request) error {
-	check := r.URL.Query().Get("check")
+	khcheck := r.URL.Query().Get("khcheck")
 	namespace := r.URL.Query().Get("namespace")
-	if check == "" || namespace == "" {
+	if khcheck == "" || namespace == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return fmt.Errorf("missing parameters")
 	}
@@ -249,12 +249,12 @@ func podListHandler(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("kubernetes client not initialized")
 	}
 	khc := &kuberhealthycheckv2.KuberhealthyCheck{}
-	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: check}, khc); err != nil {
+	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: khcheck}, khc); err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return err
 	}
 	pods := &v1.PodList{}
-	if err := KHController.Client.List(r.Context(), pods, client.InNamespace(namespace), client.MatchingLabels{"khcheck": check}); err != nil {
+	if err := KHController.Client.List(r.Context(), pods, client.InNamespace(namespace), client.MatchingLabels{"khcheck": khcheck}); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
@@ -275,8 +275,8 @@ func podListHandler(w http.ResponseWriter, r *http.Request) error {
 func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 	podName := r.URL.Query().Get("pod")
 	namespace := r.URL.Query().Get("namespace")
-	check := r.URL.Query().Get("check")
-	if podName == "" || namespace == "" || check == "" {
+	khcheck := r.URL.Query().Get("khcheck")
+	if podName == "" || namespace == "" || khcheck == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return fmt.Errorf("missing parameters")
 	}
@@ -289,12 +289,12 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
-	if pod.Labels["khcheck"] != check {
+	if pod.Labels["khcheck"] != khcheck {
 		w.WriteHeader(http.StatusForbidden)
 		return fmt.Errorf("pod not part of khcheck")
 	}
 	khc := &kuberhealthycheckv2.KuberhealthyCheck{}
-	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: check}, khc); err != nil {
+	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: khcheck}, khc); err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return err
 	}
@@ -345,8 +345,8 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 func podLogsStreamHandler(w http.ResponseWriter, r *http.Request) error {
 	podName := r.URL.Query().Get("pod")
 	namespace := r.URL.Query().Get("namespace")
-	check := r.URL.Query().Get("check")
-	if podName == "" || namespace == "" || check == "" {
+	khcheck := r.URL.Query().Get("khcheck")
+	if podName == "" || namespace == "" || khcheck == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return fmt.Errorf("missing parameters")
 	}
@@ -359,12 +359,16 @@ func podLogsStreamHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
-	if pod.Labels["khcheck"] != check {
+	if pod.Labels["khcheck"] != khcheck {
 		w.WriteHeader(http.StatusForbidden)
 		return fmt.Errorf("pod not part of khcheck")
 	}
+	if pod.Status.Phase != v1.PodRunning {
+		w.WriteHeader(http.StatusConflict)
+		return fmt.Errorf("pod not running")
+	}
 	khc := &kuberhealthycheckv2.KuberhealthyCheck{}
-	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: check}, khc); err != nil {
+	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: khcheck}, khc); err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return err
 	}

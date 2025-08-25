@@ -57,7 +57,7 @@ paths:
           schema:
             type: string
         - in: query
-          name: check
+          name: khcheck
           required: true
           schema:
             type: string
@@ -82,7 +82,7 @@ paths:
           schema:
             type: string
         - in: query
-          name: check
+          name: khcheck
           required: true
           schema:
             type: string
@@ -110,7 +110,7 @@ paths:
           schema:
             type: string
         - in: query
-          name: check
+          name: khcheck
           required: true
           schema:
             type: string
@@ -128,6 +128,8 @@ paths:
                 type: string
         '400':
           description: Missing parameters
+        '409':
+          description: Pod not running
   /check:
     post:
       summary: Report an external check result
