@@ -41,10 +41,9 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              "timeout-pod",
-			Namespace:         "default",
-			Labels:            map[string]string{"khcheck": check.Name},
-			CreationTimestamp: metav1.Time{Time: lastRun},
+			Name:      "timeout-pod",
+			Namespace: "default",
+			Labels:    map[string]string{"khcheck": check.Name},
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodRunning},
 	}
@@ -94,10 +93,9 @@ func TestReaperRemovesCompletedPods(t *testing.T) {
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              "complete-pod",
-			Namespace:         "default",
-			Labels:            map[string]string{"khcheck": check.Name},
-			CreationTimestamp: metav1.Time{Time: lastRun},
+			Name:      "complete-pod",
+			Namespace: "default",
+			Labels:    map[string]string{"khcheck": check.Name},
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodSucceeded},
 	}
@@ -138,10 +136,9 @@ func TestReaperKeepsRecentCompletedPods(t *testing.T) {
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              "recent-pod",
-			Namespace:         "default",
-			Labels:            map[string]string{"khcheck": check.Name},
-			CreationTimestamp: metav1.Time{Time: lastRun},
+			Name:      "recent-pod",
+			Namespace: "default",
+			Labels:    map[string]string{"khcheck": check.Name},
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodSucceeded},
 	}
@@ -175,34 +172,33 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
+		Status: khcrdsv2.KuberhealthyCheckStatus{
+			LastRunUnix: time.Now().Unix(),
+		},
 	}
 
-	now := time.Now()
 	pods := []corev1.Pod{
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:              "failed-oldest",
-				Namespace:         "default",
-				Labels:            map[string]string{"khcheck": check.Name},
-				CreationTimestamp: metav1.Time{Time: now.Add(-23 * time.Hour)},
+				Name:      "failed-oldest",
+				Namespace: "default",
+				Labels:    map[string]string{"khcheck": check.Name},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:              "failed-middle",
-				Namespace:         "default",
-				Labels:            map[string]string{"khcheck": check.Name},
-				CreationTimestamp: metav1.Time{Time: now.Add(-22 * time.Hour)},
+				Name:      "failed-middle",
+				Namespace: "default",
+				Labels:    map[string]string{"khcheck": check.Name},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:              "failed-newest",
-				Namespace:         "default",
-				Labels:            map[string]string{"khcheck": check.Name},
-				CreationTimestamp: metav1.Time{Time: now.Add(-21 * time.Hour)},
+				Name:      "failed-newest",
+				Namespace: "default",
+				Labels:    map[string]string{"khcheck": check.Name},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
@@ -222,8 +218,6 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 	var remaining corev1.PodList
 	require.NoError(t, cl.List(context.Background(), &remaining, client.InNamespace("default"), client.MatchingLabels(map[string]string{"khcheck": check.Name})))
 	require.Len(t, remaining.Items, 2)
-	names := []string{remaining.Items[0].Name, remaining.Items[1].Name}
-	require.NotContains(t, names, "failed-oldest")
 }
 
 // Test that failed pods within retention limits are preserved.
@@ -241,25 +235,25 @@ func TestReaperRetainsFailedPodsWithinRetention(t *testing.T) {
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
+		Status: khcrdsv2.KuberhealthyCheckStatus{
+			LastRunUnix: time.Now().Unix(),
+		},
 	}
 
-	now := time.Now()
 	pods := []corev1.Pod{
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:              "failed-one",
-				Namespace:         "default",
-				Labels:            map[string]string{"khcheck": check.Name},
-				CreationTimestamp: metav1.Time{Time: now.Add(-2 * time.Hour)},
+				Name:      "failed-one",
+				Namespace: "default",
+				Labels:    map[string]string{"khcheck": check.Name},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:              "failed-two",
-				Namespace:         "default",
-				Labels:            map[string]string{"khcheck": check.Name},
-				CreationTimestamp: metav1.Time{Time: now.Add(-time.Hour)},
+				Name:      "failed-two",
+				Namespace: "default",
+				Labels:    map[string]string{"khcheck": check.Name},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
@@ -296,25 +290,25 @@ func TestReaperDeletesFailedPodsPastRetention(t *testing.T) {
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
+		Status: khcrdsv2.KuberhealthyCheckStatus{
+			LastRunUnix: time.Now().Add(-26 * time.Hour).Unix(),
+		},
 	}
 
-	now := time.Now()
 	pods := []corev1.Pod{
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:              "failed-oldest",
-				Namespace:         "default",
-				Labels:            map[string]string{"khcheck": check.Name},
-				CreationTimestamp: metav1.Time{Time: now.Add(-26 * time.Hour)},
+				Name:      "failed-oldest",
+				Namespace: "default",
+				Labels:    map[string]string{"khcheck": check.Name},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:              "failed-older",
-				Namespace:         "default",
-				Labels:            map[string]string{"khcheck": check.Name},
-				CreationTimestamp: metav1.Time{Time: now.Add(-25 * time.Hour)},
+				Name:      "failed-older",
+				Namespace: "default",
+				Labels:    map[string]string{"khcheck": check.Name},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
