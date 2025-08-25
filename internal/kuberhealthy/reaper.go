@@ -116,6 +116,9 @@ func (kh *Kuberhealthy) reapOnce() error {
 					if err := kh.CheckClient.Delete(kh.Context, podRef); err != nil && !apierrors.IsNotFound(err) {
 						log.Errorf("reaper: failed deleting timed out pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
 						continue
+					} else if kh.Recorder != nil {
+						// emit event when a pod is killed for timing out
+						kh.Recorder.Eventf(check, corev1.EventTypeWarning, "CheckRunTimeout", "deleted pod %s after exceeding timeout %s", podRef.Name, runTimeout)
 					}
 					_ = kh.setCheckExecutionError(checkNN, []string{"check run timed out"})
 					_ = kh.setOK(checkNN, false)
@@ -130,6 +133,9 @@ func (kh *Kuberhealthy) reapOnce() error {
 					if err := kh.CheckClient.Delete(kh.Context, podRef); err != nil && !apierrors.IsNotFound(err) {
 						log.Errorf("reaper: failed deleting completed pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
 						continue
+					} else if kh.Recorder != nil {
+						// record cleanup of a completed pod
+						kh.Recorder.Eventf(check, corev1.EventTypeNormal, "CheckPodReaped", "deleted completed pod %s after %s", podRef.Name, age)
 					}
 					if check.Status.PodName == podRef.Name {
 						_ = kh.setCheckPodName(checkNN, "")
@@ -156,6 +162,9 @@ func (kh *Kuberhealthy) reapOnce() error {
 				if err := kh.CheckClient.Delete(kh.Context, podRef); err != nil && !apierrors.IsNotFound(err) {
 					log.Errorf("reaper: failed deleting failed pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
 					continue
+				} else if kh.Recorder != nil {
+					// note removal of an old failed pod
+					kh.Recorder.Eventf(check, corev1.EventTypeNormal, "CheckFailedPodReaped", "removed failed pod %s after %s", podRef.Name, age)
 				}
 				if check.Status.PodName == podRef.Name {
 					_ = kh.setCheckPodName(checkNN, "")

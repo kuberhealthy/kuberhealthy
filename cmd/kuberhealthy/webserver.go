@@ -728,6 +728,18 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// append pod info to request id for easy check tracing in logs
 	requestID = requestID + " (" + podReport.Namespace + "/" + podReport.Name + ")"
 
+	// fetch the khcheck for event recording when controller is available
+	var khCheck *kuberhealthycheckv2.KuberhealthyCheck
+	if KHController != nil && KHController.Client != nil {
+		nn := types.NamespacedName{Name: podReport.Name, Namespace: podReport.Namespace}
+		khCheck = &kuberhealthycheckv2.KuberhealthyCheck{}
+		if err := KHController.Client.Get(ctx, nn, khCheck); err != nil {
+			// if we cannot fetch, skip event recording
+			log.Println("webserver:", requestID, "failed to fetch khcheck for event recording:", err)
+			khCheck = nil
+		}
+	}
+
 	// ensure the client is sending a valid payload in the request body
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -787,9 +799,20 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Println("webserver:", requestID, "Setting check with name", podReport.Name, "in namespace", podReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID)
 	err = storeCheckStateFunc(podReport.Name, podReport.Namespace, details)
 	if err != nil {
+		if khCheck != nil && KHController != nil && KHController.Kuberhealthy != nil && KHController.Kuberhealthy.Recorder != nil {
+			KHController.Kuberhealthy.Recorder.Eventf(khCheck, v1.EventTypeWarning, "CheckReportFailed", "failed to store check state: %v", err)
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println("webserver:", requestID, "failed to store check state for %s: %w", podReport.Name, err)
 		return fmt.Errorf("failed to store check state for %s: %w", podReport.Name, err)
+	}
+
+	if khCheck != nil && KHController != nil && KHController.Kuberhealthy != nil && KHController.Kuberhealthy.Recorder != nil {
+		if state.OK {
+			KHController.Kuberhealthy.Recorder.Event(khCheck, v1.EventTypeNormal, "CheckReported", "check reported OK")
+		} else {
+			KHController.Kuberhealthy.Recorder.Eventf(khCheck, v1.EventTypeWarning, "CheckReported", strings.Join(state.Errors, "; "))
+		}
 	}
 
 	// write ok back to caller

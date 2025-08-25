@@ -15,7 +15,12 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	record "k8s.io/client-go/tools/record"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
+	restconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 const (
@@ -32,16 +37,40 @@ type Kuberhealthy struct {
 	running     bool          // indicates that Start() has been called and this instance is running
 	CheckClient client.Client // Kubernetes client for check CRUD
 
+	Recorder record.EventRecorder // emits k8s events for khcheck lifecycle
+
 	loopMu      sync.Mutex
 	loopRunning bool
 }
 
-// New creates a new Kuberhealthy instance
+// New creates a new Kuberhealthy instance and event recorder
 func New(ctx context.Context, checkClient client.Client) *Kuberhealthy {
 	log.Infoln("New Kuberhealthy created")
+
+	var recorder record.EventRecorder
+
+	cfg, err := restconfig.GetConfig()
+	if err != nil {
+		log.Errorln("event recorder disabled:", err)
+	} else {
+		cs, err := kubernetes.NewForConfig(cfg)
+		if err != nil {
+			log.Errorln("event recorder disabled:", err)
+		} else {
+			broadcaster := record.NewBroadcaster()
+			broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: cs.CoreV1().Events("")})
+			if err := khcrdsv2.AddToScheme(k8scheme.Scheme); err != nil {
+				log.Errorln("event recorder disabled:", err)
+			} else {
+				recorder = broadcaster.NewRecorder(k8scheme.Scheme, corev1.EventSource{Component: "kuberhealthy"})
+			}
+		}
+	}
+
 	return &Kuberhealthy{
 		Context:     ctx,
 		CheckClient: checkClient,
+		Recorder:    recorder,
 	}
 }
 
@@ -162,6 +191,10 @@ func (kh *Kuberhealthy) runIntervalForCheck(u *unstructured.Unstructured) time.D
 // StartCheck begins tracking and managing a khcheck. This occurs when a khcheck is added.
 func (kh *Kuberhealthy) StartCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 	log.Infoln("Starting Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
+	if kh.Recorder != nil {
+		// emit an event noting the check start
+		kh.Recorder.Event(khcheck, corev1.EventTypeNormal, "CheckStarted", "check run started")
+	}
 
 	// create a NamespacedName for additional calls
 	checkName := types.NamespacedName{
@@ -184,11 +217,20 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 
 	// create the checker pod
 	if err := kh.CheckClient.Create(kh.Context, podSpec); err != nil {
+		if kh.Recorder != nil {
+			kh.Recorder.Event(khcheck, corev1.EventTypeWarning, "PodCreateFailed", fmt.Sprintf("failed to create pod: %v", err))
+		}
 		return fmt.Errorf("failed to create check pod: %w", err)
+	}
+	if kh.Recorder != nil {
+		kh.Recorder.Eventf(khcheck, corev1.EventTypeNormal, "PodCreated", "created pod %s", podSpec.Name)
 	}
 
 	// write the name of the pod to the khcheck CRD's status
 	if err := kh.setCheckPodName(checkName, podSpec.Name); err != nil {
+		if kh.Recorder != nil {
+			kh.Recorder.Event(khcheck, corev1.EventTypeWarning, "SetPodNameFailed", fmt.Sprintf("unable to set pod name: %v", err))
+		}
 		return fmt.Errorf("unable to set check pod name: %w", err)
 	}
 	return nil
