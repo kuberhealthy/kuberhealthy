@@ -191,8 +191,8 @@ You can directly access the current test statuses by accessing the `kuberhealthy
 ## Contributing
 
 If you're interested in contributing to this project:
-- Check out the [Contributing Guide](CONTRIBUTING.md).
-- If you use Kuberhealthy in a production environment, add yourself to the list of [Kuberhealthy adopters](docs/KUBERHEALTHY_ADOPTERS.md)!
+- Check out the [Contributing Guide](docs/CONTRIBUTING.md).
+- If you use Kuberhealthy in a production environment, add yourself to the list of [Kuberhealthy adopters](docs/ADOPTERS.md)!
 - Check out [open issues](https://github.com/kuberhealthy/kuberhealthy/issues). If you're new to the project, look for the `good first issue` tag.
 - We're always looking for check contributions (either in suggestions or in PRs) as well as feedback from folks implementing
 Kuberhealthy locally or in a test environment.
