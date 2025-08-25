@@ -26,7 +26,6 @@ type Config struct {
 	checkReportURL                string // the hostname checks will report to
 	TerminationGracePeriodSeconds time.Duration
 	DefaultCheckTimeout           time.Duration
-	DebugMode                     bool
 	DefaultNamespace              string
 	Namespace                     string // the namespace kh is running in
 	ServiceName                   string // kuberhealthy service name
@@ -165,14 +164,6 @@ func (c *Config) LoadFromEnv() error {
 			return fmt.Errorf("invalid KH_DEFAULT_CHECK_TIMEOUT: %w", err)
 		}
 		c.DefaultCheckTimeout = d
-	}
-
-	if v := os.Getenv("KH_DEBUG_MODE"); v != "" {
-		b, err := strconv.ParseBool(v)
-		if err != nil {
-			return fmt.Errorf("invalid KH_DEBUG_MODE: %w", err)
-		}
-		c.DebugMode = b
 	}
 
 	if v := os.Getenv("KH_DEFAULT_NAMESPACE"); v != "" {

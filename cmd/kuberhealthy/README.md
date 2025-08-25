@@ -27,6 +27,5 @@ KH_SERVICE_NAME="kuberhealthy" # service name used for reports
 KH_DEFAULT_RUN_INTERVAL="10m" # default check run interval
 KH_TERMINATION_GRACE_PERIOD="5m" # shutdown grace period
 KH_DEFAULT_CHECK_TIMEOUT="5m" # default check timeout
-KH_DEBUG_MODE="false" # enable debug mode
 KH_DEFAULT_NAMESPACE="kuberhealthy" # fallback namespace
 ```
