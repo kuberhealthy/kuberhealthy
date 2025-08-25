@@ -191,10 +191,6 @@ func (kh *Kuberhealthy) runIntervalForCheck(u *unstructured.Unstructured) time.D
 // StartCheck begins tracking and managing a khcheck. This occurs when a khcheck is added.
 func (kh *Kuberhealthy) StartCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 	log.Infoln("Starting Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
-	if kh.Recorder != nil {
-		// emit an event noting the check start
-		kh.Recorder.Event(khcheck, corev1.EventTypeNormal, "CheckStarted", "check run started")
-	}
 
 	// create a NamespacedName for additional calls
 	checkName := types.NamespacedName{
@@ -208,8 +204,13 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 	}
 
 	// record the start time
-	if err := kh.setLastRunTime(checkName, time.Now()); err != nil {
+	startTime := time.Now()
+	if err := kh.setLastRunTime(checkName, startTime); err != nil {
 		return fmt.Errorf("unable to set check start time: %w", err)
+	}
+	khcheck.Status.LastRunUnix = startTime.Unix()
+	if kh.Recorder != nil {
+		kh.Recorder.Eventf(khcheck, corev1.EventTypeNormal, "PodStarted", "check pod scheduled at %s", startTime.Format(time.RFC3339))
 	}
 
 	// craft a full pod spec using the check's pod spec
@@ -263,7 +264,8 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khcrdsv2.KuberhealthyCheck) *corev
 	// add required annotations
 	podSpec.Annotations["createdBy"] = "kuberhealthy"
 	podSpec.Annotations["kuberhealthyCheckName"] = khcheck.Name
-	podSpec.Annotations["createdTime"] = time.Now().String()
+	// reference the check's last run time instead of the pod spec's creation timestamp
+	podSpec.Annotations["createdTime"] = time.Unix(khcheck.Status.LastRunUnix, 0).String()
 
 	// add required labels
 	podSpec.Labels["khcheck"] = khcheck.Name
