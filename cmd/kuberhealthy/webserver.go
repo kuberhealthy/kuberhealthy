@@ -127,8 +127,26 @@ setInterval(refresh,5000); window.onload = refresh;
 // requestLogger logs incoming requests before they reach a handler.
 func requestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// log the HTTP method and path for each request
-		log.Infof("%s %s", r.Method, r.URL.Path)
+		// determine the source IP making the request
+		ip := r.Header.Get("X-Forwarded-For")
+		if ip != "" {
+			parts := strings.Split(ip, ",")
+			ip = strings.TrimSpace(parts[0])
+		} else {
+			// ignore the port on the remote address
+			ip, _, _ = net.SplitHostPort(r.RemoteAddr)
+		}
+
+		// capture the user agent string
+		ua := r.UserAgent()
+
+		// log the IP, user agent, HTTP method, and path
+		log.WithFields(log.Fields{
+			"ip":     ip,
+			"ua":     ua,
+			"method": r.Method,
+			"path":   r.URL.Path,
+		}).Info("request")
 
 		// continue handling the request
 		next.ServeHTTP(w, r)
