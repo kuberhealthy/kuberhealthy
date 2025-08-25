@@ -6,6 +6,7 @@ metadata:
 spec:
   singleRunOnly: true
   podSpec:
+    metadata: {}
     spec:
       containers:
         - image: busybox
