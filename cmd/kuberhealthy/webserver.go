@@ -1022,7 +1022,7 @@ func storeCheckState(checkName string, checkNamespace string, khcheck *kuberheal
 		if tries > maxTries {
 			return fmt.Errorf("failed to update khcheck status for check %s in namespace %s after %d with error %w", checkName, checkNamespace, maxTries, err)
 		}
-		log.Infoln("Failed to update khcheck status because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
+		log.Warnln("Failed to update khcheck status because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
 
 		// sleep and double the delay between checks (exponential backoff)
 		time.Sleep(delay)
