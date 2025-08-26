@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"net/http/httptest"
 	"testing"
-
-	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
 )
 
 func TestAddError(t *testing.T) {
@@ -25,7 +23,7 @@ func TestWriteHTTPStatusResponse(t *testing.T) {
 	s := State{
 		OK:     true,
 		Errors: []string{"e1"},
-		CheckDetails: map[string]kuberhealthycheckv2.KuberhealthyCheckStatus{
+		CheckDetails: map[string]CheckDetail{
 			"check": {},
 		},
 		Metadata: map[string]string{"a": "b"},
