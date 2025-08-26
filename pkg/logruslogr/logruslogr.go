@@ -2,6 +2,7 @@ package logruslogr
 
 import (
 	"fmt"
+	"runtime/debug"
 
 	"github.com/go-logr/logr"
 	log "github.com/sirupsen/logrus"
@@ -34,6 +35,8 @@ func (s *sink) Info(level int, msg string, kv ...interface{}) {
 		entry = entry.WithField("logger", s.name)
 	}
 	if s.name == "KubeAPIWarningLogger" {
+		// Include stack trace to help locate where warnings originate.
+		entry = entry.WithField("stack", string(debug.Stack()))
 		entry.Warn(msg)
 		return
 	}

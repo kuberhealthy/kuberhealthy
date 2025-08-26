@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,6 +66,7 @@ func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 			// Remove finalizer and update the resource
 			controllerutil.RemoveFinalizer(&check, finalizer)
+			logPodSpecObjectMeta("delete-finalizer update", &check)
 			if err := r.Update(ctx, &check); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -75,6 +77,7 @@ func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Ensure finalizer is set
 	if !controllerutil.ContainsFinalizer(&check, finalizer) {
 		controllerutil.AddFinalizer(&check, finalizer)
+		logPodSpecObjectMeta("add-finalizer update", &check)
 		if err := r.Update(ctx, &check); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -82,9 +85,27 @@ func (r *KuberhealthyCheckReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Optionally update status of the kuberhealthycheck resource
 	// check.Status.Phase = "Running"
+	logPodSpecObjectMeta("status update", &check)
 	if err := r.Status().Update(ctx, &check); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// logPodSpecObjectMeta prints the pod template metadata to help trace unknown field warnings.
+func logPodSpecObjectMeta(stage string, check *khcrdsv2.KuberhealthyCheck) {
+	metaBytes, err := json.Marshal(check.Spec.PodSpec.ObjectMeta)
+	if err != nil {
+		// Log the marshaling error for additional context.
+		log.WithFields(log.Fields{"stage": stage, "error": err}).Debug("marshal podSpec metadata failed")
+		return
+	}
+
+	ct := check.Spec.PodSpec.ObjectMeta.CreationTimestamp
+	log.WithFields(log.Fields{
+		"stage":             stage,
+		"creationTimestamp": ct,
+		"metadata":          string(metaBytes),
+	}).Debug("podSpec metadata contents")
 }
