@@ -9,6 +9,17 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/kuberhealthy.svg?style=social)](https://twitter.com/kuberhealthy)  
 [![Join Slack](https://img.shields.io/badge/slack-kubernetes/kuberhealthy-teal.svg?logo=slack)](https://kubernetes.slack.com/messages/CB9G7HWTE)
 
+## Table of Contents
+
+- [What is Kuberhealthy?](#what-is-kuberhealthy)
+- [Installation](#installation)
+- [Visualized](#visualized)
+- [Included Checks](#included-checks)
+- [Create Synthetic Checks for Your APIs](#create-synthetic-checks-for-your-apis)
+- [Status Page](#status-page)
+- [Contributing](#contributing)
+- [Monthly Community Meeting](#monthly-community-meeting)
+
 ## What is Kuberhealthy?
 
 Kuberhealthy lets you continuously verify that your applications and Kubernetes clusters are working as expected. By creating a custom resource (a [`KuberhealthyCheck`](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CHECKS.md#khcheck-anatomy)) in your cluster, you can easily enable [various synthetic tests](docs/CHECKS_REGISTRY.md) and get Prometheus metrics for them.
