@@ -257,7 +257,7 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khcrdsv2.KuberhealthyCheck) *corev
 			Annotations: map[string]string{},
 			Labels:      map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(khcheck, khcheck.GroupVersionKind()),
+				*metav1.NewControllerRef(khcheck, khcrdsv2.GroupVersion.WithKind("KuberhealthyCheck")),
 			},
 		},
 		Spec: khcheck.Spec.PodSpec.Spec,
