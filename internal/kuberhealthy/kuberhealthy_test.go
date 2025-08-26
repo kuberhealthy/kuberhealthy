@@ -21,10 +21,6 @@ func TestCheckPodSpec(t *testing.T) {
 	kh := New(context.Background(), nil)
 
 	check := &khcrdsv2.KuberhealthyCheck{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "kuberhealthy.github.io/v2",
-			Kind:       "KuberhealthyCheck",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "example-check",
 			Namespace: "example-ns",
@@ -58,6 +54,8 @@ func TestCheckPodSpec(t *testing.T) {
 	owner := pod.OwnerReferences[0]
 	require.Equal(t, check.Name, owner.Name)
 	require.Equal(t, check.UID, owner.UID)
+	require.Equal(t, khcrdsv2.GroupVersion.String(), owner.APIVersion)
+	require.Equal(t, "KuberhealthyCheck", owner.Kind)
 	require.NotNil(t, owner.Controller)
 	require.True(t, *owner.Controller)
 }
