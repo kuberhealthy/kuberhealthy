@@ -162,6 +162,8 @@ func (kh *Kuberhealthy) scheduleChecks() {
 			log.Errorf("failed to convert check %s/%s: %v", khcheck.GetNamespace(), khcheck.GetName(), err)
 			continue
 		}
+		// log metadata on the pod spec to debug unexpected fields
+		debugPodSpecMetadata(&check)
 
 		lastStart := time.Unix(check.Status.LastRunUnix, 0)
 		if check.Status.CurrentUUID != "" {
@@ -349,10 +351,30 @@ func (kh *Kuberhealthy) IsStarted() bool {
 	return kh.running
 }
 
+// debugPodSpecMetadata logs pod spec metadata when present
+func debugPodSpecMetadata(khCheck *khcrdsv2.KuberhealthyCheck) {
+	if khCheck == nil {
+		return
+	}
+	meta := khCheck.Spec.PodSpec.ObjectMeta
+	if meta.CreationTimestamp.IsZero() && len(meta.Annotations) == 0 && len(meta.Labels) == 0 {
+		return
+	}
+	log.WithFields(log.Fields{
+		"namespace": khCheck.Namespace,
+		"name":      khCheck.Name,
+		"metadata":  meta,
+	}).Debug("khcheck podSpec metadata")
+}
+
 // getCheck fetches a check based on its name and namespace
 func (k *Kuberhealthy) getCheck(checkName types.NamespacedName) (*khcrdsv2.KuberhealthyCheck, error) {
 	khCheck := &khcrdsv2.KuberhealthyCheck{}
 	err := k.CheckClient.Get(k.Context, checkName, khCheck)
+	if err == nil {
+		// log metadata to help track unexpected fields
+		debugPodSpecMetadata(khCheck)
+	}
 	return khCheck, err
 }
 
