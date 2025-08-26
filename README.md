@@ -75,6 +75,18 @@ Kuberhealthy is configured entirely with environment variables. The deployment m
 
 You can see checks that are configured with `kubectl -n kuberhealthy get khcheck`. Check status can be accessed via the JSON status page endpoint or by inspecting the status field on the `khcheck` resource.
 
+#### Verify Deployment
+
+After installation, verify that Kuberhealthy is running and serving metrics:
+
+```sh
+kubectl get pods -n kuberhealthy
+kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80 &
+curl -f localhost:8080/metrics
+```
+
+The `kuberhealthy` pod should be in a `Running` state and the metrics endpoint should respond. If checks fail, consult the [troubleshooting guide](docs/TROUBLESHOOTING.md).
+
 
 ### Further Configuration
 
