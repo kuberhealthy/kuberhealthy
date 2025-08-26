@@ -23,6 +23,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -34,21 +36,44 @@ const statusPageHTML = `
 <meta charset="utf-8" />
 <title>Kuberhealthy Status</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <style>
-body {font-family:sans-serif; margin:0; display:flex; flex-direction:column; height:100vh; background-color:#e9ecef;}
-#main {flex:1; display:flex;}
-#menu {width:250px; border-right:1px solid #ccc; overflow-y:auto; background:#f8f9fa;}
-#menu .item {padding:8px; cursor:pointer;}
-#menu .item:hover {background:#e2e6ea;}
-#content {flex:1; padding:1em; overflow-y:auto; background:#ffffff;}
+body {font-family:system-ui,sans-serif; margin:0; display:flex; flex-direction:column; height:100vh;}
+#main {flex:1; display:flex; overflow:hidden;}
+#menu {width:260px; border-right:1px solid var(--bs-border-color); overflow-y:auto;}
+#menu .item {padding:10px; cursor:pointer;}
+#menu .item:hover {background:var(--bs-secondary-bg);}
+#content {flex:1; padding:1rem; overflow-y:auto;}
 #pods .pod {cursor:pointer; padding:4px;}
-#pods .pod:hover {background:#eef;}
-#events .event {padding:4px; border-bottom:1px solid #ddd;}
-pre {background:#f0f0f0; padding:1em; white-space:pre-wrap;}
+#pods .pod:hover {background:var(--bs-secondary-bg);}
+#events .event {padding:4px; border-bottom:1px solid var(--bs-border-color);}
+pre {background:var(--bs-tertiary-bg); padding:1em; white-space:pre-wrap;}
 </style>
 <script>
 let checks = {};
 let currentCheck = '';
+
+function setTheme(t){
+  document.documentElement.setAttribute('data-bs-theme', t);
+  localStorage.setItem('kh-theme', t);
+  document.getElementById('themeToggle').textContent = t === 'dark' ? '☀️' : '🌙';
+}
+
+function initTheme(){
+  const saved = localStorage.getItem('kh-theme') || 'light';
+  setTheme(saved);
+}
+
+function formatDuration(ms){
+  const total = Math.max(0, Math.floor(ms/1000));
+  const h = Math.floor(total/3600);
+  const m = Math.floor((total%3600)/60);
+  const s = total%60;
+  if(h) return h+'h '+m+'m '+s+'s';
+  if(m) return m+'m '+s+'s';
+  return s+'s';
+}
+
 async function refresh(){
   try{
     const resp = await fetch('/json');
@@ -56,30 +81,42 @@ async function refresh(){
     checks = data.CheckDetails || {};
     const menu = document.getElementById('menu');
     menu.innerHTML = '';
+    const now = Date.now();
     Object.keys(checks).forEach(function(name){
       const st = checks[name];
       let icon = st.ok ? '✅' : '❌';
       if (st.podName){ icon = '⏳'; }
       const div = document.createElement('div');
       div.className = 'item';
-      div.textContent = icon + ' ' + name;
+      let label = icon + ' ' + name;
+      if (st.nextRunUnix){
+        const diff = st.nextRunUnix*1000 - now;
+        label += ' (' + formatDuration(diff) + ')';
+      }
+      div.textContent = label;
       div.onclick = ()=>showCheck(name);
       menu.appendChild(div);
     });
   }catch(e){ console.error('failed to fetch status', e); }
 }
+
 async function showCheck(name){
   currentCheck = name;
   const st = checks[name];
   if(!st){return;}
   const content = document.getElementById('content');
-  content.innerHTML='<h2>'+name+'</h2>'+
-    '<p>Status: '+(st.ok?'OK':'Fail')+'</p>'+
-    (st.errors && st.errors.length ? '<p>Errors: '+st.errors.join('; ')+'</p>' : '')+
-    '<h3>Events</h3><div id="events">loading...</div>'+
-    '<h3>Pods</h3><div id="pods">loading...</div>'+
-    '<h3>Pod Details</h3><div id="pod-info"></div>'+
-    '<h3>Logs</h3><pre id="logs"></pre>';
+  let nextRun = '';
+  if(st.nextRunUnix){
+    nextRun = formatDuration(st.nextRunUnix*1000 - Date.now());
+  }
+  content.innerHTML='<h2>'+name+'</h2>'
+    + '<p>Status: '+(st.ok?'OK':'Fail')+'</p>'
+    + (nextRun?'<p>Next run in: '+nextRun+'</p>':'')
+    + (st.errors && st.errors.length ? '<p>Errors: '+st.errors.join('; ')+'</p>' : '')
+    + '<h3>Events</h3><div id="events">loading...</div>'
+    + '<h3>Pods</h3><div id="pods">loading...</div>'
+    + '<h3>Pod Details</h3><div id="pod-info"></div>'
+    + '<h3>Logs</h3><pre id="logs"></pre>';
   try{
     const pods = await (await fetch('/api/pods?namespace='+encodeURIComponent(st.namespace)+'&khcheck='+encodeURIComponent(name))).json();
     const podsDiv = document.getElementById('pods');
@@ -106,6 +143,7 @@ async function showCheck(name){
     }catch(e){console.error(e);}
   }catch(e){console.error(e);}
 }
+
 async function loadLogs(p){
   try{
     const params='namespace='+encodeURIComponent(p.namespace)+'&khcheck='+encodeURIComponent(currentCheck)+'&pod='+encodeURIComponent(p.name);
@@ -132,19 +170,25 @@ async function streamLogs(url, elem){
     }
   }catch(e){console.error(e);}
 }
-setInterval(refresh,5000); window.onload = refresh;
+
+setInterval(refresh,5000);
+window.onload = ()=>{initTheme(); refresh();};
 </script>
 </head>
 <body class="d-flex flex-column min-vh-100">
-<header class="bg-dark text-white p-3"><h1 class="h4 m-0">Kuberhealthy Status</h1></header>
+<header class="d-flex align-items-center justify-content-between bg-primary text-white p-3">
+  <h1 class="h4 m-0">Kuberhealthy Status</h1>
+  <button id="themeToggle" class="btn btn-sm btn-light" onclick="setTheme(document.documentElement.getAttribute('data-bs-theme')==='dark'?'light':'dark')">🌙</button>
+</header>
 <div id="main">
-  <div id="menu"></div>
-  <div id="content"><h2>Select a check</h2></div>
+  <div id="menu" class="bg-body-tertiary"></div>
+  <div id="content" class="bg-body"><h2>Select a check</h2></div>
 </div>
-<footer class="bg-light text-center p-2">Powered by Kuberhealthy</footer>
+<footer class="bg-body-secondary text-center p-2">Powered by Kuberhealthy</footer>
 </body>
 </html>
 `
+const defaultRunInterval = time.Minute * 10
 
 // requestLogger logs incoming requests before they reach a handler.
 func requestLogger(next http.Handler) http.Handler {
@@ -888,26 +932,40 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 	}
 
 	ctx := context.Background()
-	var checkList kuberhealthycheckv2.KuberhealthyCheckList
+	uList := &unstructured.UnstructuredList{}
+	uList.SetGroupVersionKind(kuberhealthycheckv2.GroupVersion.WithKind("KuberhealthyCheckList"))
 	var opts []client.ListOption
 	if len(namespaces) == 1 {
 		opts = append(opts, client.InNamespace(namespaces[0]))
 	}
-	if err := KHController.Client.List(ctx, &checkList, opts...); err != nil {
+	if err := KHController.Client.List(ctx, uList, opts...); err != nil {
 		state.OK = false
 		state.AddError(err.Error())
 		return state
 	}
 
-	for _, c := range checkList.Items {
-		if len(namespaces) > 1 && !containsString(c.Namespace, namespaces) {
+	for _, u := range uList.Items {
+		if len(namespaces) > 1 && !containsString(u.GetNamespace(), namespaces) {
 			continue
 		}
-		status := c.Status
-		if status.Namespace == "" {
-			status.Namespace = c.Namespace
+
+		runInterval := runIntervalForCheck(&u)
+
+		var check kuberhealthycheckv2.KuberhealthyCheck
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &check); err != nil {
+			log.Errorf("failed to convert check %s/%s: %v", u.GetNamespace(), u.GetName(), err)
+			continue
 		}
-		state.CheckDetails[c.Name] = status
+
+		status := health.CheckDetail{KuberhealthyCheckStatus: check.Status}
+		if status.Namespace == "" {
+			status.Namespace = check.Namespace
+		}
+		if check.Status.LastRunUnix != 0 {
+			next := time.Unix(check.Status.LastRunUnix, 0).Add(runInterval)
+			status.NextRunUnix = next.Unix()
+		}
+		state.CheckDetails[check.Name] = status
 		if !status.OK {
 			state.OK = false
 			state.AddError(status.Errors...)
@@ -915,6 +973,16 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 	}
 
 	return state
+}
+
+func runIntervalForCheck(u *unstructured.Unstructured) time.Duration {
+	if v, found, err := unstructured.NestedString(u.Object, "spec", "runInterval"); err == nil && found && v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			return d
+		}
+		log.Errorf("invalid runInterval %q on check %s/%s", v, u.GetNamespace(), u.GetName())
+	}
+	return defaultRunInterval
 }
 
 // validateUsingRequestHeader gets the header `kh-run-uuid` value from the request and forms a selector with it to

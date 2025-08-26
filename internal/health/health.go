@@ -10,10 +10,21 @@ import (
 
 // State represents the results of all checks being managed along with a top-level OK and Error state. This is displayed
 // on the kuberhealthy status page as JSON
+// CheckDetail represents the status of a single check along with the
+// next time the check is expected to run.  NextRunUnix is zero when the
+// last run time is unknown.
+type CheckDetail struct {
+	kuberhealthycheckv2.KuberhealthyCheckStatus
+	NextRunUnix int64 `json:"nextRunUnix,omitempty"`
+}
+
+// State represents the results of all checks being managed along with a
+// top-level OK and Error state. This is displayed on the kuberhealthy
+// status page as JSON
 type State struct {
 	OK            bool
 	Errors        []string
-	CheckDetails  map[string]kuberhealthycheckv2.KuberhealthyCheckStatus // map of job names to last run timestamp
+	CheckDetails  map[string]CheckDetail // map of job names to last run timestamp
 	CurrentMaster string
 	Metadata      map[string]string
 }
@@ -58,7 +69,7 @@ func NewState() State {
 	s := State{}
 	s.OK = true
 	s.Errors = []string{}
-	s.CheckDetails = make(map[string]kuberhealthycheckv2.KuberhealthyCheckStatus)
+	s.CheckDetails = make(map[string]CheckDetail)
 	s.Metadata = map[string]string{}
 	return s
 }
