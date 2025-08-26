@@ -31,7 +31,7 @@ import (
 
 const statusPageHTML = `
 <!DOCTYPE html>
-<html>
+<html data-bs-theme="dark">
 <head>
 <meta charset="utf-8" />
 <title>Kuberhealthy Status</title>
@@ -60,7 +60,7 @@ function setTheme(t){
 }
 
 function initTheme(){
-  const saved = localStorage.getItem('kh-theme') || 'light';
+  const saved = localStorage.getItem('kh-theme') || 'dark';
   setTheme(saved);
 }
 
@@ -176,10 +176,10 @@ window.onload = ()=>{initTheme(); refresh();};
 </script>
 </head>
 <body class="d-flex flex-column min-vh-100">
-<header class="d-flex align-items-center justify-content-between bg-primary text-white p-3">
-  <h1 class="h4 m-0">Kuberhealthy Status</h1>
-  <button id="themeToggle" class="btn btn-sm btn-light" onclick="setTheme(document.documentElement.getAttribute('data-bs-theme')==='dark'?'light':'dark')">🌙</button>
-</header>
+  <header class="d-flex align-items-center justify-content-between bg-primary text-white p-3">
+    <h1 class="h4 m-0">Kuberhealthy Status</h1>
+    <button id="themeToggle" class="btn btn-sm btn-light" onclick="setTheme(document.documentElement.getAttribute('data-bs-theme')==='dark'?'light':'dark')">☀️</button>
+  </header>
 <div id="main">
   <div id="menu" class="bg-body-tertiary"></div>
   <div id="content" class="bg-body"><h2>Select a check</h2></div>
