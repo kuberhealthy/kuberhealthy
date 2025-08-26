@@ -31,7 +31,7 @@ import (
 
 const statusPageHTML = `
 <!DOCTYPE html>
-<html>
+<html data-bs-theme="dark">
 <head>
 <meta charset="utf-8" />
 <title>Kuberhealthy Status</title>
@@ -48,7 +48,7 @@ function setTheme(t){
 }
 
 function initTheme(){
-  const saved = localStorage.getItem('kh-theme') || 'light';
+  const saved = localStorage.getItem('kh-theme') || 'dark';
   setTheme(saved);
 }
 
