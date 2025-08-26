@@ -35,26 +35,14 @@ const statusPageHTML = `
 <head>
 <meta charset="utf-8" />
 <title>Kuberhealthy Status</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<style>
-body {font-family:system-ui,sans-serif; margin:0; display:flex; flex-direction:column; height:100vh;}
-#main {flex:1; display:flex; overflow:hidden;}
-#menu {width:260px; border-right:1px solid var(--bs-border-color); overflow-y:auto;}
-#menu .item {padding:10px; cursor:pointer;}
-#menu .item:hover {background:var(--bs-secondary-bg);}
-#content {flex:1; padding:1rem; overflow-y:auto;}
-#pods .pod {cursor:pointer; padding:4px;}
-#pods .pod:hover {background:var(--bs-secondary-bg);}
-#events .event {padding:4px; border-bottom:1px solid var(--bs-border-color);}
-pre {background:var(--bs-tertiary-bg); padding:1em; white-space:pre-wrap;}
-</style>
+<script src="https://cdn.tailwindcss.com"></script>
 <script>
 let checks = {};
 let currentCheck = '';
 
 function setTheme(t){
-  document.documentElement.setAttribute('data-bs-theme', t);
+  if(t==='dark'){ document.documentElement.classList.add('dark'); }
+  else{ document.documentElement.classList.remove('dark'); }
   localStorage.setItem('kh-theme', t);
   document.getElementById('themeToggle').textContent = t === 'dark' ? '☀️' : '🌙';
 }
@@ -87,7 +75,7 @@ async function refresh(){
       let icon = st.ok ? '✅' : '❌';
       if (st.podName){ icon = '⏳'; }
       const div = document.createElement('div');
-      div.className = 'item';
+      div.className = 'p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800';
       let label = icon + ' ' + name;
       if (st.nextRunUnix){
         const diff = st.nextRunUnix*1000 - now;
@@ -116,14 +104,14 @@ async function showCheck(name){
     + '<h3>Events</h3><div id="events">loading...</div>'
     + '<h3>Pods</h3><div id="pods">loading...</div>'
     + '<h3>Pod Details</h3><div id="pod-info"></div>'
-    + '<h3>Logs</h3><pre id="logs"></pre>';
+    + '<h3>Logs</h3><pre id="logs" class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-4"></pre>';
   try{
     const pods = await (await fetch('/api/pods?namespace='+encodeURIComponent(st.namespace)+'&khcheck='+encodeURIComponent(name))).json();
     const podsDiv = document.getElementById('pods');
     podsDiv.innerHTML='';
     pods.forEach(p=>{
       const div=document.createElement('div');
-      div.className='pod';
+      div.className='cursor-pointer p-1 hover:bg-gray-100 dark:hover:bg-gray-800';
       div.textContent=p.name+' ('+p.phase+')';
       div.onclick=()=>loadLogs(p);
       podsDiv.appendChild(div);
@@ -135,7 +123,7 @@ async function showCheck(name){
       if(evs.length===0){eventsDiv.textContent='No events found';}
       evs.forEach(ev=>{
         const div=document.createElement('div');
-        div.className='event';
+        div.className='p-1 border-b border-gray-200 dark:border-gray-700';
         const ts = ev.lastTimestamp ? new Date(ev.lastTimestamp*1000).toLocaleString()+': ' : '';
         div.textContent=ts+'['+ev.type+'] '+ev.reason+' - '+ev.message;
         eventsDiv.appendChild(div);
@@ -175,16 +163,16 @@ setInterval(refresh,5000);
 window.onload = ()=>{initTheme(); refresh();};
 </script>
 </head>
-<body class="d-flex flex-column min-vh-100">
-<header class="d-flex align-items-center justify-content-between bg-primary text-white p-3">
-  <h1 class="h4 m-0">Kuberhealthy Status</h1>
-  <button id="themeToggle" class="btn btn-sm btn-light" onclick="setTheme(document.documentElement.getAttribute('data-bs-theme')==='dark'?'light':'dark')">🌙</button>
+<body class="flex flex-col min-h-screen font-sans">
+<header class="flex items-center justify-between bg-blue-600 text-white p-4">
+  <h1 class="text-lg font-semibold m-0">Kuberhealthy Status</h1>
+  <button id="themeToggle" class="text-sm px-2 py-1 rounded bg-white/20" onclick="setTheme(document.documentElement.classList.contains('dark')?'light':'dark')">🌙</button>
 </header>
-<div id="main">
-  <div id="menu" class="bg-body-tertiary"></div>
-  <div id="content" class="bg-body"><h2>Select a check</h2></div>
+<div id="main" class="flex flex-1 overflow-hidden">
+  <div id="menu" class="w-64 border-r overflow-y-auto bg-gray-50 dark:bg-gray-900"></div>
+  <div id="content" class="flex-1 p-4 overflow-y-auto"><h2>Select a check</h2></div>
 </div>
-<footer class="bg-body-secondary text-center p-2">Powered by Kuberhealthy</footer>
+<footer class="text-center p-2 bg-gray-100 dark:bg-gray-800">Powered by Kuberhealthy</footer>
 </body>
 </html>
 `
