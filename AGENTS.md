@@ -8,6 +8,7 @@ This file defines contributor guidelines for the entire repository.
 - Add inline comments within functions frequently.
 - Try hard not to indent past 4 indents anywhere in the codebase.
 - Prefer standard library packages when practical.
+- Test names should not use underscores (use testName instead of test_name)
 
 ## Project decisions
 - Logging is handled with `github.com/sirupsen/logrus`.
