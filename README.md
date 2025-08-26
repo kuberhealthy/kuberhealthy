@@ -19,6 +19,24 @@ Kuberhealthy serves the status of all checks on a simple JSON status page, a [Pr
 
 
 
+## Quick Start
+
+1. Install Kuberhealthy into your cluster:
+
+   ```sh
+   kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy
+   ```
+
+2. Forward the Kuberhealthy service to your local machine:
+
+   ```sh
+   kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80
+   ```
+
+3. Visit [http://localhost:8080](http://localhost:8080) to view the status page.
+
+For advanced configuration options, see the [Installation](#installation) section and the [docs](docs/).
+
 ## Installation
 
 
