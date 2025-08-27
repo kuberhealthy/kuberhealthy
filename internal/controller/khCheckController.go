@@ -39,7 +39,7 @@ func newKHCheckController(cfg *rest.Config, cl client.Client, scheme *runtime.Sc
 		return nil, err
 	}
 
-	gvr := schema.GroupVersionResource{Group: "kuberhealthy.kuberhealthy.github.io", Version: "v2", Resource: "kuberhealthychecks"}
+	gvr := schema.GroupVersionResource{Group: "kuberhealthy.github.io", Version: "v2", Resource: "kuberhealthychecks"}
 	factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dyn, 0, metav1.NamespaceAll, nil)
 	inf := factory.ForResource(gvr).Informer()
 

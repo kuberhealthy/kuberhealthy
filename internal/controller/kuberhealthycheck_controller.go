@@ -37,9 +37,9 @@ type KuberhealthyCheckReconciler struct {
 	Kuberhealthy *kuberhealthy.Kuberhealthy
 }
 
-// +kubebuilder:rbac:groups=kuberhealthy.kuberhealthy.github.io,resources=kuberhealthychecks,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=kuberhealthy.kuberhealthy.github.io,resources=kuberhealthychecks/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=kuberhealthy.kuberhealthy.github.io,resources=kuberhealthychecks/finalizers,verbs=update
+// +kubebuilder:rbac:groups=kuberhealthy.github.io,resources=kuberhealthychecks,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kuberhealthy.github.io,resources=kuberhealthychecks/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=kuberhealthy.github.io,resources=kuberhealthychecks/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

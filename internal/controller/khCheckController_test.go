@@ -35,7 +35,7 @@ type conflictStatusWriter struct {
 func (w *conflictStatusWriter) Update(ctx context.Context, obj client.Object, opts ...client.SubResourceUpdateOption) error {
 	w.parent.calls++
 	if w.parent.calls == 1 {
-		return apierrors.NewConflict(schema.GroupResource{Group: "kuberhealthy.kuberhealthy.github.io", Resource: "kuberhealthychecks"}, obj.GetName(), fmt.Errorf("conflict"))
+		return apierrors.NewConflict(schema.GroupResource{Group: "kuberhealthy.github.io", Resource: "kuberhealthychecks"}, obj.GetName(), fmt.Errorf("conflict"))
 	}
 	return w.StatusWriter.Update(ctx, obj, opts...)
 }
