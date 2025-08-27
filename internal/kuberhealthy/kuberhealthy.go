@@ -340,9 +340,21 @@ func (kh *Kuberhealthy) getCurrentPodName(khcheck *khcrdsv2.KuberhealthyCheck) (
 	return check.Status.PodName, nil
 }
 
-// UpdateCheck handles the event of a check getting upcated in place
+// UpdateCheck handles the event of a check getting updated in place
 func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khcrdsv2.KuberhealthyCheck, newKHCheck *khcrdsv2.KuberhealthyCheck) error {
 	log.Infoln("Updating Kuberhealthy check", oldKHCheck.GetNamespace(), oldKHCheck.GetName())
+
+	// stop the check
+	err := kh.StopCheck(oldKHCheck)
+	if err != nil {
+		return fmt.Errorf("failed to stop check for updating: %w", err)
+	}
+
+	// start the check again
+	err = kh.StartCheck(newKHCheck)
+	if err != nil {
+		return fmt.Errorf("failed to start check after updating: %w", err)
+	}
 	return nil
 }
 
