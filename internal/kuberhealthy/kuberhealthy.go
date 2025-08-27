@@ -163,7 +163,7 @@ func (kh *Kuberhealthy) scheduleChecks() {
 			continue
 		}
 		// log metadata on the pod spec to debug unexpected fields
-		debugPodSpecMetadata(&check)
+		debugKHCheckMetadata(&check)
 
 		lastStart := time.Unix(check.Status.LastRunUnix, 0)
 		if check.Status.CurrentUUID != "" {
@@ -364,12 +364,12 @@ func (kh *Kuberhealthy) IsStarted() bool {
 	return kh.running
 }
 
-// debugPodSpecMetadata logs pod spec metadata when present
-func debugPodSpecMetadata(khCheck *khcrdsv2.KuberhealthyCheck) {
+// debugKHCheckMetadata logs pod spec metadata when present
+func debugKHCheckMetadata(khCheck *khcrdsv2.KuberhealthyCheck) {
 	if khCheck == nil {
 		return
 	}
-	meta := khCheck.GetObjectMeta()
+	// meta := khCheck.GetObjectMeta()
 	// meta := khCheck.ObjectMeta
 	// if meta.CreationTimestamp().IsZero() && len(meta.Annotations) == 0 && len(meta.Labels) == 0 {
 	// 	return
@@ -377,7 +377,7 @@ func debugPodSpecMetadata(khCheck *khcrdsv2.KuberhealthyCheck) {
 	log.WithFields(log.Fields{
 		"namespace": khCheck.Namespace,
 		"name":      khCheck.Name,
-		"metadata":  meta,
+		"metadata":  khCheck.GetObjectMeta(),
 	}).Debug("khcheck podSpec metadata")
 }
 
@@ -387,7 +387,7 @@ func (k *Kuberhealthy) getCheck(checkName types.NamespacedName) (*khcrdsv2.Kuber
 	err := k.CheckClient.Get(k.Context, checkName, khCheck)
 	if err == nil {
 		// log metadata to help track unexpected fields
-		debugPodSpecMetadata(khCheck)
+		debugKHCheckMetadata(khCheck)
 	}
 	return khCheck, err
 }
