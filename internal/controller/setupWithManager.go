@@ -2,74 +2,72 @@ package controller
 
 import (
 	"fmt"
-	"reflect"
-
-	log "github.com/sirupsen/logrus"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
+	log "github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/cache"
 )
 
-// setupWithManager registers the controller with filtering for create events. This automatically
-// starts the manager that is passed in.
-func (r *KuberhealthyCheckReconciler) setupWithManager(mgr ctrl.Manager) error {
-	log.Debugln("controller: setupWithManager")
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&khcrdsv2.KuberhealthyCheck{}).
-		WithEventFilter(predicate.Funcs{
-			// CREATE
-			CreateFunc: func(e event.CreateEvent) bool {
-				log.Infoln("controller: CREATE event detected for:", e.Object.GetName())
-				khcheck, err := convertToKHCheck(e.Object)
-				if err != nil {
-					log.Errorln("error:", err.Error())
-					return false
-				}
-				err = r.Kuberhealthy.StartCheck(khcheck) // Start new instance of check
-				return true                              // true indicates we need to write something to the custom resource
-			},
-			// UPDATE
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				log.Infoln("controller: UPDATE event detected for:", e.ObjectOld.GetName())
-				oldKHCheck, err := convertToKHCheck(e.ObjectOld)
-				if err != nil {
-					log.Errorln("error:", err.Error())
-					return false
-				}
-				newKHCheck, err := convertToKHCheck(e.ObjectNew)
-				if err != nil {
-					log.Errorln("error:", err.Error())
-					return false
-				}
-				r.Kuberhealthy.UpdateCheck(oldKHCheck, newKHCheck)
-				return true // true here means that we need to write changes back to the CRD
-			},
-			// DELETE
-			// TODO - do we need this DELETE and the one in Reconcile?
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				log.Infoln("controller: DELETE event detected for:", e.Object.GetName())
-				khcheck, err := convertToKHCheck(e.Object)
-				if err != nil {
-					log.Errorln("error:", err.Error())
-					return false
-				}
-				err = r.Kuberhealthy.StopCheck(khcheck) // Start new instance of check
-				return true                             // we return true to indicate that we must write something back to the cusotm resource, such as removing the finalizer
-			},
-		}).
-		Complete(r)
+// setupWithManager attaches event handlers to the shared informer so that
+// Kuberhealthy checks start, update, or stop when their resources change.
+func (c *KHCheckController) setupWithManager() {
+	c.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.handleCreate,
+		UpdateFunc: c.handleUpdate,
+		DeleteFunc: c.handleDelete,
+	})
 }
 
-// convertToKHChecks casts the old and new objects to KuberhealthyCheck CRDs
-func convertToKHCheck(obj client.Object) (*khcrdsv2.KuberhealthyCheck, error) {
-	khcheck, ok := obj.(*khcrdsv2.KuberhealthyCheck)
-	if !ok {
-		actualType := reflect.TypeOf(obj)
-		return nil, fmt.Errorf("unexpected object type recieved by controller for khcheck: %s", actualType.String())
+func (c *KHCheckController) handleCreate(obj interface{}) {
+	kh, err := convertToKHCheck(obj)
+	if err != nil {
+		log.Errorln("error:", err.Error())
+		return
 	}
+	if err := c.Kuberhealthy.StartCheck(kh); err != nil {
+		log.Errorln("error:", err.Error())
+	}
+}
 
-	return khcheck, nil
+func (c *KHCheckController) handleUpdate(oldObj, newObj interface{}) {
+	oldCheck, err := convertToKHCheck(oldObj)
+	if err != nil {
+		log.Errorln("error:", err.Error())
+		return
+	}
+	newCheck, err := convertToKHCheck(newObj)
+	if err != nil {
+		log.Errorln("error:", err.Error())
+		return
+	}
+	c.Kuberhealthy.UpdateCheck(oldCheck, newCheck)
+}
+
+func (c *KHCheckController) handleDelete(obj interface{}) {
+	kh, err := convertToKHCheck(obj)
+	if err != nil {
+		log.Errorln("error:", err.Error())
+		return
+	}
+	if err := c.Kuberhealthy.StopCheck(kh); err != nil {
+		log.Errorln("error:", err.Error())
+	}
+}
+
+// convertToKHCheck converts an informer object into a KuberhealthyCheck.
+func convertToKHCheck(obj interface{}) (*khcrdsv2.KuberhealthyCheck, error) {
+	if tombstone, ok := obj.(cache.DeletedFinalStateUnknown); ok {
+		obj = tombstone.Obj
+	}
+	u, ok := obj.(*unstructured.Unstructured)
+	if !ok {
+		return nil, fmt.Errorf("unexpected object type %T", obj)
+	}
+	kh := &khcrdsv2.KuberhealthyCheck{}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, kh); err != nil {
+		return nil, err
+	}
+	return kh, nil
 }

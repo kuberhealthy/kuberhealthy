@@ -29,7 +29,7 @@ var GlobalConfig *Config
 var (
 	kubeConfig   *rest.Config
 	kubeClient   kubernetes.Interface
-	KHController *controller.KuberhealthyCheckReconciler
+	KHController *controller.KHCheckController
 )
 
 func main() {
