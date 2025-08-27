@@ -27,7 +27,7 @@ func TestPrometheusMetricsEndpoint(t *testing.T) {
 		t.Fatalf("failed to add scheme: %v", err)
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
-	KHController = &controller.KuberhealthyCheckReconciler{Client: fakeClient}
+	KHController = &controller.KHCheckController{Client: fakeClient}
 	GlobalConfig = &Config{}
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

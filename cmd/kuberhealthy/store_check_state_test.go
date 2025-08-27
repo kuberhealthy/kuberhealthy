@@ -52,7 +52,7 @@ func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 
 	origController := KHController
 	t.Cleanup(func() { KHController = origController })
-	KHController = &controller.KuberhealthyCheckReconciler{Client: cc}
+	KHController = &controller.KHCheckController{Client: cc}
 
 	status := &kuberhealthycheckv2.KuberhealthyCheckStatus{OK: true}
 	if err := storeCheckState("conflict-check", "default", status); err != nil {
