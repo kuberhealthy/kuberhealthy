@@ -75,7 +75,7 @@ async function refresh(){
       let icon = st.ok ? '✅' : '❌';
       if (st.podName){ icon = '⏳'; }
       const div = document.createElement('div');
-      div.className = 'p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800';
+      div.className = 'p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100';
       let label = icon + ' ' + name;
       if (st.nextRunUnix){
         const diff = st.nextRunUnix*1000 - now;
@@ -97,21 +97,25 @@ async function showCheck(name){
   if(st.nextRunUnix){
     nextRun = formatDuration(st.nextRunUnix*1000 - Date.now());
   }
-  content.innerHTML='<h2>'+name+'</h2>'
-    + '<p>Status: '+(st.ok?'OK':'Fail')+'</p>'
-    + (nextRun?'<p>Next run in: '+nextRun+'</p>':'')
-    + (st.errors && st.errors.length ? '<p>Errors: '+st.errors.join('; ')+'</p>' : '')
-    + '<h3>Events</h3><div id="events">loading...</div>'
-    + '<h3>Pods</h3><div id="pods">loading...</div>'
-    + '<h3>Pod Details</h3><div id="pod-info"></div>'
-    + '<h3>Logs</h3><pre id="logs" class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-4"></pre>';
+  content.innerHTML=
+    '<h2 class="text-2xl font-bold mb-4">'+name+'</h2>'+
+    '<div class="mb-4">'+
+      '<h3 class="text-xl font-semibold mb-2">Overview</h3>'+
+      '<p class="mb-2"><span class="font-semibold">Status:</span> <span class="'+(st.ok?'text-green-600':'text-red-600')+'">'+(st.ok?'OK':'Fail')+'</span></p>'+
+      (nextRun?'<p class="mb-2"><span class="font-semibold">Next run in:</span> '+nextRun+'</p>':'')+
+      (st.errors && st.errors.length ? '<div class="mb-2"><span class="font-semibold text-red-600">Errors:</span><ul class="list-disc list-inside">'+st.errors.map(e=>'<li>'+e+'</li>').join('')+'</ul></div>' : '')+
+    '</div>'+
+    '<div class="mb-4"><h3 class="text-xl font-semibold mb-2">Events</h3><div id="events" class="text-gray-900 dark:text-gray-100">loading...</div></div>'+
+    '<div class="mb-4"><h3 class="text-xl font-semibold mb-2">Pods</h3><div id="pods" class="text-gray-900 dark:text-gray-100">loading...</div></div>'+
+    '<div class="mb-4"><h3 class="text-xl font-semibold mb-2">Pod Details</h3><div id="pod-info" class="text-gray-900 dark:text-gray-100"></div></div>'+
+    '<div class="mb-4"><h3 class="text-xl font-semibold mb-2">Logs</h3><pre id="logs" class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-4 text-gray-900 dark:text-gray-100"></pre></div>';
   try{
     const pods = await (await fetch('/api/pods?namespace='+encodeURIComponent(st.namespace)+'&khcheck='+encodeURIComponent(name))).json();
     const podsDiv = document.getElementById('pods');
     podsDiv.innerHTML='';
     pods.forEach(p=>{
       const div=document.createElement('div');
-      div.className='cursor-pointer p-1 hover:bg-gray-100 dark:hover:bg-gray-800';
+      div.className='cursor-pointer p-1 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100';
       div.textContent=p.name+' ('+p.phase+')';
       div.onclick=()=>loadLogs(p);
       podsDiv.appendChild(div);
@@ -123,7 +127,7 @@ async function showCheck(name){
       if(evs.length===0){eventsDiv.textContent='No events found';}
       evs.forEach(ev=>{
         const div=document.createElement('div');
-        div.className='p-1 border-b border-gray-200 dark:border-gray-700';
+        div.className='p-1 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100';
         const ts = ev.lastTimestamp ? new Date(ev.lastTimestamp*1000).toLocaleString()+': ' : '';
         div.textContent=ts+'['+ev.type+'] '+ev.reason+' - '+ev.message;
         eventsDiv.appendChild(div);
@@ -163,14 +167,17 @@ setInterval(refresh,5000);
 window.onload = ()=>{initTheme(); refresh();};
 </script>
 </head>
-<body class="flex flex-col min-h-screen font-sans">
+<body class="flex flex-col min-h-screen font-sans text-gray-900 dark:text-gray-100">
 <header class="flex items-center justify-between bg-blue-600 text-white p-4">
-  <h1 class="text-lg font-semibold m-0">Kuberhealthy Status</h1>
+  <div class="flex items-center">
+    <img src="/static/logo-square.png" alt="Kuberhealthy logo" class="h-8 w-8 mr-2" />
+    <h1 class="text-lg font-semibold m-0">Kuberhealthy Status</h1>
+  </div>
   <button id="themeToggle" class="text-sm px-2 py-1 rounded bg-white/20" onclick="setTheme(document.documentElement.classList.contains('dark')?'light':'dark')">🌙</button>
 </header>
 <div id="main" class="flex flex-1 overflow-hidden">
   <div id="menu" class="w-64 border-r overflow-y-auto bg-gray-50 dark:bg-gray-900"></div>
-  <div id="content" class="flex-1 p-4 overflow-y-auto"><h2>Select a check</h2></div>
+  <div id="content" class="flex-1 p-4 overflow-y-auto"><h2 class="text-2xl font-bold">Select a check</h2></div>
 </div>
 <footer class="text-center p-2 bg-gray-100 dark:bg-gray-800">Powered by Kuberhealthy</footer>
 </body>
@@ -264,6 +271,8 @@ func newServeMux() *http.ServeMux {
 			log.Errorln(err)
 		}
 	})
+
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./images"))))
 
 	mux.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
 		if err := checkReportHandler(w, r); err != nil {
