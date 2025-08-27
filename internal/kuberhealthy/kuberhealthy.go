@@ -45,7 +45,7 @@ type Kuberhealthy struct {
 
 // New creates a new Kuberhealthy instance and event recorder
 func New(ctx context.Context, checkClient client.Client) *Kuberhealthy {
-	log.Infoln("New Kuberhealthy created")
+	log.Infoln("New Kuberhealthy instance created")
 
 	var recorder record.EventRecorder
 
@@ -356,7 +356,7 @@ func debugPodSpecMetadata(khCheck *khcrdsv2.KuberhealthyCheck) {
 	if khCheck == nil {
 		return
 	}
-	meta := khCheck.Spec.PodSpec.ObjectMeta
+	meta := khCheck.ObjectMeta
 	if meta.CreationTimestamp.IsZero() && len(meta.Annotations) == 0 && len(meta.Labels) == 0 {
 		return
 	}

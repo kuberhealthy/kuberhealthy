@@ -118,7 +118,7 @@ func sanitizeCheck(check *khcrdsv2.KuberhealthyCheck) {
 
 // Reconcile mirrors KuberhealthyCheckReconciler.Reconcile.
 func (c *KHCheckController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log.Debugln("controller: Reconcile")
+	log.Debugln("khcheckcontroller: Reconcile")
 
 	var check khcrdsv2.KuberhealthyCheck
 	if err := c.Client.Get(ctx, req.NamespacedName, &check); err != nil {
@@ -129,7 +129,7 @@ func (c *KHCheckController) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if !check.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(&check, finalizer) {
-			log.Infoln("controller: FINALIZER DELETE event detected for:", req.Namespace+"/"+req.Name)
+			log.Infoln("khcheckcontroller: FINALIZER DELETE event detected for:", req.Namespace+"/"+req.Name)
 			retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 				if err := c.Client.Get(ctx, req.NamespacedName, &check); err != nil {
 					return err

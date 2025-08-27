@@ -90,7 +90,6 @@ func main() {
 	case <-doneChan:
 		log.Infoln("shutdown: shutdown completed gracefully")
 	}
-	return
 }
 
 // listenForInterrupts watches for termination signals and acts on them
