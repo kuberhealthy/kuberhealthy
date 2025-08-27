@@ -290,7 +290,7 @@ func (kh *Kuberhealthy) StopCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 	}
 
 	// calculate the last run duration and store it
-	runTime := time.Now().Sub(lastRunTime)
+	runTime := time.Since(lastRunTime)
 	err = kh.setRunDuration(checkName, runTime)
 	if err != nil {
 		return err
@@ -343,18 +343,19 @@ func (kh *Kuberhealthy) getCurrentPodName(khcheck *khcrdsv2.KuberhealthyCheck) (
 // UpdateCheck handles the event of a check getting updated in place
 func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khcrdsv2.KuberhealthyCheck, newKHCheck *khcrdsv2.KuberhealthyCheck) error {
 	log.Infoln("Updating Kuberhealthy check", oldKHCheck.GetNamespace(), oldKHCheck.GetName())
+	// TODO - do we do anything on updates to reload the latest check? How do we prevent locking into an infinite udpate window with the controller?
 
-	// stop the check
-	err := kh.StopCheck(oldKHCheck)
-	if err != nil {
-		return fmt.Errorf("failed to stop check for updating: %w", err)
-	}
+	// // stop the check
+	// err := kh.StopCheck(oldKHCheck)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to stop check for updating: %w", err)
+	// }
 
-	// start the check again
-	err = kh.StartCheck(newKHCheck)
-	if err != nil {
-		return fmt.Errorf("failed to start check after updating: %w", err)
-	}
+	// // start the check again
+	// err = kh.StartCheck(newKHCheck)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to start check after updating: %w", err)
+	// }
 	return nil
 }
 
@@ -368,10 +369,11 @@ func debugPodSpecMetadata(khCheck *khcrdsv2.KuberhealthyCheck) {
 	if khCheck == nil {
 		return
 	}
-	meta := khCheck.ObjectMeta
-	if meta.CreationTimestamp.IsZero() && len(meta.Annotations) == 0 && len(meta.Labels) == 0 {
-		return
-	}
+	meta := khCheck.GetObjectMeta()
+	// meta := khCheck.ObjectMeta
+	// if meta.CreationTimestamp().IsZero() && len(meta.Annotations) == 0 && len(meta.Labels) == 0 {
+	// 	return
+	// }
 	log.WithFields(log.Fields{
 		"namespace": khCheck.Namespace,
 		"name":      khCheck.Name,
@@ -410,25 +412,25 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName types.NamespacedName, ch
 	return nil
 }
 
-// setUUID sets the specified UUID on the check
-func (k *Kuberhealthy) setUUID(checkName types.NamespacedName, uuid string) error {
+// // setUUID sets the specified UUID on the check
+// func (k *Kuberhealthy) setUUID(checkName types.NamespacedName, uuid string) error {
 
-	// get the check as it is right now
-	khCheck, err := k.getCheck(checkName)
-	if err != nil {
-		return fmt.Errorf("failed to get check: %w", err)
-	}
+// 	// get the check as it is right now
+// 	khCheck, err := k.getCheck(checkName)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to get check: %w", err)
+// 	}
 
-	// set the errors
-	khCheck.Status.CurrentUUID = uuid
+// 	// set the errors
+// 	khCheck.Status.CurrentUUID = uuid
 
-	// update the khcheck resource
-	err = k.CheckClient.Status().Update(k.Context, khCheck)
-	if err != nil {
-		return fmt.Errorf("failed to update check uuid with error: %w", err)
-	}
-	return nil
-}
+// 	// update the khcheck resource
+// 	err = k.CheckClient.Status().Update(k.Context, khCheck)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to update check uuid with error: %w", err)
+// 	}
+// 	return nil
+// }
 
 // clearUUID clears the UUID assigned to the check, which indicates
 // that it is not running.

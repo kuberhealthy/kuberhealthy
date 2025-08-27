@@ -55,7 +55,7 @@ func WaitForNodeAge(ctx context.Context, client *kubernetes.Clientset, nodeName 
 		return err
 	}
 	// get current age of the node
-	nodeAge := time.Now().Sub(node.CreationTimestamp.Time)
+	nodeAge := time.Since(node.CreationTimestamp.Time)
 	log.Debugln("Check running on node: ", node.Name, "with node age:", nodeAge)
 	if nodeAge >= minNodeAge {
 		return nil
