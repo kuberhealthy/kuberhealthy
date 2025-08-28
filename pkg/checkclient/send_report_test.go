@@ -7,20 +7,20 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 )
 
 func TestReportSuccessAndFailure(t *testing.T) {
 	tests := []struct {
 		name     string
 		call     func() error
-		expected kuberhealthycheckv2.KuberhealthyCheckStatus
+		expected khapi.KuberhealthyCheckStatus
 	}{
 		{
 			name: "success",
 			call: ReportSuccess,
-			expected: kuberhealthycheckv2.KuberhealthyCheckStatus{
+			expected: khapi.KuberhealthyCheckStatus{
 				OK:     true,
 				Errors: []string{},
 			},
@@ -28,7 +28,7 @@ func TestReportSuccessAndFailure(t *testing.T) {
 		{
 			name: "failure",
 			call: func() error { return ReportFailure([]string{"err1", "err2"}) },
-			expected: kuberhealthycheckv2.KuberhealthyCheckStatus{
+			expected: khapi.KuberhealthyCheckStatus{
 				OK:     false,
 				Errors: []string{"err1", "err2"},
 			},
@@ -63,7 +63,7 @@ func TestReportSuccessAndFailure(t *testing.T) {
 				t.Fatalf("kh-run-uuid header = %q, want %q", gotHeader, uuid)
 			}
 
-			var status kuberhealthycheckv2.KuberhealthyCheckStatus
+			var status khapi.KuberhealthyCheckStatus
 			if err := json.Unmarshal(gotBody, &status); err != nil {
 				t.Fatalf("failed to unmarshal body: %v", err)
 			}

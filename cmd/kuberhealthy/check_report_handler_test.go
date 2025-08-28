@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 )
 
 // TestCheckReportHandler validates the check report handler logic.
@@ -34,8 +34,8 @@ func TestCheckReportHandler(t *testing.T) {
 			return PodReportInfo{}, nil
 		}
 		var storedName, storedNamespace string
-		var storedDetails *kuberhealthycheckv2.KuberhealthyCheckStatus
-		storeCheckStateFunc = func(name, namespace string, details *kuberhealthycheckv2.KuberhealthyCheckStatus) error {
+		var storedDetails *khapi.KuberhealthyCheckStatus
+		storeCheckStateFunc = func(name, namespace string, details *khapi.KuberhealthyCheckStatus) error {
 			storedName = name
 			storedNamespace = namespace
 			storedDetails = details
@@ -74,7 +74,7 @@ func TestCheckReportHandler(t *testing.T) {
 			return PodReportInfo{}, nil
 		}
 		storeCalled := false
-		storeCheckStateFunc = func(string, string, *kuberhealthycheckv2.KuberhealthyCheckStatus) error {
+		storeCheckStateFunc = func(string, string, *khapi.KuberhealthyCheckStatus) error {
 			storeCalled = true
 			return nil
 		}
@@ -108,7 +108,7 @@ func TestCheckReportHandler(t *testing.T) {
 			return PodReportInfo{}, nil
 		}
 		storeCalled := false
-		storeCheckStateFunc = func(string, string, *kuberhealthycheckv2.KuberhealthyCheckStatus) error {
+		storeCheckStateFunc = func(string, string, *khapi.KuberhealthyCheckStatus) error {
 			storeCalled = true
 			return nil
 		}

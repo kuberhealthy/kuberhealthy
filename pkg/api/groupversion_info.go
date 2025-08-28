@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v2 contains API Schema definitions for the kuberhealthy.github.io v2 API group
+// Package api contains API Schema definitions for the kuberhealthy.github.io v2 API group
 // +kubebuilder:object:generate=true
 // +groupName=kuberhealthy.github.io
-package v2
+package api
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"

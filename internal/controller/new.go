@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -21,7 +21,7 @@ func New(ctx context.Context, cfg *rest.Config) (*KHCheckController, error) {
 
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(khcrdsv2.AddToScheme(scheme))
+	utilruntime.Must(khapi.AddToScheme(scheme))
 
 	cl, err := client.New(cfg, client.Options{Scheme: scheme})
 	if err != nil {

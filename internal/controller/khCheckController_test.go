@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -43,7 +43,7 @@ func (w *conflictStatusWriter) Update(ctx context.Context, obj client.Object, op
 func TestEnqueueAddsRequest(t *testing.T) {
 	t.Parallel()
 	c := &KHCheckController{queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())}
-	obj := &khcrdsv2.KuberhealthyCheck{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "ns"}}
+	obj := &khapi.KuberhealthyCheck{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "ns"}}
 	c.enqueue(obj)
 	if c.queue.Len() != 1 {
 		t.Fatalf("expected queue length 1 got %d", c.queue.Len())
@@ -53,10 +53,10 @@ func TestEnqueueAddsRequest(t *testing.T) {
 func TestReconcileRetriesOnConflict(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	if err := khcrdsv2.AddToScheme(scheme); err != nil {
+	if err := khapi.AddToScheme(scheme); err != nil {
 		t.Fatalf("failed to add scheme: %v", err)
 	}
-	check := &khcrdsv2.KuberhealthyCheck{ObjectMeta: metav1.ObjectMeta{Name: "conflict", Namespace: "ns"}}
+	check := &khapi.KuberhealthyCheck{ObjectMeta: metav1.ObjectMeta{Name: "conflict", Namespace: "ns"}}
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(check).WithStatusSubresource(check).Build()
 	cc := &conflictClient{Client: fakeClient}
 	controller := &KHCheckController{Client: cc}
@@ -71,7 +71,7 @@ func TestReconcileRetriesOnConflict(t *testing.T) {
 
 func TestSanitizeCheck(t *testing.T) {
 	t.Parallel()
-	check := &khcrdsv2.KuberhealthyCheck{ObjectMeta: metav1.ObjectMeta{UID: "abc", ResourceVersion: "1", ManagedFields: []metav1.ManagedFieldsEntry{{}}}}
+	check := &khapi.KuberhealthyCheck{ObjectMeta: metav1.ObjectMeta{UID: "abc", ResourceVersion: "1", ManagedFields: []metav1.ManagedFieldsEntry{{}}}}
 	sanitizeCheck(check)
 	if check.ObjectMeta.UID != "" || check.ObjectMeta.ManagedFields != nil {
 		t.Fatalf("sanitizeCheck did not clear metadata fields")

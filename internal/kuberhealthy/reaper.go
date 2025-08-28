@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -49,7 +49,7 @@ func (kh *Kuberhealthy) runReaper(ctx context.Context, interval time.Duration) {
 // reapOnce performs a single scan of khchecks and applies cleanup logic. It is
 // primarily exposed for unit testing.
 func (kh *Kuberhealthy) reapOnce() error {
-	var checkList khcrdsv2.KuberhealthyCheckList
+	var checkList khapi.KuberhealthyCheckList
 	if err := kh.CheckClient.List(kh.Context, &checkList); err != nil {
 		return err
 	}

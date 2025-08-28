@@ -3,7 +3,7 @@ package controller
 import (
 	"fmt"
 
-	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -57,7 +57,7 @@ func (c *KHCheckController) handleDelete(obj interface{}) {
 }
 
 // convertToKHCheck converts an informer object into a KuberhealthyCheck.
-func convertToKHCheck(obj interface{}) (*khcrdsv2.KuberhealthyCheck, error) {
+func convertToKHCheck(obj interface{}) (*khapi.KuberhealthyCheck, error) {
 	if tombstone, ok := obj.(cache.DeletedFinalStateUnknown); ok {
 		obj = tombstone.Obj
 	}
@@ -65,7 +65,7 @@ func convertToKHCheck(obj interface{}) (*khcrdsv2.KuberhealthyCheck, error) {
 	if !ok {
 		return nil, fmt.Errorf("unexpected object type %T", obj)
 	}
-	kh := &khcrdsv2.KuberhealthyCheck{}
+	kh := &khapi.KuberhealthyCheck{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, kh); err != nil {
 		return nil, err
 	}

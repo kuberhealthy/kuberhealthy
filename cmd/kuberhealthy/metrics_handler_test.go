@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -23,7 +23,7 @@ func TestPrometheusMetricsEndpoint(t *testing.T) {
 	})
 
 	s := runtime.NewScheme()
-	if err := kuberhealthycheckv2.AddToScheme(s); err != nil {
+	if err := khapi.AddToScheme(s); err != nil {
 		t.Fatalf("failed to add scheme: %v", err)
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()

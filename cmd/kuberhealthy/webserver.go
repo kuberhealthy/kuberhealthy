@@ -15,10 +15,10 @@ import (
 
 	yaml "github.com/ghodss/yaml"
 	"github.com/google/uuid"
-	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -376,7 +376,7 @@ func podListHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return fmt.Errorf("kubernetes client not initialized")
 	}
-	khc := &kuberhealthycheckv2.KuberhealthyCheck{}
+	khc := &khapi.KuberhealthyCheck{}
 	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: khcheck}, khc); err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return err
@@ -451,7 +451,7 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusForbidden)
 		return fmt.Errorf("pod not part of khcheck")
 	}
-	khc := &kuberhealthycheckv2.KuberhealthyCheck{}
+	khc := &khapi.KuberhealthyCheck{}
 	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: khcheck}, khc); err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return err
@@ -516,7 +516,7 @@ func podLogsStreamHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusConflict)
 		return fmt.Errorf("pod not running")
 	}
-	khc := &kuberhealthycheckv2.KuberhealthyCheck{}
+	khc := &khapi.KuberhealthyCheck{}
 	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: khcheck}, khc); err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return err
@@ -770,10 +770,10 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	requestID = requestID + " (" + podReport.Namespace + "/" + podReport.Name + ")"
 
 	// fetch the khcheck for event recording when controller is available
-	var khCheck *kuberhealthycheckv2.KuberhealthyCheck
+	var khCheck *khapi.KuberhealthyCheck
 	if KHController != nil && KHController.Client != nil {
 		nn := types.NamespacedName{Name: podReport.Name, Namespace: podReport.Namespace}
-		khCheck = &kuberhealthycheckv2.KuberhealthyCheck{}
+		khCheck = &khapi.KuberhealthyCheck{}
 		if err := KHController.Client.Get(ctx, nn, khCheck); err != nil {
 			// if we cannot fetch, skip event recording
 			log.Println("webserver:", requestID, "failed to fetch khcheck for event recording:", err)
@@ -829,7 +829,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// checkRunDuration = checkDetails[podReport.Namespace+"/"+podReport.Name].RunDuration
 
 	// create a details object from our incoming status report before storing it on the khcheck status field
-	details := &kuberhealthycheckv2.KuberhealthyCheckStatus{}
+	details := &khapi.KuberhealthyCheckStatus{}
 	details.Errors = state.Errors
 	details.OK = state.OK
 	// details.RunDuration = checkRunDuration
@@ -884,10 +884,10 @@ func fetchPodBySelectorForDuration(ctx context.Context, selector string, d time.
 }
 
 // getCheckStatus fetches the status section of a kuberhealthy check resource and returns it
-func getCheckStatus(checkName string, checkNamespace string) (*kuberhealthycheckv2.KuberhealthyCheckStatus, error) {
+func getCheckStatus(checkName string, checkNamespace string) (*khapi.KuberhealthyCheckStatus, error) {
 
 	// TODO
-	return &kuberhealthycheckv2.KuberhealthyCheckStatus{}, nil
+	return &khapi.KuberhealthyCheckStatus{}, nil
 }
 
 // isUUIDWhitelistedForCheck determines if the supplied uuid is whitelisted for the
@@ -930,7 +930,7 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 
 	ctx := context.Background()
 	uList := &unstructured.UnstructuredList{}
-	uList.SetGroupVersionKind(kuberhealthycheckv2.GroupVersion.WithKind("KuberhealthyCheckList"))
+	uList.SetGroupVersionKind(khapi.GroupVersion.WithKind("KuberhealthyCheckList"))
 	var opts []client.ListOption
 	if len(namespaces) == 1 {
 		opts = append(opts, client.InNamespace(namespaces[0]))
@@ -948,7 +948,7 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 
 		runInterval := runIntervalForCheck(&u)
 
-		var check kuberhealthycheckv2.KuberhealthyCheck
+		var check khapi.KuberhealthyCheck
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &check); err != nil {
 			log.Errorf("failed to convert check %s/%s: %v", u.GetNamespace(), u.GetName(), err)
 			continue
@@ -1063,7 +1063,7 @@ func fetchPodBySelector(ctx context.Context, selector string) (v1.Pod, error) {
 }
 
 // storeCheckState stores the check status on its cluster CRD
-func storeCheckState(checkName string, checkNamespace string, khcheck *kuberhealthycheckv2.KuberhealthyCheckStatus) error {
+func storeCheckState(checkName string, checkNamespace string, khcheck *khapi.KuberhealthyCheckStatus) error {
 	// ensure the CRD resource exists
 	if err := ensureCheckResourceExists(checkName, checkNamespace); err != nil {
 		return err
@@ -1111,7 +1111,7 @@ func ensureCheckResourceExists(checkName string, checkNamespace string) error {
 
 	ctx := context.Background()
 	nn := types.NamespacedName{Name: checkName, Namespace: checkNamespace}
-	khCheck := &kuberhealthycheckv2.KuberhealthyCheck{}
+	khCheck := &khapi.KuberhealthyCheck{}
 	if err := KHController.Client.Get(ctx, nn, khCheck); err != nil {
 		if apierrors.IsNotFound(err) {
 			khCheck.ObjectMeta = metav1.ObjectMeta{Name: checkName, Namespace: checkNamespace}
@@ -1126,14 +1126,14 @@ func ensureCheckResourceExists(checkName string, checkNamespace string) error {
 }
 
 // setCheckStatus sets the status on the khcheck custom resource
-func setCheckStatus(checkName string, checkNamespace string, khcheck *kuberhealthycheckv2.KuberhealthyCheckStatus) error {
+func setCheckStatus(checkName string, checkNamespace string, khcheck *khapi.KuberhealthyCheckStatus) error {
 	if KHController == nil {
 		return fmt.Errorf("kuberhealthy controller not initialized")
 	}
 
 	ctx := context.Background()
 	nn := types.NamespacedName{Name: checkName, Namespace: checkNamespace}
-	khCheck := &kuberhealthycheckv2.KuberhealthyCheck{}
+	khCheck := &khapi.KuberhealthyCheck{}
 	if err := KHController.Client.Get(ctx, nn, khCheck); err != nil {
 		return fmt.Errorf("failed to get khcheck: %w", err)
 	}

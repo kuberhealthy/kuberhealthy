@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	kuberhealthyv2 "github.com/kuberhealthy/crds/api/v2"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -77,7 +77,7 @@ var _ = BeforeSuite(func() {
 	}
 	Expect(cfg).NotTo(BeNil())
 
-	err = kuberhealthyv2.AddToScheme(scheme.Scheme)
+	err = khapi.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -38,10 +38,10 @@ func (w *conflictStatusWriter) Update(ctx context.Context, obj client.Object, op
 
 func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 	scheme := runtime.NewScheme()
-	if err := kuberhealthycheckv2.AddToScheme(scheme); err != nil {
+	if err := khapi.AddToScheme(scheme); err != nil {
 		t.Fatalf("failed to add scheme: %v", err)
 	}
-	existing := &kuberhealthycheckv2.KuberhealthyCheck{
+	existing := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "conflict-check",
 			Namespace: "default",
@@ -54,7 +54,7 @@ func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 	t.Cleanup(func() { KHController = origController })
 	KHController = &controller.KHCheckController{Client: cc}
 
-	status := &kuberhealthycheckv2.KuberhealthyCheckStatus{OK: true}
+	status := &khapi.KuberhealthyCheckStatus{OK: true}
 	if err := storeCheckState("conflict-check", "default", status); err != nil {
 		t.Fatalf("storeCheckState returned error: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 		t.Fatalf("expected at least 2 update calls, got %d", cc.updateCalls)
 	}
 
-	var updated kuberhealthycheckv2.KuberhealthyCheck
+	var updated khapi.KuberhealthyCheck
 	if err := cc.Get(context.Background(), types.NamespacedName{Name: "conflict-check", Namespace: "default"}, &updated); err != nil {
 		t.Fatalf("failed to get updated khcheck: %v", err)
 	}
