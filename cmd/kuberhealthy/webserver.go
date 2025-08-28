@@ -39,6 +39,7 @@ const statusPageHTML = `
 <script>
 let checks = {};
 let currentCheck = '';
+let nextRunTimer = null;
 
 function setTheme(t){
   if(t==='dark'){ document.documentElement.classList.add('dark'); }
@@ -62,6 +63,12 @@ function formatDuration(ms){
   return s+'s';
 }
 
+function updateNextRun(unix){
+  const elem=document.getElementById('nextRun');
+  if(!elem){return;}
+  elem.textContent=formatDuration(unix*1000-Date.now());
+}
+
 async function refresh(){
   try{
     const resp = await fetch('/json');
@@ -69,6 +76,10 @@ async function refresh(){
     checks = data.CheckDetails || {};
     const menu = document.getElementById('menu');
     menu.innerHTML = '';
+    const heading=document.createElement('div');
+    heading.textContent='Checks';
+    heading.className='p-3 font-semibold text-gray-700 dark:text-gray-300';
+    menu.appendChild(heading);
     const now = Date.now();
     Object.keys(checks).forEach(function(name){
       const st = checks[name];
@@ -89,46 +100,53 @@ async function refresh(){
 }
 
 async function showCheck(name){
+  if(nextRunTimer){ clearInterval(nextRunTimer); }
   currentCheck = name;
   const st = checks[name];
   if(!st){return;}
   const content = document.getElementById('content');
-  let nextRun = '';
-  if(st.nextRunUnix){
-    nextRun = formatDuration(st.nextRunUnix*1000 - Date.now());
-  }
   content.innerHTML=
     '<h2 class="text-2xl font-bold mb-4">'+name+'</h2>'+
-    '<div class="mb-4">'+
+    '<div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4">'+
       '<h3 class="text-xl font-semibold mb-2">Overview</h3>'+
-      '<p class="mb-2"><span class="font-semibold">Status:</span> <span class="'+(st.ok?'text-green-600':'text-red-600')+'">'+(st.ok?'OK':'Fail')+'</span></p>'+
-      (nextRun?'<p class="mb-2"><span class="font-semibold">Next run in:</span> '+nextRun+'</p>':'')+
+      '<p class="mb-2"><span class="font-semibold">Status:</span> <span class="'+(st.podName?'text-blue-600':(st.ok?'text-green-600':'text-red-600'))+'">'+(st.podName?'Running':(st.ok?'OK':'Fail'))+'</span></p>'+
+      '<p class="mb-2"><span class="font-semibold">Namespace:</span> '+st.namespace+'</p>'+
+      (st.nextRunUnix?'<p class="mb-2"><span class="font-semibold">Next run in:</span> <span id="nextRun"></span></p>':'')+
+      (st.lastRunUnix?'<p class="mb-2"><span class="font-semibold">Last run:</span> '+new Date(st.lastRunUnix*1000).toLocaleString()+'</p>':'')+
       (st.errors && st.errors.length ? '<div class="mb-2"><span class="font-semibold text-red-600">Errors:</span><ul class="list-disc list-inside">'+st.errors.map(e=>'<li>'+e+'</li>').join('')+'</ul></div>' : '')+
     '</div>'+
-    '<div class="mb-4"><h3 class="text-xl font-semibold mb-2">Events</h3><div id="events" class="text-gray-900 dark:text-gray-100">loading...</div></div>'+
-    '<div class="mb-4"><h3 class="text-xl font-semibold mb-2">Pods</h3><div id="pods" class="text-gray-900 dark:text-gray-100">loading...</div></div>'+
-    '<div class="mb-4"><h3 class="text-xl font-semibold mb-2">Pod Details</h3><div id="pod-info" class="text-gray-900 dark:text-gray-100"></div></div>'+
-    '<div class="mb-4"><h3 class="text-xl font-semibold mb-2">Logs</h3><pre id="logs" class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-4 text-gray-900 dark:text-gray-100"></pre></div>';
+    '<div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><h3 class="text-xl font-semibold mb-2">Events</h3><div id="events" class="text-gray-900 dark:text-gray-100">loading...</div></div>'+
+    '<details class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><summary class="text-xl font-semibold cursor-pointer mb-2">Other Pods</summary><div id="pods" class="text-gray-900 dark:text-gray-100 mt-2"></div></details>'+
+    '<div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><h3 class="text-xl font-semibold mb-2">Pod Details</h3><div id="pod-info" class="text-gray-900 dark:text-gray-100"></div></div>'+
+    '<div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><h3 class="text-xl font-semibold mb-2">Logs</h3><pre id="logs" class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-4 text-gray-900 dark:text-gray-100 rounded shadow-inner"></pre></div>';
+  if(st.nextRunUnix){
+    updateNextRun(st.nextRunUnix);
+    nextRunTimer=setInterval(()=>updateNextRun(st.nextRunUnix),1000);
+  }
   try{
     const pods = await (await fetch('/api/pods?namespace='+encodeURIComponent(st.namespace)+'&khcheck='+encodeURIComponent(name))).json();
-    const podsDiv = document.getElementById('pods');
+    pods.sort((a,b)=>(b.startTime||0)-(a.startTime||0));
+    if(pods.length){ loadLogs(pods[0]); }
+    const podsDiv=document.getElementById('pods');
     podsDiv.innerHTML='';
-    pods.forEach(p=>{
+    pods.slice(1).forEach(p=>{
       const div=document.createElement('div');
       div.className='cursor-pointer p-1 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100';
-      div.textContent=p.name+' ('+p.phase+')';
+      const start=p.startTime?new Date(p.startTime*1000).toLocaleString():'';
+      const end=p.startTime?new Date((p.startTime+p.durationSeconds)*1000).toLocaleString():'';
+      div.textContent=p.name+' - '+start+' → '+end+' ('+p.phase+')';
       div.onclick=()=>loadLogs(p);
       podsDiv.appendChild(div);
     });
     try{
       const evs = await (await fetch('/api/events?namespace='+encodeURIComponent(st.namespace)+'&khcheck='+encodeURIComponent(name))).json();
-      const eventsDiv = document.getElementById('events');
+      const eventsDiv=document.getElementById('events');
       eventsDiv.innerHTML='';
       if(evs.length===0){eventsDiv.textContent='No events found';}
       evs.forEach(ev=>{
         const div=document.createElement('div');
         div.className='p-1 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100';
-        const ts = ev.lastTimestamp ? new Date(ev.lastTimestamp*1000).toLocaleString()+': ' : '';
+        const ts=ev.lastTimestamp?new Date(ev.lastTimestamp*1000).toLocaleString()+': ':'';
         div.textContent=ts+'['+ev.type+'] '+ev.reason+' - '+ev.message;
         eventsDiv.appendChild(div);
       });
@@ -167,8 +185,8 @@ setInterval(refresh,5000);
 window.onload = ()=>{initTheme(); refresh();};
 </script>
 </head>
-<body class="flex flex-col min-h-screen font-sans text-gray-900 dark:text-gray-100">
-<header class="flex items-center justify-between bg-blue-600 text-white p-4">
+<body class="flex flex-col min-h-screen font-sans text-gray-900 dark:text-gray-100 bg-gradient-to-b from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900">
+<header class="flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 shadow-lg">
   <div class="flex items-center">
     <img src="/static/logo-square.png" alt="Kuberhealthy logo" class="h-8 w-8 mr-2" />
     <h1 class="text-lg font-semibold m-0">Kuberhealthy Status</h1>
@@ -176,10 +194,10 @@ window.onload = ()=>{initTheme(); refresh();};
   <button id="themeToggle" class="text-sm px-2 py-1 rounded bg-white/20" onclick="setTheme(document.documentElement.classList.contains('dark')?'light':'dark')">🌙</button>
 </header>
 <div id="main" class="flex flex-1 overflow-hidden">
-  <div id="menu" class="w-64 border-r overflow-y-auto bg-gray-50 dark:bg-gray-900"></div>
-  <div id="content" class="flex-1 p-4 overflow-y-auto"><h2 class="text-2xl font-bold">Select a check</h2></div>
+  <div id="menu" class="w-64 border-r overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-200 dark:from-gray-900 dark:to-gray-700 shadow-inner"></div>
+  <div id="content" class="flex-1 p-4 overflow-y-auto bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><h2 class="text-2xl font-bold">Select a check</h2></div>
 </div>
-<footer class="text-center p-2 bg-gray-100 dark:bg-gray-800">Powered by Kuberhealthy</footer>
+<footer class="text-center p-2 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 shadow-inner">Powered by Kuberhealthy</footer>
 </body>
 </html>
 `
