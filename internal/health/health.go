@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	kuberhealthycheckv2 "github.com/kuberhealthy/crds/api/v2"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,7 +14,7 @@ import (
 // next time the check is expected to run.  NextRunUnix is zero when the
 // last run time is unknown.
 type CheckDetail struct {
-	kuberhealthycheckv2.KuberhealthyCheckStatus
+	khapi.KuberhealthyCheckStatus
 	NextRunUnix int64 `json:"nextRunUnix,omitempty"`
 }
 

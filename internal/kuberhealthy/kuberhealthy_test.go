@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,13 +20,13 @@ func TestCheckPodSpec(t *testing.T) {
 	t.Parallel()
 	kh := New(context.Background(), nil)
 
-	check := &khcrdsv2.KuberhealthyCheck{
+	check := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "example-check",
 			Namespace: "example-ns",
 			UID:       types.UID("abc123"),
 		},
-		Spec: khcrdsv2.KuberhealthyCheckSpec{
+		Spec: khapi.KuberhealthyCheckSpec{
 			PodSpec: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
@@ -54,7 +54,7 @@ func TestCheckPodSpec(t *testing.T) {
 	owner := pod.OwnerReferences[0]
 	require.Equal(t, check.Name, owner.Name)
 	require.Equal(t, check.UID, owner.UID)
-	require.Equal(t, khcrdsv2.GroupVersion.String(), owner.APIVersion)
+	require.Equal(t, khapi.GroupVersion.String(), owner.APIVersion)
 	require.Equal(t, "KuberhealthyCheck", owner.Kind)
 	require.NotNil(t, owner.Controller)
 	require.True(t, *owner.Controller)
@@ -71,9 +71,9 @@ func TestIsStarted(t *testing.T) {
 func TestSetAndGetCheckPodName(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, khapi.AddToScheme(scheme))
 
-	check := &khcrdsv2.KuberhealthyCheck{
+	check := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "test-check",
 			Namespace:       "default",
@@ -96,9 +96,9 @@ func TestSetAndGetCheckPodName(t *testing.T) {
 func TestSetFreshUUID(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, khapi.AddToScheme(scheme))
 
-	check := &khcrdsv2.KuberhealthyCheck{
+	check := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "uuid-check",
 			Namespace:       "default",
@@ -119,7 +119,7 @@ func TestSetFreshUUID(t *testing.T) {
 
 func TestScheduleStartsCheck(t *testing.T) {
 	scheme := runtime.NewScheme()
-	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	check := &unstructured.Unstructured{Object: map[string]interface{}{
@@ -147,7 +147,7 @@ func TestScheduleStartsCheck(t *testing.T) {
 
 	kh.scheduleChecks()
 
-	fetched := &khcrdsv2.KuberhealthyCheck{}
+	fetched := &khapi.KuberhealthyCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "sched-check", Namespace: "default"}, fetched))
 	require.NotEmpty(t, fetched.Status.CurrentUUID)
 	require.NotZero(t, fetched.Status.LastRunUnix)
@@ -155,7 +155,7 @@ func TestScheduleStartsCheck(t *testing.T) {
 
 func TestScheduleSkipsWhenNotDue(t *testing.T) {
 	scheme := runtime.NewScheme()
-	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	last := time.Now().Unix()
@@ -187,7 +187,7 @@ func TestScheduleSkipsWhenNotDue(t *testing.T) {
 
 	kh.scheduleChecks()
 
-	fetched := &khcrdsv2.KuberhealthyCheck{}
+	fetched := &khapi.KuberhealthyCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "skip-check", Namespace: "default"}, fetched))
 	require.Empty(t, fetched.Status.CurrentUUID)
 	require.Equal(t, last, fetched.Status.LastRunUnix)
@@ -195,7 +195,7 @@ func TestScheduleSkipsWhenNotDue(t *testing.T) {
 
 func TestScheduleLoopStopsOnStop(t *testing.T) {
 	scheme := runtime.NewScheme()
-	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, khapi.AddToScheme(scheme))
 	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	kh := New(context.Background(), cl)
@@ -215,7 +215,7 @@ func TestScheduleLoopStopsOnStop(t *testing.T) {
 
 func TestScheduleLoopOnlyRunsOnce(t *testing.T) {
 	scheme := runtime.NewScheme()
-	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, khapi.AddToScheme(scheme))
 	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	kh := New(context.Background(), cl)

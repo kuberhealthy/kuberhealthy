@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -59,7 +59,7 @@ func New(ctx context.Context, checkClient client.Client) *Kuberhealthy {
 		} else {
 			broadcaster := record.NewBroadcaster()
 			broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: cs.CoreV1().Events("")})
-			if err := khcrdsv2.AddToScheme(k8scheme.Scheme); err != nil {
+			if err := khapi.AddToScheme(k8scheme.Scheme); err != nil {
 				log.Errorln("event recorder disabled:", err)
 			} else {
 				recorder = broadcaster.NewRecorder(k8scheme.Scheme, corev1.EventSource{Component: "kuberhealthy"})
@@ -148,7 +148,7 @@ func (kh *Kuberhealthy) startScheduleLoop() {
 // scheduleChecks iterates through all khchecks and starts any that are due to run.
 func (kh *Kuberhealthy) scheduleChecks() {
 	uList := &unstructured.UnstructuredList{}
-	uList.SetGroupVersionKind(khcrdsv2.GroupVersion.WithKind("KuberhealthyCheckList"))
+	uList.SetGroupVersionKind(khapi.GroupVersion.WithKind("KuberhealthyCheckList"))
 	if err := kh.CheckClient.List(kh.Context, uList); err != nil {
 		log.Errorln("failed to list khchecks:", err)
 		return
@@ -157,7 +157,7 @@ func (kh *Kuberhealthy) scheduleChecks() {
 	for _, khcheck := range uList.Items {
 		runInterval := kh.runIntervalForCheck(&khcheck)
 
-		var check khcrdsv2.KuberhealthyCheck
+		var check khapi.KuberhealthyCheck
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(khcheck.Object, &check); err != nil {
 			log.Errorf("failed to convert check %s/%s: %v", khcheck.GetNamespace(), khcheck.GetName(), err)
 			continue
@@ -191,7 +191,7 @@ func (kh *Kuberhealthy) runIntervalForCheck(u *unstructured.Unstructured) time.D
 }
 
 // StartCheck begins tracking and managing a khcheck. This occurs when a khcheck is added.
-func (kh *Kuberhealthy) StartCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
+func (kh *Kuberhealthy) StartCheck(khcheck *khapi.KuberhealthyCheck) error {
 	log.Infoln("Starting Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
 
 	// create a NamespacedName for additional calls
@@ -240,7 +240,7 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 }
 
 // CheckPodSpec returns the corev1.PodSpec for this check's pods
-func (kh *Kuberhealthy) CheckPodSpec(khcheck *khcrdsv2.KuberhealthyCheck) *corev1.Pod {
+func (kh *Kuberhealthy) CheckPodSpec(khcheck *khapi.KuberhealthyCheck) *corev1.Pod {
 
 	// generate a random suffix and concatenate a unique pod name
 	suffix := uuid.NewString()
@@ -257,7 +257,7 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khcrdsv2.KuberhealthyCheck) *corev
 			Annotations: map[string]string{},
 			Labels:      map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(khcheck, khcrdsv2.GroupVersion.WithKind("KuberhealthyCheck")),
+				*metav1.NewControllerRef(khcheck, khapi.GroupVersion.WithKind("KuberhealthyCheck")),
 			},
 		},
 		Spec: khcheck.Spec.PodSpec.Spec,
@@ -276,7 +276,7 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khcrdsv2.KuberhealthyCheck) *corev
 }
 
 // StartCheck stops tracking and managing a khcheck. This occurs when a khcheck is removed.
-func (kh *Kuberhealthy) StopCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
+func (kh *Kuberhealthy) StopCheck(khcheck *khapi.KuberhealthyCheck) error {
 	log.Infoln("Stopping Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
 
 	// clear CurrentUUID to indicate the check is no longer running
@@ -328,7 +328,7 @@ func (kh *Kuberhealthy) StopCheck(khcheck *khcrdsv2.KuberhealthyCheck) error {
 }
 
 // getCurrentPodName fetches the current pod's name for the provided khcheck from the control plane
-func (kh *Kuberhealthy) getCurrentPodName(khcheck *khcrdsv2.KuberhealthyCheck) (string, error) {
+func (kh *Kuberhealthy) getCurrentPodName(khcheck *khapi.KuberhealthyCheck) (string, error) {
 	namespacedName := types.NamespacedName{
 		Namespace: khcheck.GetNamespace(),
 		Name:      khcheck.GetName(),
@@ -341,7 +341,7 @@ func (kh *Kuberhealthy) getCurrentPodName(khcheck *khcrdsv2.KuberhealthyCheck) (
 }
 
 // UpdateCheck handles the event of a check getting updated in place
-func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khcrdsv2.KuberhealthyCheck, newKHCheck *khcrdsv2.KuberhealthyCheck) error {
+func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khapi.KuberhealthyCheck, newKHCheck *khapi.KuberhealthyCheck) error {
 	log.Infoln("Updating Kuberhealthy check", oldKHCheck.GetNamespace(), oldKHCheck.GetName())
 	// TODO - do we do anything on updates to reload the latest check? How do we prevent locking into an infinite udpate window with the controller?
 
@@ -365,7 +365,7 @@ func (kh *Kuberhealthy) IsStarted() bool {
 }
 
 // debugKHCheckMetadata logs pod spec metadata when present
-func debugKHCheckMetadata(khCheck *khcrdsv2.KuberhealthyCheck) {
+func debugKHCheckMetadata(khCheck *khapi.KuberhealthyCheck) {
 	if khCheck == nil {
 		return
 	}
@@ -382,8 +382,8 @@ func debugKHCheckMetadata(khCheck *khcrdsv2.KuberhealthyCheck) {
 }
 
 // getCheck fetches a check based on its name and namespace
-func (k *Kuberhealthy) getCheck(checkName types.NamespacedName) (*khcrdsv2.KuberhealthyCheck, error) {
-	khCheck := &khcrdsv2.KuberhealthyCheck{}
+func (k *Kuberhealthy) getCheck(checkName types.NamespacedName) (*khapi.KuberhealthyCheck, error) {
+	khCheck := &khapi.KuberhealthyCheck{}
 	err := k.CheckClient.Get(k.Context, checkName, khCheck)
 	if err == nil {
 		// log metadata to help track unexpected fields

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,18 +20,18 @@ import (
 // marked as failed.
 func TestReaperTimesOutRunningPod(t *testing.T) {
 	scheme := runtime.NewScheme()
-	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	lastRun := time.Now().Add(-time.Hour)
 
-	check := &khcrdsv2.KuberhealthyCheck{
+	check := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "timeout-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Status: khcrdsv2.KuberhealthyCheckStatus{
+		Status: khapi.KuberhealthyCheckStatus{
 			PodName:     "timeout-pod",
 			CurrentUUID: "abc123",
 			LastRunUnix: lastRun.Unix(),
@@ -62,7 +62,7 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 	require.True(t, apierrors.IsNotFound(err))
 
 	// Check status should show timeout
-	updated := &khcrdsv2.KuberhealthyCheck{}
+	updated := &khapi.KuberhealthyCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: "timeout-check"}, updated))
 	require.False(t, updated.Status.OK)
 	require.Len(t, updated.Status.Errors, 1)
@@ -74,18 +74,18 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 // Test that completed pods are removed after three run intervals have passed.
 func TestReaperRemovesCompletedPods(t *testing.T) {
 	scheme := runtime.NewScheme()
-	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	lastRun := time.Now().Add(-defaultRunInterval*3 - time.Minute)
 
-	check := &khcrdsv2.KuberhealthyCheck{
+	check := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "complete-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Status: khcrdsv2.KuberhealthyCheckStatus{
+		Status: khapi.KuberhealthyCheckStatus{
 			PodName:     "complete-pod",
 			LastRunUnix: lastRun.Unix(),
 		},
@@ -117,18 +117,18 @@ func TestReaperRemovesCompletedPods(t *testing.T) {
 // Test that completed pods younger than three run intervals remain.
 func TestReaperKeepsRecentCompletedPods(t *testing.T) {
 	scheme := runtime.NewScheme()
-	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	lastRun := time.Now().Add(-defaultRunInterval * 2)
 
-	check := &khcrdsv2.KuberhealthyCheck{
+	check := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "recent-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Status: khcrdsv2.KuberhealthyCheckStatus{
+		Status: khapi.KuberhealthyCheckStatus{
 			PodName:     "recent-pod",
 			LastRunUnix: lastRun.Unix(),
 		},
@@ -163,16 +163,16 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 	t.Setenv("KH_MAX_ERROR_POD_COUNT", "2")
 
 	scheme := runtime.NewScheme()
-	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
-	check := &khcrdsv2.KuberhealthyCheck{
+	check := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "failed-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Status: khcrdsv2.KuberhealthyCheckStatus{
+		Status: khapi.KuberhealthyCheckStatus{
 			LastRunUnix: time.Now().Unix(),
 		},
 	}
@@ -226,16 +226,16 @@ func TestReaperRetainsFailedPodsWithinRetention(t *testing.T) {
 	t.Setenv("KH_MAX_ERROR_POD_COUNT", "3")
 
 	scheme := runtime.NewScheme()
-	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
-	check := &khcrdsv2.KuberhealthyCheck{
+	check := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "retain-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Status: khcrdsv2.KuberhealthyCheckStatus{
+		Status: khapi.KuberhealthyCheckStatus{
 			LastRunUnix: time.Now().Unix(),
 		},
 	}
@@ -281,16 +281,16 @@ func TestReaperDeletesFailedPodsPastRetention(t *testing.T) {
 	t.Setenv("KH_MAX_ERROR_POD_COUNT", "5")
 
 	scheme := runtime.NewScheme()
-	require.NoError(t, khcrdsv2.AddToScheme(scheme))
+	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
-	check := &khcrdsv2.KuberhealthyCheck{
+	check := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "old-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Status: khcrdsv2.KuberhealthyCheckStatus{
+		Status: khapi.KuberhealthyCheckStatus{
 			LastRunUnix: time.Now().Add(-26 * time.Hour).Unix(),
 		},
 	}

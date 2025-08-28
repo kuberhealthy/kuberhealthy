@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	khcrdsv2 "github.com/kuberhealthy/crds/api/v2"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -111,7 +111,7 @@ func (c *KHCheckController) enqueue(obj interface{}) {
 }
 
 // sanitizeCheck resets metadata fields that should not be sent back to the API server.
-func sanitizeCheck(check *khcrdsv2.KuberhealthyCheck) {
+func sanitizeCheck(check *khapi.KuberhealthyCheck) {
 	check.ObjectMeta.ManagedFields = nil
 	check.ObjectMeta.UID = ""
 }
@@ -120,7 +120,7 @@ func sanitizeCheck(check *khcrdsv2.KuberhealthyCheck) {
 func (c *KHCheckController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log.Debugln("khcheckcontroller: Reconcile")
 
-	var check khcrdsv2.KuberhealthyCheck
+	var check khapi.KuberhealthyCheck
 	if err := c.Client.Get(ctx, req.NamespacedName, &check); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
