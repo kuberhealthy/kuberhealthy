@@ -51,6 +51,7 @@ type KuberhealthyCheckStatus struct {
 	// Namespace is the Kubernetes namespace this pod ran in.
 	Namespace string `json:"namespace,omitempty"`
 	// PodName is the name of the Pod that was most recently created to run this check
+	// +optional
 	PodName string `json:"podName,omitempty"`
 	// CurrentUUID is used to ensure only the most recent checker pod reports a status for this check.
 	CurrentUUID string `json:"currentUUID,omitempty"`
