@@ -17,10 +17,13 @@ limitations under the License.
 package api
 
 import (
+	"context"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -103,4 +106,33 @@ func (k *KuberhealthyCheck) SetOK() {
 // SetNotOK marks the check status as unhealthy.
 func (k *KuberhealthyCheck) SetNotOK() {
 	k.Status.OK = false
+}
+
+// SetCheckExecutionError assigns execution errors on the check status.
+func (k *KuberhealthyCheck) SetCheckExecutionError(errs []string) {
+	k.Status.Errors = errs
+}
+
+// CreateCheck writes a new check object to the cluster.
+func CreateCheck(ctx context.Context, cl client.Client, check *KuberhealthyCheck) error {
+	return cl.Create(ctx, check)
+}
+
+// GetCheck fetches the current version of a check.
+func GetCheck(ctx context.Context, cl client.Client, nn types.NamespacedName) (*KuberhealthyCheck, error) {
+	out := &KuberhealthyCheck{}
+	if err := cl.Get(ctx, nn, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// UpdateCheck persists status changes for a check.
+func UpdateCheck(ctx context.Context, cl client.Client, check *KuberhealthyCheck) error {
+	return cl.Status().Update(ctx, check)
+}
+
+// DeleteCheck removes a check from the cluster.
+func DeleteCheck(ctx context.Context, cl client.Client, check *KuberhealthyCheck) error {
+	return cl.Delete(ctx, check)
 }

@@ -129,9 +129,9 @@ func (kh *Kuberhealthy) reapOnce() error {
 						kh.Recorder.Eventf(check, corev1.EventTypeWarning, "CheckRunTimeout", "deleted pod %s after exceeding timeout %s", podRef.Name, runTimeout)
 					}
 					if uuid == check.CurrentUUID() {
-						_ = kh.setCheckExecutionError(checkNN, []string{"check run timed out"})
+						check.SetCheckExecutionError([]string{"check run timed out"})
 						check.SetNotOK()
-						if err := kh.CheckClient.Status().Update(kh.Context, check); err != nil {
+						if err := khapi.UpdateCheck(kh.Context, kh.CheckClient, check); err != nil {
 							log.Errorf("reaper: failed setting check %s/%s not OK: %v", check.Namespace, check.Name, err)
 						}
 						_ = kh.clearUUID(checkNN)
