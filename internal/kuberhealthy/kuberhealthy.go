@@ -403,6 +403,9 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName types.NamespacedName, ch
 
 	// set the errors
 	khCheck.Status.Errors = checkErrors
+	if len(checkErrors) > 0 {
+		khCheck.Status.ConsecutiveFailures++
+	}
 
 	// update the khcheck resource
 	err = k.CheckClient.Status().Update(k.Context, khCheck)
@@ -481,6 +484,9 @@ func (k *Kuberhealthy) setOK(checkName types.NamespacedName, ok bool) error {
 	}
 
 	khCheck.Status.OK = ok
+	if ok {
+		khCheck.Status.ConsecutiveFailures = 0
+	}
 
 	err = k.CheckClient.Status().Update(k.Context, khCheck)
 	if err != nil {
