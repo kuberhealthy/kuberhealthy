@@ -120,23 +120,24 @@ func sanitizeCheck(check *khapi.KuberhealthyCheck) {
 func (c *KHCheckController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log.Debugln("khcheckcontroller: Reconcile")
 
-	var check khapi.KuberhealthyCheck
-	if err := c.Client.Get(ctx, req.NamespacedName, &check); err != nil {
+	check, err := khapi.GetCheck(ctx, c.Client, req.NamespacedName)
+	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	finalizer := "kuberhealthy.github.io/finalizer"
 
 	if !check.ObjectMeta.DeletionTimestamp.IsZero() {
-		if controllerutil.ContainsFinalizer(&check, finalizer) {
+		if controllerutil.ContainsFinalizer(check, finalizer) {
 			log.Infoln("khcheckcontroller: FINALIZER DELETE event detected for:", req.Namespace+"/"+req.Name)
 			retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				if err := c.Client.Get(ctx, req.NamespacedName, &check); err != nil {
+				chk, err := khapi.GetCheck(ctx, c.Client, req.NamespacedName)
+				if err != nil {
 					return err
 				}
-				controllerutil.RemoveFinalizer(&check, finalizer)
-				sanitizeCheck(&check)
-				return c.Client.Update(ctx, &check)
+				controllerutil.RemoveFinalizer(chk, finalizer)
+				sanitizeCheck(chk)
+				return c.Client.Update(ctx, chk)
 			})
 			if retryErr != nil {
 				return ctrl.Result{}, retryErr
@@ -145,14 +146,15 @@ func (c *KHCheckController) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
-	if !controllerutil.ContainsFinalizer(&check, finalizer) {
+	if !controllerutil.ContainsFinalizer(check, finalizer) {
 		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			if err := c.Client.Get(ctx, req.NamespacedName, &check); err != nil {
+			chk, err := khapi.GetCheck(ctx, c.Client, req.NamespacedName)
+			if err != nil {
 				return err
 			}
-			controllerutil.AddFinalizer(&check, finalizer)
-			sanitizeCheck(&check)
-			return c.Client.Update(ctx, &check)
+			controllerutil.AddFinalizer(chk, finalizer)
+			sanitizeCheck(chk)
+			return c.Client.Update(ctx, chk)
 		})
 		if retryErr != nil {
 			return ctrl.Result{}, retryErr
@@ -160,11 +162,12 @@ func (c *KHCheckController) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		if err := c.Client.Get(ctx, req.NamespacedName, &check); err != nil {
+		chk, err := khapi.GetCheck(ctx, c.Client, req.NamespacedName)
+		if err != nil {
 			return err
 		}
-		sanitizeCheck(&check)
-		return c.Client.Status().Update(ctx, &check)
+		sanitizeCheck(chk)
+		return khapi.UpdateCheck(ctx, c.Client, chk)
 	}); err != nil {
 		return ctrl.Result{}, err
 	}
