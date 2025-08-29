@@ -18,7 +18,8 @@ import (
 
 func TestCheckPodSpec(t *testing.T) {
 	t.Parallel()
-	kh := New(context.Background(), nil)
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
 
 	check := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{
@@ -38,8 +39,13 @@ func TestCheckPodSpec(t *testing.T) {
 		},
 	}
 
-	check.Status.CurrentUUID = "test-uuid"
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	kh := New(context.Background(), cl)
+
 	pod := kh.CheckPodSpec(check)
+
+	uuid, err := kh.getCurrentUUID(types.NamespacedName{Namespace: check.Namespace, Name: check.Name})
+	require.NoError(t, err)
 
 	require.Equal(t, check.Namespace, pod.Namespace)
 	require.True(t, strings.HasPrefix(pod.Name, check.Name+"-"))
@@ -50,7 +56,7 @@ func TestCheckPodSpec(t *testing.T) {
 	require.NotEmpty(t, pod.Annotations["createdTime"])
 
 	require.Equal(t, check.Name, pod.Labels[checkLabel])
-	require.Equal(t, check.Status.CurrentUUID, pod.Labels[runUUIDLabel])
+	require.Equal(t, uuid, pod.Labels[runUUIDLabel])
 
 	require.Len(t, pod.OwnerReferences, 1)
 	owner := pod.OwnerReferences[0]

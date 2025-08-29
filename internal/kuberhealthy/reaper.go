@@ -96,7 +96,7 @@ func (kh *Kuberhealthy) reapOnce() error {
 		var podList corev1.PodList
 		if err := kh.CheckClient.List(kh.Context, &podList,
 			client.InNamespace(check.Namespace),
-			client.MatchingLabels(map[string]string{checkLabel: check.Name}),
+			client.HasLabels{runUUIDLabel},
 		); err != nil {
 			log.Errorf("reaper: list pods for %s/%s: %v", check.Namespace, check.Name, err)
 			continue
@@ -113,6 +113,9 @@ func (kh *Kuberhealthy) reapOnce() error {
 		// iterate over each pod and apply retention logic based on phase
 		for pod := range podList.Items {
 			podRef := &podList.Items[pod]
+			if podRef.Labels[checkLabel] != check.Name {
+				continue
+			}
 			uuid := podRef.Labels[runUUIDLabel]
 
 			switch podRef.Status.Phase {

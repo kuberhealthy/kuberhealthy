@@ -206,11 +206,6 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khapi.KuberhealthyCheck) error {
 	if err := kh.setFreshUUID(checkName); err != nil {
 		return fmt.Errorf("unable to set running UUID: %w", err)
 	}
-	uuid, err := kh.getCurrentUUID(checkName)
-	if err != nil {
-		return fmt.Errorf("unable to fetch running UUID: %w", err)
-	}
-	khcheck.Status.CurrentUUID = uuid
 
 	// record the start time
 	startTime := time.Now()
@@ -248,6 +243,12 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khapi.KuberhealthyCheck) *corev1.P
 	}
 	podName := fmt.Sprintf("%s-%s", khcheck.GetName(), suffix)
 
+	checkName := types.NamespacedName{Namespace: khcheck.Namespace, Name: khcheck.Name}
+	uuid, err := kh.getCurrentUUID(checkName)
+	if err != nil {
+		log.Errorf("failed to get check uuid: %v", err)
+	}
+
 	// formulate a full pod spec
 	podSpec := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -270,7 +271,7 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khapi.KuberhealthyCheck) *corev1.P
 
 	// add required labels
 	podSpec.Labels[checkLabel] = khcheck.Name
-	podSpec.Labels[runUUIDLabel] = khcheck.Status.CurrentUUID
+	podSpec.Labels[runUUIDLabel] = uuid
 
 	return podSpec
 }
@@ -280,6 +281,7 @@ func (kh *Kuberhealthy) StopCheck(khcheck *khapi.KuberhealthyCheck) error {
 	log.Infoln("Stopping Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
 
 	// clear CurrentUUID to indicate the check is no longer running
+	oldUUID := khcheck.Status.CurrentUUID
 	checkName := createNamespacedName(khcheck.GetName(), khcheck.GetNamespace())
 	kh.clearUUID(checkName)
 
@@ -296,20 +298,20 @@ func (kh *Kuberhealthy) StopCheck(khcheck *khapi.KuberhealthyCheck) error {
 		return err
 	}
 
+	if oldUUID == "" {
+		return nil
+	}
+
 	var podList corev1.PodList
 	err = kh.CheckClient.List(kh.Context, &podList,
 		client.InNamespace(khcheck.GetNamespace()),
-		client.MatchingLabels(map[string]string{checkLabel: khcheck.Name}),
+		client.MatchingLabels(map[string]string{runUUIDLabel: oldUUID}),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to list check pods: %w", err)
 	}
 	for i := range podList.Items {
 		podRef := &podList.Items[i]
-		uuid := podRef.Labels[runUUIDLabel]
-		if uuid != "" && khcheck.Status.CurrentUUID != "" && uuid != khcheck.Status.CurrentUUID {
-			continue
-		}
 		if err := kh.CheckClient.Delete(kh.Context, podRef); err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("failed to delete checker pod %s: %w", podRef.Name, err)
 		}
@@ -529,5 +531,14 @@ func (k *Kuberhealthy) getCurrentUUID(checkName types.NamespacedName) (string, e
 	if err != nil {
 		return "", fmt.Errorf("failed to get check: %w", err)
 	}
+
+	if khCheck.Status.CurrentUUID == "" {
+		khCheck.Status.CurrentUUID = uuid.NewString()
+		err = k.CheckClient.Status().Update(k.Context, khCheck)
+		if err != nil {
+			return "", fmt.Errorf("failed to update check with fresh uuid: %w", err)
+		}
+	}
+
 	return khCheck.Status.CurrentUUID, nil
 }

@@ -92,7 +92,7 @@ func TestReaperRemovesCompletedPods(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "complete-pod",
 			Namespace: "default",
-			Labels:    map[string]string{checkLabel: check.Name},
+			Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-1"},
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodSucceeded},
 	}
@@ -134,7 +134,7 @@ func TestReaperKeepsRecentCompletedPods(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "recent-pod",
 			Namespace: "default",
-			Labels:    map[string]string{checkLabel: check.Name},
+			Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-2"},
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodSucceeded},
 	}
@@ -178,7 +178,7 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "failed-oldest",
 				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name},
+				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-a"},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
@@ -186,7 +186,7 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "failed-middle",
 				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name},
+				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-b"},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
@@ -194,7 +194,7 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "failed-newest",
 				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name},
+				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-c"},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
@@ -212,8 +212,14 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 	require.NoError(t, kh.reapOnce())
 
 	var remaining corev1.PodList
-	require.NoError(t, cl.List(context.Background(), &remaining, client.InNamespace("default"), client.MatchingLabels(map[string]string{checkLabel: check.Name})))
-	require.Len(t, remaining.Items, 2)
+	require.NoError(t, cl.List(context.Background(), &remaining, client.InNamespace("default"), client.HasLabels{runUUIDLabel}))
+	var ours []corev1.Pod
+	for i := range remaining.Items {
+		if remaining.Items[i].Labels[checkLabel] == check.Name {
+			ours = append(ours, remaining.Items[i])
+		}
+	}
+	require.Len(t, ours, 2)
 }
 
 // Test that failed pods within retention limits are preserved.
@@ -241,7 +247,7 @@ func TestReaperRetainsFailedPodsWithinRetention(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "failed-one",
 				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name},
+				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-1"},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
@@ -249,7 +255,7 @@ func TestReaperRetainsFailedPodsWithinRetention(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "failed-two",
 				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name},
+				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-2"},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
@@ -267,8 +273,14 @@ func TestReaperRetainsFailedPodsWithinRetention(t *testing.T) {
 	require.NoError(t, kh.reapOnce())
 
 	var remaining corev1.PodList
-	require.NoError(t, cl.List(context.Background(), &remaining, client.InNamespace("default"), client.MatchingLabels(map[string]string{checkLabel: check.Name})))
-	require.Len(t, remaining.Items, 2)
+	require.NoError(t, cl.List(context.Background(), &remaining, client.InNamespace("default"), client.HasLabels{runUUIDLabel}))
+	var ours []corev1.Pod
+	for i := range remaining.Items {
+		if remaining.Items[i].Labels[checkLabel] == check.Name {
+			ours = append(ours, remaining.Items[i])
+		}
+	}
+	require.Len(t, ours, 2)
 }
 
 // Test that failed pods older than the retention period are removed.
@@ -296,7 +308,7 @@ func TestReaperDeletesFailedPodsPastRetention(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "failed-oldest",
 				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name},
+				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "old-1"},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
@@ -304,7 +316,7 @@ func TestReaperDeletesFailedPodsPastRetention(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "failed-older",
 				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name},
+				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "old-2"},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
@@ -322,6 +334,12 @@ func TestReaperDeletesFailedPodsPastRetention(t *testing.T) {
 	require.NoError(t, kh.reapOnce())
 
 	var remaining corev1.PodList
-	require.NoError(t, cl.List(context.Background(), &remaining, client.InNamespace("default"), client.MatchingLabels(map[string]string{checkLabel: check.Name})))
-	require.Len(t, remaining.Items, 0)
+	require.NoError(t, cl.List(context.Background(), &remaining, client.InNamespace("default"), client.HasLabels{runUUIDLabel}))
+	var ours []corev1.Pod
+	for i := range remaining.Items {
+		if remaining.Items[i].Labels[checkLabel] == check.Name {
+			ours = append(ours, remaining.Items[i])
+		}
+	}
+	require.Len(t, ours, 0)
 }
