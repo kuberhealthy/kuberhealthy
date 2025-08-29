@@ -168,7 +168,7 @@ func (kh *Kuberhealthy) scheduleChecks() {
 		debugKHCheckMetadata(&check)
 
 		lastStart := time.Unix(check.Status.LastRunUnix, 0)
-		if check.Status.CurrentUUID != "" {
+		if check.CurrentUUID() != "" {
 			continue
 		}
 		if time.Since(lastStart) < runInterval {
@@ -281,7 +281,7 @@ func (kh *Kuberhealthy) StopCheck(khcheck *khapi.KuberhealthyCheck) error {
 	log.Infoln("Stopping Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
 
 	// clear CurrentUUID to indicate the check is no longer running
-	oldUUID := khcheck.Status.CurrentUUID
+	oldUUID := khcheck.CurrentUUID()
 	checkName := createNamespacedName(khcheck.GetName(), khcheck.GetNamespace())
 	kh.clearUUID(checkName)
 
@@ -401,7 +401,7 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName types.NamespacedName, ch
 // 	}
 
 // 	// set the errors
-// 	khCheck.Status.CurrentUUID = uuid
+//      khCheck.SetCurrentUUID(uuid)
 
 // 	// update the khcheck resource
 // 	err = k.CheckClient.Status().Update(k.Context, khCheck)
@@ -422,7 +422,7 @@ func (k *Kuberhealthy) clearUUID(checkName types.NamespacedName) error {
 	}
 
 	// set the errors
-	khCheck.Status.CurrentUUID = ""
+	khCheck.SetCurrentUUID("")
 
 	// update the khcheck resource
 	err = k.CheckClient.Status().Update(k.Context, khCheck)
@@ -442,47 +442,13 @@ func (k *Kuberhealthy) setFreshUUID(checkName types.NamespacedName) error {
 	}
 
 	// set the errors
-	khCheck.Status.CurrentUUID = uuid.NewString()
+	khCheck.SetCurrentUUID(uuid.NewString())
 
 	// update the khcheck resource
 	err = k.CheckClient.Status().Update(k.Context, khCheck)
 	if err != nil {
 		return fmt.Errorf("failed to update check with fresh uuid with error: %w", err)
 	}
-	return nil
-}
-
-// setOK marks the check status as OK
-func (k *Kuberhealthy) setOK(checkName types.NamespacedName) error {
-	khCheck, err := k.getCheck(checkName)
-	if err != nil {
-		return fmt.Errorf("failed to get check: %w", err)
-	}
-
-	khCheck.Status.OK = true
-
-	err = k.CheckClient.Status().Update(k.Context, khCheck)
-	if err != nil {
-		return fmt.Errorf("failed to update OK status: %w", err)
-	}
-
-	return nil
-}
-
-// setNotOK marks the check status as not OK
-func (k *Kuberhealthy) setNotOK(checkName types.NamespacedName) error {
-	khCheck, err := k.getCheck(checkName)
-	if err != nil {
-		return fmt.Errorf("failed to get check: %w", err)
-	}
-
-	khCheck.Status.OK = false
-
-	err = k.CheckClient.Status().Update(k.Context, khCheck)
-	if err != nil {
-		return fmt.Errorf("failed to update OK status: %w", err)
-	}
-
 	return nil
 }
 
@@ -549,13 +515,13 @@ func (k *Kuberhealthy) getCurrentUUID(checkName types.NamespacedName) (string, e
 		return "", fmt.Errorf("failed to get check: %w", err)
 	}
 
-	if khCheck.Status.CurrentUUID == "" {
-		khCheck.Status.CurrentUUID = uuid.NewString()
+	if khCheck.CurrentUUID() == "" {
+		khCheck.SetCurrentUUID(uuid.NewString())
 		err = k.CheckClient.Status().Update(k.Context, khCheck)
 		if err != nil {
 			return "", fmt.Errorf("failed to update check with fresh uuid: %w", err)
 		}
 	}
 
-	return khCheck.Status.CurrentUUID, nil
+	return khCheck.CurrentUUID(), nil
 }

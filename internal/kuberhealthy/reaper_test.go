@@ -32,17 +32,17 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 			ResourceVersion: "1",
 		},
 		Status: khapi.KuberhealthyCheckStatus{
-			CurrentUUID: "abc123",
 			LastRunUnix: lastRun.Unix(),
-			OK:          true,
 		},
 	}
+	check.SetCurrentUUID("abc123")
+	check.SetOK()
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "timeout-pod",
 			Namespace: "default",
-			Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: check.Status.CurrentUUID},
+			Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: check.CurrentUUID()},
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodRunning},
 	}
@@ -66,7 +66,7 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 	require.False(t, updated.Status.OK)
 	require.Len(t, updated.Status.Errors, 1)
 	require.Contains(t, updated.Status.Errors[0], "timed out")
-	require.Empty(t, updated.Status.CurrentUUID)
+	require.Empty(t, updated.CurrentUUID())
 }
 
 // Test that completed pods are removed after three run intervals have passed.

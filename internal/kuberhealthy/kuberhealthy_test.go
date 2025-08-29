@@ -97,7 +97,7 @@ func TestSetFreshUUID(t *testing.T) {
 
 	fetched, err := kh.getCheck(nn)
 	require.NoError(t, err)
-	require.NotEmpty(t, fetched.Status.CurrentUUID)
+	require.NotEmpty(t, fetched.CurrentUUID())
 }
 
 func TestScheduleStartsCheck(t *testing.T) {
@@ -132,7 +132,7 @@ func TestScheduleStartsCheck(t *testing.T) {
 
 	fetched := &khapi.KuberhealthyCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "sched-check", Namespace: "default"}, fetched))
-	require.NotEmpty(t, fetched.Status.CurrentUUID)
+	require.NotEmpty(t, fetched.CurrentUUID())
 	require.NotZero(t, fetched.Status.LastRunUnix)
 }
 
@@ -172,7 +172,7 @@ func TestScheduleSkipsWhenNotDue(t *testing.T) {
 
 	fetched := &khapi.KuberhealthyCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "skip-check", Namespace: "default"}, fetched))
-	require.Empty(t, fetched.Status.CurrentUUID)
+	require.Empty(t, fetched.CurrentUUID())
 	require.Equal(t, last, fetched.Status.LastRunUnix)
 }
 

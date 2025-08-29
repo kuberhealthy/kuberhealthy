@@ -84,3 +84,23 @@ type KuberhealthyCheckList struct {
 func init() {
 	SchemeBuilder.Register(&KuberhealthyCheck{}, &KuberhealthyCheckList{})
 }
+
+// CurrentUUID returns the running UUID for this check.
+func (k *KuberhealthyCheck) CurrentUUID() string {
+	return k.Status.CurrentUUID
+}
+
+// SetCurrentUUID updates the running UUID on the check status.
+func (k *KuberhealthyCheck) SetCurrentUUID(u string) {
+	k.Status.CurrentUUID = u
+}
+
+// SetOK marks the check status as healthy.
+func (k *KuberhealthyCheck) SetOK() {
+	k.Status.OK = true
+}
+
+// SetNotOK marks the check status as unhealthy.
+func (k *KuberhealthyCheck) SetNotOK() {
+	k.Status.OK = false
+}
