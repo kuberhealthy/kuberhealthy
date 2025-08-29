@@ -481,6 +481,12 @@ func (k *Kuberhealthy) setOK(checkName types.NamespacedName, ok bool) error {
 	}
 
 	khCheck.Status.OK = ok
+	if ok {
+		khCheck.Status.RunCountSuccess++
+	}
+	if !ok {
+		khCheck.Status.RunCountFailure++
+	}
 
 	err = k.CheckClient.Status().Update(k.Context, khCheck)
 	if err != nil {

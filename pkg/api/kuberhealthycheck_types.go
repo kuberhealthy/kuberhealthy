@@ -58,6 +58,10 @@ type KuberhealthyCheckStatus struct {
 	LastRunUnix int64 `json:"lastRunUnix,omitempty"`
 	// AdditionalMetadata is used to store additional metadata bout this check that appears in the JSON status.
 	AdditionalMetadata string `json:"additionalMetadata,omitempty"`
+	// RunCountSuccess is the total number of successful runs for this check.
+	RunCountSuccess int `json:"runCountSuccess,omitempty"`
+	// RunCountFailure is the total number of failed runs for this check.
+	RunCountFailure int `json:"runCountFailure,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -55,6 +55,7 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 
 	metricCheckState := make(map[string]string)
 	metricCheckDuration := make(map[string]string)
+	metricCheckRuns := make(map[string]string)
 
 	// Parse through all check details and append to metricState
 	for c, d := range state.CheckDetails {
@@ -71,6 +72,11 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 			d.LastRunDuration = time.Duration(0)
 		}
 		metricCheckDuration[metricDurationName] = fmt.Sprintf("%f", d.LastRunDuration.Seconds())
+
+		metricRunSuccessName := fmt.Sprintf("kuberhealthy_check_runs_total{check=\"%s\",namespace=\"%s\",status=\"success\"}", c, d.Namespace)
+		metricCheckRuns[metricRunSuccessName] = fmt.Sprintf("%d", d.RunCountSuccess)
+		metricRunFailureName := fmt.Sprintf("kuberhealthy_check_runs_total{check=\"%s\",namespace=\"%s\",status=\"failure\"}", c, d.Namespace)
+		metricCheckRuns[metricRunFailureName] = fmt.Sprintf("%d", d.RunCountFailure)
 	}
 
 	// Add each metric format individually. This addresses issue https://github.com/kuberhealthy/kuberhealthy/issues/813.
@@ -84,6 +90,11 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 	metricsOutput += "# HELP kuberhealthy_check_duration_seconds Shows the check run duration of a Kuberhealthy check\n"
 	metricsOutput += "# TYPE kuberhealthy_check_duration_seconds gauge\n"
 	for m, v := range metricCheckDuration {
+		metricsOutput += fmt.Sprintf("%s %s\n", m, v)
+	}
+	metricsOutput += "# HELP kuberhealthy_check_runs_total Shows the total run counts of a Kuberhealthy check\n"
+	metricsOutput += "# TYPE kuberhealthy_check_runs_total counter\n"
+	for m, v := range metricCheckRuns {
 		metricsOutput += fmt.Sprintf("%s %s\n", m, v)
 	}
 
