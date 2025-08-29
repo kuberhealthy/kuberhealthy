@@ -38,6 +38,7 @@ func TestCheckPodSpec(t *testing.T) {
 		},
 	}
 
+	check.Status.CurrentUUID = "test-uuid"
 	pod := kh.CheckPodSpec(check)
 
 	require.Equal(t, check.Namespace, pod.Namespace)
@@ -48,7 +49,8 @@ func TestCheckPodSpec(t *testing.T) {
 	require.Equal(t, check.Name, pod.Annotations["kuberhealthyCheckName"])
 	require.NotEmpty(t, pod.Annotations["createdTime"])
 
-	require.Equal(t, check.Name, pod.Labels["khcheck"])
+	require.Equal(t, check.Name, pod.Labels[checkLabel])
+	require.Equal(t, check.Status.CurrentUUID, pod.Labels[runUUIDLabel])
 
 	require.Len(t, pod.OwnerReferences, 1)
 	owner := pod.OwnerReferences[0]
@@ -66,31 +68,6 @@ func TestIsStarted(t *testing.T) {
 	require.True(t, kh.IsStarted())
 	kh.running = false
 	require.False(t, kh.IsStarted())
-}
-
-func TestSetAndGetCheckPodName(t *testing.T) {
-	t.Parallel()
-	scheme := runtime.NewScheme()
-	require.NoError(t, khapi.AddToScheme(scheme))
-
-	check := &khapi.KuberhealthyCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            "test-check",
-			Namespace:       "default",
-			ResourceVersion: "1",
-		},
-	}
-
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
-	kh := New(context.Background(), cl)
-
-	nn := types.NamespacedName{Namespace: check.Namespace, Name: check.Name}
-
-	require.NoError(t, kh.setCheckPodName(nn, "pod-123"))
-
-	name, err := kh.getCurrentPodName(check)
-	require.NoError(t, err)
-	require.Equal(t, "pod-123", name)
 }
 
 func TestSetFreshUUID(t *testing.T) {
