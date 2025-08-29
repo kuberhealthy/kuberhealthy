@@ -55,6 +55,7 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 
 	metricCheckState := make(map[string]string)
 	metricCheckDuration := make(map[string]string)
+	metricCheckFailures := make(map[string]string)
 
 	// Parse through all check details and append to metricState
 	for c, d := range state.CheckDetails {
@@ -65,6 +66,8 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 		metricName := promMetricName(config, "check", c, d.Namespace, checkStatus, d.Errors)
 		metricDurationName := fmt.Sprintf("kuberhealthy_check_duration_seconds{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
 		metricCheckState[metricName] = checkStatus
+		metricFailureName := fmt.Sprintf("kuberhealthy_check_consecutive_failures{check=\"%s\",namespace=\"%s\"}", c, d.Namespace)
+		metricCheckFailures[metricFailureName] = fmt.Sprintf("%d", d.ConsecutiveFailures)
 
 		// if runDuration hasn't been set yet, ie. pod never ran or failed to provision, set runDuration to 0
 		if d.LastRunDuration == 0 {
@@ -84,6 +87,11 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 	metricsOutput += "# HELP kuberhealthy_check_duration_seconds Shows the check run duration of a Kuberhealthy check\n"
 	metricsOutput += "# TYPE kuberhealthy_check_duration_seconds gauge\n"
 	for m, v := range metricCheckDuration {
+		metricsOutput += fmt.Sprintf("%s %s\n", m, v)
+	}
+	metricsOutput += "# HELP kuberhealthy_check_consecutive_failures Shows the number of consecutive failures for a Kuberhealthy check\n"
+	metricsOutput += "# TYPE kuberhealthy_check_consecutive_failures gauge\n"
+	for m, v := range metricCheckFailures {
 		metricsOutput += fmt.Sprintf("%s %s\n", m, v)
 	}
 

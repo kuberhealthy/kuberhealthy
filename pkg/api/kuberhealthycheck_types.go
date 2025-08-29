@@ -46,6 +46,8 @@ type KuberhealthyCheckStatus struct {
 	OK bool `json:"ok,omitempty"`
 	// Errors holds a slice of error messages from the check results.
 	Errors []string `json:"errors,omitempty"`
+	// ConsecutiveFailures tracks the number of sequential failed runs.
+	ConsecutiveFailures int `json:"consecutiveFailures,omitempty"`
 	// LastRunDuration is the execution time that the checker pod took to execute.
 	LastRunDuration time.Duration `json:"runDuration,omitempty"`
 	// Namespace is the Kubernetes namespace this pod ran in.
