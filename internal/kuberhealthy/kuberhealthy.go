@@ -515,13 +515,5 @@ func (k *Kuberhealthy) getCurrentUUID(checkName types.NamespacedName) (string, e
 		return "", fmt.Errorf("failed to get check: %w", err)
 	}
 
-	if khCheck.CurrentUUID() == "" {
-		khCheck.SetCurrentUUID(uuid.NewString())
-		err = k.CheckClient.Status().Update(k.Context, khCheck)
-		if err != nil {
-			return "", fmt.Errorf("failed to update check with fresh uuid: %w", err)
-		}
-	}
-
 	return khCheck.CurrentUUID(), nil
 }
