@@ -130,7 +130,7 @@ func (kh *Kuberhealthy) reapOnce() error {
 					}
 					if uuid == check.Status.CurrentUUID {
 						_ = kh.setCheckExecutionError(checkNN, []string{"check run timed out"})
-						_ = kh.setOK(checkNN, false)
+						_ = kh.setNotOK(checkNN)
 						_ = kh.clearUUID(checkNN)
 					}
 				}

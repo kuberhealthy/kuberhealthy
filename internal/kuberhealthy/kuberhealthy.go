@@ -452,14 +452,31 @@ func (k *Kuberhealthy) setFreshUUID(checkName types.NamespacedName) error {
 	return nil
 }
 
-// setOK sets the OK property on the status of a khcheck
-func (k *Kuberhealthy) setOK(checkName types.NamespacedName, ok bool) error {
+// setOK marks the check status as OK
+func (k *Kuberhealthy) setOK(checkName types.NamespacedName) error {
 	khCheck, err := k.getCheck(checkName)
 	if err != nil {
 		return fmt.Errorf("failed to get check: %w", err)
 	}
 
-	khCheck.Status.OK = ok
+	khCheck.Status.OK = true
+
+	err = k.CheckClient.Status().Update(k.Context, khCheck)
+	if err != nil {
+		return fmt.Errorf("failed to update OK status: %w", err)
+	}
+
+	return nil
+}
+
+// setNotOK marks the check status as not OK
+func (k *Kuberhealthy) setNotOK(checkName types.NamespacedName) error {
+	khCheck, err := k.getCheck(checkName)
+	if err != nil {
+		return fmt.Errorf("failed to get check: %w", err)
+	}
+
+	khCheck.Status.OK = false
 
 	err = k.CheckClient.Status().Update(k.Context, khCheck)
 	if err != nil {
