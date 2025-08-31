@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 	record "k8s.io/client-go/tools/record"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 	restconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -84,9 +85,10 @@ func (kh *Kuberhealthy) SetCheckClient(checkClient client.Client) {
 	kh.CheckClient = checkClient
 }
 
-// Start starts a new Kuberhealthy manager (this is the thing that kubebuilder makes)
-// along with other various processes needed to manager Kuberhealthy checks.
-func (kh *Kuberhealthy) Start(ctx context.Context) error {
+// Start begins background processing for Kuberhealthy checks.
+// A Kubernetes rest.Config is optional; when provided, khchecks will be
+// watched for creation, update, and deletion events.
+func (kh *Kuberhealthy) Start(ctx context.Context, cfg *rest.Config) error {
 	if kh.IsStarted() {
 		return fmt.Errorf("error: kuberhealthy main controller was started but it was already running")
 	}
@@ -99,6 +101,9 @@ func (kh *Kuberhealthy) Start(ctx context.Context) error {
 	kh.running = true
 	go kh.startScheduleLoop()
 	go kh.runReaper(kh.Context, time.Minute)
+	if cfg != nil {
+		go kh.startKHCheckWatch(cfg)
+	}
 
 	log.Infoln("Kuberhealthy start")
 	return nil
@@ -373,7 +378,7 @@ func (k *Kuberhealthy) readCheck(checkName types.NamespacedName) (*khapi.Kuberhe
 func (k *Kuberhealthy) setCheckExecutionError(checkName types.NamespacedName, checkErrors []string) error {
 
 	// get the check as it is right now
-	khCheck, err := k.getCheck(checkName)
+	khCheck, err := k.readCheck(checkName)
 	if err != nil {
 		return fmt.Errorf("failed to get check: %w", err)
 	}
@@ -455,7 +460,7 @@ func (k *Kuberhealthy) setFreshUUID(checkName types.NamespacedName) error {
 
 // setOK sets the OK property on the status of a khcheck
 func (k *Kuberhealthy) setOK(checkName types.NamespacedName, ok bool) error {
-	khCheck, err := k.getCheck(checkName)
+	khCheck, err := k.readCheck(checkName)
 	if err != nil {
 		return fmt.Errorf("failed to get check: %w", err)
 	}

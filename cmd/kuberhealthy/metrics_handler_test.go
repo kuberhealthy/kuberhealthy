@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -15,10 +14,8 @@ import (
 
 func TestPrometheusMetricsEndpoint(t *testing.T) {
 	t.Parallel()
-	origController := KHController
 	origConfig := GlobalConfig
 	t.Cleanup(func() {
-		KHController = origController
 		GlobalConfig = origConfig
 	})
 
@@ -27,7 +24,9 @@ func TestPrometheusMetricsEndpoint(t *testing.T) {
 		t.Fatalf("failed to add scheme: %v", err)
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
-	KHController = &controller.KHCheckController{Client: fakeClient}
+	origClient := Globals.khClient
+	Globals.khClient = fakeClient
+	t.Cleanup(func() { Globals.khClient = origClient })
 	GlobalConfig = &Config{}
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
