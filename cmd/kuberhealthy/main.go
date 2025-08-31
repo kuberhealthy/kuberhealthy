@@ -13,12 +13,17 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 
-	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
+	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 )
 
 // GlobalConfig holds the configuration settings for Kuberhealthy
@@ -26,11 +31,12 @@ var GlobalConfig *Config
 
 // var KHClient *kubeclient.KHClient    // KubernetesClient is the global kubernetes client
 // var KubeClient *kubernetes.Clientset // global k8s client used by all things
-var (
-	kubeConfig   *rest.Config
-	kubeClient   kubernetes.Interface
-	KHController *controller.KHCheckController
-)
+var Globals struct {
+	kubeConfig *rest.Config
+	kubeClient kubernetes.Interface
+	khClient   client.Client
+	kh         *kuberhealthy.Kuberhealthy
+}
 
 func main() {
 
@@ -47,21 +53,27 @@ func main() {
 	// setup a channel to capture when a shutdown is done
 	doneChan := make(chan struct{})
 
-	// Build the Kubernetes config and client once for reuse
-	kubeConfig, err = ctrl.GetConfig()
+	// Build the Kubernetes config and clients once for reuse
+	Globals.kubeConfig, err = ctrl.GetConfig()
 	if err != nil {
 		log.Fatalln("startup: failed to get kubernetes config:", err)
 	}
-	kubeClient, err = kubernetes.NewForConfig(kubeConfig)
+	Globals.kubeClient, err = kubernetes.NewForConfig(Globals.kubeConfig)
 	if err != nil {
 		log.Fatalln("startup: failed to create kubernetes client:", err)
 	}
 
-	// Make a new kubebuilder controller instance with the kuberhealthy instance in it.
-	// This will be used as a global client
-	KHController, err = controller.New(ctx, kubeConfig)
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(khapi.AddToScheme(scheme))
+	Globals.khClient, err = client.New(Globals.kubeConfig, client.Options{Scheme: scheme})
 	if err != nil {
-		log.Errorln("startup: failed to setup kuberhealthy controller with error:", err)
+		log.Fatalln("startup: failed to create controller-runtime client:", err)
+	}
+
+	Globals.kh = kuberhealthy.New(ctx, Globals.khClient)
+	if err := Globals.kh.Start(ctx, Globals.kubeConfig); err != nil {
+		log.Errorln("startup: failed to start kuberhealthy:", err)
 	}
 
 	// start the web status server
@@ -141,7 +153,6 @@ func setUp() error {
 	logf.SetLogger(logruslogr.New(log.StandardLogger()))
 
 	// init the global kubernetes client
-	// integrii: Removed because we can use the global controller instance KHController for this
 	// KHClient, err = kubeclient.New()
 	// if err != nil {
 	// 	return fmt.Errorf("Error setting up Kuberhealthy client for Kubernetes: %w", err)

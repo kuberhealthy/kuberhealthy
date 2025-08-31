@@ -10,6 +10,7 @@ import (
 
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // TestCheckReportHandler validates the check report handler logic.
@@ -18,12 +19,18 @@ func TestCheckReportHandler(t *testing.T) {
 	origValidateHeader := validateUsingRequestHeaderFunc
 	origValidateIP := validatePodReportBySourceIPFunc
 	origStore := storeCheckStateFunc
+	origClient := Globals.khClient
+	origKH := Globals.kh
 	t.Parallel()
 	defer func() {
 		validateUsingRequestHeaderFunc = origValidateHeader
 		validatePodReportBySourceIPFunc = origValidateIP
 		storeCheckStateFunc = origStore
+		Globals.khClient = origClient
+		Globals.kh = origKH
 	}()
+	Globals.khClient = nil
+	Globals.kh = nil
 
 	t.Run("valid report", func(t *testing.T) {
 		validateUsingRequestHeaderFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
@@ -35,7 +42,7 @@ func TestCheckReportHandler(t *testing.T) {
 		}
 		var storedName, storedNamespace string
 		var storedDetails *khapi.KuberhealthyCheckStatus
-		storeCheckStateFunc = func(name, namespace string, details *khapi.KuberhealthyCheckStatus) error {
+		storeCheckStateFunc = func(_ client.Client, name, namespace string, details *khapi.KuberhealthyCheckStatus) error {
 			storedName = name
 			storedNamespace = namespace
 			storedDetails = details
@@ -74,7 +81,7 @@ func TestCheckReportHandler(t *testing.T) {
 			return PodReportInfo{}, nil
 		}
 		storeCalled := false
-		storeCheckStateFunc = func(string, string, *khapi.KuberhealthyCheckStatus) error {
+		storeCheckStateFunc = func(client.Client, string, string, *khapi.KuberhealthyCheckStatus) error {
 			storeCalled = true
 			return nil
 		}
@@ -108,7 +115,7 @@ func TestCheckReportHandler(t *testing.T) {
 			return PodReportInfo{}, nil
 		}
 		storeCalled := false
-		storeCheckStateFunc = func(string, string, *khapi.KuberhealthyCheckStatus) error {
+		storeCheckStateFunc = func(client.Client, string, string, *khapi.KuberhealthyCheckStatus) error {
 			storeCalled = true
 			return nil
 		}

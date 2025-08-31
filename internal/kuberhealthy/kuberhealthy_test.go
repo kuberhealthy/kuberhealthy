@@ -95,7 +95,7 @@ func TestSetFreshUUID(t *testing.T) {
 	nn := types.NamespacedName{Namespace: check.Namespace, Name: check.Name}
 	require.NoError(t, kh.setFreshUUID(nn))
 
-	fetched, err := kh.getCheck(nn)
+	fetched, err := kh.readCheck(nn)
 	require.NoError(t, err)
 	require.NotEmpty(t, fetched.CurrentUUID())
 }
@@ -182,7 +182,7 @@ func TestScheduleLoopStopsOnStop(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	kh := New(context.Background(), cl)
-	require.NoError(t, kh.Start(context.Background()))
+	require.NoError(t, kh.Start(context.Background(), nil))
 	// ensure loop has started
 	time.Sleep(50 * time.Millisecond)
 
@@ -202,7 +202,7 @@ func TestScheduleLoopOnlyRunsOnce(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	kh := New(context.Background(), cl)
-	require.NoError(t, kh.Start(context.Background()))
+	require.NoError(t, kh.Start(context.Background(), nil))
 	time.Sleep(50 * time.Millisecond)
 
 	done := make(chan struct{})

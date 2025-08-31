@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kuberhealthy/kuberhealthy/v3/internal/controller"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -50,12 +49,8 @@ func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(existing).WithStatusSubresource(existing).Build()
 	cc := &conflictClient{Client: fakeClient}
 
-	origController := KHController
-	t.Cleanup(func() { KHController = origController })
-	KHController = &controller.KHCheckController{Client: cc}
-
 	status := &khapi.KuberhealthyCheckStatus{OK: true}
-	if err := storeCheckState("conflict-check", "default", status); err != nil {
+	if err := storeCheckState(cc, "conflict-check", "default", status); err != nil {
 		t.Fatalf("storeCheckState returned error: %v", err)
 	}
 	if cc.updateCalls < 2 {
