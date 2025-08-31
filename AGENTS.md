@@ -5,11 +5,18 @@ This file defines contributor guidelines for the entire repository.
 ## Development principles
 - Keep code simple and pragmatic.
 - If a line does more than one thing, split it into multiple lines.
+- Each function should do one thing; avoid `else` and `else if` by returning early or extracting more functions.
+- Prefer early returns and guard clauses to minimize indentation and keep code paths clear.
+- Avoid indenting more than five levels and aim for three or fewer.
+- Avoid short variable declarations in `if` statements such as `if err := doThing(); err != nil`. Call the function on one line and check the error on the next.
+- Prefer methods on structs over directly manipulating struct fields; keep methods short and focused.
+- Favor composition over inheritance; keep packages small and focused with limited exported symbols.
+- Wrap returned errors with context using `fmt.Errorf` or `%w` so failures are traceable.
+- Document all exported functions, types, and methods with brief, descriptive comments.
 - Add inline comments within functions frequently.
-- Try hard not to indent past 4 indents anywhere in the codebase.
+- Test names should not use underscores (use testName instead of test_name).
+- Tests should focus on one small behavior. End-to-end tests may cover a large process but should assert only its initial inputs and final outputs.
 - Prefer standard library packages when practical.
-- Test names should not use underscores (use testName instead of test_name)
-- Never use `else` statements unless absolutely necessary. Instead use an `if` and a `return` with more functions.
 
 ## Project decisions
 - Logging is handled with `github.com/sirupsen/logrus`.
