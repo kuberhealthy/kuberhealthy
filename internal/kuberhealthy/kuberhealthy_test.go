@@ -66,6 +66,8 @@ func TestCheckPodSpec(t *testing.T) {
 	require.Equal(t, "KuberhealthyCheck", owner.Kind)
 	require.NotNil(t, owner.Controller)
 	require.True(t, *owner.Controller)
+	require.NotNil(t, owner.BlockOwnerDeletion)
+	require.True(t, *owner.BlockOwnerDeletion)
 }
 
 func TestIsStarted(t *testing.T) {

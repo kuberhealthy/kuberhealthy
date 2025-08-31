@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	dynamicinformer "k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/rest"
@@ -39,6 +40,10 @@ func (kh *Kuberhealthy) handleCreate(obj interface{}) {
 		log.Errorln("error:", err)
 		return
 	}
+	if err := kh.addFinalizer(kh.Context, khc); err != nil {
+		log.Errorln("error:", err)
+		return
+	}
 	if err := kh.StartCheck(khc); err != nil {
 		log.Errorln("error:", err)
 	}
@@ -53,6 +58,23 @@ func (kh *Kuberhealthy) handleUpdate(oldObj, newObj interface{}) {
 	newCheck, err := convertToKHCheck(newObj)
 	if err != nil {
 		log.Errorln("error:", err)
+		return
+	}
+	if !newCheck.GetDeletionTimestamp().IsZero() {
+		if kh.hasFinalizer(newCheck) {
+			if err := kh.StopCheck(newCheck); err != nil {
+				log.Errorln("error:", err)
+			}
+			refreshed := &khapi.KuberhealthyCheck{}
+			nn := types.NamespacedName{Namespace: newCheck.Namespace, Name: newCheck.Name}
+			if err := kh.CheckClient.Get(kh.Context, nn, refreshed); err != nil {
+				log.Errorln("error:", err)
+				return
+			}
+			if err := kh.deleteFinalizer(kh.Context, refreshed); err != nil {
+				log.Errorln("error:", err)
+			}
+		}
 		return
 	}
 	kh.UpdateCheck(oldCheck, newCheck)
