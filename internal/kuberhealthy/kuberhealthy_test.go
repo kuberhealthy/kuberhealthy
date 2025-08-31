@@ -18,7 +18,8 @@ import (
 
 func TestCheckPodSpec(t *testing.T) {
 	t.Parallel()
-	kh := New(context.Background(), nil)
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
 
 	check := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{
@@ -38,7 +39,13 @@ func TestCheckPodSpec(t *testing.T) {
 		},
 	}
 
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	kh := New(context.Background(), cl)
+
 	pod := kh.CheckPodSpec(check)
+
+	uuid, err := kh.getCurrentUUID(types.NamespacedName{Namespace: check.Namespace, Name: check.Name})
+	require.NoError(t, err)
 
 	require.Equal(t, check.Namespace, pod.Namespace)
 	require.True(t, strings.HasPrefix(pod.Name, check.Name+"-"))
@@ -48,7 +55,8 @@ func TestCheckPodSpec(t *testing.T) {
 	require.Equal(t, check.Name, pod.Annotations["kuberhealthyCheckName"])
 	require.NotEmpty(t, pod.Annotations["createdTime"])
 
-	require.Equal(t, check.Name, pod.Labels["khcheck"])
+	require.Equal(t, check.Name, pod.Labels[checkLabel])
+	require.Equal(t, uuid, pod.Labels[runUUIDLabel])
 
 	require.Len(t, pod.OwnerReferences, 1)
 	owner := pod.OwnerReferences[0]
@@ -66,31 +74,6 @@ func TestIsStarted(t *testing.T) {
 	require.True(t, kh.IsStarted())
 	kh.running = false
 	require.False(t, kh.IsStarted())
-}
-
-func TestSetAndGetCheckPodName(t *testing.T) {
-	t.Parallel()
-	scheme := runtime.NewScheme()
-	require.NoError(t, khapi.AddToScheme(scheme))
-
-	check := &khapi.KuberhealthyCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            "test-check",
-			Namespace:       "default",
-			ResourceVersion: "1",
-		},
-	}
-
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
-	kh := New(context.Background(), cl)
-
-	nn := types.NamespacedName{Namespace: check.Namespace, Name: check.Name}
-
-	require.NoError(t, kh.setCheckPodName(nn, "pod-123"))
-
-	name, err := kh.getCurrentPodName(check)
-	require.NoError(t, err)
-	require.Equal(t, "pod-123", name)
 }
 
 func TestSetFreshUUID(t *testing.T) {
@@ -114,7 +97,7 @@ func TestSetFreshUUID(t *testing.T) {
 
 	fetched, err := kh.getCheck(nn)
 	require.NoError(t, err)
-	require.NotEmpty(t, fetched.Status.CurrentUUID)
+	require.NotEmpty(t, fetched.CurrentUUID())
 }
 
 func TestScheduleStartsCheck(t *testing.T) {
@@ -149,7 +132,7 @@ func TestScheduleStartsCheck(t *testing.T) {
 
 	fetched := &khapi.KuberhealthyCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "sched-check", Namespace: "default"}, fetched))
-	require.NotEmpty(t, fetched.Status.CurrentUUID)
+	require.NotEmpty(t, fetched.CurrentUUID())
 	require.NotZero(t, fetched.Status.LastRunUnix)
 }
 
@@ -189,7 +172,7 @@ func TestScheduleSkipsWhenNotDue(t *testing.T) {
 
 	fetched := &khapi.KuberhealthyCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "skip-check", Namespace: "default"}, fetched))
-	require.Empty(t, fetched.Status.CurrentUUID)
+	require.Empty(t, fetched.CurrentUUID())
 	require.Equal(t, last, fetched.Status.LastRunUnix)
 }
 

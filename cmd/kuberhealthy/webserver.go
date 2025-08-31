@@ -394,8 +394,9 @@ func podListHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return fmt.Errorf("kubernetes client not initialized")
 	}
-	khc := &khapi.KuberhealthyCheck{}
-	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: khcheck}, khc); err != nil {
+	nn := types.NamespacedName{Namespace: namespace, Name: khcheck}
+	khc, err := khapi.GetCheck(r.Context(), KHController.Client, nn)
+	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return err
 	}
@@ -469,8 +470,9 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusForbidden)
 		return fmt.Errorf("pod not part of khcheck")
 	}
-	khc := &khapi.KuberhealthyCheck{}
-	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: khcheck}, khc); err != nil {
+	nn := types.NamespacedName{Namespace: namespace, Name: khcheck}
+	khc, err := khapi.GetCheck(r.Context(), KHController.Client, nn)
+	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return err
 	}
@@ -534,8 +536,9 @@ func podLogsStreamHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusConflict)
 		return fmt.Errorf("pod not running")
 	}
-	khc := &khapi.KuberhealthyCheck{}
-	if err := KHController.Client.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: khcheck}, khc); err != nil {
+	nn := types.NamespacedName{Namespace: namespace, Name: khcheck}
+	khc, err := khapi.GetCheck(r.Context(), KHController.Client, nn)
+	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return err
 	}
@@ -791,8 +794,9 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	var khCheck *khapi.KuberhealthyCheck
 	if KHController != nil && KHController.Client != nil {
 		nn := types.NamespacedName{Name: podReport.Name, Namespace: podReport.Namespace}
-		khCheck = &khapi.KuberhealthyCheck{}
-		if err := KHController.Client.Get(ctx, nn, khCheck); err != nil {
+		var err error
+		khCheck, err = khapi.GetCheck(ctx, KHController.Client, nn)
+		if err != nil {
 			// if we cannot fetch, skip event recording
 			log.Println("webserver:", requestID, "failed to fetch khcheck for event recording:", err)
 			khCheck = nil
@@ -1129,11 +1133,11 @@ func ensureCheckResourceExists(checkName string, checkNamespace string) error {
 
 	ctx := context.Background()
 	nn := types.NamespacedName{Name: checkName, Namespace: checkNamespace}
-	khCheck := &khapi.KuberhealthyCheck{}
-	if err := KHController.Client.Get(ctx, nn, khCheck); err != nil {
+	khCheck, err := khapi.GetCheck(ctx, KHController.Client, nn)
+	if err != nil {
 		if apierrors.IsNotFound(err) {
-			khCheck.ObjectMeta = metav1.ObjectMeta{Name: checkName, Namespace: checkNamespace}
-			if err := KHController.Client.Create(ctx, khCheck); err != nil {
+			khCheck = &khapi.KuberhealthyCheck{ObjectMeta: metav1.ObjectMeta{Name: checkName, Namespace: checkNamespace}}
+			if err := khapi.CreateCheck(ctx, KHController.Client, khCheck); err != nil {
 				return fmt.Errorf("failed to create khcheck %s/%s: %w", checkNamespace, checkName, err)
 			}
 			return nil
@@ -1151,8 +1155,8 @@ func setCheckStatus(checkName string, checkNamespace string, khcheck *khapi.Kube
 
 	ctx := context.Background()
 	nn := types.NamespacedName{Name: checkName, Namespace: checkNamespace}
-	khCheck := &khapi.KuberhealthyCheck{}
-	if err := KHController.Client.Get(ctx, nn, khCheck); err != nil {
+	khCheck, err := khapi.GetCheck(ctx, KHController.Client, nn)
+	if err != nil {
 		return fmt.Errorf("failed to get khcheck: %w", err)
 	}
 
@@ -1161,7 +1165,7 @@ func setCheckStatus(checkName string, checkNamespace string, khcheck *khapi.Kube
 		khCheck.Status.Namespace = checkNamespace
 	}
 
-	if err := KHController.Client.Status().Update(ctx, khCheck); err != nil {
+	if err := khapi.UpdateCheck(ctx, KHController.Client, khCheck); err != nil {
 		return fmt.Errorf("failed to update khcheck status: %w", err)
 	}
 

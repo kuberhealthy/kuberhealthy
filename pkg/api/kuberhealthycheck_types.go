@@ -17,10 +17,13 @@ limitations under the License.
 package api
 
 import (
+	"context"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -52,8 +55,6 @@ type KuberhealthyCheckStatus struct {
 	LastRunDuration time.Duration `json:"runDuration,omitempty"`
 	// Namespace is the Kubernetes namespace this pod ran in.
 	Namespace string `json:"namespace,omitempty"`
-	// PodName is the name of the Pod that was most recently created to run this check
-	PodName string `json:"podName,omitempty"`
 	// CurrentUUID is used to ensure only the most recent checker pod reports a status for this check.
 	CurrentUUID string `json:"currentUUID,omitempty"`
 	// LastRunUnix is the last time that this check was scheduled to run.
@@ -87,4 +88,53 @@ type KuberhealthyCheckList struct {
 
 func init() {
 	SchemeBuilder.Register(&KuberhealthyCheck{}, &KuberhealthyCheckList{})
+}
+
+// CurrentUUID returns the running UUID for this check.
+func (k *KuberhealthyCheck) CurrentUUID() string {
+	return k.Status.CurrentUUID
+}
+
+// SetCurrentUUID updates the running UUID on the check status.
+func (k *KuberhealthyCheck) SetCurrentUUID(u string) {
+	k.Status.CurrentUUID = u
+}
+
+// SetOK marks the check status as healthy.
+func (k *KuberhealthyCheck) SetOK() {
+	k.Status.OK = true
+}
+
+// SetNotOK marks the check status as unhealthy.
+func (k *KuberhealthyCheck) SetNotOK() {
+	k.Status.OK = false
+}
+
+// SetCheckExecutionError assigns execution errors on the check status.
+func (k *KuberhealthyCheck) SetCheckExecutionError(errs []string) {
+	k.Status.Errors = errs
+}
+
+// CreateCheck writes a new check object to the cluster.
+func CreateCheck(ctx context.Context, cl client.Client, check *KuberhealthyCheck) error {
+	return cl.Create(ctx, check)
+}
+
+// GetCheck fetches the current version of a check.
+func GetCheck(ctx context.Context, cl client.Client, nn types.NamespacedName) (*KuberhealthyCheck, error) {
+	out := &KuberhealthyCheck{}
+	if err := cl.Get(ctx, nn, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// UpdateCheck persists status changes for a check.
+func UpdateCheck(ctx context.Context, cl client.Client, check *KuberhealthyCheck) error {
+	return cl.Status().Update(ctx, check)
+}
+
+// DeleteCheck removes a check from the cluster.
+func DeleteCheck(ctx context.Context, cl client.Client, check *KuberhealthyCheck) error {
+	return cl.Delete(ctx, check)
 }
