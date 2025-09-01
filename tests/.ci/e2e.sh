@@ -40,6 +40,13 @@ print_block() {
   "$@"
 }
 
+print_check_pod_logs() {
+  check_pods=$(kubectl -n "$NS" get pods -o name | grep -v "$NAME" || true)
+  for pod in $check_pods; do
+    print_block "Check Pod Logs ($pod)" kubectl -n "$NS" logs "$pod"
+  done
+}
+
 # repeatedly check for the test check to run successfully
 for i in {1..20}; do
     checksOK=$(kubectl get -n "$NS" kuberhealthycheck -o jsonpath='{range .items[*]}{.status.ok}{"\n"}{end}' 2>/dev/null | grep -c true || echo 0)
@@ -50,6 +57,7 @@ for i in {1..20}; do
         print_block "Pod List" kubectl -n "$NS" get pods
         print_block "KuberhealthyCheck List" kubectl -n "$NS" get kuberhealthycheck
         print_block "Kuberhealthy Pod Logs" kubectl -n "$NS" logs deployment/kuberhealthy
+        print_check_pod_logs
         exit 0 # successful testing
     else
         echo "--- Waiting for kuberhealthy check to pass...\n"
@@ -58,6 +66,7 @@ for i in {1..20}; do
         print_block "Pod List" kubectl -n "$NS" get pods
         print_block "KuberhealthyCheck List" kubectl -n "$NS" get kuberhealthycheck
         print_block "Kuberhealthy Pod Logs" kubectl -n "$NS" logs deployment/kuberhealthy
+        print_check_pod_logs
         sleep 10
     fi
 
