@@ -6,6 +6,7 @@ metadata:
 spec:
   singleRunOnly: false
   runInterval: 15s
+  timeout: 30s
   podSpec:
     containers:
       - name: main

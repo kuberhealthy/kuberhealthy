@@ -7,36 +7,56 @@ on:
       - v3
   push:
     branches:
-    - master
-    - release/*
-    - actions # for testing this build spec
+      - master
+      - release/*
+      - actions # for testing this build spec
 
 jobs:
-  build:
+  build-image:
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
       KIND_EXPERIMENTAL_PROVIDER: podman
     runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.build.outputs.image }}
     steps:
-    - uses: actions/setup-go@v1
-      with:
-        go-version: '1.21.5'
-    - uses: actions/checkout@v2
-    - name: build container
-      run: podman build --file cmd/kuberhealthy/Podfile --tag docker.io/kuberhealthy/kuberhealthy:${GITHUB_RUN_ID} .
-    - uses: engineerd/setup-kind@v0.5.0
-      with:
-          version: "v0.20.0"
-    - name: Testing
-      run: |
-        kubectl cluster-info
-        kubectl get pods -n kube-system
-        kubectl get nodes
-        echo "current-context:" $(kubectl config current-context)
-        echo "environment-kubeconfig:" ${KUBECONFIG}
-        echo "loading image to kind: docker.io/kuberhealthy/kuberhealthy:${GITHUB_RUN_ID}"
-        podman save docker.io/kuberhealthy/kuberhealthy:${GITHUB_RUN_ID} -o /tmp/kuberhealthy.tar
-        kind load image-archive /tmp/kuberhealthy.tar
+      - uses: actions/setup-go@v1
+        with:
+          go-version: '1.21.5'
+      - uses: actions/checkout@v2
+      - name: build container
+        id: build
+        run: |
+          IMAGE="docker.io/kuberhealthy/kuberhealthy:${GITHUB_RUN_ID}"
+          podman build --file cmd/kuberhealthy/Podfile --tag "$IMAGE" .
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+      - name: export image
+        run: podman save ${{ steps.build.outputs.image }} -o kuberhealthy.tar
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kh-image
+          path: kuberhealthy.tar
 
-    - name: "running end to end test"
-      run: ./tests/.ci/e2e.sh docker.io/kuberhealthy/kuberhealthy:${GITHUB_RUN_ID}
+  e2e:
+    needs: build-image
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+      KIND_EXPERIMENTAL_PROVIDER: podman
+      IMAGE_URL: ${{ needs.build-image.outputs.image }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: '1.21.5'
+      - uses: actions/checkout@v2
+      - uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: "v0.20.0"
+      - uses: actions/download-artifact@v3
+        with:
+          name: kh-image
+      - name: load image into kind
+        run: kind load image-archive kuberhealthy.tar
+      - name: run end to end test
+        run: ./tests/.ci/e2e.sh "${IMAGE_URL}"
+
