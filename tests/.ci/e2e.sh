@@ -43,7 +43,7 @@ print_block() {
 print_check_pod_logs() {
   check_pods=$(kubectl -n "$NS" get pods -o name | grep -v "$NAME" || true)
   for pod in $check_pods; do
-    print_block "Check Pod Logs ($pod)" kubectl -n "$NS" logs "$pod"
+    print_block "Check Pod Logs ($pod)" kubectl -n "$NS" logs "$pod" || true
   done
 }
 
