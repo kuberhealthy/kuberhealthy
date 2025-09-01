@@ -57,6 +57,8 @@ type KuberhealthyCheckStatus struct {
 	Namespace string `json:"namespace,omitempty"`
 	// CurrentUUID is used to ensure only the most recent checker pod reports a status for this check.
 	CurrentUUID string `json:"currentUUID,omitempty"`
+	// CreationTimestamp records when the most recent checker pod was created.
+	CreationTimestamp metav1.Time `json:"creationTimestamp,omitempty"`
 	// LastRunUnix is the last time that this check was scheduled to run.
 	LastRunUnix int64 `json:"lastRunUnix,omitempty"`
 	// AdditionalMetadata is used to store additional metadata bout this check that appears in the JSON status.
