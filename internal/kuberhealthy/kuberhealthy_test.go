@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+// TestCheckPodSpec builds a pod from a check and asserts metadata and ownership are populated.
 func TestCheckPodSpec(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
@@ -70,6 +71,7 @@ func TestCheckPodSpec(t *testing.T) {
 	require.True(t, *owner.BlockOwnerDeletion)
 }
 
+// TestIsStarted verifies that IsStarted reflects the running state of Kuberhealthy.
 func TestIsStarted(t *testing.T) {
 	t.Parallel()
 	kh := &Kuberhealthy{running: true}
@@ -78,6 +80,7 @@ func TestIsStarted(t *testing.T) {
 	require.False(t, kh.IsStarted())
 }
 
+// TestSetFreshUUID ensures a new UUID is written to the check status.
 func TestSetFreshUUID(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
@@ -102,6 +105,7 @@ func TestSetFreshUUID(t *testing.T) {
 	require.NotEmpty(t, fetched.CurrentUUID())
 }
 
+// TestScheduleStartsCheck confirms that scheduleChecks triggers a run when a check is due.
 func TestScheduleStartsCheck(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
@@ -138,6 +142,7 @@ func TestScheduleStartsCheck(t *testing.T) {
 	require.NotZero(t, fetched.Status.LastRunUnix)
 }
 
+// TestScheduleSkipsWhenNotDue ensures scheduleChecks leaves checks untouched if their interval has not elapsed.
 func TestScheduleSkipsWhenNotDue(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
@@ -178,6 +183,7 @@ func TestScheduleSkipsWhenNotDue(t *testing.T) {
 	require.Equal(t, last, fetched.Status.LastRunUnix)
 }
 
+// TestScheduleLoopStopsOnStop verifies that Stop halts the scheduling loop.
 func TestScheduleLoopStopsOnStop(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
@@ -198,6 +204,7 @@ func TestScheduleLoopStopsOnStop(t *testing.T) {
 	require.False(t, running)
 }
 
+// TestScheduleLoopOnlyRunsOnce checks that a second schedule loop invocation exits immediately if already running.
 func TestScheduleLoopOnlyRunsOnce(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))

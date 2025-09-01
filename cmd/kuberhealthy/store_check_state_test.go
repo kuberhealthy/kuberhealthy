@@ -35,6 +35,7 @@ func (w *conflictStatusWriter) Update(ctx context.Context, obj client.Object, op
 	return w.StatusWriter.Update(ctx, obj, opts...)
 }
 
+// TestStoreCheckStateRetriesOnConflict verifies that storeCheckState retries updates when a conflict occurs.
 func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 	scheme := runtime.NewScheme()
 	if err := khapi.AddToScheme(scheme); err != nil {

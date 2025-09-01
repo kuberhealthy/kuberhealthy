@@ -8,6 +8,7 @@ import (
 	"testing"
 )
 
+// TestWebServerHandlers checks that JSON and root handlers return HTTP 200.
 func TestWebServerHandlers(t *testing.T) {
 	t.Parallel()
 	mux := newServeMux()
@@ -26,6 +27,7 @@ func TestWebServerHandlers(t *testing.T) {
 	}
 }
 
+// TestRootServesUserInterface ensures the root endpoint serves the HTML status page.
 func TestRootServesUserInterface(t *testing.T) {
 	t.Parallel()
 	mux := newServeMux()

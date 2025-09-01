@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// TestLoadFromEnv populates configuration fields from environment variables.
 func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("KH_LISTEN_ADDRESS", "127.0.0.1:9000")
 	t.Setenv("KH_LOG_LEVEL", "debug")
@@ -82,6 +83,7 @@ func TestLoadFromEnv(t *testing.T) {
 	}
 }
 
+// TestLoadFromEnvInvalid returns an error when a duration environment variable is malformed.
 func TestLoadFromEnvInvalid(t *testing.T) {
 	t.Setenv("KH_MAX_JOB_AGE", "not-a-duration")
 	cfg := New()
@@ -90,6 +92,7 @@ func TestLoadFromEnvInvalid(t *testing.T) {
 	}
 }
 
+// TestReportingURLFromServiceAndNamespace constructs the reporting URL when service name and namespace are provided.
 func TestReportingURLFromServiceAndNamespace(t *testing.T) {
 	t.Setenv("POD_NAMESPACE", "ns1")
 	t.Setenv("KH_SERVICE_NAME", "svc1")

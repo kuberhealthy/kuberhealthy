@@ -13,10 +13,11 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
+// TestWaitForKuberhealthyEndpointReady verifies the helper returns an error when the endpoint cannot be reached.
 func TestWaitForKuberhealthyEndpointReady(t *testing.T) {
 	t.Parallel()
 	khEndpoint := "http://127.0.0.1:65535/"
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second)
 	err := <-waitForKuberhealthyEndpointReady(ctx, khEndpoint)
 	if err == nil {
 		t.Error("Negative test failed for waitForKuberhealthyEndpointReady")

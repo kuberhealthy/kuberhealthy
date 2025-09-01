@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// TestAddError verifies that AddError appends entries to the state's error slice.
 func TestAddError(t *testing.T) {
 	t.Parallel()
 	s := NewState()
@@ -18,6 +19,7 @@ func TestAddError(t *testing.T) {
 	}
 }
 
+// TestWriteHTTPStatusResponse ensures the state is serialized to JSON with the expected headers and body.
 func TestWriteHTTPStatusResponse(t *testing.T) {
 	t.Parallel()
 	s := State{
@@ -44,6 +46,7 @@ func TestWriteHTTPStatusResponse(t *testing.T) {
 	}
 }
 
+// TestNewState confirms that NewState returns a healthy state with empty slices and maps initialized.
 func TestNewState(t *testing.T) {
 	t.Parallel()
 	s := NewState()
