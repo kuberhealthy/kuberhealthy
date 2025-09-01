@@ -38,9 +38,6 @@ func TestCheckPodSpec(t *testing.T) {
 				},
 			},
 		},
-		Status: khapi.KuberhealthyCheckStatus{
-			CreationTimestamp: metav1.Now(),
-		},
 	}
 
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
@@ -57,7 +54,6 @@ func TestCheckPodSpec(t *testing.T) {
 
 	require.Equal(t, "kuberhealthy", pod.Annotations["createdBy"])
 	require.Equal(t, check.Name, pod.Annotations["kuberhealthyCheckName"])
-	require.Equal(t, check.Status.CreationTimestamp.Time.String(), pod.Annotations["createdTime"])
 
 	require.Equal(t, check.Name, pod.Labels[checkLabel])
 	require.Equal(t, uuid, pod.Labels[runUUIDLabel])
@@ -143,7 +139,6 @@ func TestScheduleStartsCheck(t *testing.T) {
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "sched-check", Namespace: "default"}, fetched))
 	require.NotEmpty(t, fetched.CurrentUUID())
 	require.NotZero(t, fetched.Status.LastRunUnix)
-	require.False(t, fetched.Status.CreationTimestamp.IsZero())
 }
 
 // TestScheduleSkipsWhenNotDue ensures scheduleChecks leaves checks untouched if their interval has not elapsed.
@@ -185,7 +180,6 @@ func TestScheduleSkipsWhenNotDue(t *testing.T) {
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "skip-check", Namespace: "default"}, fetched))
 	require.Empty(t, fetched.CurrentUUID())
 	require.Equal(t, last, fetched.Status.LastRunUnix)
-	require.True(t, fetched.Status.CreationTimestamp.IsZero())
 }
 
 // TestScheduleLoopStopsOnStop verifies that Stop halts the scheduling loop.
