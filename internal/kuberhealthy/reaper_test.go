@@ -16,8 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// Test that pods running past their timeout are terminated and the check is
-// marked as failed.
+// TestReaperTimesOutRunningPod ensures pods exceeding their timeout are deleted and the check is marked failed.
 func TestReaperTimesOutRunningPod(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
@@ -69,7 +68,7 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 	require.Empty(t, updated.CurrentUUID())
 }
 
-// Test that completed pods are removed after three run intervals have passed.
+// TestReaperRemovesCompletedPods deletes completed pods after three run intervals have passed.
 func TestReaperRemovesCompletedPods(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
@@ -111,7 +110,7 @@ func TestReaperRemovesCompletedPods(t *testing.T) {
 	require.True(t, apierrors.IsNotFound(err))
 }
 
-// Test that completed pods younger than three run intervals remain.
+// TestReaperKeepsRecentCompletedPods retains completed pods that have not exceeded the grace period.
 func TestReaperKeepsRecentCompletedPods(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
@@ -153,7 +152,7 @@ func TestReaperKeepsRecentCompletedPods(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// Test that failed pods are pruned according to retention and max count settings.
+// TestReaperPrunesFailedPods prunes failed pods based on retention days and maximum count.
 func TestReaperPrunesFailedPods(t *testing.T) {
 	t.Setenv("KH_ERROR_POD_RETENTION_DAYS", "2")
 	t.Setenv("KH_MAX_ERROR_POD_COUNT", "2")
@@ -222,7 +221,7 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 	require.Len(t, ours, 2)
 }
 
-// Test that failed pods within retention limits are preserved.
+// TestReaperRetainsFailedPodsWithinRetention keeps failed pods when they fall within retention limits.
 func TestReaperRetainsFailedPodsWithinRetention(t *testing.T) {
 	t.Setenv("KH_ERROR_POD_RETENTION_DAYS", "2")
 	t.Setenv("KH_MAX_ERROR_POD_COUNT", "3")
@@ -283,7 +282,7 @@ func TestReaperRetainsFailedPodsWithinRetention(t *testing.T) {
 	require.Len(t, ours, 2)
 }
 
-// Test that failed pods older than the retention period are removed.
+// TestReaperDeletesFailedPodsPastRetention removes failed pods older than the configured retention period.
 func TestReaperDeletesFailedPodsPastRetention(t *testing.T) {
 	t.Setenv("KH_ERROR_POD_RETENTION_DAYS", "1")
 	t.Setenv("KH_MAX_ERROR_POD_COUNT", "5")

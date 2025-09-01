@@ -2,6 +2,7 @@ package health
 
 import "testing"
 
+// TestNewReportDefaultsOK checks that a new report without errors is marked healthy.
 func TestNewReportDefaultsOK(t *testing.T) {
 	t.Parallel()
 	r := NewReport(nil)
@@ -15,6 +16,7 @@ func TestNewReportDefaultsOK(t *testing.T) {
 	}
 }
 
+// TestNewReportWithErrors confirms that providing errors results in a non-OK report.
 func TestNewReportWithErrors(t *testing.T) {
 	t.Parallel()
 	errs := []string{"err1"}

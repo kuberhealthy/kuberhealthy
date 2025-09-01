@@ -11,6 +11,7 @@ import (
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 )
 
+// TestReportSuccessAndFailure verifies success and failure reports send expected JSON and headers.
 func TestReportSuccessAndFailure(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -82,6 +83,7 @@ func TestReportSuccessAndFailure(t *testing.T) {
 	}
 }
 
+// TestSendReportRetry ensures ReportSuccess retries once after an initial server error.
 func TestSendReportRetry(t *testing.T) {
 	var reqs int
 

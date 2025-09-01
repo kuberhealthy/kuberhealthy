@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+// TestPrometheusMetricsEndpoint verifies the /metrics route serves Prometheus metrics.
 func TestPrometheusMetricsEndpoint(t *testing.T) {
 	t.Parallel()
 	origConfig := GlobalConfig
