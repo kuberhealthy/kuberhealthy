@@ -111,7 +111,7 @@ async function showCheck(name){
       '<h3 class="text-xl font-semibold mb-2">Overview</h3>'+
       '<p class="mb-2"><span class="font-semibold">Status:</span> <span class="'+(st.podName?'text-blue-600':(st.ok?'text-green-600':'text-red-600'))+'">'+(st.podName?'Running':(st.ok?'OK':'Fail'))+'</span></p>'+
       '<p class="mb-2"><span class="font-semibold">Namespace:</span> '+st.namespace+'</p>'+
-      (st.nextRunUnix?'<p class="mb-2"><span class="font-semibold">Next run in:</span> <span id="nextRun"></span></p>':'')+
+      (st.podName?'<p class="mb-2"><span class="font-semibold">Pod:</span> '+st.podName+'</p>':(st.nextRunUnix?'<p class="mb-2 flex items-center gap-2"><span class="font-semibold">Next run in:</span> <span id="nextRun"></span><button id="runNow" class="px-2 py-1 text-xs bg-blue-600 text-white rounded">Run now</button></p>':''))+
       (st.lastRunUnix?'<p class="mb-2"><span class="font-semibold">Last run:</span> '+new Date(st.lastRunUnix*1000).toLocaleString()+'</p>':'')+
       (st.errors && st.errors.length ? '<div class="mb-2"><span class="font-semibold text-red-600">Errors:</span><ul class="list-disc list-inside">'+st.errors.map(e=>'<li>'+e+'</li>').join('')+'</ul></div>' : '')+
     '</div>'+
@@ -119,17 +119,36 @@ async function showCheck(name){
     '<details class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><summary class="text-xl font-semibold cursor-pointer mb-2">Other Pods</summary><div id="pods" class="text-gray-900 dark:text-gray-100 mt-2"></div></details>'+
     '<div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><h3 class="text-xl font-semibold mb-2">Pod Details</h3><div id="pod-info" class="text-gray-900 dark:text-gray-100"></div></div>'+
     '<div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><h3 class="text-xl font-semibold mb-2">Logs</h3><pre id="logs" class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-4 text-gray-900 dark:text-gray-100 rounded shadow-inner"></pre></div>';
-  if(st.nextRunUnix){
+  if(st.nextRunUnix && !st.podName){
     updateNextRun(st.nextRunUnix);
     nextRunTimer=setInterval(()=>updateNextRun(st.nextRunUnix),1000);
+    const btn=document.getElementById('runNow');
+    if(btn){
+      btn.onclick=async ()=>{
+        btn.disabled=true;
+        try{
+          await fetch('/api/run?namespace='+encodeURIComponent(st.namespace)+'&khcheck='+encodeURIComponent(name),{method:'POST'});
+          await refresh();
+          await showCheck(name);
+        }catch(e){console.error(e);}
+        btn.disabled=false;
+      };
+    }
   }
   try{
     const pods = await (await fetch('/api/pods?namespace='+encodeURIComponent(st.namespace)+'&khcheck='+encodeURIComponent(name))).json();
     pods.sort((a,b)=>(b.startTime||0)-(a.startTime||0));
-    if(pods.length){ loadLogs(pods[0]); }
     const podsDiv=document.getElementById('pods');
     podsDiv.innerHTML='';
-    pods.slice(1).forEach(p=>{
+    let mainPod;
+    if(st.podName){
+      mainPod = pods.find(p=>p.name===st.podName);
+      if(mainPod){ loadLogs(mainPod); } else { loadLogs({name: st.podName, namespace: st.namespace, phase:'Running'}); }
+    }else if(pods.length){
+      mainPod = pods[0];
+      loadLogs(mainPod);
+    }
+    pods.filter(p=>!mainPod || p.name!==mainPod.name).forEach(p=>{
       const div=document.createElement('div');
       div.className='cursor-pointer p-1 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100';
       const start=p.startTime?new Date(p.startTime*1000).toLocaleString():'';
@@ -292,6 +311,12 @@ func newServeMux() *http.ServeMux {
 
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./images"))))
 
+	mux.HandleFunc("/api/run", func(w http.ResponseWriter, r *http.Request) {
+		if err := runCheckHandler(w, r); err != nil {
+			log.Errorln(err)
+		}
+	})
+
 	mux.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
 		if err := checkReportHandler(w, r); err != nil {
 			log.Errorln("checkStatus endpoint error:", err)
@@ -358,6 +383,50 @@ func openapiYAMLHandler(w http.ResponseWriter, r *http.Request) error {
 // openapiJSONHandler serves the OpenAPI spec at /openapi.json as JSON.
 func openapiJSONHandler(w http.ResponseWriter, r *http.Request) error {
 	return renderOpenAPISpec(w)
+}
+
+// runCheckHandler triggers an immediate run of a check.
+func runCheckHandler(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return nil
+	}
+	khcheck := r.URL.Query().Get("khcheck")
+	namespace := r.URL.Query().Get("namespace")
+	if khcheck == "" || namespace == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return fmt.Errorf("missing parameters")
+	}
+	if Globals.khClient == nil || Globals.kh == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kuberhealthy not initialized")
+	}
+	nn := types.NamespacedName{Namespace: namespace, Name: khcheck}
+	check, err := khapi.GetCheck(r.Context(), Globals.khClient, nn)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			w.WriteHeader(http.StatusNotFound)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		return err
+	}
+	if check.CurrentUUID() != "" {
+		w.WriteHeader(http.StatusConflict)
+		return fmt.Errorf("check already running")
+	}
+	if err := Globals.kh.StartCheck(check); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	// reset the check ticker so the next automatic run starts from now
+	check.Status.LastRunUnix = time.Now().Unix()
+	if err := khapi.UpdateCheck(r.Context(), Globals.khClient, check); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return fmt.Errorf("failed to update last run time: %w", err)
+	}
+	w.WriteHeader(http.StatusAccepted)
+	return nil
 }
 
 type podSummary struct {
@@ -975,7 +1044,16 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 		if status.Namespace == "" {
 			status.Namespace = check.Namespace
 		}
-		if check.Status.LastRunUnix != 0 {
+		if check.CurrentUUID() != "" {
+			pods := &v1.PodList{}
+			err := Globals.khClient.List(ctx, pods,
+				client.InNamespace(check.Namespace),
+				client.MatchingLabels{"kh-run-uuid": check.CurrentUUID()},
+			)
+			if err == nil && len(pods.Items) > 0 {
+				status.PodName = pods.Items[0].Name
+			}
+		} else if check.Status.LastRunUnix != 0 {
 			next := time.Unix(check.Status.LastRunUnix, 0).Add(runInterval)
 			status.NextRunUnix = next.Unix()
 		}
