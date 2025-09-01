@@ -49,8 +49,9 @@ print_check_pod_logs() {
 
 # repeatedly check for the test check to run successfully
 for i in {1..20}; do
-    checksOK=$(kubectl get -n "$NS" kuberhealthycheck -o jsonpath='{range .items[*]}{.status.ok}{"\n"}{end}' 2>/dev/null | grep -c true || echo 0)
-    completedPods=$(kubectl -n "$NS" get pods --field-selector=status.phase=Succeeded -o name | wc -l)
+    checksOK=$(kubectl get -n "$NS" kuberhealthycheck -o jsonpath='{range .items[*]}{.status.ok}{"\n"}{end}' 2>/dev/null | grep -c true || true)
+    checksOK=${checksOK//[[:space:]]/}
+    completedPods=$(kubectl -n "$NS" get pods --field-selector=status.phase=Succeeded -o name | wc -l | tr -d '[:space:]')
 
     if [ "$checksOK" -ge 1 ] && [ "$completedPods" -ge 1 ]; then
         echo "ALL KUBERHEALTHY CHECKS PASSED!!"

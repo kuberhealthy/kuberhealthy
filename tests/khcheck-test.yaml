@@ -8,14 +8,13 @@ spec:
   runInterval: 15s
   timeout: 30s
   podSpec:
-    spec:
-      containers:
-        - name: main
-          image: curlimages/curl:8.5.0
-          command:
-            - sh
-            - -c
-            - |
-              curl -sf -H "Content-Type: application/json" \
-                -d '{"OK":true,"Errors":[]}' "$KH_REPORTING_URL"
-      restartPolicy: Never
+    containers:
+      - name: main
+        image: curlimages/curl:8.5.0
+        command:
+          - sh
+          - -c
+          - |
+            curl -sf -H "Content-Type: application/json" \
+              -d '{"OK":true,"Errors":[]}' "$KH_REPORTING_URL"
+    restartPolicy: Never
