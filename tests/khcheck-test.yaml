@@ -9,7 +9,12 @@ spec:
   podSpec:
     spec:
       containers:
-        - image: busybox
-          command: ["sh", "-c", "sleep 20"]
-          name: main
+        - name: main
+          image: curlimages/curl:8.5.0
+          command:
+            - sh
+            - -c
+            - |
+              curl -sf -H "Content-Type: application/json" \
+                -d '{"OK":true,"Errors":[]}' "$KH_REPORTING_URL"
       restartPolicy: Never
