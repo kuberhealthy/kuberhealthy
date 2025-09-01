@@ -3607,9 +3607,6 @@ spec:
                   items:
                     type: string
                   type: array
-                creationTimestamp:
-                  format: date-time
-                  type: string
                 lastRunUnix:
                   format: int64
                   type: integer

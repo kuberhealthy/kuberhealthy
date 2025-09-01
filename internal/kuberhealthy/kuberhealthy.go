@@ -169,6 +169,7 @@ func (kh *Kuberhealthy) scheduleChecks() {
 			log.Errorf("failed to convert check %s/%s: %v", khcheck.GetNamespace(), khcheck.GetName(), err)
 			continue
 		}
+		check.EnsureCreationTimestamp()
 		// log metadata on the pod spec to debug unexpected fields
 		debugKHCheckMetadata(&check)
 
@@ -217,7 +218,6 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khapi.KuberhealthyCheck) error {
 	if err := kh.setLastRunTime(checkName, startTime); err != nil {
 		return fmt.Errorf("unable to set check start time: %w", err)
 	}
-	khcheck.Status.CreationTimestamp = metav1.NewTime(startTime)
 	khcheck.Status.LastRunUnix = startTime.Unix()
 	if kh.Recorder != nil {
 		kh.Recorder.Eventf(khcheck, corev1.EventTypeNormal, "PodStarted", "check pod scheduled at %s", startTime.Format(time.RFC3339))
@@ -272,8 +272,6 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khapi.KuberhealthyCheck) *corev1.P
 	// add required annotations
 	podSpec.Annotations["createdBy"] = "kuberhealthy"
 	podSpec.Annotations["kuberhealthyCheckName"] = khcheck.Name
-	// reference the check's creation timestamp from status
-	podSpec.Annotations["createdTime"] = khcheck.Status.CreationTimestamp.Time.String()
 
 	// add required labels
 	podSpec.Labels[checkLabel] = khcheck.Name
@@ -354,11 +352,6 @@ func debugKHCheckMetadata(khCheck *khapi.KuberhealthyCheck) {
 	if khCheck == nil {
 		return
 	}
-	// meta := khCheck.GetObjectMeta()
-	// meta := khCheck.ObjectMeta
-	// if meta.CreationTimestamp().IsZero() && len(meta.Annotations) == 0 && len(meta.Labels) == 0 {
-	// 	return
-	// }
 	log.WithFields(log.Fields{
 		"namespace": khCheck.Namespace,
 		"name":      khCheck.Name,
@@ -498,7 +491,6 @@ func (k *Kuberhealthy) setLastRunTime(checkName types.NamespacedName, lastRunTim
 		return fmt.Errorf("failed to get check: %w", err)
 	}
 
-	khCheck.Status.CreationTimestamp = metav1.NewTime(lastRunTime)
 	khCheck.Status.LastRunUnix = lastRunTime.Unix()
 
 	err = khapi.UpdateCheck(k.Context, k.CheckClient, khCheck)
