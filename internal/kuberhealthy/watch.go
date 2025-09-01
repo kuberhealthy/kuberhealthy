@@ -65,9 +65,9 @@ func (kh *Kuberhealthy) handleUpdate(oldObj, newObj interface{}) {
 			if err := kh.StopCheck(newCheck); err != nil {
 				log.Errorln("error:", err)
 			}
-			refreshed := &khapi.KuberhealthyCheck{}
 			nn := types.NamespacedName{Namespace: newCheck.Namespace, Name: newCheck.Name}
-			if err := kh.CheckClient.Get(kh.Context, nn, refreshed); err != nil {
+			refreshed, err := khapi.GetCheck(kh.Context, kh.CheckClient, nn)
+			if err != nil {
 				log.Errorln("error:", err)
 				return
 			}
@@ -103,5 +103,6 @@ func convertToKHCheck(obj interface{}) (*khapi.KuberhealthyCheck, error) {
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, khc); err != nil {
 		return nil, err
 	}
+	khc.EnsureCreationTimestamp()
 	return khc, nil
 }

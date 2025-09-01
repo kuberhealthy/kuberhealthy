@@ -115,6 +115,16 @@ func (k *KuberhealthyCheck) SetCheckExecutionError(errs []string) {
 	k.Status.Errors = errs
 }
 
+// EnsureCreationTimestamp sets CreationTimestamp to now when unset.
+// It returns true when the timestamp was modified.
+func (k *KuberhealthyCheck) EnsureCreationTimestamp() bool {
+	if k.CreationTimestamp.IsZero() {
+		k.CreationTimestamp = metav1.NewTime(time.Now())
+		return true
+	}
+	return false
+}
+
 // CreateCheck writes a new check object to the cluster.
 func CreateCheck(ctx context.Context, cl client.Client, check *KuberhealthyCheck) error {
 	return cl.Create(ctx, check)
@@ -125,6 +135,11 @@ func GetCheck(ctx context.Context, cl client.Client, nn types.NamespacedName) (*
 	out := &KuberhealthyCheck{}
 	if err := cl.Get(ctx, nn, out); err != nil {
 		return nil, err
+	}
+	if out.EnsureCreationTimestamp() {
+		if err := cl.Update(ctx, out); err != nil {
+			return nil, err
+		}
 	}
 	return out, nil
 }

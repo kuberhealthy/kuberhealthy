@@ -169,6 +169,7 @@ func (kh *Kuberhealthy) scheduleChecks() {
 			log.Errorf("failed to convert check %s/%s: %v", khcheck.GetNamespace(), khcheck.GetName(), err)
 			continue
 		}
+		check.EnsureCreationTimestamp()
 		// log metadata on the pod spec to debug unexpected fields
 		debugKHCheckMetadata(&check)
 

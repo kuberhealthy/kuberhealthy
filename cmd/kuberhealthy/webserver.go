@@ -1039,6 +1039,7 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 			log.Errorf("failed to convert check %s/%s: %v", u.GetNamespace(), u.GetName(), err)
 			continue
 		}
+		check.EnsureCreationTimestamp()
 
 		status := health.CheckDetail{KuberhealthyCheckStatus: check.Status}
 		if status.Namespace == "" {

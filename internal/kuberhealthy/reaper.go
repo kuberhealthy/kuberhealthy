@@ -53,6 +53,9 @@ func (kh *Kuberhealthy) reapOnce() error {
 	if err := kh.CheckClient.List(kh.Context, &checkList); err != nil {
 		return err
 	}
+	for i := range checkList.Items {
+		checkList.Items[i].EnsureCreationTimestamp()
+	}
 
 	// read configuration from environment variables
 	retention := time.Duration(defaultFailedPodRetentionDays) * 24 * time.Hour
