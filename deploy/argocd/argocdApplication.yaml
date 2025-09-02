@@ -9,8 +9,6 @@ spec:
     repoURL: https://github.com/kuberhealthy/kuberhealthy.git
     path: deploy
     targetRevision: master
-    directory:
-      recurse: true
   destination:
     server: https://kubernetes.default.svc
     namespace: kuberhealthy
