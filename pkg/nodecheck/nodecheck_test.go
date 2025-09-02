@@ -16,6 +16,9 @@ func init() {
 // TestWaitForKuberhealthyEndpointReady verifies the helper returns an error when the endpoint cannot be reached.
 func TestWaitForKuberhealthyEndpointReady(t *testing.T) {
 	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	khEndpoint := "http://127.0.0.1:65535/"
 	ctx, _ := context.WithTimeout(context.Background(), time.Second)
 	err := <-waitForKuberhealthyEndpointReady(ctx, khEndpoint)
