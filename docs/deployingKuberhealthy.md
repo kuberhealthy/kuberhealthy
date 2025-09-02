@@ -12,6 +12,17 @@ kubectl apply -k deploy/base
 
 The base deployment exposes a Service named `kuberhealthy` on port `80` inside the cluster.
 
+## Deploy with ArgoCD
+
+Create an ArgoCD Application to manage Kuberhealthy:
+
+```sh
+kubectl apply -k deploy/argocd
+```
+
+This registers Kuberhealthy with ArgoCD and lets the controller reconcile its manifests.
+
+
 ## Exposing the Status Page
 
 Kuberhealthy serves a JSON status page at `/status`. The following sections show how to expose that page with a cloud provider load balancer or an ingress.

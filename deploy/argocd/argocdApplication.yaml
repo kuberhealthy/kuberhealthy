@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kuberhealthy
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/kuberhealthy/kuberhealthy.git
+    path: deploy
+    targetRevision: master
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kuberhealthy
+  syncPolicy:
+    automated: {}
+    syncOptions:
+      - CreateNamespace=true
