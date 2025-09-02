@@ -15,6 +15,7 @@ import (
 	yaml "github.com/ghodss/yaml"
 	"github.com/google/uuid"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/jobwebhook"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/webhook"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
@@ -368,6 +369,7 @@ func newServeMux() *http.ServeMux {
 	})
 
 	mux.HandleFunc("/api/convert", webhook.Convert)
+	mux.HandleFunc("/api/khjobconvert", jobwebhook.Convert)
 
 	mux.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
 		if err := checkReportHandler(w, r); err != nil {

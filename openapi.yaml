@@ -214,6 +214,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdmissionReview'
+  /api/khjobconvert:
+    post:
+      summary: Convert legacy KuberhealthyJob resources to v2 KuberhealthyCheck
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConversionReview'
+      responses:
+        '200':
+          description: ConversionReview with converted checks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversionReview'
   /check:
     post:
       summary: Report an external check result
@@ -313,6 +329,17 @@ components:
       required:
         - ok
     AdmissionReview:
+      type: object
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        request:
+          type: object
+        response:
+          type: object
+    ConversionReview:
       type: object
       properties:
         apiVersion:
