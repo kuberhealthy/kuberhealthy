@@ -24,9 +24,9 @@ func main() {
   checkclient.ReportSuccess()
 }
 
-```go
+```
 
-An example check with a working Podfile is available to use as an example [here](https://github.com/kuberhealthy/kuberhealthy/blob/master/cmd/test-check/main.go). Kuberhealthy uses a `Podfile` for container builds.
+Examples of existing checks and their `Podfile` definitions can be found in the [`cmd`](../cmd) directory of this repository (for instance the [deployment check](https://github.com/kuberhealthy/kuberhealthy/tree/master/cmd/deployment-check)). Kuberhealthy uses a `Podfile` for container builds.
 
 ### Using JavaScript
 
