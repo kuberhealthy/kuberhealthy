@@ -26,9 +26,6 @@ import (
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // KuberhealthyCheckSpec defines the desired state of KuberhealthyCheck
 type KuberhealthyCheckSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -66,10 +63,6 @@ type KuberhealthyCheckStatus struct {
 	AdditionalMetadata string `json:"additionalMetadata,omitempty"`
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Namespaced,shortName=khc;khcheck;kuberhealthycheck
-
 // KuberhealthyCheck is the Schema for the kuberhealthychecks API
 type KuberhealthyCheck struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -79,8 +72,6 @@ type KuberhealthyCheck struct {
 	// +optional
 	Status KuberhealthyCheckStatus `json:"status,omitempty"`
 }
-
-// +kubebuilder:object:root=true
 
 // KuberhealthyCheckList contains a list of KuberhealthyCheck
 type KuberhealthyCheckList struct {
