@@ -59,6 +59,19 @@ spec:
           value: "30s"
         - name: KH_DEFAULT_NAMESPACE
           value: "kuberhealthy"
+        - name: KH_TLS_CERT_FILE
+          value: "/tls/tls.crt"
+        - name: KH_TLS_KEY_FILE
+          value: "/tls/tls.key"
         ports:
         - containerPort: 80
         - containerPort: 8080
+        volumeMounts:
+        - name: webhook-tls
+          mountPath: /tls
+          readOnly: true
+      volumes:
+      - name: webhook-tls
+        secret:
+          secretName: kuberhealthy-webhook-tls
+          optional: true

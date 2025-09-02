@@ -107,3 +107,18 @@ func TestReportingURLFromServiceAndNamespace(t *testing.T) {
 		t.Errorf("ReportingURL parsed incorrectly: %s", cfg.ReportingURL())
 	}
 }
+
+func TestLoadTLSFiles(t *testing.T) {
+	t.Setenv("KH_TLS_CERT_FILE", "/cert")
+	t.Setenv("KH_TLS_KEY_FILE", "/key")
+	cfg := New()
+	if err := cfg.LoadFromEnv(); err != nil {
+		t.Fatalf("LoadFromEnv returned error: %v", err)
+	}
+	if cfg.TLSCertFile != "/cert" {
+		t.Errorf("TLSCertFile parsed incorrectly: %s", cfg.TLSCertFile)
+	}
+	if cfg.TLSKeyFile != "/key" {
+		t.Errorf("TLSKeyFile parsed incorrectly: %s", cfg.TLSKeyFile)
+	}
+}

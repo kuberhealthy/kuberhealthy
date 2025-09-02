@@ -28,4 +28,4 @@ This file defines contributor guidelines for the entire repository.
 
 ## Formatting and tests
 - Run `gofmt -w` on changed Go files.
-- Run `go test ./...` before committing.
+- Run `go test -short ./...` before committing. Use `go test ./...` for the full suite.
