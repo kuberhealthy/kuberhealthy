@@ -11,9 +11,19 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/kuberhealthy.svg?style=social)](https://twitter.com/kuberhealthy)  
 [![Join Slack](https://img.shields.io/badge/slack-kubernetes/kuberhealthy-teal.svg?logo=slack)](https://kubernetes.slack.com/messages/CB9G7HWTE)
 
+## Table of Contents
+
+- ❓ [What is Kuberhealthy?](#what-is-kuberhealthy)
+- 🚀 [Installation](#installation)
+- 📈 [Visualized](#visualized)
+- 🧪 [Create Synthetic Checks](#create-synthetic-checks-for-your-apis)
+- 📊 [Status Page](#status-page)
+- 🤝 [Contributing](#contributing)
+- 📅 [Monthly Community Meeting](#monthly-community-meeting)
+
 ## What is Kuberhealthy?
 
-Kuberhealthy lets you continuously verify that your applications and Kubernetes clusters are working as expected. By creating a custom resource (a [`KuberhealthyCheck`](hhttps://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CHECKS.md#khcheck-anatomy)) in your cluster, you can easily enable [various synthetic tests](docs/CHECKS_REGISTRY.md) and get Prometheus metrics for them.
+Kuberhealthy lets you continuously verify that your applications and Kubernetes clusters are working as expected. By creating a custom resource (a [`KuberhealthyCheck`](docs/CHECK_CREATION.md#creating-your-khcheck-resource)) in your cluster, you can easily enable [various synthetic tests](docs/CHECKS_REGISTRY.md) and get Prometheus metrics for them.
 
 Kuberhealthy comes with [lots of useful checks already available](docs/CHECKS_REGISTRY.md) to ensure the core functionality of Kubernetes, but checks can be used to test anything you like.  We encourage you to [write your own check container](docs/CHECK_CREATION.md) in any language to test your own applications.  It really is quick and easy!
 
@@ -23,80 +33,16 @@ Kuberhealthy serves the status of all checks on a simple JSON status page, a [Pr
 
 ## Installation
 
+Kuberhealthy requires Kubernetes 1.16 or above. You can install it with plain YAML manifests or with Helm.
 
-### Deployment
-
-Kuberhealthy requires Kubernetes 1.16 or above.  
-
-#### Using Plain Ole' YAML
-
-If you just want the rendered default specs without Helm, you can [use the static flat file](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy.yaml) or the [static flat file for Prometheus](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy-prometheus.yaml) or even the [static flat file for Prometheus Operator](https://github.com/kuberhealthy/kuberhealthy/blob/master/deploy/kuberhealthy-prometheus-operator.yaml).
-
-Here are the one-line installation commands for those same specs:
-```sh
-# If you don't use Prometheus:
-kubectl create namespace kuberhealthy
-kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/deploy/kuberhealthy.yaml
-
-# If you use Prometheus, but not with Prometheus Operator:
-kubectl create namespace kuberhealthy
-kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/deploy/kuberhealthy-prometheus.yaml
-
-# If you use Prometheus Operator:
-kubectl create namespace kuberhealthy
-kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/deploy/kuberhealthy-prometheus-operator.yaml
-```
-
-#### Using Helm
-
-```sh
-kubectl create namespace kuberhealthy
-helm repo add kuberhealthy https://kuberhealthy.github.io/kuberhealthy/helm-repos
-helm install -n kuberhealthy kuberhealthy kuberhealthy/kuberhealthy
-```
-
-If you have Prometheus
-
-```
-helm install --set prometheus.enabled=true -n kuberhealthy kuberhealthy kuberhealthy/kuberhealthy
-```
-
-If you have Prometheus via Prometheus Operator:
-
-```
-helm install --set prometheus.enabled=true --set prometheus.serviceMonitor.enabled=true -n kuberhealthy kuberhealthy kuberhealthy/kuberhealthy
-```
-
-#### Configure Service
-
-After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to clients outside of the cluster, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer` or otherwise expose the service yourself.
-
-
-#### Edit Configuration Settings
-
-You can edit the Kuberhealthy configmap as well and it will be automatically reloaded by Kuberhealthy.  All configmap options are set to their defaults to make configuration easy.
-
-`kubectl edit -n kuberhealthy configmap kuberhealthy`
-
-#### See Configured Checks
-
-You can see checks that are configured with `kubectl -n kuberhealthy get khcheck`.  Check status can be accessed by the JSON status page endpoint, or via `kubectl -n kuberhealthy get khstate`.
-
-
-### Further Configuration
-
-
-To configure Kuberhealthy after installation, see the [configuration documentation](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CONFIGURATION.md).
-
-Details on using the helm chart are [documented here](https://github.com/kuberhealthy/kuberhealthy/tree/master/deploy/helm/kuberhealthy).  The Helm installation of Kuberhealthy is automatically updated to use the latest [Kuberhealthy release](https://github.com/kuberhealthy/kuberhealthy/releases).
-
-More installation options, including static yaml files are available in the [/deploy](/deploy) directory. These flat spec files contain the most recent changes to Kuberhealthy, or the master branch. Use this if you would like to test master branch updates.
+- For detailed installation steps, see the [installation guide](docs/INSTALLATION.md).
+- To configure Kuberhealthy after installation, see the [configuration documentation](docs/CONFIGURATION.md).
 
 ## Visualized
 
 Here is an illustration of how Kuberhealthy provisions and operates checker pods.  The following process is illustrated:
 
-- An admin creates a [`KuberhealthyCheck`](hhttps://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CHECKS.md#khcheck-anatomy) resource that calls for a synthetic Kubernetes daemonset to be deployed and tested every 15 minutes.  This will ensure that all nodes in the Kubernetes cluster can provision containers properly.
+- An admin creates a [`KuberhealthyCheck`](docs/CHECK_CREATION.md#creating-your-khcheck-resource) resource that calls for a synthetic Kubernetes daemonset to be deployed and tested every 15 minutes.  This will ensure that all nodes in the Kubernetes cluster can provision containers properly.
 - Kuberhealthy observes this new `KuberhealthyCheck` resource.
 - Kuberhealthy schedules a checker pod to manage the lifecycle of this check.
 - The checker pod creates a daemonset using the Kubernetes API.
@@ -148,63 +94,17 @@ func main() {
 
 ```
 
-You can read more about [how checks are configured](docs/CHECKS.md) and [learn how to create your own check container](docs/CHECK_CREATION.md). Checks can be written in any language and helpful clients for checks not written in Go can be found in the [clients directory](/clients).
+You can read more about [how checks are configured](docs/CHECK_CREATION.md#creating-your-khcheck-resource) and [learn how to create your own check container](docs/CHECK_CREATION.md). Checks can be written in any language and helpful clients for checks not written in Go can be found in the [clients directory](/clients).
 
 ### Status Page
 
-You can directly access the current test statuses by accessing the `kuberhealthy.kuberhealthy` HTTP service on port 80.  The status page displays server status in the format shown below.  The boolean `OK` field can be used to indicate global up/down status, while the `Errors` array will contain a list of all check error descriptions.  Granular, per-check information, including how long the check took to run (Run Duration), the last time a check was run, and the Kuberhealthy pod ran that specific check is available under the `CheckDetails` object.
-
-```json
-{
-    "OK": true,
-    "Errors": [],
-    "CheckDetails": {
-        "kuberhealthy/daemonset": {
-            "OK": true,
-            "Errors": [],
-            "RunDuration": "22.512278967s",
-            "Namespace": "kuberhealthy",
-            "LastRun": "2019-11-14T23:24:16.7718171Z",
-            "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
-            "uuid": "9abd3ec0-b82f-44f0-b8a7-fa6709f759cd"
-        },
-        "kuberhealthy/deployment": {
-            "OK": true,
-            "Errors": [],
-            "RunDuration": "29.142295647s",
-            "Namespace": "kuberhealthy",
-            "LastRun": "2019-11-14T23:26:40.7444659Z",
-            "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
-            "uuid": "5f0d2765-60c9-47e8-b2c9-8bc6e61727b2"
-        },
-        "kuberhealthy/dns-status-internal": {
-            "OK": true,
-            "Errors": [],
-            "RunDuration": "2.43940936s",
-            "Namespace": "kuberhealthy",
-            "LastRun": "2019-11-14T23:34:04.8927434Z",
-            "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
-            "uuid": "c85f95cb-87e2-4ff5-b513-e02b3d25973a"
-        },
-        "kuberhealthy/pod-restarts": {
-            "OK": true,
-            "Errors": [],
-            "RunDuration": "2.979083775s",
-            "Namespace": "kuberhealthy",
-            "LastRun": "2019-11-14T23:34:06.1938491Z",
-            "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
-            "uuid": "a718b969-421c-47a8-a379-106d234ad9d8"
-        }
-    },
-    "CurrentMaster": "kuberhealthy-7cf79bdc86-m78qr"
-}
-```
+Kuberhealthy serves a simple JSON status page and Prometheus metrics endpoint. See the [status page guide](docs/STATUS_PAGE.md) for output examples and details.
 
 ## Contributing
 
 If you're interested in contributing to this project:
 - Check out the [Contributing Guide](CONTRIBUTING.md).
-- If you use Kuberhealthy in a production environment, add yourself to the list of [Kuberhealthy adopters](docs/KUBERHEALTHY_ADOPTERS.md)!
+ - If you use Kuberhealthy in a production environment, add yourself to the list of [Kuberhealthy adopters](ADOPTERS.md)!
 - Check out [open issues](https://github.com/kuberhealthy/kuberhealthy/issues). If you're new to the project, look for the `good first issue` tag.
 - We're always looking for check contributions (either in suggestions or in PRs) as well as feedback from folks implementing
 Kuberhealthy locally or in a test environment.
