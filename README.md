@@ -76,17 +76,6 @@ If you're interested in contributing to this project:
 - We're always looking for check contributions (either in suggestions or in PRs) as well as feedback from folks implementing
 Kuberhealthy locally or in a test environment.
 
-### Hermit
-
-While working on Kuberhealthy, you can take advantage of the included [Hermit](https://cashapp.github.io/hermit/) dev 
-environment to get Go & other tooling without having to install them separately on your local machine.
-
-Just use the following command to activate the environment, and you're good to go:
-
-```zsh
-. ./bin/activate-hermit
-```
-
 ## Monthly Community Meeting
 
 If you would like to talk directly to the core maintainers to discuss ideas, code reviews, or other complex issues, we have a monthly Zoom meeting on the **24th day** of every month at **04:30 PM Pacific Time**.  
