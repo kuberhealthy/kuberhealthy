@@ -6,10 +6,20 @@ metadata:
 spec:
   singleRunOnly: false
   runInterval: 15s
+  timeout: 30s
   podSpec:
     spec:
       containers:
-        - image: busybox
-          command: ["sh", "-c", "sleep 20"]
-          name: main
+        - name: main
+          image: curlimages/curl:8.5.0
+          command:
+            - sh
+            - -c
+            - |
+              set -x
+              echo "Reporting to $KH_REPORTING_URL with KH_RUN_UUID=$KH_RUN_UUID"
+              curl -v --fail-with-body \
+                -H "Content-Type: application/json" \
+                -H "kh-run-uuid: $KH_RUN_UUID" \
+                -d '{"OK":true,"Errors":[]}' "$KH_REPORTING_URL"
       restartPolicy: Never

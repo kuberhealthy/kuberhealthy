@@ -223,6 +223,9 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 
 // TestReaperRetainsFailedPodsWithinRetention keeps failed pods when they fall within retention limits.
 func TestReaperRetainsFailedPodsWithinRetention(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping retention test in short mode")
+	}
 	t.Setenv("KH_ERROR_POD_RETENTION_DAYS", "2")
 	t.Setenv("KH_MAX_ERROR_POD_COUNT", "3")
 
@@ -284,6 +287,9 @@ func TestReaperRetainsFailedPodsWithinRetention(t *testing.T) {
 
 // TestReaperDeletesFailedPodsPastRetention removes failed pods older than the configured retention period.
 func TestReaperDeletesFailedPodsPastRetention(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping deletion test in short mode")
+	}
 	t.Setenv("KH_ERROR_POD_RETENTION_DAYS", "1")
 	t.Setenv("KH_MAX_ERROR_POD_COUNT", "5")
 
