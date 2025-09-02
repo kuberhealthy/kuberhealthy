@@ -21,7 +21,7 @@ spec:
       containers:
       - name: kuberhealthy
         image: docker.io/kuberhealthy/kuberhealthy:localdev
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         env:
         - name: KH_LISTEN_ADDRESS
           value: ":80"
