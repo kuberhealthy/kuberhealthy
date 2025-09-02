@@ -36,8 +36,12 @@ type KuberhealthyCheckSpec struct {
 	// RunInterval specifies how often Kuberhealthy schedules the check.
 	RunInterval *metav1.Duration `json:"runInterval,omitempty"`
 	// Timeout defines how long Kuberhealthy waits for the check to finish.
-	Timeout *metav1.Duration       `json:"timeout,omitempty"`
-	PodSpec corev1.PodTemplateSpec `json:"podSpec,omitempty"`
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
+	// ExtraAnnotations are added to all checker pods.
+	ExtraAnnotations map[string]string `json:"extraAnnotations,omitempty"`
+	// ExtraLabels are applied to all checker pods.
+	ExtraLabels map[string]string      `json:"extraLabels,omitempty"`
+	PodSpec     corev1.PodTemplateSpec `json:"podSpec,omitempty"`
 	// PodSpec   v1.PodSpec              `json:"podSpec"` // We can not use a full PodSpec struct because it throws error about too much yaml in the CRD definition
 }
 
@@ -65,7 +69,6 @@ type KuberhealthyCheckStatus struct {
 	// calculated from LastRunUnix by clients and are not stored on the
 	// custom resource.
 }
-
 
 // KuberhealthyCheck is the Schema for the kuberhealthychecks API
 type KuberhealthyCheck struct {
