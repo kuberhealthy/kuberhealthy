@@ -72,6 +72,31 @@ paths:
                   $ref: '#/components/schemas/PodSummary'
         '400':
           description: Missing parameters
+  /api/events:
+    get:
+      summary: List Kubernetes events for a check
+      parameters:
+        - in: query
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: khcheck
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventSummary'
+        '400':
+          description: Missing parameters
   /api/logs:
     get:
       summary: Retrieve logs for a checker pod
@@ -130,6 +155,49 @@ paths:
           description: Missing parameters
         '409':
           description: Pod not running
+  /openapi.yaml:
+    get:
+      summary: Get OpenAPI specification
+      responses:
+        '200':
+          description: OpenAPI specification in JSON
+          content:
+            application/json:
+              schema:
+                type: object
+  /openapi.json:
+    get:
+      summary: Get OpenAPI specification
+      responses:
+        '200':
+          description: OpenAPI specification in JSON
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/run:
+    post:
+      summary: Trigger an immediate check run
+      parameters:
+        - in: query
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: khcheck
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Run started
+        '400':
+          description: Missing parameters
+        '404':
+          description: Check not found
+        '409':
+          description: Check already running
   /check:
     post:
       summary: Report an external check result
@@ -284,3 +352,19 @@ components:
         - name
         - namespace
         - phase
+    EventSummary:
+      type: object
+      properties:
+        message:
+          type: string
+        reason:
+          type: string
+        type:
+          type: string
+        lastTimestamp:
+          type: integer
+          format: int64
+      required:
+        - message
+        - reason
+        - type
