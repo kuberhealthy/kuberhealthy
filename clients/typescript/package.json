@@ -1,0 +1,14 @@
+{
+  "name": "kuberhealthy-typescript-example",
+  "version": "1.0.0",
+  "license": "MIT",
+  "main": "dist/example.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/example.js"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "^5.4.0"
+  }
+}
