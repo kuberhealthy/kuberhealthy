@@ -47,6 +47,7 @@ let nextRunTimer = null;
 function setTheme(t){
   if(t==='dark'){ document.documentElement.classList.add('dark'); }
   else{ document.documentElement.classList.remove('dark'); }
+  document.documentElement.setAttribute('data-bs-theme', t);
   localStorage.setItem('kh-theme', t);
   document.getElementById('themeToggle').textContent = t === 'dark' ? '☀️' : '🌙';
 }
