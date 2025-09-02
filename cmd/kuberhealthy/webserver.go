@@ -114,7 +114,7 @@ async function showCheck(name){
       (st.errors && st.errors.length ? '<div class="mb-2"><span class="font-semibold text-red-600">Errors:</span><ul class="list-disc list-inside">'+st.errors.map(e=>'<li>'+e+'</li>').join('')+'</ul></div>' : '')+
     '</div>'+
     '<div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><h3 class="text-xl font-semibold mb-2">Events</h3><div id="events" class="text-gray-900 dark:text-gray-100">loading...</div></div>'+
-    '<details class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><summary class="text-xl font-semibold cursor-pointer mb-2">Other Pods</summary><div id="pods" class="text-gray-900 dark:text-gray-100 mt-2"></div></details>'+
+    '<details class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><summary class="text-xl font-semibold cursor-pointer mb-2">Prior Pod Runs</summary><div id="pods" class="text-gray-900 dark:text-gray-100 mt-2"></div></details>'+
     '<div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><h3 class="text-xl font-semibold mb-2">Pod Details</h3><div id="pod-info" class="text-gray-900 dark:text-gray-100"></div></div>'+
     '<div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><h3 class="text-xl font-semibold mb-2">Logs</h3><pre id="logs" class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-4 text-gray-900 dark:text-gray-100 rounded shadow-inner"></pre></div>';
   if(st.nextRunUnix && !st.podName){
@@ -146,7 +146,11 @@ async function showCheck(name){
       mainPod = pods[0];
       loadLogs(mainPod);
     }
-    pods.filter(p=>!mainPod || p.name!==mainPod.name).forEach(p=>{
+    const priorPods=pods.filter(p=>!mainPod || p.name!==mainPod.name);
+    if(priorPods.length===0){
+      podsDiv.parentElement.remove();
+    }
+    priorPods.forEach(p=>{
       const div=document.createElement('div');
       div.className='cursor-pointer p-1 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100';
       const start=p.startTime?new Date(p.startTime*1000).toLocaleString():'';
