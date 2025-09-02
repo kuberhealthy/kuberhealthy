@@ -64,11 +64,17 @@ type KuberhealthyCheckStatus struct {
 	LastRunUnix int64 `json:"lastRunUnix,omitempty"`
 	// AdditionalMetadata is used to store additional metadata bout this check that appears in the JSON status.
 	AdditionalMetadata string `json:"additionalMetadata,omitempty"`
+	// Additional derived timing fields like next run and current runtime are
+	// calculated from LastRunUnix by clients and are not stored on the
+	// custom resource.
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Namespaced,shortName=khc;khcheck;kuberhealthycheck
+// +kubebuilder:printcolumn:name="OK",type="boolean",JSONPath=".status.ok",description="Current OK status"
+// +kubebuilder:printcolumn:name="UUID",type="string",JSONPath=".status.currentUUID",description="Active run UUID"
+// +kubebuilder:printcolumn:name="TIMEOUT",type="string",JSONPath=".spec.runTimeout",description="Run timeout"
 
 // KuberhealthyCheck is the Schema for the kuberhealthychecks API
 type KuberhealthyCheck struct {
