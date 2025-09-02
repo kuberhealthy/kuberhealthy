@@ -18,6 +18,13 @@ Kuberhealthy comes with [lots of useful checks already available](docs/CHECKS_RE
 Kuberhealthy serves the status of all checks on a simple JSON status page and a [Prometheus](https://prometheus.io/) metrics endpoint (at `/metrics`). The OpenAPI specification for the API is available as JSON at `/openapi.yaml` and `/openapi.json` on the web server.
 
 
+### DaemonSet Check in Action
+
+Kuberhealthy creating and tearing down a daemonset across the cluster:
+
+<img src="assets/kh-ds-check.gif" alt="Daemonset check animation">
+
+
 
 ## Quick Start
 
@@ -35,188 +42,15 @@ Kuberhealthy serves the status of all checks on a simple JSON status page and a 
 
 3. Visit [http://localhost:8080](http://localhost:8080) to view the status page.
 
-For advanced configuration options, see the [Installation](#installation) section and the [docs](docs/).
+For advanced configuration options, see the [deployment guide](docs/deployingKuberhealthy.md) and the [full documentation](docs/).
 
-## Installation
+## Learn More
 
-
-### Deployment
-
-Kuberhealthy requires Kubernetes 1.16 or above.  
-
-#### Using Kustomize
-
-```sh
-kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy
-```
-
-This installs the latest release into the cluster referenced by your local `kubectl` context using the [kustomize](https://kustomize.io/) manifests in the `deploy` directory.
-
-If you prefer to review the manifests first, run:
-```sh
-kustomize build github.com/kuberhealthy/kuberhealthy/deploy | kubectl apply -f -
-```
-
-After installation you can reach the Kuberhealthy graphical status page locally with:
-
-```sh
-kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80
-```
-
-Then open [http://localhost:8080](http://localhost:8080) in your browser.
-
-#### Configure Service
-
-After installation, Kuberhealthy will only be available from within the cluster (`Type: ClusterIP`) at the service URL `kuberhealthy.kuberhealthy`.  To expose Kuberhealthy to clients outside of the cluster, you **must** edit the service `kuberhealthy` and set `Type: LoadBalancer` or otherwise expose the service yourself.
-
-Optional kustomize overlays are available to automatically expose the service:
-
-- **AWS EKS with AWS Load Balancer Controller**
-  ```sh
-  kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/aws-lb-controller
-  ```
-- **GCP GKE with GKE load balancer controller**
-  ```sh
-  kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/gcp-lb-controller
-  ```
-- **Generic ingress controller**
-  ```sh
-  kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/ingress
-  ```
-
-
-#### Configure Environment Variables
-
-Kuberhealthy is configured entirely with environment variables. The deployment manifest in this repository includes default values for all options. Modify the container's environment variables to tune Kuberhealthy for your cluster.
-
-#### See Configured Checks
-
-You can see checks that are configured with `kubectl -n kuberhealthy get khcheck`. Check status can be accessed via the JSON status page endpoint or by inspecting the status field on the `khcheck` resource.
-
-#### Verify Deployment
-
-After installation, verify that Kuberhealthy is running and serving metrics:
-
-```sh
-kubectl get pods -n kuberhealthy
-kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80 &
-curl -f localhost:8080/metrics
-```
-
-The `kuberhealthy` pod should be in a `Running` state and the metrics endpoint should respond. If checks fail, consult the [troubleshooting guide](docs/TROUBLESHOOTING.md).
-
-
-### Further Configuration
-
-A full list of flags and environment variables is available in [docs/FLAGS.md](docs/FLAGS.md). More installation options, including flat YAML manifests for the current v3 branch, are available in the [/deploy](/deploy) directory.
-
-## Visualized
-
-Here is an illustration of how Kuberhealthy provisions and operates checker pods.  The following process is illustrated:
-
-- An admin creates a [`KuberhealthyCheck`](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CHECKS.md#khcheck-anatomy) resource that calls for a synthetic Kubernetes daemonset to be deployed and tested every 15 minutes.  This will ensure that all nodes in the Kubernetes cluster can provision containers properly.
-- Kuberhealthy observes this new `KuberhealthyCheck` resource.
-- Kuberhealthy schedules a checker pod to manage the lifecycle of this check.
-- The checker pod creates a daemonset using the Kubernetes API.
-- The checker pod observes the daemonset and waits for all daemonset pods to become `Ready`
-- The checker pod deletes the daemonset using the Kubernetes API.
-- The checker pod observes the daemonset being fully cleaned up and removed.
-- The checker pod reports a successful test result back to Kuberhealthy's API.
-- Kuberhealthy stores this check's state and makes it available to various metrics systems.
-
-
-<img src="assets/kh-ds-check.gif">
-
-## Included Checks
-
-You can use any of [the pre-made checks](https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CHECKS_REGISTRY.md#khcheck-registry) by simply enabling them.  By default Kuberhealthy comes with several checks to test Kubernetes deployments, daemonsets, and DNS.
-
-#### Some checks you can easily enable:
-
-- [SSL Handshake Check](https://github.com/kuberhealthy/kuberhealthy/blob/master/cmd/ssl-handshake-check/README.md) - checks SSL certificate validity and warns when certs are about to expire.
-- [CronJob Scheduling Failures](https://github.com/kuberhealthy/kuberhealthy/blob/master/cmd/cronjob-checker/README.md) - checks for events indicating that a CronJob has failed to create Job pods.
-- [Image Pull Check](https://github.com/kuberhealthy/kuberhealthy/blob/master/cmd/test-check#image-pull-check) - checks that an image can be pulled from an image repository.
-- [Deployment Check](https://github.com/kuberhealthy/kuberhealthy/blob/master/cmd/deployment-check/README.md) - verifies that a fresh deployment can run, deploy multiple pods, pass traffic, do a rolling update (without dropping connections), and clean up successfully.
-- [Daemonset Check](https://github.com/kuberhealthy/kuberhealthy/blob/master/cmd/daemonset-check/README.md) - verifies that a daemonset can be created, fully provisioned, and torn down.  This checks the full kubelet functionality of every node in your Kubernetes cluster.
-- [Storage Provisioner Check](https://github.com/ChrisHirsch/kuberhealthy-storage-check) - verifies that a pod with persistent storage can be configured on every node in your cluster.
-
-
-## Create Synthetic Checks for Your APIs
-
-You can easily create synthetic tests to check your applications and APIs with real world use cases. This is a great way to be confident that your application functions as expected in the real world at all times.
-
-Here is a full check example written in `go`.  Just implement `doCheckStuff` and you're off!
-
-
-```go
-package main
-
-import (
-  "github.com/kuberhealthy/kuberhealthy/v4/pkg/checks/external/checkclient"
-)
-
-func main() {
-  ok := doCheckStuff()
-  if !ok {
-    checkclient.ReportFailure([]string{"Test has failed!"})
-    return
-  }
-  checkclient.ReportSuccess()
-}
-
-```
-
-You can read more about [how checks are configured](docs/CHECKS.md) and [learn how to create your own check container](docs/CHECK_CREATION.md). Checks can be written in any language.
-
-### Status Page
-
-You can directly access the current test statuses by accessing the `kuberhealthy.kuberhealthy` HTTP service on port 80.  The status page displays server status in the format shown below.  The boolean `OK` field can be used to indicate global up/down status, while the `Errors` array will contain a list of all check error descriptions.  Granular, per-check information, including how long the check took to run (Run Duration), the last time a check was run, and the Kuberhealthy pod ran that specific check is available under the `CheckDetails` object.
-
-```json
-{
-    "OK": true,
-    "Errors": [],
-    "CheckDetails": {
-        "kuberhealthy/daemonset": {
-            "OK": true,
-            "Errors": [],
-            "RunDuration": "22.512278967s",
-            "Namespace": "kuberhealthy",
-            "LastRun": "2019-11-14T23:24:16.7718171Z",
-            "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
-            "uuid": "9abd3ec0-b82f-44f0-b8a7-fa6709f759cd"
-        },
-        "kuberhealthy/deployment": {
-            "OK": true,
-            "Errors": [],
-            "RunDuration": "29.142295647s",
-            "Namespace": "kuberhealthy",
-            "LastRun": "2019-11-14T23:26:40.7444659Z",
-            "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
-            "uuid": "5f0d2765-60c9-47e8-b2c9-8bc6e61727b2"
-        },
-        "kuberhealthy/dns-status-internal": {
-            "OK": true,
-            "Errors": [],
-            "RunDuration": "2.43940936s",
-            "Namespace": "kuberhealthy",
-            "LastRun": "2019-11-14T23:34:04.8927434Z",
-            "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
-            "uuid": "c85f95cb-87e2-4ff5-b513-e02b3d25973a"
-        },
-        "kuberhealthy/pod-restarts": {
-            "OK": true,
-            "Errors": [],
-            "RunDuration": "2.979083775s",
-            "Namespace": "kuberhealthy",
-            "LastRun": "2019-11-14T23:34:06.1938491Z",
-            "AuthoritativePod": "kuberhealthy-67bf8c4686-mbl2j",
-            "uuid": "a718b969-421c-47a8-a379-106d234ad9d8"
-        }
-    },
-    "CurrentMaster": "kuberhealthy-7cf79bdc86-m78qr"
-}
-```
+- 🧠 [How Kuberhealthy Works](docs/howItWorks.md)
+- 🚀 [Deploying Kuberhealthy](docs/deployingKuberhealthy.md)
+- 📊 [Viewing Check Status](docs/checkStatus.md)
+- 🛠️ [Creating Your Own `khcheck`](docs/CHECK_CREATION.md)
+- 🗂️ [khcheck Registry](docs/CHECKS_REGISTRY.md)
 
 ## Contributing
 

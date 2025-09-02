@@ -64,3 +64,29 @@ kubectl apply -k deploy/ingress
 ```
 
 The ingress overlay creates a simple HTTP ingress pointing to the Kuberhealthy Service.
+
+## Configuration
+
+Kuberhealthy is configured entirely with environment variables. The deployment manifest in this repository includes default values for all options. Modify the container's environment variables to tune Kuberhealthy for your cluster. See [FLAGS.md](FLAGS.md) for the full list.
+
+## Viewing Configured Checks
+
+You can list checks that are configured with:
+
+```sh
+kubectl -n kuberhealthy get khcheck
+```
+
+Check status can be accessed via the JSON status page endpoint or by inspecting the status field on the `KuberhealthyCheck` resource.
+
+## Verifying the Deployment
+
+After installation, verify that Kuberhealthy is running and serving metrics:
+
+```sh
+kubectl get pods -n kuberhealthy
+kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80 &
+curl -f localhost:8080/metrics
+```
+
+The `kuberhealthy` pod should be in a `Running` state and the metrics endpoint should respond. If checks fail, consult the [troubleshooting guide](TROUBLESHOOTING.md).
