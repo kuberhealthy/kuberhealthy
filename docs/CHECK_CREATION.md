@@ -94,12 +94,12 @@ Every check needs a `khcheck` to enable and configure it.  As soon as this resou
 Here is a minimal `khcheck` resource to start hacking with:
 
 ```yaml
-apiVersion: comcast.github.io/v1
+apiVersion: kuberhealthy.github.io/v2
 kind: KuberhealthyCheck
 metadata:
-  name: kh-test-check 
+  name: kh-test-check
 spec:
-  runInterval: 30s # The interval that Kuberhealthy will run your check on 
+  runInterval: 30s # The interval that Kuberhealthy will run your check on
   timeout: 2m # After this much time, Kuberhealthy will kill your check and consider it "failed"
   podSpec: # The exact pod spec that will run.  All normal pod spec is valid here.
     containers:
