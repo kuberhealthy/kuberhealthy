@@ -198,6 +198,22 @@ paths:
           description: Check not found
         '409':
           description: Check already running
+  /api/convert:
+    post:
+      summary: Convert legacy v1 KuberhealthyCheck resources to v2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdmissionReview'
+      responses:
+        '200':
+          description: AdmissionReview with conversion patch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdmissionReview'
   /check:
     post:
       summary: Report an external check result
@@ -296,6 +312,17 @@ components:
           type: boolean
       required:
         - ok
+    AdmissionReview:
+      type: object
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        request:
+          type: object
+        response:
+          type: object
     PodSummary:
       type: object
       properties:

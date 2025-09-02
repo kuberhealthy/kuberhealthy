@@ -8,3 +8,5 @@ resources:
   - clusterrole.yaml
   - serviceaccount.yaml
   - khcheck-example.yaml
+  - mutatingwebhook.yaml
+  - webhook-tls-secret.yaml

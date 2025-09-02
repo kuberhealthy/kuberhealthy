@@ -29,6 +29,8 @@ type Config struct {
 	DefaultNamespace              string
 	Namespace                     string // the namespace kh is running in
 	ServiceName                   string // kuberhealthy service name
+	TLSCertFile                   string
+	TLSKeyFile                    string
 }
 
 // New creates a Config populated with sane defaults.
@@ -168,6 +170,14 @@ func (c *Config) LoadFromEnv() error {
 
 	if v := os.Getenv("KH_DEFAULT_NAMESPACE"); v != "" {
 		c.DefaultNamespace = v
+	}
+
+	if v := os.Getenv("KH_TLS_CERT_FILE"); v != "" {
+		c.TLSCertFile = v
+	}
+
+	if v := os.Getenv("KH_TLS_KEY_FILE"); v != "" {
+		c.TLSKeyFile = v
 	}
 
 	return nil
