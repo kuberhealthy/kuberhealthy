@@ -17,14 +17,12 @@ import (
 func TestCheckReportHandler(t *testing.T) {
 	// preserve original function implementations
 	origValidateHeader := validateUsingRequestHeaderFunc
-	origValidateIP := validatePodReportBySourceIPFunc
 	origStore := storeCheckStateFunc
 	origClient := Globals.khClient
 	origKH := Globals.kh
 	t.Parallel()
 	defer func() {
 		validateUsingRequestHeaderFunc = origValidateHeader
-		validatePodReportBySourceIPFunc = origValidateIP
 		storeCheckStateFunc = origStore
 		Globals.khClient = origClient
 		Globals.kh = origKH
@@ -35,10 +33,6 @@ func TestCheckReportHandler(t *testing.T) {
 	t.Run("valid report", func(t *testing.T) {
 		validateUsingRequestHeaderFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
 			return PodReportInfo{Name: "my-check", Namespace: "my-namespace", UUID: "abc"}, true, nil
-		}
-		validatePodReportBySourceIPFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, error) {
-			t.Fatalf("unexpected call to validatePodReportBySourceIPFunc")
-			return PodReportInfo{}, nil
 		}
 		var storedName, storedNamespace string
 		var storedDetails *khapi.KuberhealthyCheckStatus
@@ -76,10 +70,6 @@ func TestCheckReportHandler(t *testing.T) {
 		validateUsingRequestHeaderFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
 			return PodReportInfo{Name: "my-check", Namespace: "my-namespace", UUID: "abc"}, true, nil
 		}
-		validatePodReportBySourceIPFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, error) {
-			t.Fatalf("unexpected call to validatePodReportBySourceIPFunc")
-			return PodReportInfo{}, nil
-		}
 		storeCalled := false
 		storeCheckStateFunc = func(client.Client, string, string, *khapi.KuberhealthyCheckStatus) error {
 			storeCalled = true
@@ -109,10 +99,6 @@ func TestCheckReportHandler(t *testing.T) {
 	t.Run("errors present when OK", func(t *testing.T) {
 		validateUsingRequestHeaderFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
 			return PodReportInfo{Name: "my-check", Namespace: "my-namespace", UUID: "abc"}, true, nil
-		}
-		validatePodReportBySourceIPFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, error) {
-			t.Fatalf("unexpected call to validatePodReportBySourceIPFunc")
-			return PodReportInfo{}, nil
 		}
 		storeCalled := false
 		storeCheckStateFunc = func(client.Client, string, string, *khapi.KuberhealthyCheckStatus) error {

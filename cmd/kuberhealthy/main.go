@@ -72,6 +72,7 @@ func main() {
 	}
 
 	Globals.kh = kuberhealthy.New(ctx, Globals.khClient)
+	Globals.kh.SetReportingURL(GlobalConfig.ReportingURL())
 	if err := Globals.kh.Start(ctx, Globals.kubeConfig); err != nil {
 		log.Errorln("startup: failed to start kuberhealthy:", err)
 	}

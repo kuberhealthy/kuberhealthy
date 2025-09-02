@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -42,6 +43,7 @@ func TestCheckPodSpec(t *testing.T) {
 
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
+	kh.SetReportingURL("http://example.com/check")
 
 	pod := kh.CheckPodSpec(check)
 
@@ -50,9 +52,16 @@ func TestCheckPodSpec(t *testing.T) {
 
 	require.Equal(t, check.Namespace, pod.Namespace)
 	require.True(t, strings.HasPrefix(pod.Name, check.Name+"-"))
-	require.Equal(t, check.Spec.PodSpec.Spec, pod.Spec)
+	require.Equal(t, check.Spec.PodSpec.Spec.RestartPolicy, pod.Spec.RestartPolicy)
+	require.Len(t, pod.Spec.Containers, 1)
+	c := pod.Spec.Containers[0]
+	require.Equal(t, check.Spec.PodSpec.Spec.Containers[0].Image, c.Image)
+	requireEnvVar(t, c.Env, envs.KHReportingURL, kh.ReportingURL)
+	requireEnvVar(t, c.Env, envs.KHRunUUID, uuid)
 
 	require.Equal(t, "kuberhealthy", pod.Annotations["createdBy"])
+	require.Equal(t, uuid, pod.Annotations[runUUIDLabel])
+	require.NotEmpty(t, pod.Annotations["createdTime"])
 	require.Equal(t, check.Name, pod.Annotations["kuberhealthyCheckName"])
 
 	require.Equal(t, check.Name, pod.Labels[checkLabel])
@@ -68,6 +77,17 @@ func TestCheckPodSpec(t *testing.T) {
 	require.True(t, *owner.Controller)
 	require.NotNil(t, owner.BlockOwnerDeletion)
 	require.True(t, *owner.BlockOwnerDeletion)
+}
+
+func requireEnvVar(t *testing.T, env []corev1.EnvVar, name, val string) {
+	t.Helper()
+	for i := range env {
+		if env[i].Name == name {
+			require.Equal(t, val, env[i].Value)
+			return
+		}
+	}
+	t.Fatalf("env var %s not set", name)
 }
 
 // TestIsStarted verifies that IsStarted reflects the running state of Kuberhealthy.
@@ -106,6 +126,9 @@ func TestSetFreshUUID(t *testing.T) {
 
 // TestScheduleStartsCheck confirms that scheduleChecks triggers a run when a check is due.
 func TestScheduleStartsCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping schedule check test in short mode")
+	}
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
@@ -143,6 +166,9 @@ func TestScheduleStartsCheck(t *testing.T) {
 
 // TestScheduleSkipsWhenNotDue ensures scheduleChecks leaves checks untouched if their interval has not elapsed.
 func TestScheduleSkipsWhenNotDue(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping schedule skip test in short mode")
+	}
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
@@ -184,6 +210,9 @@ func TestScheduleSkipsWhenNotDue(t *testing.T) {
 
 // TestScheduleLoopStopsOnStop verifies that Stop halts the scheduling loop.
 func TestScheduleLoopStopsOnStop(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping schedule loop stop test in short mode")
+	}
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
 	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
@@ -205,6 +234,9 @@ func TestScheduleLoopStopsOnStop(t *testing.T) {
 
 // TestScheduleLoopOnlyRunsOnce checks that a second schedule loop invocation exits immediately if already running.
 func TestScheduleLoopOnlyRunsOnce(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping schedule loop only runs once test in short mode")
+	}
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
 	cl := fake.NewClientBuilder().WithScheme(scheme).Build()

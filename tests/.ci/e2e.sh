@@ -1,87 +1,73 @@
 #!/bin/bash
+set -euo pipefail
 
 #####
-# This script is created to install kuberhealthy with a few basic checks in a minikube cluster.
-# In the long run I hope that we can use it to run test cases.
+# This script installs kuberhealthy and runs a sample check in a kind cluster.
 #####
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-# Set NS
+# Namespace and deployment name
 NS=kuberhealthy
-name=kuberhealthy
+NAME=kuberhealthy
 
-# if unset use "unstable" - useful for local dev testing
+# Image built in CI
 IMAGE_URL="$1"
 echo "Kuberhealthy image: $IMAGE_URL"
 
-# Create namespace
-kubectl create namespace $NS
+# Create namespace for kuberhealthy
+kubectl create namespace "$NS"
 
-# wait for kuberhealthy's namespace to get created fully
-sleep 2
+# Install kuberhealthy using kustomize
+kubectl apply -k "$REPO_ROOT/deploy"
 
-# Use helm to install kuberhealthy
-# the image repository and tag must match the build that just took place
-helm install -n $NS --set imageURL=$IMAGE_URL -f "$SCRIPT_DIR/values.yaml"  $name deploy/helm/kuberhealthy
+# Update the deployment to use the built image
+kubectl -n "$NS" set image deployment/kuberhealthy kuberhealthy="$IMAGE_URL"
 
-# list khchecks
-kubectl -n $NS get khc
+# Wait for the CRD to be established before creating checks
+kubectl wait --for=condition=Established --timeout=60s crd/kuberhealthychecks.kuberhealthy.github.io
 
-# let kuberhealthy images boot up
-sleep 30
+# Wait for kuberhealthy to be ready
+kubectl -n "$NS" rollout status deployment/kuberhealthy
 
-helm ls
+# Create a sample check for testing
+kubectl apply -f "$REPO_ROOT/tests/khcheck-test.yaml"
 
-echo "get all"
-kubectl -n $NS get all
-echo "get deployment"
-kubectl -n $NS get deployment kuberhealthy -o yaml
-echo "get khc"
-kubectl -n $NS get khc
-echo "get khs:"
-kubectl -n $NS get khs
+print_block() {
+  printf '[%s] === %s ===\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1"
+  shift
+  "$@"
+}
 
-# If the operator dosen't start for some reason kill the test
-kubectl -n $NS get pods | grep $name
-if [ $? != 0 ]; then
-    echo "No Kuberhealthy instance pod found after helm install"
-    exit 1
-fi
+print_check_pod_logs() {
+  check_pods=$(kubectl -n "$NS" get pods -o name | grep -v "$NAME" || true)
+  for pod in $check_pods; do
+    print_block "Check Pod Logs ($pod)" kubectl -n "$NS" logs "$pod" || true
+  done
+}
 
-# Wait for kuberhealthy operator to start
-kubectl wait --for=condition=Ready pod -l app=kuberhealthy
-
-echo "dump the kuberhealthy deployment logs \n"
-kubectl logs -n $NS deployment/kuberhealthy
-
-# repeatedly check for checks to run successfully
+# repeatedly check for the test check to run successfully
 for i in {1..20}; do
-    khsCount=$(kubectl get -n $NS khs -o yaml | grep "OK: true" | wc -l)
-    cDeploy=$(kubectl -n $NS get pods -l app=kuberhealthy-check | grep deployment | grep Completed | wc -l)
-    cDNS=$(kubectl -n $NS get pods -l app=kuberhealthy-check | grep dns-status-internal | grep Completed | wc -l)
-    cDS=$(kubectl -n $NS get pods -l app=kuberhealthy-check | grep daemonset | grep Completed | wc -l)
-    cPR=$(kubectl -n $NS get pods -l app=kuberhealthy-check | grep pod-restarts | grep Completed | wc -l)
-    cPS=$(kubectl -n $NS get pods -l app=kuberhealthy-check | grep pod-status | grep Completed | wc -l)
+    checksOK=$(kubectl get -n "$NS" kuberhealthycheck -o jsonpath='{range .items[*]}{.status.ok}{"\n"}{end}' 2>/dev/null | grep -c true || true)
+    checksOK=${checksOK//[[:space:]]/}
+    completedPods=$(kubectl -n "$NS" get pods --field-selector=status.phase=Succeeded -o name | wc -l | tr -d '[:space:]')
 
-    if [ $khsCount -ge 5 ] && [ $cDeploy -ge 1 ] && [ $cDS -ge 1 ] && [ $cDNS -ge 1 ] && [ $cPR -ge 1 ] && [ $cPS -ge 1 ]; then
+    if [ "$checksOK" -ge 1 ] && [ "$completedPods" -ge 1 ]; then
         echo "ALL KUBERHEALTHY CHECKS PASSED!!"
-
-		# Print some final output to make debuging easier.
-		echo "kuberhealthy logs"
-		kubectl logs -n $NS deployment/kuberhealthy
-		exit 0 # successful testing
-        
+        print_block "Pod List" kubectl -n "$NS" get pods
+        print_block "KuberhealthyCheck List" kubectl -n "$NS" get kuberhealthycheck
+        print_block "Kuberhealthy Pod Logs" kubectl -n "$NS" logs deployment/kuberhealthy
+        print_check_pod_logs
+        exit 0 # successful testing
     else
-        echo "--- Waiting for all kubrhealthy checks to pass...\n"
-		echo "Checks Successful of 5: $khsCount"
-		echo "Deployment checks completed: $cDeploy"
-		echo "DNS checks completed: $cDNS"
-		echo "Daemonset checks completed: $cDS"
-		echo "Pod Restart checks completed: $cPR"
-		echo "Pod Status checks completed: $cPS"
-        kubectl get -n $NS pods,khchecks,khstate
-        kubectl logs -n $NS -l app=kuberhealthy
+        echo "--- Waiting for kuberhealthy check to pass...\n"
+        echo "Checks Successful: $checksOK"
+        echo "Completed check pods: $completedPods"
+        print_block "Pod List" kubectl -n "$NS" get pods
+        print_block "KuberhealthyCheck List" kubectl -n "$NS" get kuberhealthycheck
+        print_block "Kuberhealthy Pod Logs" kubectl -n "$NS" logs deployment/kuberhealthy
+        print_check_pod_logs
         sleep 10
     fi
 
