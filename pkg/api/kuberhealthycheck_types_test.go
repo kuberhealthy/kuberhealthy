@@ -2,12 +2,12 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
-  "encoding/json"
 
 	"github.com/stretchr/testify/require"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -34,7 +34,6 @@ func TestGetCheckSetsCreationTimestamp(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, out.CreationTimestamp.IsZero(), "creation timestamp must be set")
 }
-
 
 // TestSpecDoesNotExposeCreationTimestamp ensures creationTimestamp is not serialized in pod metadata.
 func TestSpecDoesNotExposeCreationTimestamp(t *testing.T) {
@@ -69,4 +68,32 @@ func TestSpecDoesNotExposeCreationTimestamp(t *testing.T) {
 		require.Nil(t, v, "creationTimestamp must be nil in spec.podSpec.metadata")
 	}
 
+}
+
+// TestSingleRunOnlyRoundTrip ensures singleRunOnly marshals and unmarshals correctly.
+func TestSingleRunOnlyRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	check := KuberhealthyCheck{Spec: KuberhealthyCheckSpec{SingleRun: true}}
+
+	raw, err := json.Marshal(check)
+	require.NoError(t, err)
+	require.Contains(t, string(raw), "\"singleRunOnly\":true")
+
+	var out KuberhealthyCheck
+	require.NoError(t, json.Unmarshal(raw, &out))
+	require.True(t, out.Spec.SingleRun)
+}
+
+// TestSingleRunOnlyOmittedWhenFalse ensures singleRunOnly is absent when false.
+func TestSingleRunOnlyOmittedWhenFalse(t *testing.T) {
+	t.Parallel()
+
+	raw, err := json.Marshal(KuberhealthyCheck{})
+	require.NoError(t, err)
+	require.NotContains(t, string(raw), "singleRunOnly")
+
+	var out KuberhealthyCheck
+	require.NoError(t, json.Unmarshal(raw, &out))
+	require.False(t, out.Spec.SingleRun)
 }
