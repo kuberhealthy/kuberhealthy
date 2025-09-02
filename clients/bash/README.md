@@ -22,7 +22,7 @@ The [`check.sh`](check.sh) script reads the Kuberhealthy run UUID and reporting 
 4. **Create a KuberhealthyCheck** – Reference the image in a `KuberhealthyCheck` resource and apply it to your cluster:
 
    ```yaml
-   apiVersion: comcast.github.io/v1
+   apiVersion: kuberhealthy.github.io/v2
    kind: KuberhealthyCheck
    metadata:
      name: bash-example
