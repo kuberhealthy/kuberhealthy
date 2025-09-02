@@ -15,8 +15,6 @@ limitations under the License.
 */
 
 // Package api contains API Schema definitions for the kuberhealthy.github.io v2 API group
-// +kubebuilder:object:generate=true
-// +groupName=kuberhealthy.github.io
 package api
 
 import (
