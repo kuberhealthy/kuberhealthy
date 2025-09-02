@@ -34,7 +34,7 @@ make docker-push IMAGE=myrepo/kuberhealthy-typescript-example:latest
 Create a `KuberhealthyCheck` that uses your image:
 
 ```yaml
-apiVersion: comcast.github.io/v1
+apiVersion: kuberhealthy.github.io/v2
 kind: KuberhealthyCheck
 metadata:
   name: typescript-example
