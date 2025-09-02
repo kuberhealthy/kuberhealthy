@@ -79,7 +79,8 @@ async function refresh(){
     heading.className='p-3 font-semibold text-gray-700 dark:text-gray-300';
     menu.appendChild(heading);
     const now = Date.now();
-    Object.keys(checks).forEach(function(name){
+    const names = Object.keys(checks);
+    names.forEach(function(name){
       const st = checks[name];
       let icon = st.ok ? '✅' : '❌';
       if (st.podName){ icon = '⏳'; }
@@ -94,6 +95,29 @@ async function refresh(){
       div.onclick = ()=>showCheck(name);
       menu.appendChild(div);
     });
+    if(currentCheck===''){
+      const content=document.getElementById('content');
+      content.innerHTML='';
+      const grid=document.createElement('div');
+      grid.className='grid gap-4 md:grid-cols-2';
+      names.forEach(function(name){
+        const st=checks[name];
+        const state=st.podName?'running':(st.ok?'ok':'error');
+        const status=st.podName?'Running':(st.ok?'OK':'Fail');
+        const err=st.errors&&st.errors.length?'<p><span class="font-semibold">Error:</span> '+st.errors[0]+'</p>':'';
+        const card=document.createElement('div');
+        card.className='p-4 bg-white dark:bg-gray-900 rounded shadow cursor-pointer';
+        card.innerHTML=
+          '<h3 class="text-xl font-semibold mb-2">'+name+'</h3>'+
+          '<p><span class="font-semibold">Status:</span> '+status+'</p>'+
+          err+
+          '<p><span class="font-semibold">State:</span> '+state+'</p>'+
+          '<p><span class="font-semibold">Namespace:</span> '+st.namespace+'</p>';
+        card.onclick=()=>showCheck(name);
+        grid.appendChild(card);
+      });
+      content.appendChild(grid);
+    }
   }catch(e){ console.error('failed to fetch status', e); }
 }
 
@@ -218,7 +242,7 @@ window.onload = ()=>{initTheme(); refresh();};
   <div id="menu" class="w-64 border-r overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-200 dark:from-gray-900 dark:to-gray-700 shadow-inner"></div>
   <div id="content" class="flex-1 p-4 overflow-y-auto bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><h2 class="text-2xl font-bold">Select a check</h2></div>
 </div>
-<footer class="text-center p-2 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 shadow-inner">Powered by Kuberhealthy</footer>
+<footer class="text-center p-2 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 shadow-inner">Powered by <a href="https://kuberhealthy.github.io/kuberhealthy/" class="text-blue-600 hover:underline">Kuberhealthy</a> • <a href="https://github.com/kuberhealthy/kuberhealthy/blob/main/docs/README.md" target="_blank" rel="noopener" class="text-blue-600 hover:underline">Documentation</a> • <a href="https://github.com/kuberhealthy/kuberhealthy" class="text-blue-600 hover:underline">Source code</a></footer>
 </body>
 </html>
 `
