@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	jsonpatch "gomodules.xyz/jsonpatch/v2"
 	admissionv1 "k8s.io/api/admission/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -61,14 +63,15 @@ func convertReview(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionRespon
 		return &admissionv1.AdmissionResponse{Allowed: true}
 	}
 
-	old := khapi.KuberhealthyCheck{}
-	if err := json.Unmarshal(raw, &old); err != nil {
-		return toError(fmt.Errorf("parse object: %w", err))
+	check, warning, err := convertLegacy(raw, meta.Kind)
+	if err != nil {
+		return toError(err)
+	}
+	if check == nil {
+		return &admissionv1.AdmissionResponse{Allowed: true}
 	}
 
-	old.APIVersion = "kuberhealthy.github.io/v2"
-
-	newRaw, err := json.Marshal(old)
+	newRaw, err := json.Marshal(check)
 	if err != nil {
 		return toError(fmt.Errorf("marshal v2: %w", err))
 	}
@@ -87,10 +90,60 @@ func convertReview(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionRespon
 		Allowed:   true,
 		Patch:     patchBytes,
 		PatchType: &pt,
-		Warnings: []string{
-			"converted legacy comcast.github.io/v1 KuberhealthyCheck to kuberhealthy.github.io/v2",
-		},
+		Warnings:  []string{warning},
 	}
+}
+
+func convertLegacy(raw []byte, kind string) (*khapi.KuberhealthyCheck, string, error) {
+	switch kind {
+	case "KuberhealthyCheck":
+		out := khapi.KuberhealthyCheck{}
+		if err := json.Unmarshal(raw, &out); err != nil {
+			return nil, "", fmt.Errorf("parse object: %w", err)
+		}
+		out.APIVersion = "kuberhealthy.github.io/v2"
+		return &out, "converted legacy comcast.github.io/v1 KuberhealthyCheck to kuberhealthy.github.io/v2", nil
+	case "KuberhealthyJob":
+		job := legacyJob{}
+		if err := json.Unmarshal(raw, &job); err != nil {
+			return nil, "", fmt.Errorf("parse job: %w", err)
+		}
+
+		out := khapi.KuberhealthyCheck{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "kuberhealthy.github.io/v2",
+				Kind:       "KuberhealthyCheck",
+			},
+			ObjectMeta: job.ObjectMeta,
+			Spec: khapi.KuberhealthyCheckSpec{
+				SingleRun:        true,
+				ExtraAnnotations: job.Spec.ExtraAnnotations,
+				ExtraLabels:      job.Spec.ExtraLabels,
+				PodSpec:          corev1.PodTemplateSpec{Spec: job.Spec.PodSpec},
+			},
+		}
+		if job.Spec.Timeout != "" {
+			d, err := time.ParseDuration(job.Spec.Timeout)
+			if err != nil {
+				return nil, "", fmt.Errorf("parse timeout: %w", err)
+			}
+			out.Spec.Timeout = &metav1.Duration{Duration: d}
+		}
+		return &out, "converted legacy comcast.github.io/v1 KuberhealthyJob to kuberhealthy.github.io/v2 KuberhealthyCheck", nil
+	default:
+		return nil, "", nil
+	}
+}
+
+type legacyJob struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              struct {
+		Timeout          string            `json:"timeout"`
+		PodSpec          corev1.PodSpec    `json:"podSpec"`
+		ExtraAnnotations map[string]string `json:"extraAnnotations"`
+		ExtraLabels      map[string]string `json:"extraLabels"`
+	} `json:"spec"`
 }
 
 func toError(err error) *admissionv1.AdmissionResponse {
