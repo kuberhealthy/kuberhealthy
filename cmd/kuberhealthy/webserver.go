@@ -933,6 +933,12 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 		log.Println("webserver:", requestID, "failed to store check state for %s: %w", podReport.Name, err)
 		return fmt.Errorf("failed to store check state for %s: %w", podReport.Name, err)
 	}
+	log.WithFields(log.Fields{
+		"namespace": podReport.Namespace,
+		"name":      podReport.Name,
+		"ok":        state.OK,
+		"errors":    state.Errors,
+	}).Info("checker pod reported")
 
 	if khCheck != nil && Globals.kh != nil && Globals.kh.Recorder != nil {
 		if state.OK {

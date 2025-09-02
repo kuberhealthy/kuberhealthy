@@ -233,6 +233,11 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khapi.KuberhealthyCheck) error {
 		}
 		return fmt.Errorf("failed to create check pod: %w", err)
 	}
+	log.WithFields(log.Fields{
+		"namespace": khcheck.Namespace,
+		"name":      khcheck.Name,
+		"pod":       podSpec.Name,
+	}).Info("created checker pod")
 	if kh.Recorder != nil {
 		kh.Recorder.Eventf(khcheck, corev1.EventTypeNormal, "PodCreated", "created pod %s", podSpec.Name)
 	}
@@ -319,6 +324,11 @@ func (kh *Kuberhealthy) StopCheck(khcheck *khapi.KuberhealthyCheck) error {
 		if err := kh.CheckClient.Delete(kh.Context, podRef); err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("failed to delete checker pod %s: %w", podRef.Name, err)
 		}
+		log.WithFields(log.Fields{
+			"namespace": khcheck.Namespace,
+			"name":      khcheck.Name,
+			"pod":       podRef.Name,
+		}).Info("deleted checker pod")
 	}
 	return nil
 }
