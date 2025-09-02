@@ -19,7 +19,7 @@ Kuberhealthy service.
 4. Create a `KuberhealthyCheck` manifest that uses your image and apply it to the
    cluster where Kuberhealthy runs:
    ```yaml
-   apiVersion: comcast.github.io/v1
+   apiVersion: kuberhealthy.github.io/v2
    kind: KuberhealthyCheck
    metadata:
      name: ruby-example-check
