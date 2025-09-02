@@ -16,6 +16,7 @@ This file defines contributor guidelines for the entire repository.
 - Add inline comments within functions frequently.
 - Test names should not use underscores (use testName instead of test_name).
 - Tests should focus on one small behavior. End-to-end tests may cover a large process but should assert only its initial inputs and final outputs.
+- For normal validation, you only need to run tests with short mode (-short). Continue to target specific tests as needed using `-run`, though.
 - Prefer standard library packages when practical.
 
 ## Project decisions
