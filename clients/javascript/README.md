@@ -17,7 +17,7 @@ The check relies on two environment variables set automatically by Kuberhealthy:
 ## Example khcheck
 
 ```yaml
-apiVersion: comcast.github.io/v1
+apiVersion: kuberhealthy.github.io/v2
 kind: KuberhealthyCheck
 metadata:
   name: example-js-check
