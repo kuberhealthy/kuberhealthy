@@ -77,7 +77,13 @@ func (kh *Kuberhealthy) handleUpdate(oldObj, newObj interface{}) {
 		}
 		return
 	}
-	kh.UpdateCheck(oldCheck, newCheck)
+	log.WithFields(log.Fields{
+		"namespace": newCheck.Namespace,
+		"name":      newCheck.Name,
+	}).Info("modified checker pod")
+	if err := kh.UpdateCheck(oldCheck, newCheck); err != nil {
+		log.Errorln("error:", err)
+	}
 }
 
 func (kh *Kuberhealthy) handleDelete(obj interface{}) {
