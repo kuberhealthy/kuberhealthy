@@ -2,6 +2,19 @@
 
 Welcome to the Kuberhealthy documentation directory. These guides cover installing, using, and contributing to Kuberhealthy.
 
+## Client Libraries and Examples
+
+Kuberhealthy provides example applications and importable clients for multiple languages:
+
+- [Rust](https://github.com/kuberhealthy/rust)
+- [TypeScript](https://github.com/kuberhealthy/typescript)
+- [JavaScript](https://github.com/kuberhealthy/javascript)
+- [Go](https://github.com/kuberhealthy/go)
+- [Python](https://github.com/kuberhealthy/python)
+- [Ruby](https://github.com/kuberhealthy/ruby)
+- [Java](https://github.com/kuberhealthy/java)
+- [Bash](https://github.com/kuberhealthy/bash)
+
 ## Table of Contents
 
 - 🚀 [Deploying Kuberhealthy](deployingKuberhealthy.md): Install with Kustomize or ArgoCD and expose the `/status` page with load balancers or an ingress.
