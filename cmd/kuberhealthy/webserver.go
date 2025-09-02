@@ -34,6 +34,10 @@ const statusPageHTML = `
 <head>
 <meta charset="utf-8" />
 <title>Kuberhealthy Status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>body{font-family:'Inter',sans-serif;}</style>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
 let checks = {};
@@ -81,20 +85,34 @@ async function refresh(){
     menu.appendChild(heading);
     const now = Date.now();
     const names = Object.keys(checks);
+    const groups = {};
     names.forEach(function(name){
-      const st = checks[name];
-      let icon = st.ok ? '✅' : '❌';
-      if (st.podName){ icon = '⏳'; }
-      const div = document.createElement('div');
-      div.className = 'p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100';
-      let label = icon + ' ' + name;
-      if (st.nextRunUnix){
-        const diff = st.nextRunUnix*1000 - now;
-        label += ' (' + formatDuration(diff) + ')';
+      const ns = checks[name].namespace || '';
+      if (!groups[ns]){
+        groups[ns] = [];
       }
-      div.textContent = label;
-      div.onclick = ()=>showCheck(name);
-      menu.appendChild(div);
+      groups[ns].push(name);
+    });
+    Object.keys(groups).sort().forEach(function(ns){
+      const nsHeading=document.createElement('div');
+      nsHeading.textContent=ns;
+      nsHeading.className='px-3 py-1 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase';
+      menu.appendChild(nsHeading);
+      groups[ns].sort().forEach(function(name){
+        const st = checks[name];
+        let icon = st.ok ? '✅' : '❌';
+        if (st.podName){ icon = '⏳'; }
+        const div = document.createElement('div');
+        div.className = 'p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100';
+        let label = icon + ' ' + name;
+        if (st.nextRunUnix){
+          const diff = st.nextRunUnix*1000 - now;
+          label += ' (' + formatDuration(diff) + ')';
+        }
+        div.textContent = label;
+        div.onclick = ()=>showCheck(name);
+        menu.appendChild(div);
+      });
     });
     if(currentCheck===''){
       const content=document.getElementById('content');
