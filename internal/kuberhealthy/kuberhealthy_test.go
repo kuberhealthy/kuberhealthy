@@ -60,7 +60,7 @@ func TestCheckPodSpec(t *testing.T) {
 	requireEnvVar(t, c.Env, envs.KHRunUUID, uuid)
 
 	require.Equal(t, "kuberhealthy", pod.Annotations["createdBy"])
-	require.Equal(t, check.Name, pod.Annotations[envs.KHCheckNameAnnotationKey])
+	require.Equal(t, uuid, pod.Annotations[runUUIDLabel])
 	require.NotEmpty(t, pod.Annotations["createdTime"])
 
 	require.Equal(t, check.Name, pod.Labels[checkLabel])

@@ -14,9 +14,6 @@ const KHDeadline = "KH_CHECK_RUN_DEADLINE"
 // // checks in.
 // const KHPodNamespace = "KH_POD_NAMESPACE"
 
-// KHCheckNameAnnotationKey is the annotation which holds the check's name for later validation when the pod calls in
-const KHCheckNameAnnotationKey = "kuberhealthy.github.io/check-name"
-
 // // DefaultKuberhealthyReportingURL is the default location that external checks
 // // are expected to report into.
 // const DefaultKuberhealthyReportingURL = "http://kuberhealthy.kuberhealthy.svc.cluster.local/externalCheckStatus"

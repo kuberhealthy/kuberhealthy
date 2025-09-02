@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -15,7 +14,6 @@ import (
 
 	yaml "github.com/ghodss/yaml"
 	"github.com/google/uuid"
-	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
@@ -604,88 +602,6 @@ var (
 	storeCheckStateFunc            = storeCheckState
 )
 
-// validateExternalRequest calls the Kubernetes API to fetch details about a pod using a selector string.
-// It validates that the pod is allowed to report the status of a check. The pod is also expected
-// to have the environment variable KH_CHECK_NAME
-func validateExternalRequest(ctx context.Context, selector string) (PodReportInfo, error) {
-
-	var podUUID string
-	var podCheckName string
-	var podCheckNamespace string
-
-	reportInfo := PodReportInfo{}
-
-	// fetch the pod from the api using a specified selector. We keep retrying for some time to avoid kubernetes control
-	// plane api race conditions wherein fast reporting pods are not found in pod listings
-	pod, err := fetchPodBySelectorForDuration(ctx, selector, time.Minute)
-	if err != nil {
-		return reportInfo, err
-	}
-
-	// set the pod namespace and name from the returned metadata
-	podCheckName = pod.Annotations[envs.KHCheckNameAnnotationKey]
-	if len(podCheckName) == 0 {
-		return reportInfo, errors.New("error finding check name annotation on calling pod with selector: " + selector)
-	}
-
-	podCheckNamespace = pod.GetNamespace()
-	log.Debugln("Found check named", podCheckName, "in namespace", podCheckNamespace)
-
-	// pile up all the env vars for searching
-	var envVars []v1.EnvVar
-	// we found our pod, lets return all its env vars from all its containers
-	for _, container := range pod.Spec.Containers {
-		envVars = append(envVars, container.Env...)
-	}
-
-	log.Debugln("Env vars found on pod with selector", selector, envVars)
-
-	// validate that the environment variables we expect are in place based on the check's name and UUID
-	// compared to what is in the khcheck custom resource
-	var foundUUID bool
-	for _, e := range envVars {
-		log.Debugln("Checking environment variable on calling pod:", e.Name, e.Value)
-		if e.Name == envs.KHRunUUID {
-			log.Debugln("Found value on calling pod", selector, "value:", envs.KHRunUUID, e.Value)
-			podUUID = e.Value
-			foundUUID = true
-		}
-	}
-
-	// verify that we found the UUID
-	if !foundUUID {
-		return reportInfo, errors.New("error finding environment variable on remote pod: " + envs.KHRunUUID)
-	}
-
-	// we know that we have a UUID and check name now, so lets check their validity.  First, we sanity check.
-	if len(podCheckName) < 1 {
-		return reportInfo, errors.New("pod check name was invalid or unset")
-	}
-	if len(podCheckNamespace) < 1 {
-		return reportInfo, errors.New("pod check namespace was invalid or unset")
-	}
-	if len(podUUID) < 1 {
-		return reportInfo, errors.New("pod uuid was invalid or unset")
-	}
-
-	// create a report to send back to the function invoker
-	reportInfo.Name = podCheckName
-	reportInfo.Namespace = podCheckNamespace
-	reportInfo.UUID = podUUID
-
-	// next, we check the uuid against the check name to see if this uuid is the expected one.  if it isn't,
-	// we return an error
-	whitelisted, err := isUUIDWhitelistedForCheck(podCheckName, podCheckNamespace, podUUID)
-	if err != nil {
-		return reportInfo, fmt.Errorf("failed to fetch whitelisted UUID for check with error: %w", err)
-	}
-	if !whitelisted {
-		return reportInfo, errors.New("pod was not properly whitelisted for reporting status of check " + podCheckName + " with uuid " + podUUID + " and namespace " + podCheckNamespace)
-	}
-
-	return reportInfo, nil
-}
-
 // prometheusMetricsHandler is a handler for all prometheus metrics requests
 func prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 	state := getCurrentState([]string{})
@@ -763,11 +679,12 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// log.Println("webserver:", requestID, "Client connected to check report handler from", r.UserAgent())
 
 	// Validate request using the kh-run-uuid header.
-	log.Println("webserver:", requestID, "validating external check status report from its reporting kuberhealthy run uuid:", r.Header.Get("kh-run-uuid"))
+	log.Println("webserver:", requestID, "validating external check status report from run uuid:", r.Header.Get("kh-run-uuid"))
 	podReport, reportValidated, err := validateUsingRequestHeaderFunc(ctx, r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Println("webserver:", requestID, "Failed to look up pod by its kh-run-uuid header:", r.Header.Get("kh-run-uuid"), err)
+		_, _ = w.Write([]byte(err.Error()))
+		log.Println("webserver:", requestID, "Failed to look up khcheck by its kh-run-uuid header:", r.Header.Get("kh-run-uuid"), err)
 		return nil
 	}
 	if !reportValidated {
@@ -775,7 +692,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 		log.Println("webserver:", requestID, "Request missing kh-run-uuid header")
 		return nil
 	}
-	log.Println("webserver:", requestID, "Calling pod is", podReport.Name, "in namespace", podReport.Namespace)
+	log.Println("webserver:", requestID, "Reporting check is", podReport.Name, "in namespace", podReport.Namespace)
 
 	// append pod info to request id for easy check tracing in logs
 	requestID = requestID + " (" + podReport.Namespace + "/" + podReport.Name + ")"
@@ -873,53 +790,6 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// fetchPodBySelectorForDuration attempts to fetch a pod by a specified selector repeatedly for the supplied duration.
-// If the pod is found, then we return it.  If the pod is not found after the duration, we return an error
-func fetchPodBySelectorForDuration(ctx context.Context, selector string, d time.Duration) (v1.Pod, error) {
-	endTime := time.Now().Add(d)
-
-	for {
-		if time.Now().After(endTime) {
-			return v1.Pod{}, errors.New("Failed to fetch source pod with selector " + selector + " after trying for " + d.String())
-		}
-
-		p, err := fetchPodBySelector(ctx, selector)
-		if err != nil {
-			log.Warningln("was unable to find calling pod with selector " + selector + " while watching for duration. Error: " + err.Error())
-			time.Sleep(time.Second)
-			continue
-		}
-
-		return p, err
-	}
-}
-
-// getCheckStatus fetches the status section of a kuberhealthy check resource and returns it
-func getCheckStatus(checkName string, checkNamespace string) (*khapi.KuberhealthyCheckStatus, error) {
-
-	// TODO
-	return &khapi.KuberhealthyCheckStatus{}, nil
-}
-
-// isUUIDWhitelistedForCheck determines if the supplied uuid is whitelisted for the
-// check with the supplied name.  Only one UUID can be whitelisted at a time.
-// Operations are not atomic.  Whitelisting prevents expired or invalidated pods from
-// reporting into the status endpoint when they shouldn't be.
-func isUUIDWhitelistedForCheck(checkName string, checkNamespace string, uuid string) (bool, error) {
-
-	// get the item in question
-	checkStatus, err := getCheckStatus(checkName, checkNamespace)
-	if err != nil {
-		return false, err
-	}
-
-	log.Debugln("Validating current UUID", checkStatus.CurrentUUID, "vs incoming UUID:", uuid)
-	if checkStatus.CurrentUUID == uuid {
-		return true, nil
-	}
-	return false, nil
-}
-
 // getCurrentState fetches the current state of all checks from requested namespaces
 // their CRD objects and returns the summary as a health.State. Without a requested namespace,
 // this will return the state of ALL found checks.
@@ -993,67 +863,42 @@ func runIntervalForCheck(u *unstructured.Unstructured) time.Duration {
 	return defaultRunInterval
 }
 
-// validateUsingRequestHeader gets the header `kh-run-uuid` value from the request and forms a selector with it to
-// validate that the request is coming from a kuberhealthy check pod
+// validateUsingRequestHeader ensures the request includes a valid kh-run-uuid header and
+// returns information about the associated KuberhealthyCheck.
 func validateUsingRequestHeader(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
-
-	var podReport PodReportInfo
-	var err error
-	if len(r.Header.Get("kh-run-uuid")) == 0 {
-		return podReport, false, nil
+	var info PodReportInfo
+	uuid := r.Header.Get("kh-run-uuid")
+	if uuid == "" {
+		return info, false, nil
 	}
-	selector := "kh-run-uuid=" + r.Header.Get("kh-run-uuid")
-	podReport, err = validateExternalRequest(ctx, selector)
+	check, err := findCheckByUUID(ctx, uuid)
 	if err != nil {
-		return podReport, false, err
+		return info, true, fmt.Errorf("failed to lookup khcheck for uuid %s: %w", uuid, err)
 	}
-	return podReport, true, nil
+	if check == nil {
+		return info, true, fmt.Errorf("run uuid %s is invalid or expired", uuid)
+	}
+	info.Name = check.Name
+	info.Namespace = check.Namespace
+	info.UUID = uuid
+	return info, true, nil
 }
 
-// fetchPodBySelector fetches the pod by its `kh-run-uuid` label selector.
-func fetchPodBySelector(ctx context.Context, selector string) (v1.Pod, error) {
-	// var pod v1.Pod
-
-	// podClient := kubernetesClient.CoreV1().Pods(TargetNamespace)
-
-	// // Use either label selector or field selector depending on the selector string passed through
-	// // LabelSelector: "kuberhealthy-run-id=" + uuid,
-	// // FieldSelector: "status.podIP==" + remoteIP + ",status.phase==Running",
-	// var listOptions metav1.ListOptions
-	// if strings.Contains(selector, "kuberhealthy-run-id") {
-	// 	listOptions = metav1.ListOptions{
-	// 		LabelSelector: selector,
-	// 	}
-	// }
-
-	// if strings.Contains(selector, "status.podIP") {
-	// 	listOptions = metav1.ListOptions{
-	// 		FieldSelector: selector,
-	// 	}
-	// }
-
-	// podList, err := podClient.List(ctx, listOptions)
-	// if err != nil {
-	// 	return pod, errors.New("failed to fetch pod with selector " + selector + " with error: " + err.Error())
-	// }
-
-	// // ensure that we only got back one pod, because two means something awful has happened and 0 means we
-	// // didnt find one
-	// if len(podList.Items) == 0 {
-	// 	return pod, errors.New("failed to find a pod with selector " + selector)
-	// }
-	// if len(podList.Items) > 1 {
-	// 	return pod, errors.New("failed to fetch pod with selector " + selector + " - found two or more with same label")
-	// }
-
-	// // check if the pod has containers
-	// if len(podList.Items[0].Spec.Containers) == 0 {
-	// 	return pod, errors.New("failed to fetch environment variables from pod with selector" + selector + " - pod had no containers")
-	// }
-
-	// return podList.Items[0], nil
-
-	return v1.Pod{}, nil
+// findCheckByUUID searches for a KuberhealthyCheck whose status CurrentUUID matches the provided uuid.
+func findCheckByUUID(ctx context.Context, uuid string) (*khapi.KuberhealthyCheck, error) {
+	if Globals.khClient == nil {
+		return nil, fmt.Errorf("kubernetes client not initialized")
+	}
+	list := &khapi.KuberhealthyCheckList{}
+	if err := Globals.khClient.List(ctx, list); err != nil {
+		return nil, err
+	}
+	for i := range list.Items {
+		if list.Items[i].CurrentUUID() == uuid {
+			return &list.Items[i], nil
+		}
+	}
+	return nil, nil
 }
 
 // storeCheckState stores the check status on its cluster CRD
