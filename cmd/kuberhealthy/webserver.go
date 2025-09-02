@@ -311,7 +311,7 @@ func newServeMux() *http.ServeMux {
 		}
 	})
 
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./images"))))
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./assets"))))
 
 	mux.HandleFunc("/api/run", func(w http.ResponseWriter, r *http.Request) {
 		if err := runCheckHandler(w, r); err != nil {
