@@ -3593,10 +3593,13 @@ spec:
                         - containers
                       type: object
                   type: object
+                runInterval:
+                  type: string
                 singleRunOnly:
                   type: boolean
+                timeout:
+                  type: string
               type: object
-              x-kubernetes-preserve-unknown-fields: true
             status:
               properties:
                 additionalMetadata:

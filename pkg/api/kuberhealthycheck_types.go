@@ -29,15 +29,18 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// +kubebuilder:validation:XPreserveUnknownFields
 // KuberhealthyCheckSpec defines the desired state of KuberhealthyCheck
 type KuberhealthyCheckSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// SingleRun indicates that this KuberhealthyCheck will run only once.
-	SingleRun bool                   `json:"singleRunOnly,omitempty"`
-	PodSpec   corev1.PodTemplateSpec `json:"podSpec,omitempty"`
+	SingleRun bool `json:"singleRunOnly,omitempty"`
+	// RunInterval specifies how often Kuberhealthy schedules the check.
+	RunInterval *metav1.Duration `json:"runInterval,omitempty"`
+	// Timeout defines how long Kuberhealthy waits for the check to finish.
+	Timeout *metav1.Duration       `json:"timeout,omitempty"`
+	PodSpec corev1.PodTemplateSpec `json:"podSpec,omitempty"`
 	// PodSpec   v1.PodSpec              `json:"podSpec"` // We can not use a full PodSpec struct because it throws error about too much yaml in the CRD definition
 }
 
