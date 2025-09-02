@@ -1,0 +1,10 @@
+{
+  "name": "kuberhealthy-javascript-client",
+  "version": "0.1.0",
+  "description": "Example Kuberhealthy external check written in JavaScript",
+  "main": "check.js",
+  "scripts": {
+    "start": "node check.js"
+  },
+  "dependencies": {}
+}
