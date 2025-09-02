@@ -24,4 +24,4 @@ kustomize: # Apply Kubernetes specs from deploy/ directory
 	kustomize build deploy/ | kubectl apply -f -
 
 deploy-k8s1: # Build, ship to k8s1 via scp, import into containerd, apply manifests, restart, list pods
-	bash ./hack/push-to-node.sh
+	bash ./tests/push-to-node.sh

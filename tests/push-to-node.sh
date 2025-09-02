@@ -59,8 +59,8 @@ if [ "$RSYNC_OK" -ne 1 ]; then
 fi
 
 bold "Preparing remote root build script"
-REMOTE_SCRIPT="$REMOTE_BUILD_DIR/hack/build_as_root.sh"
-ssh "$REMOTE" "mkdir -p '$REMOTE_BUILD_DIR/hack'"
+REMOTE_SCRIPT="$REMOTE_BUILD_DIR/tests/build_as_root.sh"
+ssh "$REMOTE" "mkdir -p '$REMOTE_BUILD_DIR/tests'"
 ssh "$REMOTE" 'cat > '"$REMOTE_SCRIPT"' <<\'REMOTE_SCRIPT_EOF'
 #!/usr/bin/env bash
 set -euo pipefail
