@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -42,6 +43,7 @@ func TestCheckPodSpec(t *testing.T) {
 
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
+	kh.SetReportingURL("http://example.com/check")
 
 	pod := kh.CheckPodSpec(check)
 
@@ -50,7 +52,12 @@ func TestCheckPodSpec(t *testing.T) {
 
 	require.Equal(t, check.Namespace, pod.Namespace)
 	require.True(t, strings.HasPrefix(pod.Name, check.Name+"-"))
-	require.Equal(t, check.Spec.PodSpec.Spec, pod.Spec)
+	require.Equal(t, check.Spec.PodSpec.Spec.RestartPolicy, pod.Spec.RestartPolicy)
+	require.Len(t, pod.Spec.Containers, 1)
+	c := pod.Spec.Containers[0]
+	require.Equal(t, check.Spec.PodSpec.Spec.Containers[0].Image, c.Image)
+	requireEnvVar(t, c.Env, envs.KHReportingURL, kh.ReportingURL)
+	requireEnvVar(t, c.Env, envs.KHRunUUID, uuid)
 
 	require.Equal(t, "kuberhealthy", pod.Annotations["createdBy"])
 	require.Equal(t, check.Name, pod.Annotations["kuberhealthyCheckName"])
@@ -69,6 +76,17 @@ func TestCheckPodSpec(t *testing.T) {
 	require.True(t, *owner.Controller)
 	require.NotNil(t, owner.BlockOwnerDeletion)
 	require.True(t, *owner.BlockOwnerDeletion)
+}
+
+func requireEnvVar(t *testing.T, env []corev1.EnvVar, name, val string) {
+	t.Helper()
+	for i := range env {
+		if env[i].Name == name {
+			require.Equal(t, val, env[i].Value)
+			return
+		}
+	}
+	t.Fatalf("env var %s not set", name)
 }
 
 // TestIsStarted verifies that IsStarted reflects the running state of Kuberhealthy.

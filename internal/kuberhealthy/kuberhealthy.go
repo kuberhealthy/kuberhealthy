@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -41,6 +42,8 @@ type Kuberhealthy struct {
 	CheckClient client.Client // Kubernetes client for check CRUD
 
 	Recorder record.EventRecorder // emits k8s events for khcheck lifecycle
+
+	ReportingURL string
 
 	loopMu      sync.Mutex
 	loopRunning bool
@@ -83,6 +86,11 @@ func New(ctx context.Context, checkClient client.Client) *Kuberhealthy {
 // Using the same client.Client concurrently can cause rare memory access race conditions.
 func (kh *Kuberhealthy) SetCheckClient(checkClient client.Client) {
 	kh.CheckClient = checkClient
+}
+
+// SetReportingURL configures the endpoint check pods should report status to.
+func (kh *Kuberhealthy) SetReportingURL(url string) {
+	kh.ReportingURL = url
 }
 
 // Start begins background processing for Kuberhealthy checks.
@@ -278,7 +286,31 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khapi.KuberhealthyCheck) *corev1.P
 	podSpec.Labels[checkLabel] = khcheck.Name
 	podSpec.Labels[runUUIDLabel] = uuid
 
+	envVars := []corev1.EnvVar{{Name: envs.KHReportingURL, Value: kh.ReportingURL}, {Name: envs.KHRunUUID, Value: uuid}}
+	for i := range podSpec.Spec.Containers {
+		c := &podSpec.Spec.Containers[i]
+		for _, v := range envVars {
+			c.Env = setEnvVar(c.Env, v)
+		}
+	}
+	for i := range podSpec.Spec.InitContainers {
+		c := &podSpec.Spec.InitContainers[i]
+		for _, v := range envVars {
+			c.Env = setEnvVar(c.Env, v)
+		}
+	}
+
 	return podSpec
+}
+
+func setEnvVar(vars []corev1.EnvVar, v corev1.EnvVar) []corev1.EnvVar {
+	for i := range vars {
+		if vars[i].Name == v.Name {
+			vars[i] = v
+			return vars
+		}
+	}
+	return append(vars, v)
 }
 
 // StartCheck stops tracking and managing a khcheck. This occurs when a khcheck is removed.

@@ -16,6 +16,8 @@ spec:
             - sh
             - -c
             - |
-              curl -sf -H "Content-Type: application/json" \
+              curl -sS --fail-with-body \
+                -H "Content-Type: application/json" \
+                -H "kh-run-uuid: $KH_RUN_UUID" \
                 -d '{"OK":true,"Errors":[]}' "$KH_REPORTING_URL"
       restartPolicy: Never
