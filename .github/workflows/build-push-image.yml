@@ -3,7 +3,8 @@ name: Build and Push Image
 on:
   push:
     branches:
-      - master
+      - main
+      - v3
     paths:
       - 'cmd/**'
       - 'internal/**'

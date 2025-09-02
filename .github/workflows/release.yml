@@ -8,9 +8,24 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update installation references
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          sed -i -E "s|(github.com/kuberhealthy/kuberhealthy/deploy)(@[^ \n]+)?|\1@${TAG}|g" README.md
+          sed -i -E "s|(image: docker.io/kuberhealthy/kuberhealthy:).*|\1${TAG}|" deploy/base/deployment.yaml
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git diff --quiet || (git commit -am "docs: update install tag to ${TAG}" && git push origin HEAD:main)
 
       - name: Install QEMU
         run: sudo apt-get update && sudo apt-get install -y qemu-user-static
