@@ -7,3 +7,4 @@ resources:
   - kuberhealthycheck.yaml
   - clusterrole.yaml
   - serviceaccount.yaml
+  - khcheck-example.yaml
