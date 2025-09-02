@@ -3596,7 +3596,6 @@ spec:
                 singleRunOnly:
                   type: boolean
               type: object
-              x-kubernetes-preserve-unknown-fields: true
             status:
               properties:
                 additionalMetadata:
