@@ -30,10 +30,10 @@ func New() (*KHClient, error) {
 // GetKuberhealthyCheck fetches a KuberhealthyCheck resource.
 func (khc *KHClient) GetKuberhealthyCheck(name, namespace string) (*khapi.KuberhealthyCheck, error) {
 	ctx := context.Background()
-	key := client.ObjectKey{Name: name, Namespace: namespace}
-	khCheck := &khapi.KuberhealthyCheck{}
+	nn := client.ObjectKey{Name: name, Namespace: namespace}
 
-	if err := khc.Client.Get(ctx, key, khCheck); err != nil {
+	khCheck, err := khapi.GetCheck(ctx, khc.Client, nn)
+	if err != nil {
 		return nil, fmt.Errorf("error fetching KuberhealthyCheck: %w", err)
 	}
 	return khCheck, nil
@@ -60,6 +60,9 @@ func (khc *KHClient) ListKuberhealthyChecks(namespace string, opts *client.ListO
 	err := khc.Client.List(ctx, khCheckList, opts)
 	if err != nil {
 		return nil, fmt.Errorf("error listing KuberhealthyChecks: %w", err)
+	}
+	for i := range khCheckList.Items {
+		khCheckList.Items[i].EnsureCreationTimestamp()
 	}
 	return khCheckList, nil
 }

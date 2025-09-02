@@ -53,6 +53,9 @@ func (kh *Kuberhealthy) reapOnce() error {
 	if err := kh.CheckClient.List(kh.Context, &checkList); err != nil {
 		return err
 	}
+	for i := range checkList.Items {
+		checkList.Items[i].EnsureCreationTimestamp()
+	}
 
 	// read configuration from environment variables
 	retention := time.Duration(defaultFailedPodRetentionDays) * 24 * time.Hour
@@ -125,10 +128,19 @@ func (kh *Kuberhealthy) reapOnce() error {
 						log.Errorf("reaper: failed deleting timed out pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
 						continue
 					}
+					log.WithFields(log.Fields{
+						"namespace": check.Namespace,
+						"name":      check.Name,
+						"pod":       podRef.Name,
+					}).Info("deleted checker pod")
 					if kh.Recorder != nil {
 						kh.Recorder.Eventf(check, corev1.EventTypeWarning, "CheckRunTimeout", "deleted pod %s after exceeding timeout %s", podRef.Name, runTimeout)
 					}
 					if uuid == check.CurrentUUID() {
+						log.WithFields(log.Fields{
+							"namespace": check.Namespace,
+							"name":      check.Name,
+						}).Warn("check did not report before deadline")
 						check.SetCheckExecutionError([]string{"check run timed out"})
 						check.SetNotOK()
 						if err := khapi.UpdateCheck(kh.Context, kh.CheckClient, check); err != nil {
@@ -143,6 +155,11 @@ func (kh *Kuberhealthy) reapOnce() error {
 						log.Errorf("reaper: failed deleting completed pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
 						continue
 					}
+					log.WithFields(log.Fields{
+						"namespace": check.Namespace,
+						"name":      check.Name,
+						"pod":       podRef.Name,
+					}).Info("deleted checker pod")
 					if kh.Recorder != nil {
 						kh.Recorder.Eventf(check, corev1.EventTypeNormal, "CheckPodReaped", "deleted completed pod %s after %s", podRef.Name, runAge)
 					}
@@ -166,7 +183,13 @@ func (kh *Kuberhealthy) reapOnce() error {
 				if err := kh.CheckClient.Delete(kh.Context, podRef); err != nil && !apierrors.IsNotFound(err) {
 					log.Errorf("reaper: failed deleting failed pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
 					continue
-				} else if kh.Recorder != nil {
+				}
+				log.WithFields(log.Fields{
+					"namespace": check.Namespace,
+					"name":      check.Name,
+					"pod":       podRef.Name,
+				}).Info("deleted checker pod")
+				if kh.Recorder != nil {
 					// note removal of an old failed pod
 					kh.Recorder.Eventf(check, corev1.EventTypeNormal, "CheckFailedPodReaped", "removed failed pod %s after %s", podRef.Name, runAge)
 				}

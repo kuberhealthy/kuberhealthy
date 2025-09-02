@@ -62,6 +62,7 @@ func TestCheckPodSpec(t *testing.T) {
 	require.Equal(t, "kuberhealthy", pod.Annotations["createdBy"])
 	require.Equal(t, uuid, pod.Annotations[runUUIDLabel])
 	require.NotEmpty(t, pod.Annotations["createdTime"])
+	require.Equal(t, check.Name, pod.Annotations["kuberhealthyCheckName"])
 
 	require.Equal(t, check.Name, pod.Labels[checkLabel])
 	require.Equal(t, uuid, pod.Labels[runUUIDLabel])

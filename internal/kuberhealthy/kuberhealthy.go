@@ -177,6 +177,7 @@ func (kh *Kuberhealthy) scheduleChecks() {
 			log.Errorf("failed to convert check %s/%s: %v", khcheck.GetNamespace(), khcheck.GetName(), err)
 			continue
 		}
+		check.EnsureCreationTimestamp()
 		// log metadata on the pod spec to debug unexpected fields
 		debugKHCheckMetadata(&check)
 
@@ -240,6 +241,11 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khapi.KuberhealthyCheck) error {
 		}
 		return fmt.Errorf("failed to create check pod: %w", err)
 	}
+	log.WithFields(log.Fields{
+		"namespace": khcheck.Namespace,
+		"name":      khcheck.Name,
+		"pod":       podSpec.Name,
+	}).Info("created checker pod")
 	if kh.Recorder != nil {
 		kh.Recorder.Eventf(khcheck, corev1.EventTypeNormal, "PodCreated", "created pod %s", podSpec.Name)
 	}
@@ -281,6 +287,7 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khapi.KuberhealthyCheck) *corev1.P
 	podSpec.Annotations[runUUIDLabel] = uuid
 	// reference the check's last run time instead of the pod spec's creation timestamp
 	podSpec.Annotations["createdTime"] = time.Unix(khcheck.Status.LastRunUnix, 0).String()
+	podSpec.Annotations["kuberhealthyCheckName"] = khcheck.Name
 
 	// add required labels
 	podSpec.Labels[checkLabel] = khcheck.Name
@@ -352,6 +359,11 @@ func (kh *Kuberhealthy) StopCheck(khcheck *khapi.KuberhealthyCheck) error {
 		if err := kh.CheckClient.Delete(kh.Context, podRef); err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("failed to delete checker pod %s: %w", podRef.Name, err)
 		}
+		log.WithFields(log.Fields{
+			"namespace": khcheck.Namespace,
+			"name":      khcheck.Name,
+			"pod":       podRef.Name,
+		}).Info("deleted checker pod")
 	}
 	return nil
 }
@@ -385,11 +397,6 @@ func debugKHCheckMetadata(khCheck *khapi.KuberhealthyCheck) {
 	if khCheck == nil {
 		return
 	}
-	// meta := khCheck.GetObjectMeta()
-	// meta := khCheck.ObjectMeta
-	// if meta.CreationTimestamp().IsZero() && len(meta.Annotations) == 0 && len(meta.Labels) == 0 {
-	// 	return
-	// }
 	log.WithFields(log.Fields{
 		"namespace": khCheck.Namespace,
 		"name":      khCheck.Name,

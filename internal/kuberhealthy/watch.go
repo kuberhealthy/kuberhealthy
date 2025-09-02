@@ -65,9 +65,9 @@ func (kh *Kuberhealthy) handleUpdate(oldObj, newObj interface{}) {
 			if err := kh.StopCheck(newCheck); err != nil {
 				log.Errorln("error:", err)
 			}
-			refreshed := &khapi.KuberhealthyCheck{}
 			nn := types.NamespacedName{Namespace: newCheck.Namespace, Name: newCheck.Name}
-			if err := kh.CheckClient.Get(kh.Context, nn, refreshed); err != nil {
+			refreshed, err := khapi.GetCheck(kh.Context, kh.CheckClient, nn)
+			if err != nil {
 				log.Errorln("error:", err)
 				return
 			}
@@ -77,7 +77,13 @@ func (kh *Kuberhealthy) handleUpdate(oldObj, newObj interface{}) {
 		}
 		return
 	}
-	kh.UpdateCheck(oldCheck, newCheck)
+	log.WithFields(log.Fields{
+		"namespace": newCheck.Namespace,
+		"name":      newCheck.Name,
+	}).Info("modified checker pod")
+	if err := kh.UpdateCheck(oldCheck, newCheck); err != nil {
+		log.Errorln("error:", err)
+	}
 }
 
 func (kh *Kuberhealthy) handleDelete(obj interface{}) {
@@ -103,5 +109,6 @@ func convertToKHCheck(obj interface{}) (*khapi.KuberhealthyCheck, error) {
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, khc); err != nil {
 		return nil, err
 	}
+	khc.EnsureCreationTimestamp()
 	return khc, nil
 }
