@@ -23,3 +23,5 @@ Kuberhealthy is configured via environment variables and does not accept command
 | `KH_TERMINATION_GRACE_PERIOD` | Shutdown grace period | `5m` |
 | `KH_DEFAULT_CHECK_TIMEOUT` | Default timeout for checks | `30s` |
 | `KH_DEFAULT_NAMESPACE` | Fallback namespace if detection fails | `kuberhealthy` |
+| `KH_TLS_CERT_FILE` | Path to TLS certificate for the webhook listener | unset |
+| `KH_TLS_KEY_FILE` | Path to TLS key for the webhook listener | unset |

@@ -12,6 +12,19 @@ kubectl apply -k deploy/base
 
 The base deployment exposes a Service named `kuberhealthy` on port `80` inside the cluster.
 
+### TLS for the Conversion Webhook
+
+Kuberhealthy can serve its admission webhook over HTTPS when a certificate and
+key are provided. Mount a secret named `kuberhealthy-webhook-tls` containing
+`tls.crt` and `tls.key` into the pod or enable the optional
+[`cert-manager`](../deploy/cert-manager) overlay to automatically provision a
+self-signed certificate. The deployment reads the certificate from
+`/tls/tls.crt` and the key from `/tls/tls.key` via the `KH_TLS_CERT_FILE` and
+`KH_TLS_KEY_FILE` environment variables. If the certificate is missing or
+invalid, Kuberhealthy falls back to plain HTTP and the webhook is skipped. The
+mutating webhook configuration disables TLS validation by default so the API
+server accepts the self-signed certificate.
+
 ## Deploy with ArgoCD
 
 Create an ArgoCD Application to manage Kuberhealthy:

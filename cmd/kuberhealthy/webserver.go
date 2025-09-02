@@ -370,8 +370,30 @@ func newServeMux() *http.ServeMux {
 // StartWebServer starts the web server with all handlers attached to the muxer.
 func StartWebServer() error {
 	mux := newServeMux()
+	handler := requestLogger(mux)
+
 	log.Infoln("Starting web services on port", GlobalConfig.ListenAddress)
-	return http.ListenAndServe(GlobalConfig.ListenAddress, requestLogger(mux))
+
+	if GlobalConfig.TLSCertFile != "" && GlobalConfig.TLSKeyFile != "" {
+		_, certErr := os.Stat(GlobalConfig.TLSCertFile)
+		_, keyErr := os.Stat(GlobalConfig.TLSKeyFile)
+		if certErr == nil && keyErr == nil {
+			err := http.ListenAndServeTLS(GlobalConfig.ListenAddress, GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, handler)
+			if err == nil {
+				return nil
+			}
+			log.Warnln("TLS listener failed, serving HTTP:", err)
+		} else {
+			if certErr != nil {
+				log.Warnln("TLS cert file missing, serving HTTP:", certErr)
+			}
+			if keyErr != nil {
+				log.Warnln("TLS key file missing, serving HTTP:", keyErr)
+			}
+		}
+	}
+
+	return http.ListenAndServe(GlobalConfig.ListenAddress, handler)
 }
 
 // statusPageHandler serves a basic HTML page that polls the JSON endpoint

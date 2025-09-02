@@ -14,7 +14,7 @@ webhooks:
         namespace: kuberhealthy
         path: /api/convert
         port: 80
-      caBundle: Cg==
+      insecureSkipTLSVerify: true
     rules:
       - operations:
           - CREATE

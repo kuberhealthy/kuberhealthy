@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: kuberhealthy-selfsigned
+  namespace: kuberhealthy
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kuberhealthy-webhook-cert
+  namespace: kuberhealthy
+spec:
+  secretName: kuberhealthy-webhook-tls
+  dnsNames:
+    - kuberhealthy.kuberhealthy.svc
+  issuerRef:
+    name: kuberhealthy-selfsigned
