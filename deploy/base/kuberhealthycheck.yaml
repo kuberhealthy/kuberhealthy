@@ -3593,8 +3593,12 @@ spec:
                         - containers
                       type: object
                   type: object
+                runInterval:
+                  type: string
                 singleRunOnly:
                   type: boolean
+                timeout:
+                  type: string
               type: object
             status:
               properties:
