@@ -17,9 +17,11 @@ spec:
             - -c
             - |
               set -x
-              echo "Reporting to $KH_REPORTING_URL with KH_RUN_UUID=$KH_RUN_UUID"
+              report='{"OK":true,"Errors":[]}'
+              echo "Reporting to $KH_REPORTING_URL with KH_RUN_UUID=$KH_RUN_UUID payload: $report"
               curl -v --fail-with-body \
                 -H "Content-Type: application/json" \
                 -H "kh-run-uuid: $KH_RUN_UUID" \
-                -d '{"OK":true,"Errors":[]}' "$KH_REPORTING_URL"
+                -d "$report" "$KH_REPORTING_URL"
+              echo "Report sent"
       restartPolicy: Never
