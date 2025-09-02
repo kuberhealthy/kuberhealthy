@@ -26,6 +26,6 @@ POD_NAMESPACE="kuberhealthy" # namespace Kuberhealthy runs in
 KH_SERVICE_NAME="kuberhealthy" # service name used for reports
 KH_DEFAULT_RUN_INTERVAL="10m" # default check run interval
 KH_TERMINATION_GRACE_PERIOD="5m" # shutdown grace period
-KH_DEFAULT_CHECK_TIMEOUT="5m" # default check timeout
+KH_DEFAULT_CHECK_TIMEOUT="30s" # default check timeout
 KH_DEFAULT_NAMESPACE="kuberhealthy" # fallback namespace
 ```
