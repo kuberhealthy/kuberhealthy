@@ -49,7 +49,7 @@ func New() *Config {
 		checkReportURL:                fmt.Sprintf("%s.%s.svc.cluster.local", svc, ns),
 		DefaultRunInterval:            time.Minute * 10,
 		TerminationGracePeriodSeconds: time.Minute * 5,
-		DefaultCheckTimeout:           time.Minute * 5,
+		DefaultCheckTimeout:           30 * time.Second,
 		Namespace:                     ns,
 		ServiceName:                   svc,
 		MaxErrorPodCount:              5,

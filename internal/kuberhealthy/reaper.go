@@ -18,7 +18,7 @@ import (
 
 // defaultRunTimeout is the amount of time a pod is allowed to run before the
 // reaper considers it timed out.
-const defaultRunTimeout = time.Minute * 5
+const defaultRunTimeout = 30 * time.Second
 
 // defaultFailedPodRetentionDays is the number of days to retain failed pods
 // before they are reaped.
