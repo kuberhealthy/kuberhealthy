@@ -25,7 +25,9 @@ def post_status(ok:, errors: [])
   req['Content-Type'] = 'application/json'
   req['kh-run-uuid'] = run_uuid
   req.body = JSON.generate({ ok: ok, errors: errors })
-  Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(req) }
+  Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+    http.request(req)
+  end
 end
 
 # report_success tells Kuberhealthy the check passed.
