@@ -835,8 +835,8 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	details.OK = state.OK
 	// details.RunDuration = checkRunDuration
 	details.Namespace = podReport.Namespace
-	details.CurrentUUID = podReport.UUID
-
+	// clear the UUID so that the scheduler can start the next run
+	details.CurrentUUID = ""
 	// since the check is validated, we can proceed to update the status now
 	log.Println("webserver:", requestID, "Setting check with name", podReport.Name, "in namespace", podReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID)
 	err = storeCheckStateFunc(Globals.khClient, podReport.Name, podReport.Namespace, details)

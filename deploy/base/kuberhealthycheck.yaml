@@ -18,6 +18,16 @@ spec:
   scope: Namespaced
   versions:
     - name: v2
+      additionalPrinterColumns:
+        - jsonPath: .status.ok
+          name: OK
+          type: boolean
+        - jsonPath: .status.currentUUID
+          name: UUID
+          type: string
+        - jsonPath: .spec.runTimeout
+          name: Timeout
+          type: string
       schema:
         openAPIV3Schema:
           properties:
