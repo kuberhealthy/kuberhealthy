@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/webhook"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
@@ -342,6 +343,8 @@ func newServeMux() *http.ServeMux {
 			log.Errorln(err)
 		}
 	})
+
+	mux.HandleFunc("/api/convert", webhook.Convert)
 
 	mux.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
 		if err := checkReportHandler(w, r); err != nil {

@@ -1,0 +1,26 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: kuberhealthy-legacy-conversion
+webhooks:
+  - name: legacy.kuberhealthy.conversion
+    admissionReviewVersions:
+      - v1
+    sideEffects: None
+    failurePolicy: Ignore
+    clientConfig:
+      service:
+        name: kuberhealthy
+        namespace: kuberhealthy
+        path: /api/convert
+        port: 80
+      caBundle: Cg==
+    rules:
+      - operations:
+          - CREATE
+        apiGroups:
+          - comcast.github.io
+        apiVersions:
+          - v1
+        resources:
+          - kuberhealthychecks
