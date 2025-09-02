@@ -13,6 +13,10 @@ Add your own logic inside `ExampleCheck.java` before the call to `report`. The f
 
 Call `report` with `ok=true` when the check succeeds or `ok=false` with an error message when it fails.
 
+`report` expects an HTTP 200 response from Kuberhealthy; any other status
+code causes the program to exit with an error so rejected payloads surface
+immediately.
+
 ## Building and pushing
 
 Build and push the container image:

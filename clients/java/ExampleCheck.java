@@ -44,7 +44,9 @@ public class ExampleCheck {
         }
 
         int code = conn.getResponseCode();
-        if (code != 200 && code != 400) {
+        if (code != 200) {
+            // Kuberhealthy rejects malformed reports with HTTP 400. Treat any
+            // non-200 status as a failure so the container exits quickly.
             throw new IOException("unexpected response code: " + code);
         }
     }
