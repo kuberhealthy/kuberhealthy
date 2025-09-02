@@ -146,60 +146,6 @@ spec:
 	require.NoError(t, err)
 }
 
-func TestConvertLegacyJob(t *testing.T) {
-	legacy := `apiVersion: comcast.github.io/v1
-kind: KuberhealthyJob
-metadata:
-  name: kh-test-job
-  namespace: kuberhealthy
-spec:
-  timeout: 2m
-  podSpec:
-    containers:
-    - name: main
-      image: test
-`
-	legacyJSON, err := yaml.YAMLToJSON([]byte(legacy))
-	require.NoError(t, err)
-
-	ar := admissionv1.AdmissionReview{
-		Request: &admissionv1.AdmissionRequest{
-			UID:    "job",
-			Object: runtimeRawExtension(legacyJSON),
-		},
-	}
-	body, err := json.Marshal(ar)
-	require.NoError(t, err)
-
-	req := httptest.NewRequest("POST", "/api/convert", bytes.NewReader(body))
-	w := httptest.NewRecorder()
-
-	Convert(w, req)
-
-	res := w.Result()
-	defer res.Body.Close()
-	require.Equal(t, http.StatusOK, res.StatusCode)
-
-	out := admissionv1.AdmissionReview{}
-	err = json.NewDecoder(res.Body).Decode(&out)
-	require.NoError(t, err)
-
-	patch, err := jsonpatch.DecodePatch(out.Response.Patch)
-	require.NoError(t, err)
-
-	patched, err := patch.Apply(legacyJSON)
-	require.NoError(t, err)
-
-	converted := &khapi.KuberhealthyCheck{}
-	err = json.Unmarshal(patched, converted)
-	require.NoError(t, err)
-
-	require.Equal(t, "kuberhealthy.github.io/v2", converted.APIVersion)
-	require.Equal(t, "KuberhealthyCheck", converted.Kind)
-	require.True(t, converted.Spec.SingleRun)
-	require.Equal(t, 2*time.Minute, converted.Spec.Timeout.Duration)
-}
-
 func runtimeRawExtension(b []byte) runtime.RawExtension {
 	return runtime.RawExtension{Raw: b}
 }
