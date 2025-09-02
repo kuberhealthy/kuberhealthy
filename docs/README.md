@@ -10,6 +10,7 @@ Welcome to the Kuberhealthy documentation directory. These guides cover installi
 - [khcheck Registry](CHECKS_REGISTRY.md): Discover ready-made checks contributed by the community.
 - [Flags](FLAGS.md): Reference of command-line flags supported by Kuberhealthy.
 - [Troubleshooting](TROUBLESHOOTING.md): Solutions to common issues.
+- [Build and Release Process](buildAndRelease.md): Automated image builds and cutting new releases.
 - [Contributing](CONTRIBUTING.md): Guidelines for contributing to the project.
 - [Code of Conduct](CODE_OF_CONDUCT.md): Expected community behavior.
 - [Contributors](CONTRIBUTORS.md): Individuals who have contributed to Kuberhealthy.
