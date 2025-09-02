@@ -182,10 +182,15 @@ func (kh *Kuberhealthy) scheduleChecks() {
 		debugKHCheckMetadata(&check)
 
 		lastStart := time.Unix(check.Status.LastRunUnix, 0)
+
+		// skip checks that are already running
 		if check.CurrentUUID() != "" {
 			continue
 		}
-		if time.Since(lastStart) < runInterval {
+
+		// wait until the run interval has elapsed before starting again
+		remaining := runInterval - time.Since(lastStart)
+		if remaining > 0 {
 			continue
 		}
 
