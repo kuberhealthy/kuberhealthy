@@ -9,3 +9,4 @@ resources:
   - serviceaccount.yaml
   - khcheck-example.yaml
   - mutatingwebhook.yaml
+  - webhook-tls-secret.yaml
