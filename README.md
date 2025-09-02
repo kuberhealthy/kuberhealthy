@@ -44,6 +44,19 @@ Kuberhealthy creating and tearing down a daemonset across the cluster:
 
 For advanced configuration options, see the [deployment guide](docs/deployingKuberhealthy.md) and the [full documentation](docs/).
 
+## Client Libraries and Examples
+
+Kuberhealthy offers example applications and importable clients for a variety of languages:
+
+- [Rust](https://github.com/kuberhealthy/rust)
+- [TypeScript](https://github.com/kuberhealthy/typescript)
+- [JavaScript](https://github.com/kuberhealthy/javascript)
+- [Go](https://github.com/kuberhealthy/go)
+- [Python](https://github.com/kuberhealthy/python)
+- [Ruby](https://github.com/kuberhealthy/ruby)
+- [Java](https://github.com/kuberhealthy/java)
+- [Bash](https://github.com/kuberhealthy/bash)
+
 ## Learn More
 
 - 🧠 [How Kuberhealthy Works](docs/howItWorks.md)
