@@ -600,9 +600,8 @@ type PodReportInfo struct {
 
 // function variables allow tests to stub dependencies
 var (
-	validateUsingRequestHeaderFunc  = validateUsingRequestHeader
-	validatePodReportBySourceIPFunc = validatePodReportBySourceIP
-	storeCheckStateFunc             = storeCheckState
+	validateUsingRequestHeaderFunc = validateUsingRequestHeader
+	storeCheckStateFunc            = storeCheckState
 )
 
 // validateExternalRequest calls the Kubernetes API to fetch details about a pod using a selector string.
@@ -763,23 +762,18 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 
 	// log.Println("webserver:", requestID, "Client connected to check report handler from", r.UserAgent())
 
-	// Validate request using the kh-run-uuid header. If the header doesn't exist, or there's an error with validation,
-	// validate using the pod's remote IP.
+	// Validate request using the kh-run-uuid header.
 	log.Println("webserver:", requestID, "validating external check status report from its reporting kuberhealthy run uuid:", r.Header.Get("kh-run-uuid"))
 	podReport, reportValidated, err := validateUsingRequestHeaderFunc(ctx, r)
 	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
 		log.Println("webserver:", requestID, "Failed to look up pod by its kh-run-uuid header:", r.Header.Get("kh-run-uuid"), err)
+		return nil
 	}
-
-	// If the check uuid header is missing, attempt to validate using calling pod's source IP
 	if !reportValidated {
-		log.Println("webserver:", requestID, "validating external check status report from the pod's remote IP:", r.RemoteAddr)
-		podReport, err = validatePodReportBySourceIPFunc(ctx, r)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			log.Println("webserver:", requestID, "Failed to look up pod by its IP:", r.RemoteAddr, err)
-			return nil
-		}
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println("webserver:", requestID, "Request missing kh-run-uuid header")
+		return nil
 	}
 	log.Println("webserver:", requestID, "Calling pod is", podReport.Name, "in namespace", podReport.Namespace)
 
@@ -1008,7 +1002,7 @@ func validateUsingRequestHeader(ctx context.Context, r *http.Request) (PodReport
 	if len(r.Header.Get("kh-run-uuid")) == 0 {
 		return podReport, false, nil
 	}
-	selector := "kuberhealthy-run-id=" + r.Header.Get("kh-run-uuid")
+	selector := "kh-run-uuid=" + r.Header.Get("kh-run-uuid")
 	podReport, err = validateExternalRequest(ctx, selector)
 	if err != nil {
 		return podReport, false, err
@@ -1016,24 +1010,7 @@ func validateUsingRequestHeader(ctx context.Context, r *http.Request) (PodReport
 	return podReport, true, nil
 }
 
-// validatePodReportBySourceIP parses the remoteAddr from the request and forms a selector with the remote IP to
-// validate that the request is coming from a kuberhealthy check pod
-func validatePodReportBySourceIP(ctx context.Context, r *http.Request) (PodReportInfo, error) {
-
-	var podReport PodReportInfo
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return podReport, err
-	}
-	selector := "status.podIP==" + ip + ",status.phase==Running"
-	podReport, err = validateExternalRequest(ctx, selector)
-	if err != nil {
-		return podReport, err
-	}
-	return podReport, nil
-}
-
-// fetchPodBySelector fetches the pod by it's `kuberhealthy-run-id` label selector or by its `status.podIP` field selector
+// fetchPodBySelector fetches the pod by its `kh-run-uuid` label selector.
 func fetchPodBySelector(ctx context.Context, selector string) (v1.Pod, error) {
 	// var pod v1.Pod
 

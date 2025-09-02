@@ -278,7 +278,7 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khapi.KuberhealthyCheck) *corev1.P
 
 	// add required annotations
 	podSpec.Annotations["createdBy"] = "kuberhealthy"
-	podSpec.Annotations["kuberhealthyCheckName"] = khcheck.Name
+	podSpec.Annotations[envs.KHCheckNameAnnotationKey] = khcheck.Name
 	// reference the check's last run time instead of the pod spec's creation timestamp
 	podSpec.Annotations["createdTime"] = time.Unix(khcheck.Status.LastRunUnix, 0).String()
 
