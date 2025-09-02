@@ -203,7 +203,11 @@ async function loadLogs(p){
   try{
     const params='namespace='+encodeURIComponent(p.namespace)+'&khcheck='+encodeURIComponent(currentCheck)+'&pod='+encodeURIComponent(p.name);
     const res = await (await fetch('/api/logs?'+params)).json();
-    document.getElementById('pod-info').textContent='Started: '+(res.startTime?new Date(res.startTime*1000).toLocaleString():'')+' Duration: '+res.durationSeconds+'s Phase: '+res.phase;
+    const info='Started: '+(res.startTime?new Date(res.startTime*1000).toLocaleString():'')+
+      ' Duration: '+res.durationSeconds+'s Phase: '+res.phase;
+    const lbl=res.labels?
+      ' Labels: '+Object.entries(res.labels).map(([k,v])=>k+':'+v).join(', '):'';
+    document.getElementById('pod-info').textContent=info+lbl;
     const logElem=document.getElementById('logs');
     logElem.textContent=res.logs || '';
     if (p.phase === 'Running'){

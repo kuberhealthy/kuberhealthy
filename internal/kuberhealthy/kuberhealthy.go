@@ -287,6 +287,19 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khapi.KuberhealthyCheck) *corev1.P
 		Spec: khcheck.Spec.PodSpec.Spec,
 	}
 
+	for k, v := range khcheck.Spec.PodSpec.ObjectMeta.Annotations {
+		podSpec.Annotations[k] = v
+	}
+	for k, v := range khcheck.Spec.PodSpec.ObjectMeta.Labels {
+		podSpec.Labels[k] = v
+	}
+	for k, v := range khcheck.Spec.ExtraAnnotations {
+		podSpec.Annotations[k] = v
+	}
+	for k, v := range khcheck.Spec.ExtraLabels {
+		podSpec.Labels[k] = v
+	}
+
 	// add required annotations
 	podSpec.Annotations["createdBy"] = "kuberhealthy"
 	podSpec.Annotations[runUUIDLabel] = uuid

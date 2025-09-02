@@ -3607,6 +3607,14 @@ spec:
                   type: boolean
                 timeout:
                   type: string
+                extraAnnotations:
+                  type: object
+                  additionalProperties:
+                    type: string
+                extraLabels:
+                  type: object
+                  additionalProperties:
+                    type: string
               type: object
             status:
               properties:

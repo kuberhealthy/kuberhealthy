@@ -30,7 +30,13 @@ func TestCheckPodSpec(t *testing.T) {
 			UID:       types.UID("abc123"),
 		},
 		Spec: khapi.KuberhealthyCheckSpec{
+			ExtraLabels:      map[string]string{"extra": "label"},
+			ExtraAnnotations: map[string]string{"anno": "value"},
 			PodSpec: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:      map[string]string{"metaLabel": "metaVal"},
+					Annotations: map[string]string{"metaAnno": "metaVal"},
+				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:  "test",
@@ -66,6 +72,10 @@ func TestCheckPodSpec(t *testing.T) {
 
 	require.Equal(t, check.Name, pod.Labels[checkLabel])
 	require.Equal(t, uuid, pod.Labels[runUUIDLabel])
+	require.Equal(t, "label", pod.Labels["extra"])
+	require.Equal(t, "metaVal", pod.Labels["metaLabel"])
+	require.Equal(t, "value", pod.Annotations["anno"])
+	require.Equal(t, "metaVal", pod.Annotations["metaAnno"])
 
 	require.Len(t, pod.OwnerReferences, 1)
 	owner := pod.OwnerReferences[0]
