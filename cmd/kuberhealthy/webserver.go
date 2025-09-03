@@ -15,6 +15,7 @@ import (
 	yaml "github.com/ghodss/yaml"
 	"github.com/google/uuid"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/jobwebhook"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/webhook"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
@@ -47,6 +48,7 @@ let nextRunTimer = null;
 function setTheme(t){
   if(t==='dark'){ document.documentElement.classList.add('dark'); }
   else{ document.documentElement.classList.remove('dark'); }
+  document.documentElement.setAttribute('data-bs-theme', t);
   localStorage.setItem('kh-theme', t);
   document.getElementById('themeToggle').textContent = t === 'dark' ? '☀️' : '🌙';
 }
@@ -367,6 +369,7 @@ func newServeMux() *http.ServeMux {
 	})
 
 	mux.HandleFunc("/api/convert", webhook.Convert)
+	mux.HandleFunc("/api/khjobconvert", jobwebhook.Convert)
 
 	mux.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
 		if err := checkReportHandler(w, r); err != nil {

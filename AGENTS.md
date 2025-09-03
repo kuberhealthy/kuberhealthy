@@ -18,6 +18,7 @@ This file defines contributor guidelines for the entire repository.
 - Tests should focus on one small behavior. End-to-end tests may cover a large process but should assert only its initial inputs and final outputs.
 - For normal validation, you only need to run tests with short mode (-short). Continue to target specific tests as needed using `-run`, though.
 - Prefer standard library packages when practical.
+- Every package must include a README.md describing its scope of responsibility.
 
 ## Project decisions
 - Logging is handled with `github.com/sirupsen/logrus`.

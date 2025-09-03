@@ -3,14 +3,13 @@ package webhook
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	jsonpatch "gomodules.xyz/jsonpatch/v2"
+	"io"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/http"
 )
 
 // Convert handles AdmissionReview requests for legacy Kuberhealthy checks and
@@ -61,18 +60,15 @@ func convertReview(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionRespon
 		return &admissionv1.AdmissionResponse{Allowed: true}
 	}
 
-	old := khapi.KuberhealthyCheck{}
-	if err := json.Unmarshal(raw, &old); err != nil {
-		return toError(fmt.Errorf("parse object: %w", err))
+	check, warning, err := convertLegacy(raw, meta.Kind)
+	if err != nil {
+		return toError(err)
+	}
+	if check == nil {
+		return &admissionv1.AdmissionResponse{Allowed: true}
 	}
 
-	old.Spec.PodSpec.ObjectMeta = metav1.ObjectMeta{
-		Labels:      old.Spec.PodSpec.ObjectMeta.Labels,
-		Annotations: old.Spec.PodSpec.ObjectMeta.Annotations,
-	}
-	old.APIVersion = "kuberhealthy.github.io/v2"
-
-	newRaw, err := json.Marshal(old)
+	newRaw, err := json.Marshal(check)
 	if err != nil {
 		return toError(fmt.Errorf("marshal v2: %w", err))
 	}
@@ -110,9 +106,21 @@ func convertReview(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionRespon
 		Allowed:   true,
 		Patch:     patchBytes,
 		PatchType: &pt,
-		Warnings: []string{
-			"converted legacy comcast.github.io/v1 KuberhealthyCheck to kuberhealthy.github.io/v2",
-		},
+		Warnings:  []string{warning},
+	}
+}
+
+func convertLegacy(raw []byte, kind string) (*khapi.KuberhealthyCheck, string, error) {
+	switch kind {
+	case "KuberhealthyCheck":
+		out := khapi.KuberhealthyCheck{}
+		if err := json.Unmarshal(raw, &out); err != nil {
+			return nil, "", fmt.Errorf("parse object: %w", err)
+		}
+		out.APIVersion = "kuberhealthy.github.io/v2"
+		return &out, "converted legacy comcast.github.io/v1 KuberhealthyCheck to kuberhealthy.github.io/v2", nil
+	default:
+		return nil, "", nil
 	}
 }
 

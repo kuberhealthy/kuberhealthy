@@ -134,6 +134,42 @@ func TestSetFreshUUID(t *testing.T) {
 	require.NotEmpty(t, fetched.CurrentUUID())
 }
 
+// TestStartCheckCreatesPodInCheckNamespace verifies StartCheck creates a pod in the same namespace as the check.
+func TestStartCheckCreatesPodInCheckNamespace(t *testing.T) {
+	t.Parallel()
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	check := &khapi.KuberhealthyCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ns-check",
+			Namespace: "check-ns",
+		},
+		Spec: khapi.KuberhealthyCheckSpec{
+			PodSpec: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  "test",
+						Image: "busybox",
+					}},
+				},
+			},
+		},
+	}
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	kh := New(context.Background(), cl)
+	kh.SetReportingURL("http://example.com")
+
+	require.NoError(t, kh.StartCheck(check))
+
+	pods := &corev1.PodList{}
+	require.NoError(t, cl.List(context.Background(), pods))
+	require.Len(t, pods.Items, 1)
+	require.Equal(t, check.Namespace, pods.Items[0].Namespace)
+}
+
 // TestScheduleStartsCheck confirms that scheduleChecks triggers a run when a check is due.
 func TestScheduleStartsCheck(t *testing.T) {
 	if testing.Short() {

@@ -153,6 +153,12 @@ func setUp() error {
 	// set controller-runtime to use logrus
 	logf.SetLogger(logruslogr.New(log.StandardLogger()))
 
+	if os.Getenv("POD_NAME") == "" {
+		host := GetMyHostname("kuberhealthy")
+		os.Setenv("POD_NAME", host)
+		log.Warnln("POD_NAME environment variable not set. Using", host)
+	}
+
 	// init the global kubernetes client
 	// KHClient, err = kubeclient.New()
 	// if err != nil {
