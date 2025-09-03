@@ -7,7 +7,7 @@ import (
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 )
 
-const khCheckFinalizer = "finalizer.kuberhealthy.io"
+const khCheckFinalizer = "kuberhealthy.io/kuberhealthycheck"
 
 // hasFinalizer returns true when the check contains the kuberhealthy finalizer.
 func (k *Kuberhealthy) hasFinalizer(check *khapi.KuberhealthyCheck) bool {
