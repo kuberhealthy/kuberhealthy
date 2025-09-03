@@ -50,7 +50,7 @@ type KuberhealthyCheckStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	// OK indicates if this check is currently throwing an error or not.
-	OK bool `json:"ok,omitempty"`
+	OK bool `json:"ok"`
 	// Errors holds a slice of error messages from the check results.
 	Errors []string `json:"errors,omitempty"`
 	// ConsecutiveFailures tracks the number of sequential failed runs.

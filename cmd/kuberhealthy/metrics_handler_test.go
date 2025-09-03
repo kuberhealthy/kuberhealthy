@@ -14,6 +14,9 @@ import (
 
 // TestPrometheusMetricsEndpoint verifies the /metrics route serves Prometheus metrics.
 func TestPrometheusMetricsEndpoint(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping metrics handler test in short mode")
+	}
 	t.Parallel()
 	origConfig := GlobalConfig
 	t.Cleanup(func() {
