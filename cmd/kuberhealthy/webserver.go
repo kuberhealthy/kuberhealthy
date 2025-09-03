@@ -329,7 +329,7 @@ func newServeMux() *http.ServeMux {
 	})
 
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		if err := healthCheckHandler(w, r); err != nil {
+		if err := healthzHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
@@ -775,6 +775,22 @@ func prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		log.Warningln("Error writing health check results to caller:", err)
 	}
+	return err
+}
+
+// healthzHandler performs basic checks and writes OK when Kuberhealthy is healthy.
+func healthzHandler(w http.ResponseWriter, r *http.Request) error {
+	if Globals.kubeClient == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kubernetes client not initialized")
+	}
+	_, err := Globals.kubeClient.Discovery().ServerVersion()
+	if err != nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kubernetes API unavailable: %w", err)
+	}
+	w.WriteHeader(http.StatusOK)
+	_, err = io.WriteString(w, "OK")
 	return err
 }
 
