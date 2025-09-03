@@ -23,5 +23,6 @@ run: # Run Kuberhealthy locally
 kustomize: # Apply Kubernetes specs from deploy/ directory
 	kustomize build deploy/ | kubectl apply -f -
 
-deploy-k8s1: # Build, ship to k8s1 via scp, import into containerd, apply manifests, restart, list pods
-	bash ./tests/push-to-node.sh
+deploy-k8s: # Build, load into local kind cluster, apply manifests, restart, list pods
+	bash ./tests/deployLocalKind.sh
+
