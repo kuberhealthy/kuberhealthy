@@ -17,7 +17,7 @@ Kuberhealthy is configured via environment variables and does not accept command
 | `KH_SERVICE_NAME` | Name of Kubernetes service where Kuberhealthy is available within the cluster | `kuberhealthy` |
 | `KH_PROM_SUPPRESS_ERROR_LABEL` | Omit error label in Prometheus metrics | `false` |
 | `KH_PROM_ERROR_LABEL_MAX_LENGTH` | Maximum length for Prometheus error label | `0` |
-| `KH_TARGET_NAMESPACE` | Namespace Kuberhealthy operates in (blank for all) | <pod namespace> |
+| `KH_TARGET_NAMESPACE` | Namespace Kuberhealthy operates in (blank for all) | `` |
 | `KH_DEFAULT_RUN_INTERVAL` | Default check run interval | `10m` |
 | `KH_CHECK_REPORT_HOSTNAME` | Override hostname used for check reports | constructed |
 | `KH_TERMINATION_GRACE_PERIOD` | Shutdown grace period | `5m` |

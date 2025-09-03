@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -82,4 +83,22 @@ func GetMyNamespace(defaultNamespace string) string {
 	}
 
 	return instanceNamespace
+}
+
+// GetMyHostname returns the pod name if present, or the system hostname.
+// When neither can be determined, the supplied default is used instead.
+func GetMyHostname(defaultHostname string) string {
+
+	if podName := os.Getenv("POD_NAME"); podName != "" {
+		log.Infoln("Found pod name:", podName)
+		return podName
+	}
+
+	host, err := os.Hostname()
+	if err != nil || host == "" {
+		log.Warnln("Failed to determine hostname. Using default:", defaultHostname)
+		return defaultHostname
+	}
+	log.Warnln("POD_NAME environment variable not set. Using system hostname:", host)
+	return host
 }

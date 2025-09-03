@@ -124,6 +124,8 @@ func convertToKHCheck(obj interface{}) (*khapi.KuberhealthyCheck, error) {
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, khc); err != nil {
 		return nil, err
 	}
+	// ensure the converted object retains its original namespace
+	khc.Namespace = u.GetNamespace()
 	khc.EnsureCreationTimestamp()
 	return khc, nil
 }

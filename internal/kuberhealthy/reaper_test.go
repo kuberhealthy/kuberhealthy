@@ -18,6 +18,9 @@ import (
 
 // TestReaperTimesOutRunningPod ensures pods exceeding their timeout are deleted and the check is marked failed.
 func TestReaperTimesOutRunningPod(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping timeout test in short mode")
+	}
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
@@ -70,6 +73,9 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 
 // TestReaperRemovesCompletedPods deletes completed pods after three run intervals have passed.
 func TestReaperRemovesCompletedPods(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping completed pod removal test in short mode")
+	}
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
@@ -112,6 +118,9 @@ func TestReaperRemovesCompletedPods(t *testing.T) {
 
 // TestReaperKeepsRecentCompletedPods retains completed pods that have not exceeded the grace period.
 func TestReaperKeepsRecentCompletedPods(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping recent completion test in short mode")
+	}
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
@@ -154,6 +163,9 @@ func TestReaperKeepsRecentCompletedPods(t *testing.T) {
 
 // TestReaperPrunesFailedPods prunes failed pods based on retention days and maximum count.
 func TestReaperPrunesFailedPods(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping prune test in short mode")
+	}
 	t.Setenv("KH_ERROR_POD_RETENTION_DAYS", "2")
 	t.Setenv("KH_MAX_ERROR_POD_COUNT", "2")
 
