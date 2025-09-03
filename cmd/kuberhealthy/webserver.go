@@ -43,7 +43,7 @@ const statusPageHTML = `
 <script>
 let checks = {};
 let currentCheck = '';
-let nextRunTimer = null;
+let countdownTimer = null;
 
 function setTheme(t){
   if(t==='dark'){ document.documentElement.classList.add('dark'); }
@@ -72,6 +72,18 @@ function updateNextRun(unix){
   const elem=document.getElementById('nextRun');
   if(!elem){return;}
   elem.textContent=formatDuration(unix*1000-Date.now());
+}
+
+function updateFail(unix){
+  const elem=document.getElementById('failIn');
+  if(!elem){return;}
+  elem.textContent=formatDuration(unix*1000-Date.now());
+}
+
+function goHome(){
+  if(countdownTimer){ clearInterval(countdownTimer); }
+  currentCheck='';
+  refresh();
 }
 
 async function refresh(){
@@ -143,7 +155,7 @@ async function refresh(){
 }
 
 async function showCheck(name){
-  if(nextRunTimer){ clearInterval(nextRunTimer); }
+  if(countdownTimer){ clearInterval(countdownTimer); }
   currentCheck = name;
   const st = checks[name];
   if(!st){return;}
@@ -154,7 +166,7 @@ async function showCheck(name){
       '<h3 class="text-xl font-semibold mb-2">Overview</h3>'+
       '<p class="mb-2"><span class="font-semibold">Status:</span> <span class="'+(st.podName?'text-blue-600':(st.ok?'text-green-600':'text-red-600'))+'">'+(st.podName?'Running':(st.ok?'OK':'Fail'))+'</span></p>'+
       '<p class="mb-2"><span class="font-semibold">Namespace:</span> '+st.namespace+'</p>'+
-      (st.podName?'<p class="mb-2"><span class="font-semibold">Pod:</span> '+st.podName+'</p>':(st.nextRunUnix?'<p class="mb-2 flex items-center gap-2"><span class="font-semibold">Next run in:</span> <span id="nextRun"></span><button id="runNow" class="px-2 py-1 text-xs bg-blue-600 text-white rounded">Run now</button></p>':''))+
+      (st.podName?'<p class="mb-2"><span class="font-semibold">Pod:</span> '+st.podName+'</p>'+(st.timeoutSeconds?'<p class="mb-2"><span class="font-semibold">Fail in:</span> <span id="failIn"></span></p>':''):(st.nextRunUnix?'<p class="mb-2 flex items-center gap-2"><span class="font-semibold">Next run in:</span> <span id="nextRun"></span><button id="runNow" class="px-2 py-1 text-xs bg-blue-600 text-white rounded">Run now</button></p>':''))+
       (st.lastRunUnix?'<p class="mb-2"><span class="font-semibold">Last run:</span> '+new Date(st.lastRunUnix*1000).toLocaleString()+'</p>':'')+
       (st.errors && st.errors.length ? '<div class="mb-2"><span class="font-semibold text-red-600">Errors:</span><ul class="list-disc list-inside">'+st.errors.map(e=>'<li>'+e+'</li>').join('')+'</ul></div>' : '')+
     '</div>'+
@@ -162,9 +174,13 @@ async function showCheck(name){
     '<details class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><summary class="text-xl font-semibold cursor-pointer mb-2">Prior Pod Runs</summary><div id="pods" class="text-gray-900 dark:text-gray-100 mt-2"></div></details>'+
     '<div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><h3 class="text-xl font-semibold mb-2">Pod Details</h3><div id="pod-info" class="text-gray-900 dark:text-gray-100"></div></div>'+
     '<div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4"><h3 class="text-xl font-semibold mb-2">Logs</h3><pre id="logs" class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-4 text-gray-900 dark:text-gray-100 rounded shadow-inner"></pre></div>';
-  if(st.nextRunUnix && !st.podName){
+  if(st.podName && st.timeoutSeconds){
+    const failUnix=st.lastRunUnix+st.timeoutSeconds;
+    updateFail(failUnix);
+    countdownTimer=setInterval(()=>updateFail(failUnix),1000);
+  } else if(st.nextRunUnix && !st.podName){
     updateNextRun(st.nextRunUnix);
-    nextRunTimer=setInterval(()=>updateNextRun(st.nextRunUnix),1000);
+    countdownTimer=setInterval(()=>updateNextRun(st.nextRunUnix),1000);
     const btn=document.getElementById('runNow');
     if(btn){
       btn.onclick=async ()=>{
@@ -257,7 +273,7 @@ window.onload = ()=>{initTheme(); refresh();};
 </head>
 <body class="flex flex-col min-h-screen font-sans text-gray-900 dark:text-gray-100 bg-gradient-to-b from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900">
 <header class="flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 shadow-lg">
-  <div class="flex items-center">
+  <div class="flex items-center cursor-pointer" onclick="goHome()">
     <img src="/static/logo-square.png" alt="Kuberhealthy logo" class="h-8 w-8 mr-2" />
     <h1 class="text-lg font-semibold m-0">Kuberhealthy Status</h1>
   </div>
@@ -981,6 +997,7 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 		}
 
 		runInterval := runIntervalForCheck(&u)
+		timeout := timeoutForCheck(&u)
 
 		var check khapi.KuberhealthyCheck
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &check); err != nil {
@@ -990,6 +1007,9 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 		check.EnsureCreationTimestamp()
 
 		status := health.CheckDetail{KuberhealthyCheckStatus: check.Status}
+		if timeout > 0 {
+			status.TimeoutSeconds = int64(timeout.Seconds())
+		}
 		if status.Namespace == "" {
 			status.Namespace = check.Namespace
 		}
@@ -1024,6 +1044,16 @@ func runIntervalForCheck(u *unstructured.Unstructured) time.Duration {
 		log.Errorf("invalid runInterval %q on check %s/%s", v, u.GetNamespace(), u.GetName())
 	}
 	return defaultRunInterval
+}
+
+func timeoutForCheck(u *unstructured.Unstructured) time.Duration {
+	if v, found, err := unstructured.NestedString(u.Object, "spec", "timeout"); err == nil && found && v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			return d
+		}
+		log.Errorf("invalid timeout %q on check %s/%s", v, u.GetNamespace(), u.GetName())
+	}
+	return 0
 }
 
 // validateUsingRequestHeader ensures the request includes a valid kh-run-uuid header and
