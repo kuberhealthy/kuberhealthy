@@ -122,3 +122,15 @@ func TestLoadTLSFiles(t *testing.T) {
 		t.Errorf("TLSKeyFile parsed incorrectly: %s", cfg.TLSKeyFile)
 	}
 }
+
+// TestTargetNamespaceDefaultsBlank ensures that when KH_TARGET_NAMESPACE is unset the target namespace is empty
+func TestTargetNamespaceDefaultsBlank(t *testing.T) {
+	t.Setenv("POD_NAMESPACE", "podns")
+	cfg := New()
+	if err := cfg.LoadFromEnv(); err != nil {
+		t.Fatalf("LoadFromEnv returned error: %v", err)
+	}
+	if cfg.TargetNamespace != "" {
+		t.Errorf("expected blank TargetNamespace, got %s", cfg.TargetNamespace)
+	}
+}

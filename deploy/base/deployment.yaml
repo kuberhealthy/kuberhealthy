@@ -41,14 +41,14 @@ spec:
           value: "false"
         - name: KH_PROM_ERROR_LABEL_MAX_LENGTH
           value: "0"
-        - name: KH_TARGET_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         - name: KH_SERVICE_NAME
           value: "kuberhealthy"
         - name: KH_DEFAULT_RUN_INTERVAL
