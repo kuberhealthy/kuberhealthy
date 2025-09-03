@@ -4,10 +4,12 @@ on:
   pull_request:
     branches:
       - master
+      - main
       - v3
   push:
     branches:
       - master
+      - main
       - release/*
       - actions # for testing this build spec
 
