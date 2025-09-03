@@ -66,6 +66,18 @@ spec:
         ports:
         - containerPort: 80
         - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
         volumeMounts:
         - name: webhook-tls
           mountPath: /tls

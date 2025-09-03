@@ -17,20 +17,17 @@ paths:
                 type: string
   /healthz:
     get:
-      summary: Get current status of all checks
-      parameters:
-        - in: query
-          name: namespace
-          schema:
-            type: string
-          description: Comma-separated namespaces to filter by
+      summary: Quick health check
       responses:
         '200':
-          description: Health status
+          description: Service is healthy
           content:
-            application/json:
+            text/plain:
               schema:
-                $ref: '#/components/schemas/State'
+                type: string
+                example: OK
+        '503':
+          description: Dependencies unavailable
   /json:
     get:
       summary: Get current status of all checks
