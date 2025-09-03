@@ -15,8 +15,9 @@ import (
 // last run time is unknown.
 type CheckDetail struct {
 	khapi.KuberhealthyCheckStatus
-	NextRunUnix int64  `json:"nextRunUnix,omitempty"`
-	PodName     string `json:"podName,omitempty"`
+	NextRunUnix    int64  `json:"nextRunUnix,omitempty"`
+	PodName        string `json:"podName,omitempty"`
+	TimeoutSeconds int64  `json:"timeoutSeconds,omitempty"`
 }
 
 // State represents the results of all checks being managed along with a
