@@ -15,6 +15,9 @@ import (
 
 // TestCheckReportHandler validates the check report handler logic.
 func TestCheckReportHandler(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping check report handler test in short mode")
+	}
 	// preserve original function implementations
 	origValidateHeader := validateUsingRequestHeaderFunc
 	origStore := storeCheckStateFunc

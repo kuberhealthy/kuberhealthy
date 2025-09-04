@@ -12,6 +12,9 @@ import (
 
 // TestWebServerHandlers checks that JSON and root handlers return HTTP 200.
 func TestWebServerHandlers(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping web server handler test in short mode")
+	}
 	t.Parallel()
 	mux := newServeMux()
 	ts := httptest.NewServer(mux)
@@ -31,6 +34,9 @@ func TestWebServerHandlers(t *testing.T) {
 
 // TestRootServesUserInterface ensures the root endpoint serves the HTML status page.
 func TestRootServesUserInterface(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping UI server test in short mode")
+	}
 	t.Parallel()
 	mux := newServeMux()
 	ts := httptest.NewServer(mux)
@@ -57,6 +63,9 @@ func TestRootServesUserInterface(t *testing.T) {
 
 // TestHealthzHandler ensures the /healthz endpoint reports OK.
 func TestHealthzHandler(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping healthz handler test in short mode")
+	}
 	t.Parallel()
 	orig := Globals.kubeClient
 	Globals.kubeClient = fake.NewSimpleClientset()

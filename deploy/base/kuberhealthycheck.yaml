@@ -23,7 +23,7 @@ spec:
         - jsonPath: .status.currentUUID
           name: UUID
           type: string
-        - jsonPath: .spec.runTimeout
+        - jsonPath: .spec.timeout
           name: Timeout
           type: string
       schema:

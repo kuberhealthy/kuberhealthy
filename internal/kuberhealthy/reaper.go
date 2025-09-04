@@ -76,15 +76,15 @@ func (kh *Kuberhealthy) reapOnce() error {
 		checkNN := types.NamespacedName{Namespace: check.Namespace, Name: check.Name}
 
 		// determine runtime parameters from the check spec if provided
-		runTimeout := defaultRunTimeout
+		timeout := defaultRunTimeout
 		runInterval := defaultRunInterval
 
 		raw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(check)
 		if err == nil {
 			if spec, ok := raw["spec"].(map[string]interface{}); ok {
-				if v, ok := spec["runTimeout"].(string); ok {
+				if v, ok := spec["timeout"].(string); ok {
 					if d, err := time.ParseDuration(v); err == nil {
-						runTimeout = d
+						timeout = d
 					}
 				}
 				if v, ok := spec["runInterval"].(string); ok {
@@ -123,7 +123,7 @@ func (kh *Kuberhealthy) reapOnce() error {
 
 			switch podRef.Status.Phase {
 			case corev1.PodRunning, corev1.PodPending, corev1.PodUnknown:
-				if runAge > runTimeout {
+				if runAge > timeout {
 					if err := kh.CheckClient.Delete(kh.Context, podRef); err != nil && !apierrors.IsNotFound(err) {
 						log.Errorf("reaper: failed deleting timed out pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
 						continue
@@ -134,7 +134,7 @@ func (kh *Kuberhealthy) reapOnce() error {
 						"pod":       podRef.Name,
 					}).Info("deleted checker pod")
 					if kh.Recorder != nil {
-						kh.Recorder.Eventf(check, corev1.EventTypeWarning, "CheckRunTimeout", "deleted pod %s after exceeding timeout %s", podRef.Name, runTimeout)
+						kh.Recorder.Eventf(check, corev1.EventTypeWarning, "CheckRunTimeout", "deleted pod %s after exceeding timeout %s", podRef.Name, timeout)
 					}
 					if uuid == check.CurrentUUID() {
 						log.WithFields(log.Fields{

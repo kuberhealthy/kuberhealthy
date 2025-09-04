@@ -13,6 +13,9 @@ import (
 
 // TestReportSuccessAndFailure verifies success and failure reports send expected JSON and headers.
 func TestReportSuccessAndFailure(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	tests := []struct {
 		name     string
 		call     func() error
@@ -85,6 +88,9 @@ func TestReportSuccessAndFailure(t *testing.T) {
 
 // TestSendReportRetry ensures ReportSuccess retries once after an initial server error.
 func TestSendReportRetry(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	var reqs int
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

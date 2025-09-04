@@ -10,6 +10,9 @@ import (
 
 // TestGetKuberhealthyURL ensures that KH_REPORTING_URL env var can be fetched
 func TestGetKuberhealthyURL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	t.Parallel()
 	orig := os.Getenv(envs.KHReportingURL)
 	t.Cleanup(func() { os.Setenv(envs.KHReportingURL, orig) })
@@ -44,6 +47,9 @@ func TestGetKuberhealthyURL(t *testing.T) {
 
 // TestGetKuberhealthyRunUUID ensures that KH_RUN_UUID env var can be fetched
 func TestGetKuberhealthyRunUUID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	t.Parallel()
 	orig := os.Getenv(envs.KHRunUUID)
 	t.Cleanup(func() { os.Setenv(envs.KHRunUUID, orig) })
@@ -78,6 +84,9 @@ func TestGetKuberhealthyRunUUID(t *testing.T) {
 
 // TestGetDeadline ensures that KH_CHECK_RUN_DEADLINE env var can be fetched and parsed
 func TestGetDeadline(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
 	t.Parallel()
 	orig := os.Getenv(envs.KHDeadline)
 	t.Cleanup(func() { os.Setenv(envs.KHDeadline, orig) })
