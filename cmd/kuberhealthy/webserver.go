@@ -44,6 +44,8 @@ const statusPageHTML = `
 let checks = {};
 let currentCheck = '';
 let countdownTimer = null;
+let logStreamAbort = null;
+let eventsTimer = null;
 
 function setTheme(t){
   if(t==='dark'){ document.documentElement.classList.add('dark'); }
@@ -81,7 +83,17 @@ function updateFail(unix){
 }
 
 function goHome(){
-  if(countdownTimer){ clearInterval(countdownTimer); }
+  if(countdownTimer){
+    clearInterval(countdownTimer);
+  }
+  if(eventsTimer){
+    clearInterval(eventsTimer);
+    eventsTimer = null;
+  }
+  if(logStreamAbort){
+    logStreamAbort.abort();
+    logStreamAbort = null;
+  }
   currentCheck='';
   refresh();
 }
@@ -150,12 +162,24 @@ async function refresh(){
         grid.appendChild(card);
       });
       content.appendChild(grid);
+    } else if(checks[currentCheck]){
+      await showCheck(currentCheck);
     }
   }catch(e){ console.error('failed to fetch status', e); }
 }
 
 async function showCheck(name){
-  if(countdownTimer){ clearInterval(countdownTimer); }
+  if(countdownTimer){
+    clearInterval(countdownTimer);
+  }
+  if(eventsTimer){
+    clearInterval(eventsTimer);
+    eventsTimer = null;
+  }
+  if(logStreamAbort){
+    logStreamAbort.abort();
+    logStreamAbort = null;
+  }
   currentCheck = name;
   const st = checks[name];
   if(!st){return;}
@@ -220,19 +244,28 @@ async function showCheck(name){
       div.onclick=()=>loadLogs(p);
       podsDiv.appendChild(div);
     });
-    try{
-      const evs = await (await fetch('/api/events?namespace='+encodeURIComponent(st.namespace)+'&khcheck='+encodeURIComponent(name))).json();
-      const eventsDiv=document.getElementById('events');
-      eventsDiv.innerHTML='';
-      if(evs.length===0){eventsDiv.textContent='No events found';}
-      evs.forEach(ev=>{
-        const div=document.createElement('div');
-        div.className='p-1 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100';
-        const ts=ev.lastTimestamp?new Date(ev.lastTimestamp*1000).toLocaleString()+': ':'';
-        div.textContent=ts+'['+ev.type+'] '+ev.reason+' - '+ev.message;
-        eventsDiv.appendChild(div);
-      });
-    }catch(e){console.error(e);}
+    await loadEvents(name);
+    eventsTimer=setInterval(()=>loadEvents(name),5000);
+  }catch(e){console.error(e);}
+}
+
+async function loadEvents(name){
+  try{
+    const st = checks[name];
+    if(!st){return;}
+    const url='/api/events?namespace='+encodeURIComponent(st.namespace)+'&khcheck='+encodeURIComponent(name)+'&t='+Date.now();
+    const evs = await (await fetch(url)).json();
+    const eventsDiv=document.getElementById('events');
+    if(!eventsDiv){return;}
+    eventsDiv.innerHTML='';
+    if(evs.length===0){eventsDiv.textContent='No events found';return;}
+    evs.forEach(ev=>{
+      const div=document.createElement('div');
+      div.className='p-1 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100';
+      const ts=ev.lastTimestamp?new Date(ev.lastTimestamp*1000).toLocaleString()+': ':'';
+      div.textContent=ts+'['+ev.type+'] '+ev.reason+' - '+ev.message;
+      eventsDiv.appendChild(div);
+    });
   }catch(e){console.error(e);}
 }
 
@@ -255,16 +288,25 @@ async function loadLogs(p){
 
 async function streamLogs(url, elem){
   try{
-    const resp = await fetch(url);
-    if(!resp.body) return;
+    logStreamAbort = new AbortController();
+    const resp = await fetch(url, {signal: logStreamAbort.signal});
+    if(!resp.body){
+      return;
+    }
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
     while(true){
       const {value, done} = await reader.read();
-      if(done) break;
+      if(done){
+        break;
+      }
       elem.textContent += decoder.decode(value);
     }
-  }catch(e){console.error(e);}
+  }catch(e){
+    if(e.name !== 'AbortError'){
+      console.error(e);
+    }
+  }
 }
 
 setInterval(refresh,5000);
