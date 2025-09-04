@@ -27,6 +27,8 @@ This file defines contributor guidelines for the entire repository.
 - Configuration is loaded from environment variables when possible.
 - File names are in camelCase
 - Package names must be all lower case
+- Podman is used instead of Docker
+- Just is used instead of Make
 
 ## Formatting and tests
 - Run `gofmt -w` on changed Go files.
