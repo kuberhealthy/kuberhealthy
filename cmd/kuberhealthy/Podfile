@@ -7,8 +7,7 @@ RUN go version
 ENV CGO_ENABLED=0
 RUN mkdir /app
 RUN cp /src/openapi.yaml /app/openapi.yaml
-RUN mkdir /app/assets
-RUN cp -r /src/assets /app/assets
+RUN cp -r /src/assets/ /app/assets
 RUN go test -v -short ./...
 RUN go build -v -o /app/kuberhealthy
 
