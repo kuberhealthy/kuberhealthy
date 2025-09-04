@@ -26,6 +26,22 @@ import (
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// CheckPodMetadata holds pod metadata limited to labels and annotations.
+type CheckPodMetadata struct {
+	// Labels applied to the checker pod.
+	Labels map[string]string `json:"labels,omitempty"`
+	// Annotations applied to the checker pod.
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+// CheckPodSpec contains the pod spec and optional metadata for a check.
+type CheckPodSpec struct {
+	// Metadata contains labels and annotations for the pod.
+	Metadata *CheckPodMetadata `json:"metadata,omitempty"`
+	// Spec is the full PodSpec for the checker pod.
+	Spec corev1.PodSpec `json:"spec,omitempty"`
+}
+
 // KuberhealthyCheckSpec defines the desired state of KuberhealthyCheck
 type KuberhealthyCheckSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -40,9 +56,9 @@ type KuberhealthyCheckSpec struct {
 	// ExtraAnnotations are added to all checker pods.
 	ExtraAnnotations map[string]string `json:"extraAnnotations,omitempty"`
 	// ExtraLabels are applied to all checker pods.
-	ExtraLabels map[string]string      `json:"extraLabels,omitempty"`
-	PodSpec     corev1.PodTemplateSpec `json:"podSpec,omitempty"`
-	// PodSpec   v1.PodSpec              `json:"podSpec"` // We can not use a full PodSpec struct because it throws error about too much yaml in the CRD definition
+	ExtraLabels map[string]string `json:"extraLabels,omitempty"`
+	// PodSpec defines the pod executed for this check.
+	PodSpec CheckPodSpec `json:"podSpec,omitempty"`
 }
 
 // KuberhealthyCheckStatus defines the observed state of KuberhealthyCheck
