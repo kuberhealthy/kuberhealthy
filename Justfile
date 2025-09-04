@@ -4,38 +4,22 @@ TAG := "localdev"
 NOW := `date +%s`
 
 build: # Build Kuberhealthy's image
-	podman build -f cmd/kuberhealthy/Podfile -t {{IMAGE}}:{{TAG}} .
+	IMAGE={{IMAGE}} TAG={{TAG}} bash tests/buildImage.sh
 
 kind: # Run Kuberhealthy locally in a KIND cluster
-	./tests/run-local-kind.sh
+	bash tests/run-local-kind.sh
 
 kind-clean: # Delete the local KIND cluster
-	kind delete cluster --name kuberhealthy-dev
+	bash tests/cleanup-kind.sh
 
 test: # Run tests locally
-	go test -v internal/...
-	# go test -v pkg/... # uncomment when tests exist here
-	go test -v cmd/...
+	bash tests/runTests.sh
 
 run: # Run Kuberhealthy locally
-	cd cmd/kuberhealthy && \
-	go build -v && \
-	cd ../.. && \
-	KH_LOG_LEVEL=debug KH_EXTERNAL_REPORTING_URL=localhost:80 POD_NAMESPACE=kuberhealthy POD_NAME="kuberhealthy-test" ./cmd/kuberhealthy/kuberhealthy
+	bash tests/runLocal.sh
 
 kustomize: # Apply Kubernetes specs from deploy/ directory
-	kustomize build deploy/ | kubectl apply -f -
+	bash tests/kustomizeApply.sh
 
 browse: # Port-forward Kuberhealthy service and open browser
-    #!/usr/bin/env bash
-    set -euo pipefail
-    NAMESPACE="kuberhealthy"
-    SERVICE="svc/kuberhealthy"
-    LOCAL_PORT="${PORT:-8080}"
-    echo "🔌 Port-forwarding ${SERVICE} in namespace ${NAMESPACE} to localhost:${LOCAL_PORT}"
-    # Ensure the service exists before trying to forward
-    kubectl -n "${NAMESPACE}" get "${SERVICE}" >/dev/null
-    # Open browser shortly after port-forward starts
-    ( sleep 1; echo "🌐 Opening http://localhost:${LOCAL_PORT}"; open "http://localhost:${LOCAL_PORT}" >/dev/null 2>&1 ) &
-    # Hold the port-forward in the foreground until interrupted
-    kubectl -n "${NAMESPACE}" port-forward "${SERVICE}" "${LOCAL_PORT}:80"
+	bash tests/browse.sh
