@@ -27,7 +27,7 @@ func TestConvert(t *testing.T) {
 		Spec: khapi.KuberhealthyCheckSpec{
 			RunInterval: &ri,
 			Timeout:     &to,
-			PodSpec:     corev1.PodTemplateSpec{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "ssh-check", Image: "test"}}}},
+			PodSpec:     khapi.CheckPodSpec{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "ssh-check", Image: "test"}}}},
 		},
 	}
 
@@ -144,65 +144,6 @@ spec:
 	// ensure the converted object marshals without error
 	_, err = json.Marshal(converted)
 	require.NoError(t, err)
-}
-
-func TestConvertRemovesPodSpecCreationTimestamp(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping in short mode")
-	}
-	legacy := `apiVersion: comcast.github.io/v1
-kind: KuberhealthyCheck
-metadata:
-  name: creation-time-test
-  namespace: kuberhealthy
-spec:
-  podSpec:
-    metadata:
-      creationTimestamp: null
-    containers:
-    - name: ct
-      image: test
-`
-	legacyJSON, err := yaml.YAMLToJSON([]byte(legacy))
-	require.NoError(t, err)
-
-	ar := admissionv1.AdmissionReview{
-		Request: &admissionv1.AdmissionRequest{
-			UID:    "789",
-			Object: runtimeRawExtension(legacyJSON),
-		},
-	}
-	body, err := json.Marshal(ar)
-	require.NoError(t, err)
-
-	req := httptest.NewRequest("POST", "/api/convert", bytes.NewReader(body))
-	w := httptest.NewRecorder()
-
-	Convert(w, req)
-
-	res := w.Result()
-	defer res.Body.Close()
-	require.Equal(t, http.StatusOK, res.StatusCode)
-
-	out := admissionv1.AdmissionReview{}
-	err = json.NewDecoder(res.Body).Decode(&out)
-	require.NoError(t, err)
-
-	patch, err := jsonpatch.DecodePatch(out.Response.Patch)
-	require.NoError(t, err)
-	patched, err := patch.Apply(legacyJSON)
-	require.NoError(t, err)
-
-	obj := map[string]any{}
-	err = json.Unmarshal(patched, &obj)
-	require.NoError(t, err)
-
-	spec, ok := obj["spec"].(map[string]any)
-	require.True(t, ok)
-	podSpec, ok := spec["podSpec"].(map[string]any)
-	require.True(t, ok)
-	_, ok = podSpec["metadata"]
-	require.False(t, ok)
 }
 
 func runtimeRawExtension(b []byte) runtime.RawExtension {

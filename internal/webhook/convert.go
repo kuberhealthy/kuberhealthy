@@ -73,25 +73,6 @@ func convertReview(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionRespon
 		return toError(fmt.Errorf("marshal v2: %w", err))
 	}
 
-	clean := map[string]any{}
-	if err := json.Unmarshal(newRaw, &clean); err != nil {
-		return toError(fmt.Errorf("unmarshal v2: %w", err))
-	}
-	if meta, ok := clean["spec"].(map[string]any); ok {
-		if podSpec, ok := meta["podSpec"].(map[string]any); ok {
-			if md, ok := podSpec["metadata"].(map[string]any); ok {
-				delete(md, "creationTimestamp")
-				if len(md) == 0 {
-					delete(podSpec, "metadata")
-				}
-			}
-		}
-	}
-	newRaw, err = json.Marshal(clean)
-	if err != nil {
-		return toError(fmt.Errorf("remarshal v2: %w", err))
-	}
-
 	ops, err := jsonpatch.CreatePatch(raw, newRaw)
 	if err != nil {
 		return toError(fmt.Errorf("create patch: %w", err))
