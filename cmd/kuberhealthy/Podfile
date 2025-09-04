@@ -2,12 +2,13 @@ FROM golang:1.24.1 AS builder
 LABEL LOCATION="git@github.com:kuberhealthy/kuberhealthy.git"
 LABEL DESCRIPTION="Kuberhealthy - The Kubernetes operator for synthetic checks."
 COPY . /src
+RUN cp /src/openapi.yaml /app/openapi.yaml
+RUN cp -r /src/assets/ /app/assets
+
 WORKDIR /src/cmd/kuberhealthy
 RUN go version
 ENV CGO_ENABLED=0
 RUN mkdir /app
-RUN cp /src/openapi.yaml /app/openapi.yaml
-RUN cp -r /src/assets/ /app/assets
 RUN go test -v -short ./...
 RUN go build -v -o /app/kuberhealthy
 
