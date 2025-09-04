@@ -26,3 +26,14 @@
 
 - Kuberhealthy uses `just` instead of `make`
 - Kuberhealthy uses `podman` instead of `docker`
+
+## Just Commands
+
+The repository includes a `Justfile` for common local development tasks. Install `just` and ensure required CLIs (`podman`, `kubectl`, `kustomize`, and `kind` where noted) are available in your PATH.
+
+- `just build`: Build the Kuberhealthy container image using Podman.
+- `just kind`: Create a local KIND cluster and deploy Kuberhealthy for development. Requires `kind`, `kubectl`, `kustomize`, and `podman`. Tails logs until interrupted.
+- `just test`: Run unit tests for `internal/...` and `cmd/...` packages.
+- `just run`: Build and run Kuberhealthy locally with useful defaults (`KH_LOG_LEVEL=debug`, `KH_EXTERNAL_REPORTING_URL=localhost:80`, `POD_NAMESPACE=kuberhealthy`, `POD_NAME=kuberhealthy-test`).
+- `just kustomize`: Apply the Kubernetes manifests in `deploy/` using `kustomize build | kubectl apply -f -`.
+- `just browse`: Port-forward the `kuberhealthy` service in namespace `kuberhealthy` to `localhost:8080` and open a browser. Press Ctrl-C to stop the port-forward. Override port with `PORT=9090 just browse`.

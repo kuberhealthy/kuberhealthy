@@ -22,3 +22,17 @@ run: # Run Kuberhealthy locally
 
 kustomize: # Apply Kubernetes specs from deploy/ directory
 	kustomize build deploy/ | kubectl apply -f -
+
+browse: # Port-forward Kuberhealthy service and open browser
+    #!/usr/bin/env bash
+    set -euo pipefail
+    NAMESPACE="kuberhealthy"
+    SERVICE="svc/kuberhealthy"
+    LOCAL_PORT="${PORT:-8080}"
+    echo "🔌 Port-forwarding ${SERVICE} in namespace ${NAMESPACE} to localhost:${LOCAL_PORT}"
+    # Ensure the service exists before trying to forward
+    kubectl -n "${NAMESPACE}" get "${SERVICE}" >/dev/null
+    # Open browser shortly after port-forward starts
+    ( sleep 1; echo "🌐 Opening http://localhost:${LOCAL_PORT}"; open "http://localhost:${LOCAL_PORT}" >/dev/null 2>&1 ) &
+    # Hold the port-forward in the foreground until interrupted
+    kubectl -n "${NAMESPACE}" port-forward "${SERVICE}" "${LOCAL_PORT}:80"
