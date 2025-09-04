@@ -257,7 +257,7 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khapi.KuberhealthyCheck) error {
 	return nil
 }
 
-// CheckPodSpec returns the corev1.PodSpec for this check's pods
+// CheckPodSpec builds a pod for this check's run.
 func (kh *Kuberhealthy) CheckPodSpec(khcheck *khapi.KuberhealthyCheck) *corev1.Pod {
 
 	// generate a random suffix and concatenate a unique pod name
@@ -287,11 +287,13 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khapi.KuberhealthyCheck) *corev1.P
 		Spec: khcheck.Spec.PodSpec.Spec,
 	}
 
-	for k, v := range khcheck.Spec.PodSpec.ObjectMeta.Annotations {
-		podSpec.Annotations[k] = v
-	}
-	for k, v := range khcheck.Spec.PodSpec.ObjectMeta.Labels {
-		podSpec.Labels[k] = v
+	if md := khcheck.Spec.PodSpec.Metadata; md != nil {
+		for k, v := range md.Annotations {
+			podSpec.Annotations[k] = v
+		}
+		for k, v := range md.Labels {
+			podSpec.Labels[k] = v
+		}
 	}
 	for k, v := range khcheck.Spec.ExtraAnnotations {
 		podSpec.Annotations[k] = v

@@ -32,8 +32,8 @@ func TestCheckPodSpec(t *testing.T) {
 		Spec: khapi.KuberhealthyCheckSpec{
 			ExtraLabels:      map[string]string{"extra": "label"},
 			ExtraAnnotations: map[string]string{"anno": "value"},
-			PodSpec: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
+			PodSpec: khapi.CheckPodSpec{
+				Metadata: &khapi.CheckPodMetadata{
 					Labels:      map[string]string{"metaLabel": "metaVal"},
 					Annotations: map[string]string{"metaAnno": "metaVal"},
 				},
@@ -147,7 +147,7 @@ func TestStartCheckCreatesPodInCheckNamespace(t *testing.T) {
 			Namespace: "check-ns",
 		},
 		Spec: khapi.KuberhealthyCheckSpec{
-			PodSpec: corev1.PodTemplateSpec{
+			PodSpec: khapi.CheckPodSpec{
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:  "test",
