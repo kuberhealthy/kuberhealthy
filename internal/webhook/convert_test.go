@@ -27,7 +27,7 @@ func TestConvert(t *testing.T) {
 		Spec: khapi.KuberhealthyCheckSpec{
 			RunInterval: &ri,
 			Timeout:     &to,
-			PodSpec:     corev1.PodTemplateSpec{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "ssh-check", Image: "test"}}}},
+			PodSpec:     khapi.CheckPodSpec{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "ssh-check", Image: "test"}}}},
 		},
 	}
 

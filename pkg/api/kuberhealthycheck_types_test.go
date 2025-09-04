@@ -41,10 +41,8 @@ func TestSpecDoesNotExposeCreationTimestamp(t *testing.T) {
 
 	check := &KuberhealthyCheck{
 		Spec: KuberhealthyCheckSpec{
-			PodSpec: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"foo": "bar"},
-				},
+			PodSpec: CheckPodSpec{
+				Metadata: &CheckPodMetadata{Labels: map[string]string{"foo": "bar"}},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:  "test",
@@ -64,9 +62,8 @@ func TestSpecDoesNotExposeCreationTimestamp(t *testing.T) {
 	spec := data["spec"].(map[string]any)
 	podSpec := spec["podSpec"].(map[string]any)
 	metadata := podSpec["metadata"].(map[string]any)
-	if v, found := metadata["creationTimestamp"]; found {
-		require.Nil(t, v, "creationTimestamp must be nil in spec.podSpec.metadata")
-	}
+	_, found := metadata["creationTimestamp"]
+	require.False(t, found, "creationTimestamp must be absent in spec.podSpec.metadata")
 
 }
 

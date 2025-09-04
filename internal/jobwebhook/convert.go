@@ -44,6 +44,14 @@ func Convert(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		podSpec := khapi.CheckPodSpec{Spec: job.Spec.PodSpec.Spec}
+		if len(job.Spec.PodSpec.ObjectMeta.Labels) > 0 || len(job.Spec.PodSpec.ObjectMeta.Annotations) > 0 {
+			podSpec.Metadata = &khapi.CheckPodMetadata{
+				Labels:      job.Spec.PodSpec.ObjectMeta.Labels,
+				Annotations: job.Spec.PodSpec.ObjectMeta.Annotations,
+			}
+		}
+
 		check := khapi.KuberhealthyCheck{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kuberhealthy.github.io/v2",
@@ -56,7 +64,7 @@ func Convert(w http.ResponseWriter, r *http.Request) {
 				Timeout:          job.Spec.Timeout,
 				ExtraAnnotations: job.Spec.ExtraAnnotations,
 				ExtraLabels:      job.Spec.ExtraLabels,
-				PodSpec:          job.Spec.PodSpec,
+				PodSpec:          podSpec,
 			},
 		}
 
