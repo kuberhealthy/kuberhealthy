@@ -9,6 +9,9 @@ build: # Build Kuberhealthy's image
 kind: # Run Kuberhealthy locally in a KIND cluster
 	./tests/run-local-kind.sh
 
+kind-clean: # Delete the local KIND cluster
+	kind delete cluster --name kuberhealthy-dev
+
 test: # Run tests locally
 	go test -v internal/...
 	# go test -v pkg/... # uncomment when tests exist here

@@ -25,14 +25,13 @@ echo "📦 Building Podman image: $IMAGE"
 # this is meant to be run with `just kind` from the root of the repo
 podman build -f cmd/kuberhealthy/Podfile -t "$IMAGE" .
 
-# Delete existing cluster
+# Create cluster if it doesn't exist
 if kind get clusters | grep -q "$CLUSTER_NAME"; then
-  echo "🧹 Deleting existing kind cluster: $CLUSTER_NAME"
-  kind delete cluster --name "$CLUSTER_NAME"
+  echo "✅ Reusing existing kind cluster: $CLUSTER_NAME"
+else
+  echo "🚀 Creating kind cluster: $CLUSTER_NAME"
+  kind create cluster --name "$CLUSTER_NAME" --image kindest/node:v1.29.0
 fi
-
-echo "🚀 Creating kind cluster: $CLUSTER_NAME"
-kind create cluster --name "$CLUSTER_NAME" --image kindest/node:v1.29.0
 
 echo "📤 Loading image into kind"
 podman save "$IMAGE" -o /tmp/kuberhealthy-image.tar
