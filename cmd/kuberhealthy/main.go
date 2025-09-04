@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 	"os"
 	"os/signal"
 	"syscall"
@@ -37,6 +38,11 @@ var Globals struct {
 	khClient   client.Client
 	kh         *kuberhealthy.Kuberhealthy
 }
+
+// GitRevision holds the source control reference embedded at build time.
+// It can be overridden via ldflags: -X main.GitRevision=<ref>.
+// When empty, it is set to "EXPERIMENTAL" during startup.
+var GitRevision string
 
 func main() {
 
@@ -152,6 +158,12 @@ func setUp() error {
 
 	// set controller-runtime to use logrus
 	logf.SetLogger(logruslogr.New(log.StandardLogger()))
+
+	// ensure GitRevision is present and log it for traceability
+	if strings.TrimSpace(GitRevision) == "" {
+		GitRevision = "EXPERIMENTAL"
+	}
+	log.Infoln("Build Git Revision:", GitRevision)
 
 	if os.Getenv("POD_NAME") == "" {
 		host := GetMyHostname("kuberhealthy")

@@ -32,6 +32,7 @@ jobs:
           BRANCH_NAME="${GITHUB_REF_NAME//\//-}"
           SHORT_SHA=$(git rev-parse --short HEAD)
           echo "IMAGE_TAG=${BRANCH_NAME}-${SHORT_SHA}" >> $GITHUB_ENV
+          echo "GIT_REV=${SHORT_SHA}" >> $GITHUB_ENV
       - name: Build image
         uses: redhat-actions/buildah-build@v2
         with:
@@ -39,6 +40,8 @@ jobs:
           containerfiles: cmd/kuberhealthy/Podfile
           image: ghcr.io/${{ github.repository }}
           tags: ${{ env.IMAGE_TAG }}
+          build-args: |
+            GIT_REV=${{ env.GIT_REV }}
           platforms: linux/amd64,linux/arm64
       - name: Push image
         uses: redhat-actions/push-to-registry@v2
