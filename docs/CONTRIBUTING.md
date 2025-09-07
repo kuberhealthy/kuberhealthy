@@ -32,8 +32,8 @@
 The repository includes a `Justfile` for common local development tasks. Install `just` and ensure required CLIs (`podman`, `kubectl`, `kustomize`, and `kind` where noted) are available in your PATH.
 
 - `just build`: Build the Kuberhealthy container image using Podman.
-- `just kind`: Create a local KIND cluster and deploy Kuberhealthy for development. Requires `kind`, `kubectl`, `kustomize`, and `podman`. Tails logs until interrupted.
-- `just kind-clean`: Delete the local KIND cluster (`kuberhealthy-dev`). Use this if you want a fresh cluster.
+- `just kind`: Create a local KIND cluster and deploy Kuberhealthy for development. Requires `kind`, `kubectl`, `kustomize`, and `podman`. After the initial deployment, press **Enter** to rebuild the image and redeploy it to the cluster. Press **Ctrl-C** to cancel and tear down the cluster.
+- `just kind-clean`: Delete the local KIND cluster. Use this if you want a fresh cluster or to clean up when `just kind` is not running.
 - `just test`: Run unit tests for `internal/...` and `cmd/...` packages.
 - `just run`: Build and run Kuberhealthy locally with useful defaults (`KH_LOG_LEVEL=debug`, `KH_EXTERNAL_REPORTING_URL=localhost:80`, `POD_NAMESPACE=kuberhealthy`, `POD_NAME=kuberhealthy-test`).
 - `just kustomize`: Apply the Kubernetes manifests in `deploy/` using `kustomize build | kubectl apply -f -`.
