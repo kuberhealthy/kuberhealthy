@@ -34,15 +34,30 @@
 
   onMount(() => {
     initTheme();
+    const params = new URLSearchParams(window.location.search);
+    const check = params.get('check');
+    if(check){ currentCheck.set(check); }
     refresh();
     const timer = setInterval(refresh, 5000);
     return () => clearInterval(timer);
   });
 
+  $: if ($currentCheck) {
+    const st = $checks[$currentCheck];
+    if (st) {
+      const params = new URLSearchParams();
+      params.set('namespace', st.namespace);
+      params.set('check', $currentCheck);
+      history.replaceState(null, '', '?' + params.toString());
+    }
+  } else {
+    history.replaceState(null, '', location.pathname);
+  }
+
 </script>
 
 <header class="flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 shadow-lg">
-  <div class="flex items-center cursor-pointer" on:click={() => currentCheck.set('')}>
+  <div class="flex items-center cursor-pointer" role="button" tabindex="0" on:click={() => currentCheck.set('')} on:keydown={(e) => e.key === 'Enter' && currentCheck.set('')}>
     <img src="/static/logo-square.png" alt="Kuberhealthy logo" class="h-8 w-8 mr-2" />
     <h1 class="text-lg font-semibold m-0">Kuberhealthy Status</h1>
   </div>
