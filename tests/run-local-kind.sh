@@ -1,9 +1,10 @@
-#!/bin/bash
+#/bin/bash
 set -euo pipefail
 
-CLUSTER_NAME="kuberhealthy-dev"
+CLUSTER_NAME="kuberhealthy"
 IMAGE="docker.io/kuberhealthy/kuberhealthy:localdev"
 TARGET_NAMESPACE="kuberhealthy"
+KIND_VERSION="v1.29.0"
 KH_CHECK_REPORT_HOSTNAME="kuberhealthy.${TARGET_NAMESPACE}.svc.cluster.local"
 export KIND_EXPERIMENTAL_PROVIDER=podman
 
@@ -29,7 +30,7 @@ ensure_cluster() {
     echo "✅ Reusing existing kind cluster: $CLUSTER_NAME"
   else
     echo "🚀 Creating kind cluster: $CLUSTER_NAME"
-    kind create cluster --name "$CLUSTER_NAME" --image kindest/node:v1.29.0
+    kind create cluster --name "$CLUSTER_NAME" --image "kindest/node:$KIND_VERSION"
   fi
 }
 
@@ -71,7 +72,8 @@ cleanup() {
   echo "\n🧹 Cleaning up..."
   stop_logs
   bash tests/cleanup-kind.sh || true
-  echo "✅ Teardown complete. Bye!"
+  echo "✅ KIND clean up complete."
+  exit 0
 }
 trap cleanup INT
 
@@ -79,8 +81,8 @@ trap cleanup INT
 ensure_cluster
 build_and_load
 
-echo "📤 Ensuring manifests are applied"
-kustomize build deploy/ | kubectl apply -f -
+echo "📤 Ensuring deployment manifest is applied"
+kubectl apply -k deploy/
 
 echo "⏳ Waiting for Kuberhealthy deployment to apply..."
 FOUND_DEPLOYMENT=FALSE
@@ -95,7 +97,7 @@ for i in {1..30}; do
   fi
 done
 if [ "$FOUND_DEPLOYMENT" = false ]; then
-  echo "‼️ Kuberhealthy deployment did not appear in KIND cluster"
+  echo "‼️ Kuberhealthy deployment failed to deploy into KIND"
   exit 1
 fi
 
@@ -113,28 +115,28 @@ for i in {1..30}; do
 done
 
 if [ "$FOUND_POD" = false ]; then
-  echo "‼️ Pod did not appear, running log command for troubleshooting..."
+  echo "‼️ Kuberhealthy pod did not come online."
+  echo "‼️ Pod Logs:"
   kubectl logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy
   exit 1
 fi
 
 start_logs
 
-echo "\n✨ Press Enter to rebuild and re-ship the image."
-echo "   Press Ctrl-C to tear down the kind cluster and exit."
+echo ""
+echo ""
+echo "✨ Press enter to rebuild and re-deploy kuberhealthy."
+echo "⛔️ Press Ctrl-C to tear down the KIND cluster and exit."
 while true; do
   # Wait for an Enter keypress
   # shellcheck disable=SC2162
   read -r
-  echo "🔁 Rebuilding image and re-shipping to kind..."
+  echo "🔁 Rebuilding image and re-deploying Kuberhealthy to KIND cluster..."
   stop_logs
   ensure_cluster
   build_and_load
-  echo "⏳ Waiting for rollout to complete..."
+  echo "⏳ Waiting for deployment to complete..."
   kubectl -n "$TARGET_NAMESPACE" rollout status deploy/kuberhealthy --timeout=120s || true
   start_logs
   echo "\n✅ Reload complete. Press Enter to rebuild again, or Ctrl-C to exit."
-
 done
-
-# Should not be reached; Ctrl-C trap handles teardown
