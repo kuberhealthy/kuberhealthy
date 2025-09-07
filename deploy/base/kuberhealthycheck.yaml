@@ -20,8 +20,11 @@ spec:
         - jsonPath: .status.ok
           name: OK
           type: boolean
-        - jsonPath: .status.currentUUID
-          name: UUID
+        - jsonPath: .spec.runInterval
+          name: RunInterval
+          type: string
+        - jsonPath: .status.errors[0]
+          name: Error
           type: string
         - jsonPath: .spec.timeout
           name: Timeout
