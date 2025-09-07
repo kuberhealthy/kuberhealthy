@@ -19,6 +19,9 @@ import (
 )
 
 func TestConvert(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping webhook conversion test in short mode")
+	}
 	ri := metav1.Duration{Duration: 5 * time.Minute}
 	to := metav1.Duration{Duration: 2 * time.Minute}
 	old := &khapi.KuberhealthyCheck{
@@ -72,6 +75,9 @@ func TestConvert(t *testing.T) {
 }
 
 func TestConvertLegacySpec(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping legacy webhook conversion test in short mode")
+	}
 	// legacy YAML representing a comcast.github.io/v1 check
 	legacy := `apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
