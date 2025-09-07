@@ -82,12 +82,6 @@ func newServeMux() *http.ServeMux {
 		}
 	})
 
-	mux.HandleFunc("/api/pods", func(w http.ResponseWriter, r *http.Request) {
-		if err := podListHandler(w, r); err != nil {
-			log.Errorln(err)
-		}
-	})
-
 	mux.HandleFunc("/api/events", func(w http.ResponseWriter, r *http.Request) {
 		if err := eventListHandler(w, r); err != nil {
 			log.Errorln(err)
@@ -271,41 +265,6 @@ type eventSummary struct {
 	Reason        string `json:"reason"`
 	Type          string `json:"type"`
 	LastTimestamp int64  `json:"lastTimestamp,omitempty"`
-}
-
-// podListHandler returns a list of pods for a given check.
-func podListHandler(w http.ResponseWriter, r *http.Request) error {
-	khcheck := r.URL.Query().Get("khcheck")
-	namespace := r.URL.Query().Get("namespace")
-	if khcheck == "" || namespace == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return fmt.Errorf("missing parameters")
-	}
-	if Globals.khClient == nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		return fmt.Errorf("kubernetes client not initialized")
-	}
-	nn := types.NamespacedName{Namespace: namespace, Name: khcheck}
-	if _, err := khapi.GetCheck(r.Context(), Globals.khClient, nn); err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return err
-	}
-	pods := &v1.PodList{}
-	if err := Globals.khClient.List(r.Context(), pods, client.InNamespace(namespace), client.MatchingLabels{"khcheck": khcheck}); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return err
-	}
-	summaries := make([]podSummary, 0, len(pods.Items))
-	for _, p := range pods.Items {
-		s := podSummary{Name: p.Name, Namespace: p.Namespace, Phase: string(p.Status.Phase), Labels: p.Labels, Annotations: p.Annotations}
-		if p.Status.StartTime != nil {
-			s.StartTime = p.Status.StartTime.Unix()
-			s.DurationSeconds = int64(podRunDuration(&p).Seconds())
-		}
-		summaries = append(summaries, s)
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	return json.NewEncoder(w).Encode(summaries)
 }
 
 // eventListHandler returns events for a given check.
@@ -753,6 +712,7 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 		check.EnsureCreationTimestamp()
 
 		status := health.CheckDetail{KuberhealthyCheckStatus: check.Status}
+		status.RunIntervalSeconds = int64(runInterval.Seconds())
 		if timeout > 0 {
 			status.TimeoutSeconds = int64(timeout.Seconds())
 		}

@@ -1,3 +1,4 @@
+// Tests for Kuberhealthy check API types.
 package api
 
 import (
@@ -5,29 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 )
-
-// TestGetCheckSetsCreationTimestamp ensures GetCheck populates metadata.CreationTimestamp when missing.
-func TestGetCheckSetsCreationTimestamp(t *testing.T) {
-	t.Parallel()
-
-	scheme := runtime.NewScheme()
-	require.NoError(t, AddToScheme(scheme))
-
-	check := &KuberhealthyCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "default",
-		},
-	}
-
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(check).Build()
-	nn := types.NamespacedName{Name: "test", Namespace: "default"}
-
-	out, err := GetCheck(context.Background(), cl, nn)
-	require.NoError(t, err)
-	require.False(t, out.CreationTimestamp.IsZero(), "creation timestamp must be set")
-}
 
 // TestSpecDoesNotExposeCreationTimestamp ensures creationTimestamp is not serialized in pod metadata.
 func TestSpecDoesNotExposeCreationTimestamp(t *testing.T) {

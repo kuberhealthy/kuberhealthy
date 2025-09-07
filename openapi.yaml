@@ -44,31 +44,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/State'
-  /api/pods:
-    get:
-      summary: List checker pods for a check
-      parameters:
-        - in: query
-          name: namespace
-          required: true
-          schema:
-            type: string
-        - in: query
-          name: khcheck
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Pod list
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PodSummary'
-        '400':
-          description: Missing parameters
   /api/events:
     get:
       summary: List Kubernetes events for a check
@@ -347,33 +322,6 @@ components:
           type: object
         response:
           type: object
-    PodSummary:
-      type: object
-      properties:
-        name:
-          type: string
-        namespace:
-          type: string
-        phase:
-          type: string
-        startTime:
-          type: integer
-          format: int64
-        durationSeconds:
-          type: integer
-          format: int64
-        labels:
-          type: object
-          additionalProperties:
-            type: string
-        annotations:
-          type: object
-          additionalProperties:
-            type: string
-      required:
-        - name
-        - namespace
-        - phase
     PodLog:
       type: object
       properties:
