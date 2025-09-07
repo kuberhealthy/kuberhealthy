@@ -1,17 +1,45 @@
+// Tests for Kuberhealthy check API types.
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+// TestSpecDoesNotExposeCreationTimestamp ensures creationTimestamp is not serialized in pod metadata.
+func TestSpecDoesNotExposeCreationTimestamp(t *testing.T) {
+	t.Parallel()
+
+	check := &KuberhealthyCheck{
+		Spec: KuberhealthyCheckSpec{
+			PodSpec: CheckPodSpec{
+				Metadata: &CheckPodMetadata{Labels: map[string]string{"foo": "bar"}},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  "test",
+						Image: "busybox",
+					}},
+				},
+			},
+		},
+	}
+
+	raw, err := json.Marshal(check)
+	require.NoError(t, err)
+
+	var data map[string]any
+	require.NoError(t, json.Unmarshal(raw, &data))
+
+	spec := data["spec"].(map[string]any)
+	podSpec := spec["podSpec"].(map[string]any)
+	metadata := podSpec["metadata"].(map[string]any)
+	_, found := metadata["creationTimestamp"]
+	require.False(t, found, "creationTimestamp must be absent in spec.podSpec.metadata")
+
+}
 
 // TestSingleRunOnlyRoundTrip ensures singleRunOnly marshals and unmarshals correctly.
 func TestSingleRunOnlyRoundTrip(t *testing.T) {
