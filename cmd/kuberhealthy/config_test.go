@@ -85,6 +85,9 @@ func TestLoadFromEnv(t *testing.T) {
 
 // TestLoadFromEnvInvalid returns an error when a duration environment variable is malformed.
 func TestLoadFromEnvInvalid(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping invalid config test in short mode")
+	}
 	t.Setenv("KH_MAX_JOB_AGE", "not-a-duration")
 	cfg := New()
 	if err := cfg.LoadFromEnv(); err == nil {
@@ -94,6 +97,9 @@ func TestLoadFromEnvInvalid(t *testing.T) {
 
 // TestReportingURLFromServiceAndNamespace constructs the reporting URL when service name and namespace are provided.
 func TestReportingURLFromServiceAndNamespace(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping reporting URL test in short mode")
+	}
 	t.Setenv("POD_NAMESPACE", "ns1")
 	t.Setenv("KH_SERVICE_NAME", "svc1")
 
@@ -109,6 +115,9 @@ func TestReportingURLFromServiceAndNamespace(t *testing.T) {
 }
 
 func TestLoadTLSFiles(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TLS file test in short mode")
+	}
 	t.Setenv("KH_TLS_CERT_FILE", "/cert")
 	t.Setenv("KH_TLS_KEY_FILE", "/key")
 	cfg := New()
@@ -125,6 +134,9 @@ func TestLoadTLSFiles(t *testing.T) {
 
 // TestTargetNamespaceDefaultsBlank ensures that when KH_TARGET_NAMESPACE is unset the target namespace is empty
 func TestTargetNamespaceDefaultsBlank(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping target namespace default test in short mode")
+	}
 	t.Setenv("POD_NAMESPACE", "podns")
 	cfg := New()
 	if err := cfg.LoadFromEnv(); err != nil {

@@ -29,5 +29,6 @@ rules:
   - apiGroups: [""]
     resources:
       - pods
+      - pods/log
       - events
     verbs: ["create","delete","get","list","patch","update","watch"]

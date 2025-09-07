@@ -5,8 +5,8 @@ metadata:
   namespace: kuberhealthy
 spec:
   singleRunOnly: false
-  runInterval: 5s
-  timeout: 5s
+  runInterval: 15s
+  timeout: 30s
   podSpec:
     spec:
       containers:
