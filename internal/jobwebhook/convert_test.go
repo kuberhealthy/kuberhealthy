@@ -16,6 +16,9 @@ import (
 )
 
 func TestConvertJob(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping job conversion test in short mode")
+	}
 	ri := metav1.Duration{Duration: 5 * time.Minute}
 	to := metav1.Duration{Duration: 2 * time.Minute}
 	job := khJob{
