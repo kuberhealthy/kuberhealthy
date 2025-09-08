@@ -24,7 +24,7 @@ spec:
           name: RunInterval
           type: string
         - jsonPath: .status.errors[0]
-          name: Error
+          name: ErrorMessage
           type: string
         - jsonPath: .spec.timeout
           name: Timeout
