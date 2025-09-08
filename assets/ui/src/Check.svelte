@@ -60,7 +60,7 @@
     try{
       const url = '/api/events?namespace=' + encodeURIComponent(st.namespace) + '&khcheck=' + encodeURIComponent(name) + '&t=' + Date.now();
       events = await (await fetch(url)).json();
-      events.sort((a,b)=>(a.lastTimestamp||0)-(b.lastTimestamp||0));
+      events.sort((a,b)=>(b.lastTimestamp||0)-(a.lastTimestamp||0));
     }catch(e){ console.error(e); }
   }
 
@@ -134,21 +134,11 @@
     {#if events.length === 0}
       <div>No events found</div>
     {:else}
-      {#each events.slice(-10) as ev}
+      {#each events as ev}
         <div class="p-1 border-b border-gray-200 dark:border-gray-700">
           {ev.lastTimestamp ? new Date(ev.lastTimestamp*1000).toLocaleString()+': ' : ''}[{ev.type}] {ev.reason} - {ev.message}
         </div>
       {/each}
-      {#if events.length > 10}
-        <details class="mt-2">
-          <summary class="cursor-pointer text-blue-600">Show {events.length - 10} more</summary>
-          {#each events.slice(0, -10) as ev}
-            <div class="p-1 border-b border-gray-200 dark:border-gray-700">
-              {ev.lastTimestamp ? new Date(ev.lastTimestamp*1000).toLocaleString()+': ' : ''}[{ev.type}] {ev.reason} - {ev.message}
-            </div>
-          {/each}
-        </details>
-      {/if}
     {/if}
   </div>
   <div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4">
