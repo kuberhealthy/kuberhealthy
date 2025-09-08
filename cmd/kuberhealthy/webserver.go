@@ -190,9 +190,11 @@ func StartWebServer() error {
 			log.Warnln("TLS key file missing, serving HTTP:", keyErr)
 			return http.ListenAndServe(GlobalConfig.ListenAddress, handler)
 		}
+		return fmt.Errorf("failed to start secure web server with cert %s and key %s", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile)
 	}
 
-	return fmt.Errorf("failed to start secure web server")
+	// no cert provided, so don't attempt to use one
+	return nil
 }
 
 // renderOpenAPISpec writes the OpenAPI spec as JSON.
