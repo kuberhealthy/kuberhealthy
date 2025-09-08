@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// TestConvertJob upgrades a legacy job to a v2 check via the conversion webhook.
 func TestConvertJob(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping job conversion test in short mode")

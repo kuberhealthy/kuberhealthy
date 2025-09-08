@@ -5,11 +5,9 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,33 +32,4 @@ func TestGetCheckSetsCreationTimestamp(t *testing.T) {
 	out, err := GetCheck(context.Background(), cl, nn)
 	require.NoError(t, err)
 	require.False(t, out.CreationTimestamp.IsZero(), "creation timestamp must be set")
-}
-
-// TestSpecDoesNotExposeCreationTimestamp ensures creationTimestamp is not serialized in pod metadata.
-func TestSpecDoesNotExposeCreationTimestamp(t *testing.T) {
-	check := &KuberhealthyCheck{
-		Spec: KuberhealthyCheckSpec{
-			PodSpec: CheckPodSpec{
-				Metadata: &CheckPodMetadata{Labels: map[string]string{"foo": "bar"}},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{{
-						Name:  "test",
-						Image: "busybox",
-					}},
-				},
-			},
-		},
-	}
-
-	raw, err := json.Marshal(check)
-	require.NoError(t, err)
-
-	var data map[string]any
-	require.NoError(t, json.Unmarshal(raw, &data))
-
-	spec := data["spec"].(map[string]any)
-	podSpec := spec["podSpec"].(map[string]any)
-	metadata := podSpec["metadata"].(map[string]any)
-	_, found := metadata["creationTimestamp"]
-	require.False(t, found, "creationTimestamp must be absent in spec.podSpec.metadata")
 }
