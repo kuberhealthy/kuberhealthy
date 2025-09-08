@@ -69,6 +69,32 @@ paths:
                   $ref: '#/components/schemas/EventSummary'
         '400':
           description: Missing parameters
+  /api/podyaml:
+    get:
+      summary: Render checker pod YAML
+      parameters:
+        - in: query
+          name: namespace
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: khcheck
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pod YAML
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  yaml:
+                    type: string
+        '400':
+          description: Missing parameters
   /api/logs:
     get:
       summary: Retrieve logs for a checker pod

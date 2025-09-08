@@ -38,10 +38,10 @@
       updateNextRun(st.nextRunUnix);
       countdownTimer = setInterval(() => updateNextRun(st.nextRunUnix), 1000);
     }
+    loadPodYaml();
     if(st.podName){
       loadLogs();
     } else {
-      podYaml = '';
       logText = '';
     }
     loadEvents();
@@ -64,11 +64,18 @@
     }catch(e){ console.error(e); }
   }
 
+  async function loadPodYaml(){
+    try{
+      const params = 'namespace=' + encodeURIComponent(st.namespace) + '&khcheck=' + encodeURIComponent(name);
+      const res = await (await fetch('/api/podyaml?' + params)).json();
+      podYaml = res.yaml || '';
+    }catch(e){ console.error(e); }
+  }
+
   async function loadLogs(){
     try{
       const params = 'namespace=' + encodeURIComponent(st.namespace) + '&khcheck=' + encodeURIComponent(name) + '&pod=' + encodeURIComponent(st.podName);
       const res = await (await fetch('/api/logs?' + params)).json();
-      podYaml = res.yaml || '';
       logText = res.logs || '';
       if(res.phase === 'Running'){
         streamLogs('/api/logs/stream?' + params);

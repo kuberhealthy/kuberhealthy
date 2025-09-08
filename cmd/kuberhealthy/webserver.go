@@ -92,6 +92,13 @@ func newServeMux() *http.ServeMux {
 		}
 	})
 
+	// UI Endpoint for rendering khcheck pod yaml
+	mux.HandleFunc("/api/podyaml", func(w http.ResponseWriter, r *http.Request) {
+		if err := podSpecHandler(w, r); err != nil {
+			log.Errorln(err)
+		}
+	})
+
 	// UI Endpoint for fetching khcheck pod logs
 	mux.HandleFunc("/api/logs", func(w http.ResponseWriter, r *http.Request) {
 		if err := podLogsHandler(w, r); err != nil {
@@ -332,6 +339,36 @@ func eventListHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	return json.NewEncoder(w).Encode(summaries)
+}
+
+// podSpecHandler returns the rendered pod YAML for a check.
+func podSpecHandler(w http.ResponseWriter, r *http.Request) error {
+	namespace := r.URL.Query().Get("namespace")
+	khcheck := r.URL.Query().Get("khcheck")
+	if namespace == "" || khcheck == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return fmt.Errorf("missing parameters")
+	}
+	if Globals.khClient == nil || Globals.kh == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kuberhealthy client not initialized")
+	}
+	nn := types.NamespacedName{Namespace: namespace, Name: khcheck}
+	check, err := khapi.GetCheck(r.Context(), Globals.khClient, nn)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return err
+	}
+	pod := Globals.kh.CheckPodSpec(check)
+	podYAML, err := yaml.Marshal(pod)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	return json.NewEncoder(w).Encode(struct {
+		YAML string `json:"yaml"`
+	}{YAML: string(podYAML)})
 }
 
 // podLogsHandler returns logs and details for a specific pod.
