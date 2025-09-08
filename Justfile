@@ -7,19 +7,19 @@ build: # Build Kuberhealthy's image
 	IMAGE={{IMAGE}} TAG={{TAG}} bash tests/buildImage.sh
 
 kind: # Run Kuberhealthy locally in a KIND cluster
-	bash tests/run-local-kind.sh
+	@bash tests/run-local-kind.sh
 
 kind-clean: # Delete the local KIND cluster
-	bash tests/cleanup-kind.sh
+	@bash tests/cleanup-kind.sh
 
 test: # Run tests locally
-	bash tests/runTests.sh
+	@bash tests/runTests.sh
 
 run: # Run Kuberhealthy locally
-	bash tests/runLocal.sh
+	@bash tests/runLocal.sh
 
 kustomize: # Apply Kubernetes specs from deploy/ directory
-	bash tests/kustomizeApply.sh
+	@bash tests/kustomizeApply.sh
 
 browse: # Port-forward Kuberhealthy service and open browser
-	bash tests/browse.sh
+	@bash tests/browse.sh
