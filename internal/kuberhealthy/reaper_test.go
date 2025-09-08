@@ -71,7 +71,56 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 	require.Empty(t, updated.CurrentUUID())
 }
 
-// TestReaperRemovesCompletedPods deletes completed pods after three run intervals have passed.
+// TestReaperKeepsRunningPodsForFiveMinutes ensures running pods are retained for at least five minutes even if they exceed the timeout.
+func TestReaperKeepsRunningPodsForFiveMinutes(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	lastRun := time.Now().Add(-2 * time.Minute)
+
+	check := &khapi.KuberhealthyCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "recent-running-check",
+			Namespace:       "default",
+			ResourceVersion: "1",
+		},
+		Status: khapi.KuberhealthyCheckStatus{
+			LastRunUnix: lastRun.Unix(),
+		},
+	}
+	check.SetCurrentUUID("abc123")
+	check.SetOK()
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "recent-running-pod",
+			Namespace: "default",
+			Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: check.CurrentUUID()},
+		},
+		Status: corev1.PodStatus{Phase: corev1.PodRunning},
+	}
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).
+		WithRuntimeObjects(check, pod).
+		WithStatusSubresource(check).
+		Build()
+
+	kh := New(context.Background(), cl)
+
+	require.NoError(t, kh.reapOnce())
+
+	// Pod should still exist because less than five minutes have passed
+	err := cl.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: "recent-running-pod"}, &corev1.Pod{})
+	require.NoError(t, err)
+
+	updated := &khapi.KuberhealthyCheck{}
+	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: "recent-running-check"}, updated))
+	require.True(t, updated.Status.OK)
+	require.Equal(t, "abc123", updated.CurrentUUID())
+}
+
+// TestReaperRemovesCompletedPods deletes completed pods after ten run intervals have passed.
 func TestReaperRemovesCompletedPods(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping completed pod removal test in short mode")
@@ -80,7 +129,7 @@ func TestReaperRemovesCompletedPods(t *testing.T) {
 	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
-	lastRun := time.Now().Add(-defaultRunInterval*3 - time.Minute)
+	lastRun := time.Now().Add(-defaultRunInterval*10 - time.Minute)
 
 	check := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{

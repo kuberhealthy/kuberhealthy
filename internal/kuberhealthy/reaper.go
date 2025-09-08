@@ -123,7 +123,11 @@ func (kh *Kuberhealthy) reapOnce() error {
 
 			switch podRef.Status.Phase {
 			case corev1.PodRunning, corev1.PodPending, corev1.PodUnknown:
-				if runAge > timeout {
+				maxAge := timeout
+				if maxAge < 5*time.Minute {
+					maxAge = 5 * time.Minute
+				}
+				if runAge > maxAge {
 					if err := kh.CheckClient.Delete(kh.Context, podRef); err != nil && !apierrors.IsNotFound(err) {
 						log.Errorf("reaper: failed deleting timed out pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
 						continue
@@ -150,7 +154,7 @@ func (kh *Kuberhealthy) reapOnce() error {
 					}
 				}
 			case corev1.PodSucceeded:
-				if runAge > runInterval*3 {
+				if runAge > runInterval*10 {
 					if err := kh.CheckClient.Delete(kh.Context, podRef); err != nil && !apierrors.IsNotFound(err) {
 						log.Errorf("reaper: failed deleting completed pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
 						continue
