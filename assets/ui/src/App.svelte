@@ -5,25 +5,6 @@
   import Check from './Check.svelte';
   import { checks, currentCheck } from './stores';
 
-  let theme = 'dark';
-
-  function setTheme(t){
-    theme = t;
-    if(t === 'dark'){ document.documentElement.classList.add('dark'); }
-    else{ document.documentElement.classList.remove('dark'); }
-    document.documentElement.setAttribute('data-bs-theme', t);
-    localStorage.setItem('kh-theme', t);
-  }
-
-  function toggleTheme(){
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  }
-
-  function initTheme(){
-    const saved = localStorage.getItem('kh-theme') || 'dark';
-    setTheme(saved);
-  }
-
   async function refresh(){
     try{
       const resp = await fetch('/json');
@@ -33,7 +14,6 @@
   }
 
   onMount(() => {
-    initTheme();
     const params = new URLSearchParams(window.location.search);
     const check = params.get('check');
     if(check){ currentCheck.set(check); }
@@ -57,11 +37,10 @@
 </script>
 
 <header class="flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 shadow-lg">
-  <div class="flex items-center cursor-pointer" role="button" tabindex="0" on:click={() => currentCheck.set('')} on:keydown={(e) => e.key === 'Enter' && currentCheck.set('')}>
+  <div class="flex items-center cursor-pointer" role="button" tabindex="0" on:click={() => currentCheck.set('')} on:keydown={(e) => e.key === 'Enter' && currentCheck.set('')}> 
     <img src="/static/logo-square.png" alt="Kuberhealthy logo" class="h-8 w-8 mr-2" />
     <h1 class="text-lg font-semibold m-0">Kuberhealthy Status</h1>
   </div>
-  <button class="text-sm px-2 py-1 rounded bg-white/20" on:click={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button>
 </header>
 <div id="main" class="flex flex-1 overflow-hidden">
   <Menu />
