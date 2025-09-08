@@ -2,11 +2,8 @@ package metrics
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
 )
@@ -46,9 +43,6 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 		healthStatus = "1"
 	}
 	// Kuberhealthy metrics
-	metricsOutput += "# HELP kuberhealthy_running Shows if kuberhealthy is running error free\n"
-	metricsOutput += "# TYPE kuberhealthy_running gauge\n"
-	metricsOutput += fmt.Sprintf("kuberhealthy_running{current_master=\"%s\"} 1\n", state.CurrentMaster)
 	metricsOutput += "# HELP kuberhealthy_cluster_state Shows the status of the cluster\n"
 	metricsOutput += "# TYPE kuberhealthy_cluster_state gauge\n"
 	metricsOutput += fmt.Sprintf("kuberhealthy_cluster_state %s\n", healthStatus)
@@ -96,23 +90,4 @@ func GenerateMetrics(state health.State, config PromMetricsConfig) string {
 	}
 
 	return metricsOutput
-}
-
-// ErrorStateMetrics is a Prometheus metric meant to show Kuberhealthy has error
-func ErrorStateMetrics(state health.State) string {
-	errorOutput := ""
-	errorOutput += "# HELP kuberhealthy_running Shows if kuberhealthy is running error free\n"
-	errorOutput += "# TYPE kuberhealthy_running gauge\n"
-	errorOutput += fmt.Sprintf(`kuberhealthy_running{currentMaster="%s"} 0`, state.CurrentMaster)
-	return errorOutput
-}
-
-// WriteMetricError handles errors in delivering metrics
-func WriteMetricError(w http.ResponseWriter, state health.State) error {
-	metricDefaultError := ErrorStateMetrics(state)
-	_, err := w.Write([]byte(metricDefaultError))
-	if err != nil {
-		log.Warningln("Error writing health check results to caller:", err)
-	}
-	return err
 }
