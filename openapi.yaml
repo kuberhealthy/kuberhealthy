@@ -254,8 +254,6 @@ components:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/CheckStatus'
-        currentMaster:
-          type: string
         metadata:
           type: object
           additionalProperties:

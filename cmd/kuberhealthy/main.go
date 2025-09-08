@@ -104,7 +104,7 @@ func main() {
 
 	// once its time to shut down, we do so after the maximum timeout or when shutdown is complete gracefully
 	select {
-	case <-time.After(GlobalConfig.TerminationGracePeriodSeconds + (time.Second * 10)):
+	case <-time.After(GlobalConfig.TerminationGracePeriod + (time.Second * 10)):
 		log.Errorln("shutdown: shutdown took too long - exiting forcefully")
 	case <-doneChan:
 		log.Infoln("shutdown: shutdown completed gracefully")

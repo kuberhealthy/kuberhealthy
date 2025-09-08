@@ -128,7 +128,7 @@ func (kh *Kuberhealthy) Start(ctx context.Context, cfg *rest.Config) error {
 		go kh.startKHCheckWatch(cfg)
 	}
 
-	log.Infoln("Kuberhealthy start")
+	log.Infoln("Kuberhealthy start-up complete.")
 	return nil
 }
 
@@ -193,8 +193,6 @@ func (kh *Kuberhealthy) scheduleChecks() {
 			continue
 		}
 		check.EnsureCreationTimestamp()
-		// log metadata on the pod spec to debug unexpected fields
-		debugKHCheckMetadata(&check)
 
 		lastStart := time.Unix(check.Status.LastRunUnix, 0)
 
@@ -405,7 +403,11 @@ func (kh *Kuberhealthy) StopCheck(khcheck *khapi.KuberhealthyCheck) error {
 
 // UpdateCheck handles the event of a check getting updated in place
 func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khapi.KuberhealthyCheck, newKHCheck *khapi.KuberhealthyCheck) error {
-	log.Infoln("Updating Kuberhealthy check", oldKHCheck.GetNamespace(), oldKHCheck.GetName())
+	log.WithFields(log.Fields{
+		"namespace": newKHCheck.Namespace,
+		"name":      newKHCheck.Name,
+		"pod":       newKHCheck.Name,
+	}).Info("khcheck resoruce updated")
 	// TODO - do we do anything on updates to reload the latest check? How do we prevent locking into an infinite udpate window with the controller?
 
 	// // stop the check
@@ -427,25 +429,9 @@ func (kh *Kuberhealthy) IsStarted() bool {
 	return kh.running
 }
 
-// debugKHCheckMetadata logs pod spec metadata when present
-func debugKHCheckMetadata(khCheck *khapi.KuberhealthyCheck) {
-	if khCheck == nil {
-		return
-	}
-	log.WithFields(log.Fields{
-		"namespace": khCheck.Namespace,
-		"name":      khCheck.Name,
-		"metadata":  khCheck.GetObjectMeta(),
-	}).Debug("khcheck podSpec metadata")
-}
-
 // readCheck fetches a check from the cluster.
 func (k *Kuberhealthy) readCheck(checkName types.NamespacedName) (*khapi.KuberhealthyCheck, error) {
-	khCheck, err := khapi.GetCheck(k.Context, k.CheckClient, checkName)
-	if err == nil {
-		debugKHCheckMetadata(khCheck)
-	}
-	return khCheck, err
+	return khapi.GetCheck(k.Context, k.CheckClient, checkName)
 }
 
 // setCheckExecutionError sets an execution error for a khcheck in its crd status

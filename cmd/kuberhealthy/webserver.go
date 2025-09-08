@@ -64,78 +64,97 @@ func requestLogger(next http.Handler) http.Handler {
 func newServeMux() *http.ServeMux {
 	mux := http.NewServeMux()
 
+	// Metrics endpoint for prometheus metrics
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		if err := prometheusMetricsHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// General healthcheck endpoint for heartbeats
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if err := healthzHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// JSON status page for easy API integration
 	mux.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
 		if err := healthCheckHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// UI Endpoint for listing khcheck events
 	mux.HandleFunc("/api/events", func(w http.ResponseWriter, r *http.Request) {
 		if err := eventListHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// UI Endpoint for fetching khcheck pod logs
 	mux.HandleFunc("/api/logs", func(w http.ResponseWriter, r *http.Request) {
 		if err := podLogsHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// UI Endpoint for tailing khcheck pod logs
 	mux.HandleFunc("/api/logs/stream", func(w http.ResponseWriter, r *http.Request) {
 		if err := podLogsStreamHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// YAML output of OpenAPI spec
 	mux.HandleFunc("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
 		if err := openapiYAMLHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// JSON output of OpenAPI spec
 	mux.HandleFunc("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
 		if err := openapiJSONHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// static asset hosting for web ui
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./assets"))))
 
+	// allows the web interface to kick off a khcheck run immediately
 	mux.HandleFunc("/api/run", func(w http.ResponseWriter, r *http.Request) {
 		if err := runCheckHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// Kubernetes webhook endpoints for converting old kuberhealthy v2 checks and jobs to v3 checks
 	mux.HandleFunc("/api/convert", webhook.Convert)
 	mux.HandleFunc("/api/khjobconvert", jobwebhook.Convert)
 
+	// this is where khcheck pods report back with their check status
 	mux.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
 		if err := checkReportHandler(w, r); err != nil {
 			log.Errorln("checkStatus endpoint error:", err)
 		}
 	})
 
+	// This is the main handler that serves the web interface or handles khcheck reports depending on
+	// on the http request type. This is partially for backwards compatibility with other older versions
+	// of Kuberhealthy.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+		// if we get a post, handle it as a checker pod reporting in
 		if r.Method == http.MethodPost {
 			if err := checkReportHandler(w, r); err != nil {
 				log.Errorln("checkStatus endpoint error:", err)
 			}
 			return
 		}
+
+		// all other request types just cause the UI to be served
 		if err := statusPageHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
@@ -160,17 +179,22 @@ func StartWebServer() error {
 				return nil
 			}
 			log.Warnln("TLS listener failed, serving HTTP:", err)
-		} else {
-			if certErr != nil {
-				log.Warnln("TLS cert file missing, serving HTTP:", certErr)
-			}
-			if keyErr != nil {
-				log.Warnln("TLS key file missing, serving HTTP:", keyErr)
-			}
+			return http.ListenAndServe(GlobalConfig.ListenAddress, handler)
 		}
+
+		if certErr != nil {
+			log.Warnln("TLS cert file missing, serving HTTP:", certErr)
+			return http.ListenAndServe(GlobalConfig.ListenAddress, handler)
+		}
+		if keyErr != nil {
+			log.Warnln("TLS key file missing, serving HTTP:", keyErr)
+			return http.ListenAndServe(GlobalConfig.ListenAddress, handler)
+		}
+		return fmt.Errorf("failed to start secure web server with cert %s and key %s", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile)
 	}
 
-	return http.ListenAndServe(GlobalConfig.ListenAddress, handler)
+	// no cert provided, so don't attempt to use one
+	return nil
 }
 
 // renderOpenAPISpec writes the OpenAPI spec as JSON.
@@ -192,12 +216,12 @@ func renderOpenAPISpec(w http.ResponseWriter) error {
 }
 
 // openapiYAMLHandler serves the OpenAPI spec at /openapi.yaml as JSON.
-func openapiYAMLHandler(w http.ResponseWriter, r *http.Request) error {
+func openapiYAMLHandler(w http.ResponseWriter, _ *http.Request) error {
 	return renderOpenAPISpec(w)
 }
 
 // openapiJSONHandler serves the OpenAPI spec at /openapi.json as JSON.
-func openapiJSONHandler(w http.ResponseWriter, r *http.Request) error {
+func openapiJSONHandler(w http.ResponseWriter, _ *http.Request) error {
 	return renderOpenAPISpec(w)
 }
 
@@ -455,7 +479,7 @@ var (
 )
 
 // prometheusMetricsHandler is a handler for all prometheus metrics requests
-func prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
+func prometheusMetricsHandler(w http.ResponseWriter, _ *http.Request) error {
 	state := getCurrentState([]string{})
 
 	m := metrics.GenerateMetrics(state, GlobalConfig.PromMetricsConfig)
@@ -468,7 +492,7 @@ func prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 // healthzHandler performs basic checks and writes OK when Kuberhealthy is healthy.
-func healthzHandler(w http.ResponseWriter, r *http.Request) error {
+func healthzHandler(w http.ResponseWriter, _ *http.Request) error {
 	if Globals.kubeClient == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return fmt.Errorf("kubernetes client not initialized")
@@ -849,10 +873,10 @@ func ensureCheckResourceExists(c client.Client, checkName string, checkNamespace
 
 	ctx := context.Background()
 	nn := types.NamespacedName{Name: checkName, Namespace: checkNamespace}
-	khCheck, err := khapi.GetCheck(ctx, c, nn)
+	_, err := khapi.GetCheck(ctx, c, nn)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			khCheck = &khapi.KuberhealthyCheck{ObjectMeta: metav1.ObjectMeta{Name: checkName, Namespace: checkNamespace}}
+			khCheck := &khapi.KuberhealthyCheck{ObjectMeta: metav1.ObjectMeta{Name: checkName, Namespace: checkNamespace}}
 			if err := khapi.CreateCheck(ctx, c, khCheck); err != nil {
 				return fmt.Errorf("failed to create khcheck %s/%s: %w", checkNamespace, checkName, err)
 			}

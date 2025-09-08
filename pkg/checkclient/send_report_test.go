@@ -21,6 +21,7 @@ func TestReportSuccessAndFailure(t *testing.T) {
 		call     func() error
 		expected khapi.KuberhealthyCheckStatus
 	}{
+		// success reports a healthy status with no errors
 		{
 			name: "success",
 			call: ReportSuccess,
@@ -29,6 +30,7 @@ func TestReportSuccessAndFailure(t *testing.T) {
 				Errors: []string{},
 			},
 		},
+		// failure reports an unhealthy status with provided errors
 		{
 			name: "failure",
 			call: func() error { return ReportFailure([]string{"err1", "err2"}) },
