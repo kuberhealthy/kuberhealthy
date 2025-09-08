@@ -13,6 +13,7 @@ import (
 // Config holds all configurable options
 // Values are primarily sourced from environment variables.
 type Config struct {
+	ListenAddressTLS       string
 	ListenAddress          string
 	LogLevel               string
 	MaxKHJobAge            time.Duration
@@ -47,6 +48,7 @@ func New() *Config {
 
 	return &Config{
 		ListenAddress:          ":80",
+		ListenAddressTLS:       ":443",
 		LogLevel:               "info",
 		checkReportURL:         fmt.Sprintf("%s.%s.svc.cluster.local", svc, ns),
 		DefaultRunInterval:     time.Minute * 10,
@@ -63,6 +65,10 @@ func New() *Config {
 func (c *Config) LoadFromEnv() error {
 	if v := os.Getenv("KH_LISTEN_ADDRESS"); v != "" {
 		c.ListenAddress = v
+	}
+
+	if v := os.Getenv("KH_LISTEN_ADDRESS_TLS"); v != "" {
+		c.ListenAddressTLS = v
 	}
 
 	if v := os.Getenv("KH_LOG_LEVEL"); v != "" {

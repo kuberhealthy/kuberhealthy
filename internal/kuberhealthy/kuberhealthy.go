@@ -263,7 +263,7 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khapi.KuberhealthyCheck) error {
 		"namespace": khcheck.Namespace,
 		"name":      khcheck.Name,
 		"pod":       podSpec.Name,
-	}).Info("created checker pod")
+	}).Info("Created checker pod")
 	if kh.Recorder != nil {
 		kh.Recorder.Eventf(khcheck, corev1.EventTypeNormal, "PodCreated", "created pod %s", podSpec.Name)
 	}
@@ -396,7 +396,7 @@ func (kh *Kuberhealthy) StopCheck(khcheck *khapi.KuberhealthyCheck) error {
 			"namespace": khcheck.Namespace,
 			"name":      khcheck.Name,
 			"pod":       podRef.Name,
-		}).Info("deleted checker pod")
+		}).Info("Deleted checker pod")
 	}
 	return nil
 }
@@ -407,7 +407,7 @@ func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khapi.KuberhealthyCheck, newKHCh
 		"namespace": newKHCheck.Namespace,
 		"name":      newKHCheck.Name,
 		"pod":       newKHCheck.Name,
-	}).Info("khcheck resoruce updated")
+	}).Info("KHCheck resoruce updated")
 	// TODO - do we do anything on updates to reload the latest check? How do we prevent locking into an infinite udpate window with the controller?
 
 	// // stop the check

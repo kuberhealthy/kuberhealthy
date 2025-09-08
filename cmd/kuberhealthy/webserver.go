@@ -168,33 +168,36 @@ func StartWebServer() error {
 	mux := newServeMux()
 	handler := requestLogger(mux)
 
-	log.Infoln("Starting web services on port", GlobalConfig.ListenAddress)
-
+	// if tls cert and key is set, then listen using TLS
 	if GlobalConfig.TLSCertFile != "" && GlobalConfig.TLSKeyFile != "" {
+		// load cert and key
 		_, certErr := os.Stat(GlobalConfig.TLSCertFile)
 		_, keyErr := os.Stat(GlobalConfig.TLSKeyFile)
-		if certErr == nil && keyErr == nil {
-			err := http.ListenAndServeTLS(GlobalConfig.ListenAddress, GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, handler)
-			if err == nil {
-				return nil
-			}
-			log.Warnln("TLS listener failed, serving HTTP:", err)
-			return http.ListenAndServe(GlobalConfig.ListenAddress, handler)
+
+		// if cert failed to load, throw error
+		if certErr != nil {
+			log.Errorln(":", certErr)
+			return fmt.Errorf("failed to start secure web server with cert %s and key %s due to error %w", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, certErr)
 		}
 
-		if certErr != nil {
-			log.Warnln("TLS cert file missing, serving HTTP:", certErr)
-			return http.ListenAndServe(GlobalConfig.ListenAddress, handler)
-		}
+		// if key failed to load, throw error
 		if keyErr != nil {
-			log.Warnln("TLS key file missing, serving HTTP:", keyErr)
-			return http.ListenAndServe(GlobalConfig.ListenAddress, handler)
+			log.Errorln("TLS key file missing:", keyErr)
+			return fmt.Errorf("failed to start secure web server with cert %s and key %s due to error %w", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, keyErr)
 		}
-		return fmt.Errorf("failed to start secure web server with cert %s and key %s", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile)
+
+		// load TLS web server and throw error if it fails
+		log.Infoln("Cert and key configured. Starting TLS listener on", GlobalConfig.ListenAddressTLS)
+		err := http.ListenAndServeTLS(GlobalConfig.ListenAddressTLS, GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, handler)
+		if err != nil {
+			log.Errorln("TLS listener failed to setup with error:", err)
+			return err
+		}
 	}
 
-	// no cert provided, so don't attempt to use one
-	return nil
+	// listen on normal http always
+	log.Infoln("Starting HTTP web services on", GlobalConfig.ListenAddress)
+	return http.ListenAndServe(GlobalConfig.ListenAddress, handler)
 }
 
 // renderOpenAPISpec writes the OpenAPI spec as JSON.

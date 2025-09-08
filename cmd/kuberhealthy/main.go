@@ -96,18 +96,18 @@ func main() {
 
 	select {
 	case <-ctx.Done():
-		log.Infoln("shutdown: shutdown initiated due to main context cancellation")
+		log.Infoln("shutdown initiated due to main context cancellation")
 	case <-interruptChan:
 		ctxCancel() // revoke the main context
-		log.Infoln("shutdown: shutdown initiated due to signal interrupt")
+		log.Infoln("shutdown initiated due to signal interrupt")
 	}
 
 	// once its time to shut down, we do so after the maximum timeout or when shutdown is complete gracefully
 	select {
 	case <-time.After(GlobalConfig.TerminationGracePeriod + (time.Second * 10)):
-		log.Errorln("shutdown: shutdown took too long - exiting forcefully")
+		log.Errorln("shutdown took too long - exiting forcefully")
 	case <-doneChan:
-		log.Infoln("shutdown: shutdown completed gracefully")
+		log.Infoln("shutdown completed gracefully")
 	}
 }
 
@@ -118,7 +118,7 @@ func listenForInterrupts(ctx context.Context, interruptChan chan struct{}) {
 	ctx, ctxCancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer ctxCancel()
 
-	log.Infoln("shutdown: waiting for sigChan notification...")
+	log.Infoln("Shutdown waiting for sigChan notification...")
 	<-ctx.Done()                // wait for signal to occur
 	interruptChan <- struct{}{} // notify that we got a signal
 
