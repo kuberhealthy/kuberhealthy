@@ -13,6 +13,8 @@
   let eventsTimer;
   let countdownTimer;
   let logStreamAbort;
+  let runButtonTimer;
+  let showRunButton = true;
 
   $: st = $checks[name];
 
@@ -20,6 +22,7 @@
     if(eventsTimer){ clearInterval(eventsTimer); eventsTimer = null; }
     if(countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
     if(logStreamAbort){ logStreamAbort.abort(); logStreamAbort = null; }
+    if(runButtonTimer){ clearTimeout(runButtonTimer); runButtonTimer = null; }
   }
 
   onMount(setup);
@@ -30,6 +33,7 @@
   function setup(){
     clearTimers();
     if(!st){ return; }
+    showRunButton = true;
     if(st.podName && st.timeoutSeconds){
       const failUnix = st.lastRunUnix + st.timeoutSeconds;
       updateFail(failUnix);
@@ -93,6 +97,9 @@
 
   async function runNow(){
     try{
+      showRunButton = false;
+      if(runButtonTimer){ clearTimeout(runButtonTimer); }
+      runButtonTimer = setTimeout(() => { showRunButton = true; runButtonTimer = null; }, 5000);
       await fetch('/api/run?namespace=' + encodeURIComponent(st.namespace) + '&khcheck=' + encodeURIComponent(name), {method:'POST'});
     }catch(e){ console.error(e); }
   }
@@ -125,7 +132,7 @@
         {/if}
       {:else if st.nextRunUnix}
         <p class="mb-2 flex items-center gap-2"><span class="font-semibold">Next run in:</span> {nextRun}
-          {#if !st.ok}
+          {#if showRunButton}
             <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run again now</button>
           {/if}
         </p>
