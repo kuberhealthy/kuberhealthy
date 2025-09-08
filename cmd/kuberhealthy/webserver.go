@@ -64,78 +64,97 @@ func requestLogger(next http.Handler) http.Handler {
 func newServeMux() *http.ServeMux {
 	mux := http.NewServeMux()
 
+	// Metrics endpoint for prometheus metrics
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		if err := prometheusMetricsHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// General healthcheck endpoint for heartbeats
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if err := healthzHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// JSON status page for easy API integration
 	mux.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
 		if err := healthCheckHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// UI Endpoint for listing khcheck events
 	mux.HandleFunc("/api/events", func(w http.ResponseWriter, r *http.Request) {
 		if err := eventListHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// UI Endpoint for fetching khcheck pod logs
 	mux.HandleFunc("/api/logs", func(w http.ResponseWriter, r *http.Request) {
 		if err := podLogsHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// UI Endpoint for tailing khcheck pod logs
 	mux.HandleFunc("/api/logs/stream", func(w http.ResponseWriter, r *http.Request) {
 		if err := podLogsStreamHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// YAML output of OpenAPI spec
 	mux.HandleFunc("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
 		if err := openapiYAMLHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// JSON output of OpenAPI spec
 	mux.HandleFunc("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
 		if err := openapiJSONHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// static asset hosting for web ui
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./assets"))))
 
+	// allows the web interface to kick off a khcheck run immediately
 	mux.HandleFunc("/api/run", func(w http.ResponseWriter, r *http.Request) {
 		if err := runCheckHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
 	})
 
+	// Kubernetes webhook endpoints for converting old kuberhealthy v2 checks and jobs to v3 checks
 	mux.HandleFunc("/api/convert", webhook.Convert)
 	mux.HandleFunc("/api/khjobconvert", jobwebhook.Convert)
 
+	// this is where khcheck pods report back with their check status
 	mux.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
 		if err := checkReportHandler(w, r); err != nil {
 			log.Errorln("checkStatus endpoint error:", err)
 		}
 	})
 
+	// This is the main handler that serves the web interface or handles khcheck reports depending on
+	// on the http request type. This is partially for backwards compatibility with other older versions
+	// of Kuberhealthy.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+		// if we get a post, handle it as a checker pod reporting in
 		if r.Method == http.MethodPost {
 			if err := checkReportHandler(w, r); err != nil {
 				log.Errorln("checkStatus endpoint error:", err)
 			}
 			return
 		}
+
+		// all other request types just cause the UI to be served
 		if err := statusPageHandler(w, r); err != nil {
 			log.Errorln(err)
 		}
