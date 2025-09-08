@@ -83,12 +83,11 @@ func main() {
 		log.Errorln("startup: failed to start kuberhealthy:", err)
 	}
 
-	// start the web status server
-	go func() {
-		if err := StartWebServer(); err != nil {
-			log.Errorln("web server error:", err)
-		}
-	}()
+	// start the web server listeners
+	err = StartWebServer()
+	if err != nil {
+		log.Errorln("web server startup error:", err)
+	}
 
 	// we must know when a shutdown signal is trapped or the main context has been canceled
 	interruptChan := make(chan struct{})

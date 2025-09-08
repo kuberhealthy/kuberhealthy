@@ -47,7 +47,7 @@ func New() *Config {
 	}
 
 	return &Config{
-		ListenAddress:          ":80",
+		ListenAddress:          ":8080",
 		ListenAddressTLS:       ":443",
 		LogLevel:               "info",
 		checkReportURL:         fmt.Sprintf("%s.%s.svc.cluster.local", svc, ns),

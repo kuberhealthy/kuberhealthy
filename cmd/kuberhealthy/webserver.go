@@ -170,6 +170,8 @@ func StartWebServer() error {
 
 	// if tls cert and key is set, then listen using TLS
 	if GlobalConfig.TLSCertFile != "" && GlobalConfig.TLSKeyFile != "" {
+		log.Infoln("TLS ceritificate and key configured. Starting TLS listener on", GlobalConfig.ListenAddressTLS)
+
 		// load cert and key
 		_, certErr := os.Stat(GlobalConfig.TLSCertFile)
 		_, keyErr := os.Stat(GlobalConfig.TLSKeyFile)
@@ -186,18 +188,25 @@ func StartWebServer() error {
 			return fmt.Errorf("failed to start secure web server with cert %s and key %s due to error %w", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, keyErr)
 		}
 
-		// load TLS web server and throw error if it fails
-		log.Infoln("Cert and key configured. Starting TLS listener on", GlobalConfig.ListenAddressTLS)
-		err := http.ListenAndServeTLS(GlobalConfig.ListenAddressTLS, GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, handler)
-		if err != nil {
-			log.Errorln("TLS listener failed to setup with error:", err)
-			return err
-		}
+		// start the TLS web server in a go routine and throw an error if it fails to start up
+		go func() {
+			err := http.ListenAndServeTLS(GlobalConfig.ListenAddressTLS, GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, handler)
+			if err != nil {
+				log.Errorln("TLS listener failed to setup with error:", err)
+			}
+		}()
 	}
 
 	// listen on normal http always
 	log.Infoln("Starting HTTP web services on", GlobalConfig.ListenAddress)
-	return http.ListenAndServe(GlobalConfig.ListenAddress, handler)
+	go func() {
+		err := http.ListenAndServe(GlobalConfig.ListenAddress, handler)
+		if err != nil {
+			log.Errorln("HTTP listener failed to setup with error:", err)
+		}
+	}()
+
+	return nil
 }
 
 // renderOpenAPISpec writes the OpenAPI spec as JSON.
