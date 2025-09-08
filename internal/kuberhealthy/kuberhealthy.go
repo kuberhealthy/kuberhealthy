@@ -47,10 +47,14 @@ type Kuberhealthy struct {
 
 	loopMu      sync.Mutex
 	loopRunning bool
+	doneChan    chan struct{} // signaled when shutdown completes
 }
 
-// New creates a new Kuberhealthy instance and event recorder
-func New(ctx context.Context, checkClient client.Client) *Kuberhealthy {
+// New creates a new Kuberhealthy instance, event recorder, and optional shutdown notifier.
+// The shutdown channel can be omitted or passed as nil if not needed.
+func New(ctx context.Context, checkClient client.Client, doneChan ...chan struct{}) *Kuberhealthy {
+	log.Infoln("New Kuberhealthy instance created")
+
 	var recorder record.EventRecorder
 
 	cfg, err := restconfig.GetConfig()
@@ -71,10 +75,16 @@ func New(ctx context.Context, checkClient client.Client) *Kuberhealthy {
 		}
 	}
 
+	var ch chan struct{}
+	if len(doneChan) > 0 {
+		ch = doneChan[0]
+	}
+
 	return &Kuberhealthy{
 		Context:     ctx,
 		CheckClient: checkClient,
 		Recorder:    recorder,
+		doneChan:    ch,
 	}
 }
 
@@ -105,6 +115,13 @@ func (kh *Kuberhealthy) Start(ctx context.Context, cfg *rest.Config) error {
 
 	kh.Context, kh.cancel = context.WithCancel(ctx)
 	kh.running = true
+	if kh.doneChan != nil {
+		go func() {
+			<-kh.Context.Done()
+			kh.running = false
+			kh.doneChan <- struct{}{}
+		}()
+	}
 	go kh.startScheduleLoop()
 	go kh.runReaper(kh.Context, time.Minute)
 	if cfg != nil {
