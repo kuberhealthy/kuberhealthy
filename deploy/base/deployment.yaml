@@ -24,7 +24,7 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
         - name: KH_LISTEN_ADDRESS
-          value: ":80"
+          value: ":8080"
         - name: KH_LOG_LEVEL
           value: "info"
         - name: KH_MAX_JOB_AGE
@@ -64,18 +64,17 @@ spec:
         - name: KH_TLS_KEY_FILE
           value: "/tls/tls.key"
         ports:
-        - containerPort: 80
         - containerPort: 8080
         livenessProbe:
           httpGet:
             path: /healthz
-            port: 80
+            port: 8080
           initialDelaySeconds: 5
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /healthz
-            port: 80
+            port: 8080
           initialDelaySeconds: 5
           periodSeconds: 10
         volumeMounts:
