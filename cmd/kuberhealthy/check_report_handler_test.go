@@ -33,6 +33,7 @@ func TestCheckReportHandler(t *testing.T) {
 	Globals.khClient = nil
 	Globals.kh = nil
 
+	// valid report is persisted and returns HTTP 200
 	t.Run("valid report", func(t *testing.T) {
 		validateUsingRequestHeaderFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
 			return PodReportInfo{Name: "my-check", Namespace: "my-namespace", UUID: "abc"}, true, nil
@@ -69,6 +70,7 @@ func TestCheckReportHandler(t *testing.T) {
 		}
 	})
 
+	// a report lacking error details while not OK results in a bad request
 	t.Run("missing error when not OK", func(t *testing.T) {
 		validateUsingRequestHeaderFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
 			return PodReportInfo{Name: "my-check", Namespace: "my-namespace", UUID: "abc"}, true, nil
@@ -99,6 +101,7 @@ func TestCheckReportHandler(t *testing.T) {
 		}
 	})
 
+	// providing errors while OK leads to a bad request and no state storage
 	t.Run("errors present when OK", func(t *testing.T) {
 		validateUsingRequestHeaderFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
 			return PodReportInfo{Name: "my-check", Namespace: "my-namespace", UUID: "abc"}, true, nil

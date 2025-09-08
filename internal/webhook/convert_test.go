@@ -18,6 +18,7 @@ import (
 	yaml "sigs.k8s.io/yaml"
 )
 
+// TestConvert upgrades a v1 check to the current API version via the conversion webhook.
 func TestConvert(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping webhook conversion test in short mode")
@@ -74,6 +75,7 @@ func TestConvert(t *testing.T) {
 	require.Equal(t, "kuberhealthy.github.io/v2", converted.APIVersion)
 }
 
+// TestConvertLegacySpec converts a legacy YAML check definition to the current API version.
 func TestConvertLegacySpec(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping legacy webhook conversion test in short mode")

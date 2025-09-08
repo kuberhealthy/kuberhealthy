@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+// TestAddFinalizer attaches the finalizer to new Kuberhealthy checks.
 func TestAddFinalizer(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
@@ -34,6 +35,7 @@ func TestAddFinalizer(t *testing.T) {
 	require.Contains(t, fetched.Finalizers, khCheckFinalizer)
 }
 
+// TestHandleUpdateRemovesFinalizer strips the finalizer when a check is marked for deletion.
 func TestHandleUpdateRemovesFinalizer(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
@@ -62,6 +64,7 @@ func TestHandleUpdateRemovesFinalizer(t *testing.T) {
 	require.NotContains(t, fetched.Finalizers, khCheckFinalizer)
 }
 
+// TestHandleDeleteRemovesFinalizer removes the finalizer during delete handling.
 func TestHandleDeleteRemovesFinalizer(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()

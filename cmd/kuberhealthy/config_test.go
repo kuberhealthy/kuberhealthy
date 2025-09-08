@@ -95,7 +95,7 @@ func TestLoadFromEnvInvalid(t *testing.T) {
 	}
 }
 
-// TestReportingURLFromServiceAndNamespace constructs the reporting URL when service name and namespace are provided.
+// TestReportingURLFromServiceAndNamespace constructs the reporting URL using service name and namespace.
 func TestReportingURLFromServiceAndNamespace(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping reporting URL test in short mode")
@@ -114,6 +114,7 @@ func TestReportingURLFromServiceAndNamespace(t *testing.T) {
 	}
 }
 
+// TestLoadTLSFiles reads TLS certificate and key paths from environment variables.
 func TestLoadTLSFiles(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TLS file test in short mode")
