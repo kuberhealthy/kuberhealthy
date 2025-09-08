@@ -105,7 +105,7 @@
   <div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4">
     <h3 class="text-xl font-semibold mb-2">Overview</h3>
     {#if st}
-      <p class="mb-2"><span class="font-semibold">Status:</span> <span class={st.podName ? 'text-blue-600' : (st.ok ? 'text-green-600' : 'text-red-600')}>{st.podName ? 'Running' : (st.ok ? 'OK' : 'Fail')}</span></p>
+      <p class="mb-2"><span class="font-semibold">Status:</span> <span class={st.podName ? 'text-blue-600' : st.ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>{st.podName ? 'Running' : st.ok ? 'OK' : 'ERROR'}</span></p>
       <p class="mb-2"><span class="font-semibold">Namespace:</span> {st.namespace}</p>
       {#if st.runIntervalSeconds}
         <p class="mb-2"><span class="font-semibold">Run interval:</span> {formatDuration(st.runIntervalSeconds*1000)}</p>
