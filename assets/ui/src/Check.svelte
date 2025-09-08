@@ -119,7 +119,9 @@
           <p class="mb-2"><span class="font-semibold">Fail in:</span> {failIn}</p>
         {/if}
       {:else if st.nextRunUnix}
-        <p class="mb-2 flex items-center gap-2"><span class="font-semibold">Next run in:</span> {nextRun}<button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run now</button></p>
+        <p class="mb-2 flex items-center gap-2"><span class="font-semibold">Next run in:</span> {nextRun}<button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run again now</button></p>
+      {:else if !st.ok}
+        <p class="mb-2"><button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run again now</button></p>
       {/if}
       {#if st.lastRunUnix}
         <p class="mb-2"><span class="font-semibold">Last run:</span> {new Date(st.lastRunUnix*1000).toLocaleString()}</p>
