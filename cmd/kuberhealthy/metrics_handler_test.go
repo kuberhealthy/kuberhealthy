@@ -56,7 +56,7 @@ func TestPrometheusMetricsEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed reading body: %v", err)
 	}
-	if !strings.Contains(string(body), "kuberhealthy_running") {
+	if !strings.Contains(string(body), "kuberhealthy_cluster_state") {
 		t.Fatalf("unexpected metrics body: %s", string(body))
 	}
 }
