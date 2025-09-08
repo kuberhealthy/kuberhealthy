@@ -18,7 +18,7 @@
 </script>
 
 <div class="w-64 border-r overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-200 dark:from-gray-900 dark:to-gray-700 shadow-inner">
-  <div class="p-3 font-semibold text-gray-700 dark:text-gray-300">Checks</div>
+  <div class="p-3 font-semibold text-gray-700 dark:text-gray-300">Checks by Namespace</div>
   {#each Object.keys(grouped).sort() as ns}
     <div class="px-3 py-1 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">{ns}</div>
     {#each grouped[ns].sort((a,b)=>a.name.localeCompare(b.name)) as item}
