@@ -13,24 +13,24 @@ import (
 // Config holds all configurable options
 // Values are primarily sourced from environment variables.
 type Config struct {
-	ListenAddress                 string
-	LogLevel                      string
-	MaxKHJobAge                   time.Duration
-	MaxCheckPodAge                time.Duration
-	MaxCompletedPodCount          int
-	MaxErrorPodCount              int
-	ErrorPodRetentionDays         int
-	PromMetricsConfig             metrics.PromMetricsConfig
-	TargetNamespace               string
-	DefaultRunInterval            time.Duration
-	checkReportURL                string // the hostname checks will report to
-	TerminationGracePeriodSeconds time.Duration
-	DefaultCheckTimeout           time.Duration
-	DefaultNamespace              string
-	Namespace                     string // the namespace kh is running in
-	ServiceName                   string // kuberhealthy service name
-	TLSCertFile                   string
-	TLSKeyFile                    string
+	ListenAddress          string
+	LogLevel               string
+	MaxKHJobAge            time.Duration
+	MaxCheckPodAge         time.Duration
+	MaxCompletedPodCount   int
+	MaxErrorPodCount       int
+	ErrorPodRetentionDays  int
+	PromMetricsConfig      metrics.PromMetricsConfig
+	TargetNamespace        string
+	DefaultRunInterval     time.Duration
+	checkReportURL         string // the hostname checks will report to
+	TerminationGracePeriod time.Duration
+	DefaultCheckTimeout    time.Duration
+	DefaultNamespace       string
+	Namespace              string // the namespace kh is running in
+	ServiceName            string // kuberhealthy service name
+	TLSCertFile            string
+	TLSKeyFile             string
 }
 
 // New creates a Config populated with sane defaults.
@@ -46,16 +46,16 @@ func New() *Config {
 	}
 
 	return &Config{
-		ListenAddress:                 ":80",
-		LogLevel:                      "info",
-		checkReportURL:                fmt.Sprintf("%s.%s.svc.cluster.local", svc, ns),
-		DefaultRunInterval:            time.Minute * 10,
-		TerminationGracePeriodSeconds: time.Minute * 5,
-		DefaultCheckTimeout:           30 * time.Second,
-		Namespace:                     ns,
-		ServiceName:                   svc,
-		MaxErrorPodCount:              5,
-		ErrorPodRetentionDays:         4,
+		ListenAddress:          ":80",
+		LogLevel:               "info",
+		checkReportURL:         fmt.Sprintf("%s.%s.svc.cluster.local", svc, ns),
+		DefaultRunInterval:     time.Minute * 10,
+		TerminationGracePeriod: time.Minute * 5,
+		DefaultCheckTimeout:    30 * time.Second,
+		Namespace:              ns,
+		ServiceName:            svc,
+		MaxErrorPodCount:       5,
+		ErrorPodRetentionDays:  4,
 	}
 }
 
@@ -157,7 +157,7 @@ func (c *Config) LoadFromEnv() error {
 		if err != nil {
 			return fmt.Errorf("invalid KH_TERMINATION_GRACE_PERIOD: %w", err)
 		}
-		c.TerminationGracePeriodSeconds = d
+		c.TerminationGracePeriod = d
 	}
 
 	if v := os.Getenv("KH_DEFAULT_CHECK_TIMEOUT"); v != "" {

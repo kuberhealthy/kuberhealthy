@@ -192,12 +192,12 @@ func renderOpenAPISpec(w http.ResponseWriter) error {
 }
 
 // openapiYAMLHandler serves the OpenAPI spec at /openapi.yaml as JSON.
-func openapiYAMLHandler(w http.ResponseWriter, r *http.Request) error {
+func openapiYAMLHandler(w http.ResponseWriter, _ *http.Request) error {
 	return renderOpenAPISpec(w)
 }
 
 // openapiJSONHandler serves the OpenAPI spec at /openapi.json as JSON.
-func openapiJSONHandler(w http.ResponseWriter, r *http.Request) error {
+func openapiJSONHandler(w http.ResponseWriter, _ *http.Request) error {
 	return renderOpenAPISpec(w)
 }
 
@@ -455,7 +455,7 @@ var (
 )
 
 // prometheusMetricsHandler is a handler for all prometheus metrics requests
-func prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
+func prometheusMetricsHandler(w http.ResponseWriter, _ *http.Request) error {
 	state := getCurrentState([]string{})
 
 	m := metrics.GenerateMetrics(state, GlobalConfig.PromMetricsConfig)
@@ -468,7 +468,7 @@ func prometheusMetricsHandler(w http.ResponseWriter, r *http.Request) error {
 }
 
 // healthzHandler performs basic checks and writes OK when Kuberhealthy is healthy.
-func healthzHandler(w http.ResponseWriter, r *http.Request) error {
+func healthzHandler(w http.ResponseWriter, _ *http.Request) error {
 	if Globals.kubeClient == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return fmt.Errorf("kubernetes client not initialized")
@@ -849,10 +849,10 @@ func ensureCheckResourceExists(c client.Client, checkName string, checkNamespace
 
 	ctx := context.Background()
 	nn := types.NamespacedName{Name: checkName, Namespace: checkNamespace}
-	khCheck, err := khapi.GetCheck(ctx, c, nn)
+	_, err := khapi.GetCheck(ctx, c, nn)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			khCheck = &khapi.KuberhealthyCheck{ObjectMeta: metav1.ObjectMeta{Name: checkName, Namespace: checkNamespace}}
+			khCheck := &khapi.KuberhealthyCheck{ObjectMeta: metav1.ObjectMeta{Name: checkName, Namespace: checkNamespace}}
 			if err := khapi.CreateCheck(ctx, c, khCheck); err != nil {
 				return fmt.Errorf("failed to create khcheck %s/%s: %w", checkNamespace, checkName, err)
 			}

@@ -72,8 +72,8 @@ func TestLoadFromEnv(t *testing.T) {
 	if cfg.ServiceName != "svcname" {
 		t.Errorf("ServiceName parsed incorrectly: %s", cfg.ServiceName)
 	}
-	if cfg.TerminationGracePeriodSeconds != 30*time.Second {
-		t.Errorf("TerminationGracePeriodSeconds parsed incorrectly: %v", cfg.TerminationGracePeriodSeconds)
+	if cfg.TerminationGracePeriod != 30*time.Second {
+		t.Errorf("TerminationGracePeriodSeconds parsed incorrectly: %v", cfg.TerminationGracePeriod)
 	}
 	if cfg.DefaultCheckTimeout != time.Minute {
 		t.Errorf("DefaultCheckTimeout parsed incorrectly: %v", cfg.DefaultCheckTimeout)
