@@ -294,6 +294,7 @@ type podSummary struct {
 type podLogResponse struct {
 	podSummary
 	Logs string `json:"logs"`
+	YAML string `json:"yaml,omitempty"`
 }
 
 type eventSummary struct {
@@ -376,6 +377,11 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
+	podYAML, err := yaml.Marshal(pod)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
 	resp := podLogResponse{
 		podSummary: podSummary{
 			Name:        podName,
@@ -385,6 +391,7 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 			Annotations: pod.Annotations,
 		},
 		Logs: string(b),
+		YAML: string(podYAML),
 	}
 	if pod.Status.StartTime != nil {
 		resp.StartTime = pod.Status.StartTime.Unix()

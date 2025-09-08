@@ -345,6 +345,8 @@ components:
             type: string
         logs:
           type: string
+        yaml:
+          type: string
       required:
         - name
         - namespace

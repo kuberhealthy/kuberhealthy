@@ -8,7 +8,7 @@
   let nextRun = '';
   let failIn = '';
   let events = [];
-  let podInfo = '';
+  let podYaml = '';
   let logText = '';
   let eventsTimer;
   let countdownTimer;
@@ -41,7 +41,7 @@
     if(st.podName){
       loadLogs();
     } else {
-      podInfo = '';
+      podYaml = '';
       logText = '';
     }
     loadEvents();
@@ -68,9 +68,7 @@
     try{
       const params = 'namespace=' + encodeURIComponent(st.namespace) + '&khcheck=' + encodeURIComponent(name) + '&pod=' + encodeURIComponent(st.podName);
       const res = await (await fetch('/api/logs?' + params)).json();
-      podInfo = 'Started: ' + (res.startTime ? new Date(res.startTime*1000).toLocaleString() : '') +
-        ' Duration: ' + res.durationSeconds + 's Phase: ' + res.phase +
-        (res.labels ? ' Labels: ' + Object.entries(res.labels).map(([k,v])=>k+':' + v).join(', ') : '');
+      podYaml = res.yaml || '';
       logText = res.logs || '';
       if(res.phase === 'Running'){
         streamLogs('/api/logs/stream?' + params);
@@ -105,7 +103,14 @@
   <div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4">
     <h3 class="text-xl font-semibold mb-2">Overview</h3>
     {#if st}
-      <p class="mb-2"><span class="font-semibold">Status:</span> <span class={st.podName ? 'text-blue-600' : (st.ok ? 'text-green-600' : 'text-red-600')}>{st.podName ? 'Running' : (st.ok ? 'OK' : 'Fail')}</span></p>
+      <p class="mb-2"><span class="font-semibold">Status:</span>
+        <span class={st.podName ? 'text-blue-600' : (st.ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold')}>
+          {st.podName ? 'Running' : (st.ok ? 'OK' : 'ERROR')}
+        </span>
+        {#if !st.ok && st.errors && st.errors.length}
+          - {st.errors[0]}
+        {/if}
+      </p>
       <p class="mb-2"><span class="font-semibold">Namespace:</span> {st.namespace}</p>
       {#if st.runIntervalSeconds}
         <p class="mb-2"><span class="font-semibold">Run interval:</span> {formatDuration(st.runIntervalSeconds*1000)}</p>
@@ -119,7 +124,11 @@
           <p class="mb-2"><span class="font-semibold">Fail in:</span> {failIn}</p>
         {/if}
       {:else if st.nextRunUnix}
-        <p class="mb-2 flex items-center gap-2"><span class="font-semibold">Next run in:</span> {nextRun}<button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run now</button></p>
+        <p class="mb-2 flex items-center gap-2"><span class="font-semibold">Next run in:</span> {nextRun}
+          {#if !st.ok}
+            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run again now</button>
+          {/if}
+        </p>
       {/if}
       {#if st.lastRunUnix}
         <p class="mb-2"><span class="font-semibold">Last run:</span> {new Date(st.lastRunUnix*1000).toLocaleString()}</p>
@@ -142,11 +151,11 @@
     {/if}
   </div>
   <div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4">
-    <h3 class="text-xl font-semibold mb-2">Pod Details</h3>
-    <div>{podInfo}</div>
+    <h3 class="text-xl font-semibold mb-2">Checker Pod YAML</h3>
+    <pre class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-4 rounded shadow-inner">{podYaml}</pre>
   </div>
   <div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4">
-    <h3 class="text-xl font-semibold mb-2">Logs</h3>
+    <h3 class="text-xl font-semibold mb-2">Checker Pod Logs</h3>
     <pre class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-4 rounded shadow-inner">{logText}</pre>
   </div>
 </div>
