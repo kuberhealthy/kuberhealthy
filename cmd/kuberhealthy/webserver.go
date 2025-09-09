@@ -171,14 +171,14 @@ func startTLSServer(certFile string, keyFile string, handler http.Handler) {
 	_, keyErr := os.Stat(GlobalConfig.TLSKeyFile)
 
 	// if cert failed to load, throw error
-	if certErr != nil {
-		log.Errorln("failed to start secure web server with cert %s and key %s due to error %w", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, certErr)
-	}
+    if certErr != nil {
+        log.Errorf("failed to start secure web server with cert %s and key %s due to error %v", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, certErr)
+    }
 
 	// if key failed to load, throw error
-	if keyErr != nil {
-		log.Errorln("failed to start secure web server with cert %s and key %s due to error %w", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, keyErr)
-	}
+    if keyErr != nil {
+        log.Errorf("failed to start secure web server with cert %s and key %s due to error %v", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, keyErr)
+    }
 
 	// start the TLS web server in a go routine and throw an error if it fails to start up
 	go func() {

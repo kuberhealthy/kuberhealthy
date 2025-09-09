@@ -1,4 +1,4 @@
-#/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 CLUSTER_NAME="kuberhealthy"
@@ -6,7 +6,13 @@ IMAGE="docker.io/kuberhealthy/kuberhealthy:localdev"
 TARGET_NAMESPACE="kuberhealthy"
 KIND_VERSION="v1.29.0"
 KH_CHECK_REPORT_HOSTNAME="kuberhealthy.${TARGET_NAMESPACE}.svc.cluster.local"
+# Ensure we use Podman for kind
 export KIND_EXPERIMENTAL_PROVIDER=podman
+
+# Use a dedicated kubeconfig for this local kind cluster so kubectl
+# commands in this script always target the correct context and server.
+KUBECONFIG_PATH="${KUBECONFIG:-"$(pwd)/tests/kubeconfig.kind.${CLUSTER_NAME}"}"
+export KUBECONFIG="${KUBECONFIG_PATH}"
 
 # Track log follower PID so we can stop/restart when rebuilding
 LOG_PID=""
@@ -32,6 +38,12 @@ ensure_cluster() {
     echo "🚀 Creating kind cluster: $CLUSTER_NAME"
     kind create cluster --name "$CLUSTER_NAME" --image "kindest/node:$KIND_VERSION"
   fi
+
+  # Always export kubeconfig to ensure localhost endpoint and current context
+  # are correctly set (especially important with the Podman provider on macOS).
+  echo "🗂️  Exporting kubeconfig to ${KUBECONFIG} and selecting context"
+  kind export kubeconfig --name "$CLUSTER_NAME" --kubeconfig "$KUBECONFIG"
+  kubectl config use-context "kind-${CLUSTER_NAME}" >/dev/null
 }
 
 build_and_load() {
