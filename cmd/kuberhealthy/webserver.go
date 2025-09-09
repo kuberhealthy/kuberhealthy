@@ -163,41 +163,34 @@ func newServeMux() *http.ServeMux {
 	return mux
 }
 
-// StartWebServer starts the web server with all handlers attached to the muxer.
-func StartWebServer() error {
-	mux := newServeMux()
-	handler := requestLogger(mux)
+func startTLSServer(certFile string, keyFile string, handler http.Handler) {
+	log.Infoln("TLS ceritificate and key configured. Starting TLS listener on", GlobalConfig.ListenAddressTLS)
 
-	// if tls cert and key is set, then listen using TLS
-	if GlobalConfig.TLSCertFile != "" && GlobalConfig.TLSKeyFile != "" {
-		log.Infoln("TLS ceritificate and key configured. Starting TLS listener on", GlobalConfig.ListenAddressTLS)
+	// load cert and key
+	_, certErr := os.Stat(GlobalConfig.TLSCertFile)
+	_, keyErr := os.Stat(GlobalConfig.TLSKeyFile)
 
-		// load cert and key
-		_, certErr := os.Stat(GlobalConfig.TLSCertFile)
-		_, keyErr := os.Stat(GlobalConfig.TLSKeyFile)
-
-		// if cert failed to load, throw error
-		if certErr != nil {
-			log.Errorln(":", certErr)
-			return fmt.Errorf("failed to start secure web server with cert %s and key %s due to error %w", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, certErr)
-		}
-
-		// if key failed to load, throw error
-		if keyErr != nil {
-			log.Errorln("TLS key file missing:", keyErr)
-			return fmt.Errorf("failed to start secure web server with cert %s and key %s due to error %w", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, keyErr)
-		}
-
-		// start the TLS web server in a go routine and throw an error if it fails to start up
-		go func() {
-			err := http.ListenAndServeTLS(GlobalConfig.ListenAddressTLS, GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, handler)
-			if err != nil {
-				log.Errorln("TLS listener failed to setup with error:", err)
-			}
-		}()
+	// if cert failed to load, throw error
+	if certErr != nil {
+		log.Errorln("failed to start secure web server with cert %s and key %s due to error %w", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, certErr)
 	}
 
-	// listen on normal http always
+	// if key failed to load, throw error
+	if keyErr != nil {
+		log.Errorln("failed to start secure web server with cert %s and key %s due to error %w", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, keyErr)
+	}
+
+	// start the TLS web server in a go routine and throw an error if it fails to start up
+	go func() {
+		err := http.ListenAndServeTLS(GlobalConfig.ListenAddressTLS, GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, handler)
+		if err != nil {
+			log.Errorln("TLS listener failed to setup with error:", err)
+		}
+	}()
+
+}
+
+func startHTTPServer(handler http.Handler) {
 	log.Infoln("Starting HTTP web services on", GlobalConfig.ListenAddress)
 	go func() {
 		err := http.ListenAndServe(GlobalConfig.ListenAddress, handler)
@@ -205,6 +198,22 @@ func StartWebServer() error {
 			log.Errorln("HTTP listener failed to setup with error:", err)
 		}
 	}()
+}
+
+// StartWebServer starts the web server with all handlers attached to the muxer.
+func StartWebServer() error {
+
+	// build a muxer to route requests, then wrap it so it always writes logs
+	mux := newServeMux()
+	handler := requestLogger(mux)
+
+	// listen on normal http always
+	startHTTPServer(handler)
+
+	// if tls cert and key is set, then listen using TLS
+	if GlobalConfig.TLSCertFile != "" && GlobalConfig.TLSKeyFile != "" {
+		startTLSServer(GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, handler)
+	}
 
 	return nil
 }
