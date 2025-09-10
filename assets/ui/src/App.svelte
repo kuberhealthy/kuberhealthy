@@ -15,7 +15,8 @@
 
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
-    const check = params.get('check');
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const check = params.get('check') || hashParams.get('check');
     if(check){ currentCheck.set(check); }
     refresh();
     const timer = setInterval(refresh, 5000);
@@ -29,9 +30,11 @@
       params.set('namespace', st.namespace);
       params.set('check', $currentCheck);
       history.replaceState(null, '', '?' + params.toString());
+      location.hash = 'check=' + encodeURIComponent($currentCheck);
     }
   } else {
     history.replaceState(null, '', location.pathname);
+    location.hash = '';
   }
 
 </script>
