@@ -9,11 +9,6 @@ KH_CHECK_REPORT_HOSTNAME="kuberhealthy.${TARGET_NAMESPACE}.svc.cluster.local"
 # Ensure we use Podman for kind
 export KIND_EXPERIMENTAL_PROVIDER=podman
 
-# Use a dedicated kubeconfig for this local kind cluster so kubectl
-# commands in this script always target the correct context and server.
-KUBECONFIG_PATH="${KUBECONFIG:-"$(pwd)/tests/kubeconfig.kind.${CLUSTER_NAME}"}"
-export KUBECONFIG="${KUBECONFIG_PATH}"
-
 # Track log follower PID so we can stop/restart when rebuilding
 LOG_PID=""
 
@@ -41,10 +36,6 @@ ensure_cluster() {
 
   # Always export kubeconfig to ensure localhost endpoint and current context
   # are correctly set (especially important with the Podman provider on macOS).
-  echo "🗂️  Exporting kubeconfig to ${KUBECONFIG} and selecting context"
-  kind export kubeconfig --name "$CLUSTER_NAME" --kubeconfig "$KUBECONFIG"
-  kubectl config use-context "kind-${CLUSTER_NAME}" >/dev/null
-}
 
 build_and_load() {
   echo "📦 Building Podman image: $IMAGE"
@@ -56,17 +47,17 @@ build_and_load() {
   kind load image-archive "${TMP_IMG_TAR}" --name "$CLUSTER_NAME"
   rm -f "${TMP_IMG_TAR}"
 
-  if kubectl -n "$TARGET_NAMESPACE" get deploy kuberhealthy >/dev/null 2>&1; then
+  if kubectl --context="kind-${CLUSTER_NAME}" -n "$TARGET_NAMESPACE" get deploy kuberhealthy >/dev/null 2>&1; then
     echo "🔁 Restarting deployment/kuberhealthy to pick up new image"
-    kubectl -n "$TARGET_NAMESPACE" rollout restart deploy/kuberhealthy
+    kubectl --context="kind-${CLUSTER_NAME}"-n "$TARGET_NAMESPACE" rollout restart deploy/kuberhealthy
   fi
 }
 
 start_logs() {
   echo "🪵 Tailing Kuberhealthy logs..."
-  kubectl get pod -n "$TARGET_NAMESPACE"
+  kubectl --context="kind-${CLUSTER_NAME}"get pod -n "$TARGET_NAMESPACE"
   set +e
-  kubectl logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy -f &
+  kubectl --context="kind-${CLUSTER_NAME}"logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy -f &
   LOG_PID=$!
   set -e
 }
@@ -94,12 +85,12 @@ ensure_cluster
 build_and_load
 
 echo "📤 Ensuring deployment manifest is applied"
-kubectl apply -k deploy/
+kubectl --context="kind-${CLUSTER_NAME}"apply -k deploy/
 
 echo "⏳ Waiting for Kuberhealthy deployment to apply..."
 FOUND_DEPLOYMENT=FALSE
 for i in {1..30}; do
-  if kubectl get deployment kuberhealthy -n kuberhealthy &> /dev/null; then
+  if kubectl --context="kind-${CLUSTER_NAME}" get deployment kuberhealthy -n kuberhealthy &> /dev/null; then
     echo "✅ Kuberhealthy deployment exists"
     FOUND_DEPLOYMENT=TRUE
     break
@@ -116,7 +107,7 @@ fi
 echo "⏳ Waiting for Kuberhealthy pods to be online..."
 FOUND_POD=FALSE
 for i in {1..30}; do
-  if kubectl get pods -n kuberhealthy -l app=kuberhealthy --no-headers 2>/dev/null | grep -v Pending | grep -v ContainerCreating | grep -q .; then
+  if kubectl --context="kind-${CLUSTER_NAME}" get pods -n kuberhealthy -l app=kuberhealthy --no-headers 2>/dev/null | grep -v Pending | grep -v ContainerCreating | grep -q .; then
     echo "✅ Kuberhealthy pod exists"
     FOUND_POD=TRUE
     break
@@ -129,7 +120,7 @@ done
 if [ "$FOUND_POD" = false ]; then
   echo "‼️ Kuberhealthy pod did not come online."
   echo "‼️ Pod Logs:"
-  kubectl logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy
+  kubectl --context="kind-${CLUSTER_NAME}" logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy
   exit 1
 fi
 
@@ -148,7 +139,7 @@ while true; do
   ensure_cluster
   build_and_load
   echo "⏳ Waiting for deployment to complete..."
-  kubectl -n "$TARGET_NAMESPACE" rollout status deploy/kuberhealthy --timeout=120s || true
+  kubectl --context="kind-${CLUSTER_NAME}" -n "$TARGET_NAMESPACE" rollout status deploy/kuberhealthy --timeout=120s || true
   start_logs
   echo "\n✅ Reload complete. Press Enter to rebuild again, or Ctrl-C to exit."
 done

@@ -171,22 +171,24 @@ func startTLSServer(certFile string, keyFile string, handler http.Handler) {
 	_, keyErr := os.Stat(GlobalConfig.TLSKeyFile)
 
 	// if cert failed to load, throw error
-    if certErr != nil {
-        log.Errorf("failed to start secure web server with cert %s and key %s due to error %v", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, certErr)
-    }
+	if certErr != nil {
+		log.Errorf("failed to start secure web server with cert %s and key %s due to error %v", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, certErr)
+	}
 
-	// if key failed to load, throw error
-    if keyErr != nil {
-        log.Errorf("failed to start secure web server with cert %s and key %s due to error %v", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, keyErr)
-    }
+	// if key failed to load the key, but did load the cert, throw error
+	if certErr == nil && keyErr != nil {
+		log.Errorf("failed to start secure web server with cert %s and key %s due to error %v", GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, keyErr)
+	}
 
-	// start the TLS web server in a go routine and throw an error if it fails to start up
-	go func() {
-		err := http.ListenAndServeTLS(GlobalConfig.ListenAddressTLS, GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, handler)
-		if err != nil {
-			log.Errorln("TLS listener failed to setup with error:", err)
-		}
-	}()
+	// if there aren't cert loading errors, start the TLS web server in a go routine and throw an error if it fails to start up
+	if certErr == nil && keyErr == nil {
+		go func() {
+			err := http.ListenAndServeTLS(GlobalConfig.ListenAddressTLS, GlobalConfig.TLSCertFile, GlobalConfig.TLSKeyFile, handler)
+			if err != nil {
+				log.Errorln("TLS listener failed to setup with error:", err)
+			}
+		}()
+	}
 
 }
 
