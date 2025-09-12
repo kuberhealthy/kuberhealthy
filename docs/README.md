@@ -10,6 +10,7 @@
 - 📚 [Checks Registry](CHECKS_REGISTRY.md)
 - 📈 [Prometheus](PROMETHEUS.md)
 - 📄 [Status Page](STATUS_PAGE.md)
+- 🛠️ [Local Development](DEVELOPMENT.md)
 - 📊 [K8s KPIs with Kuberhealthy](K8s-KPIs-with-Kuberhealthy.md)
 - 📰 [Release Notes](RELEASE.md)
 - 🕰️ [Kuberhealthy 2.1.0 Release](Kuberhealthy-2.1.0-Release.md)

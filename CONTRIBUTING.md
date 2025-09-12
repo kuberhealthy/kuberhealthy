@@ -5,8 +5,9 @@
 
 ## Developer
 
+- For a quick local development setup, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 - If you are making a large change, you should submit a proposal issue first so that you don't risk your feature being denied
-- Fork the Kuberhealthy/Kuberhealthy repository on github 
+- Fork the Kuberhealthy/Kuberhealthy repository on github
 - Clone your fork to your machine
 - Create a branch describing your change
 - Develop your feature and push changes to a branch in your fork
