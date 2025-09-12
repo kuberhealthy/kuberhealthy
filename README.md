@@ -1,7 +1,7 @@
 
 <center><img src="https://github.com/kuberhealthy/kuberhealthy/blob/master/images/kuberhealthy.png?raw=true"></center><br />
 
-**Note: Kuberhealthy is currently undergoing a total rewrite in the `v3` branch.**
+**Note: Kuberhealthy is currently undergoing a total rewrite in the `main` branch.**
 
 **Kuberhealthy is a [Kubernetes](https://kubernetes.io) [operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_monitoring) and [continuous process verification](https://en.wikipedia.org/wiki/Continued_process_verification).**  [Write your own tests](docs/CHECK_CREATION.md) in any language and Kuberhealthy will run them for you.  Automatically creates metrics for [Prometheus](https://prometheus.io).  Includes simple JSON status page.  **Now part of the CNCF!**
 
