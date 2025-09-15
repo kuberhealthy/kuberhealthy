@@ -15,8 +15,13 @@
 
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
+    const ns = params.get('namespace');
     const check = params.get('check');
-    if(check){ currentCheck.set(check); }
+    // Build check identifier as "namespace/check" when both parts are present.
+    if (check) {
+      const full = ns && !check.includes('/') ? ns + '/' + check : check;
+      currentCheck.set(full);
+    }
     refresh();
     const timer = setInterval(refresh, 5000);
     return () => clearInterval(timer);
@@ -27,7 +32,8 @@
     if (st) {
       const params = new URLSearchParams();
       params.set('namespace', st.namespace);
-      params.set('check', $currentCheck);
+      // Only include the check name without namespace in the URL.
+      params.set('check', $currentCheck.split('/').pop());
       history.replaceState(null, '', '?' + params.toString());
     }
   } else {
