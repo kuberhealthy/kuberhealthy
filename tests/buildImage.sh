@@ -7,4 +7,4 @@ TAG="${TAG:-localdev}"
 echo "📦 Building Podman image: ${IMAGE}:${TAG}"
 #podman build -f cmd/kuberhealthy/Podfile -t "${IMAGE}:${TAG}" .
 
-podman farm build -f cmd/kuberhealthy/Podfile -t "docker.io/integrii/kuberhealthy:${TAG}" .
+podman build -f cmd/kuberhealthy/Podfile -t "docker.io/integrii/kuberhealthy:${TAG}" .

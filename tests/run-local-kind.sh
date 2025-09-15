@@ -36,6 +36,8 @@ ensure_cluster() {
 
   # Always export kubeconfig to ensure localhost endpoint and current context
   # are correctly set (especially important with the Podman provider on macOS).
+  kind export kubeconfig --name "$CLUSTER_NAME"
+}
 
 build_and_load() {
   echo "📦 Building Podman image: $IMAGE"
@@ -49,15 +51,15 @@ build_and_load() {
 
   if kubectl --context="kind-${CLUSTER_NAME}" -n "$TARGET_NAMESPACE" get deploy kuberhealthy >/dev/null 2>&1; then
     echo "🔁 Restarting deployment/kuberhealthy to pick up new image"
-    kubectl --context="kind-${CLUSTER_NAME}"-n "$TARGET_NAMESPACE" rollout restart deploy/kuberhealthy
+    kubectl --context="kind-${CLUSTER_NAME}" -n "$TARGET_NAMESPACE" rollout restart deploy/kuberhealthy
   fi
 }
 
 start_logs() {
   echo "🪵 Tailing Kuberhealthy logs..."
-  kubectl --context="kind-${CLUSTER_NAME}"get pod -n "$TARGET_NAMESPACE"
+  kubectl --context="kind-${CLUSTER_NAME}" get pod -n "$TARGET_NAMESPACE"
   set +e
-  kubectl --context="kind-${CLUSTER_NAME}"logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy -f &
+  kubectl --context="kind-${CLUSTER_NAME}" logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy -f &
   LOG_PID=$!
   set -e
 }
@@ -85,7 +87,7 @@ ensure_cluster
 build_and_load
 
 echo "📤 Ensuring deployment manifest is applied"
-kubectl --context="kind-${CLUSTER_NAME}"apply -k deploy/
+kubectl --context="kind-${CLUSTER_NAME}" apply -k deploy/
 
 echo "⏳ Waiting for Kuberhealthy deployment to apply..."
 FOUND_DEPLOYMENT=FALSE
