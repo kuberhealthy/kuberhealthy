@@ -76,7 +76,10 @@ type KuberhealthyCheckStatus struct {
 	// Namespace is the Kubernetes namespace this pod ran in.
 	Namespace string `json:"namespace,omitempty"`
 	// CurrentUUID is used to ensure only the most recent checker pod reports a status for this check.
-	CurrentUUID string `json:"currentUUID,omitempty"`
+	// Do not omit this field when empty so that a status update can explicitly
+	// clear the UUID after a run completes, allowing the scheduler to start
+	// subsequent runs.
+	CurrentUUID string `json:"currentUUID"`
 	// LastRunUnix is the last time that this check was scheduled to run.
 	LastRunUnix int64 `json:"lastRunUnix,omitempty"`
 	// AdditionalMetadata is used to store additional metadata bout this check that appears in the JSON status.

@@ -918,7 +918,7 @@ func ensureCheckResourceExists(c client.Client, checkName string, checkNamespace
 }
 
 // setCheckStatus sets the status on the khcheck custom resource
-func setCheckStatus(c client.Client, checkName string, checkNamespace string, khcheck *khapi.KuberhealthyCheckStatus) error {
+func setCheckStatus(c client.Client, checkName string, checkNamespace string, incoming *khapi.KuberhealthyCheckStatus) error {
 	if c == nil {
 		return fmt.Errorf("kubernetes client not initialized")
 	}
@@ -930,9 +930,35 @@ func setCheckStatus(c client.Client, checkName string, checkNamespace string, kh
 		return fmt.Errorf("failed to get khcheck: %w", err)
 	}
 
-	khCheck.Status = *khcheck
-	if khCheck.Status.Namespace == "" {
-		khCheck.Status.Namespace = checkNamespace
+	// Merge the incoming status onto the existing status to avoid wiping
+	// derived fields like lastRunUnix and runDuration. Only update fields
+	// that the reporting pod controls.
+	if incoming != nil {
+		// core health fields
+		khCheck.Status.OK = incoming.OK
+		khCheck.Status.Errors = incoming.Errors
+
+		// namespace is optional in reports; fall back to object namespace
+		if incoming.Namespace != "" {
+			khCheck.Status.Namespace = incoming.Namespace
+		}
+		if khCheck.Status.Namespace == "" {
+			khCheck.Status.Namespace = checkNamespace
+		}
+
+		// clearing currentUUID when a run completes is critical for re-scheduling
+		khCheck.Status.CurrentUUID = incoming.CurrentUUID
+
+		// track consecutive failures similarly to internal controller helpers
+		if incoming.OK {
+			khCheck.Status.ConsecutiveFailures = 0
+		} else if len(incoming.Errors) > 0 {
+			khCheck.Status.ConsecutiveFailures++
+		}
+	} else {
+		if khCheck.Status.Namespace == "" {
+			khCheck.Status.Namespace = checkNamespace
+		}
 	}
 
 	if err := khapi.UpdateCheck(ctx, c, khCheck); err != nil {
