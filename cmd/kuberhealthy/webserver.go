@@ -368,7 +368,8 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("pod not part of khcheck")
 	}
 	nn := types.NamespacedName{Namespace: namespace, Name: khcheck}
-	if _, err := khapi.GetCheck(r.Context(), Globals.khClient, nn); err != nil {
+	check, err := khapi.GetCheck(r.Context(), Globals.khClient, nn)
+	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return err
 	}
@@ -388,10 +389,21 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
-	podYAML, err := yaml.Marshal(pod)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return err
+	// Build a templated pod spec as it would be sent to the API, rather than
+	// returning the full live Pod object with managed fields and status.
+	var podYAML []byte
+	if Globals.kh != nil {
+		tpl := Globals.kh.CheckPodSpec(check)
+		// Best-effort marshal; fall back to an empty YAML string on failure.
+		if y, mErr := yaml.Marshal(tpl); mErr == nil {
+			podYAML = y
+		}
+	}
+	// Allow callers to request only raw logs in text form for opening in a new tab
+	if r.URL.Query().Get("format") == "text" {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = w.Write(b)
+		return nil
 	}
 	resp := podLogResponse{
 		podSummary: podSummary{

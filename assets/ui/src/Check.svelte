@@ -9,7 +9,9 @@
   let failIn = '';
   let events = [];
   let podYaml = '';
-  let logText = '';
+  let logsURL = '';
+  let streamURL = '';
+  let isRunning = false;
   let eventsTimer;
   let countdownTimer;
   let logStreamAbort;
@@ -46,7 +48,9 @@
       loadLogs();
     } else {
       podYaml = '';
-      logText = '';
+      logsURL = '';
+      streamURL = '';
+      isRunning = false;
     }
     loadEvents();
     eventsTimer = setInterval(loadEvents, 5000);
@@ -73,26 +77,10 @@
       const params = 'namespace=' + encodeURIComponent(st.namespace) + '&khcheck=' + encodeURIComponent(name) + '&pod=' + encodeURIComponent(st.podName);
       const res = await (await fetch('/api/logs?' + params)).json();
       podYaml = res.yaml || '';
-      logText = res.logs || '';
-      if(res.phase === 'Running'){
-        streamLogs('/api/logs/stream?' + params);
-      }
+      isRunning = res.phase === 'Running';
+      logsURL = '/api/logs?' + params + '&format=text';
+      streamURL = '/api/logs/stream?' + params;
     }catch(e){ console.error(e); }
-  }
-
-  async function streamLogs(url){
-    try{
-      logStreamAbort = new AbortController();
-      const resp = await fetch(url, {signal: logStreamAbort.signal});
-      if(!resp.body){ return; }
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      while(true){
-        const {value, done} = await reader.read();
-        if(done){ break; }
-        logText += decoder.decode(value);
-      }
-    }catch(e){ if(e.name !== 'AbortError'){ console.error(e); } }
   }
 
   async function runNow(){
@@ -130,12 +118,24 @@
         {#if st.timeoutSeconds}
           <p class="mb-2"><span class="font-semibold">Fail in:</span> {failIn}</p>
         {/if}
+        <div class="mb-2 flex gap-4 items-center">
+          <a class="px-2 py-1 text-xs bg-blue-600 text-white rounded" href={logsURL} target="_blank" rel="noopener noreferrer">Open logs (new tab)</a>
+          {#if isRunning}
+            <a class="px-2 py-1 text-xs bg-indigo-600 text-white rounded" href={streamURL} target="_blank" rel="noopener noreferrer">Open streaming logs (new tab)</a>
+          {/if}
+        </div>
       {:else if st.nextRunUnix}
         <p class="mb-2 flex items-center gap-2"><span class="font-semibold">Next run in:</span> {nextRun}
           {#if showRunButton}
             <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run again now</button>
           {/if}
         </p>
+      {:else}
+        {#if showRunButton}
+          <p class="mb-2 flex items-center gap-2">
+            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run again now</button>
+          </p>
+        {/if}
       {/if}
       {#if st.lastRunUnix}
         <p class="mb-2"><span class="font-semibold">Last run:</span> {new Date(st.lastRunUnix*1000).toLocaleString()}</p>
@@ -160,9 +160,5 @@
   <div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4">
     <h3 class="text-xl font-semibold mb-2">Checker Pod YAML</h3>
     <pre class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-4 rounded shadow-inner">{podYaml}</pre>
-  </div>
-  <div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4">
-    <h3 class="text-xl font-semibold mb-2">Checker Pod Logs</h3>
-    <pre class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-4 rounded shadow-inner">{logText}</pre>
   </div>
 </div>
