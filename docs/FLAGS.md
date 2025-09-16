@@ -19,7 +19,7 @@ Kuberhealthy is configured via environment variables and does not accept command
 | `KH_PROM_ERROR_LABEL_MAX_LENGTH` | Maximum length for Prometheus error label | `0` |
 | `KH_TARGET_NAMESPACE` | Namespace Kuberhealthy operates in (blank for all) | `` |
 | `KH_DEFAULT_RUN_INTERVAL` | Default check run interval | `10m` |
-| `KH_CHECK_REPORT_HOSTNAME` | Override hostname used for check reports | constructed |
+| `KH_CHECK_REPORT_URL` | Override URL used for check reports | constructed |
 | `KH_TERMINATION_GRACE_PERIOD` | Shutdown grace period | `5m` |
 | `KH_DEFAULT_CHECK_TIMEOUT` | Default timeout for checks | `30s` |
 | `KH_DEFAULT_NAMESPACE` | Fallback namespace if detection fails | `kuberhealthy` |

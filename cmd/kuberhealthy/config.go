@@ -24,7 +24,7 @@ type Config struct {
 	PromMetricsConfig      metrics.PromMetricsConfig
 	TargetNamespace        string
 	DefaultRunInterval     time.Duration
-	checkReportURL         string // the hostname checks will report to
+	checkReportURL         string // the full URL checks will report to
 	TerminationGracePeriod time.Duration
 	DefaultCheckTimeout    time.Duration
 	DefaultNamespace       string
@@ -47,10 +47,11 @@ func New() *Config {
 	}
 
 	return &Config{
-		ListenAddress:          ":8080",
-		ListenAddressTLS:       ":443",
-		LogLevel:               "info",
-		checkReportURL:         fmt.Sprintf("%s.%s.svc.cluster.local", svc, ns),
+		ListenAddress:    ":8080",
+		ListenAddressTLS: ":443",
+		LogLevel:         "info",
+		// Default to the in-cluster service URL
+		checkReportURL:         fmt.Sprintf("http://%s.%s.svc.cluster.local:8080/check", svc, ns),
 		DefaultRunInterval:     time.Minute * 10,
 		TerminationGracePeriod: time.Minute * 5,
 		DefaultCheckTimeout:    30 * time.Second,
@@ -151,11 +152,11 @@ func (c *Config) LoadFromEnv() error {
 		c.DefaultRunInterval = d
 	}
 
-	if v := os.Getenv("KH_CHECK_REPORT_HOSTNAME"); v != "" {
+	if v := os.Getenv("KH_CHECK_REPORT_URL"); v != "" {
 		c.checkReportURL = v
 	} else {
-		c.checkReportURL = fmt.Sprintf("%s.%s.svc.cluster.local", c.ServiceName, c.Namespace)
-		log.Warnln("KH_CHECK_REPORT_HOSTNAME environment variable not set. Using", c.checkReportURL)
+		c.checkReportURL = fmt.Sprintf("http://%s.%s.svc.cluster.local/check", c.ServiceName, c.Namespace)
+		log.Warnln("KH_CHECK_REPORT_URL environment variable not set. Using", c.checkReportURL)
 	}
 
 	if v := os.Getenv("KH_TERMINATION_GRACE_PERIOD"); v != "" {
@@ -189,7 +190,7 @@ func (c *Config) LoadFromEnv() error {
 	return nil
 }
 
-// ReportingURL formulates and returns the full URL for check reporting
+// ReportingURL returns the full URL for check reporting
 func (c *Config) ReportingURL() string {
-	return "http://" + c.checkReportURL + "/check"
+	return c.checkReportURL
 }

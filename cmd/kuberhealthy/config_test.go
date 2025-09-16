@@ -17,8 +17,8 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("KH_PROM_SUPPRESS_ERROR_LABEL", "true")
 	t.Setenv("KH_PROM_ERROR_LABEL_MAX_LENGTH", "20")
 	t.Setenv("KH_TARGET_NAMESPACE", "testing")
-	t.Setenv("KH_DEFAULT_RUN_INTERVAL", "3m")
-	t.Setenv("KH_CHECK_REPORT_HOSTNAME", "example.com")
+    t.Setenv("KH_DEFAULT_RUN_INTERVAL", "3m")
+    t.Setenv("KH_CHECK_REPORT_URL", "http://example.com/check")
 	t.Setenv("KH_TERMINATION_GRACE_PERIOD", "30s")
 	t.Setenv("KH_DEFAULT_CHECK_TIMEOUT", "1m")
 	t.Setenv("KH_DEFAULT_NAMESPACE", "fallback")
@@ -63,9 +63,9 @@ func TestLoadFromEnv(t *testing.T) {
 	if cfg.DefaultRunInterval != 3*time.Minute {
 		t.Errorf("DefaultRunInterval parsed incorrectly: %v", cfg.DefaultRunInterval)
 	}
-	if cfg.ReportingURL() != "http://example.com/check" {
-		t.Errorf("ReportingURL parsed incorrectly: %s", cfg.ReportingURL())
-	}
+    if cfg.ReportingURL() != "http://example.com/check" {
+        t.Errorf("ReportingURL parsed incorrectly: %s", cfg.ReportingURL())
+    }
 	if cfg.Namespace != "podns" {
 		t.Errorf("Namespace parsed incorrectly: %s", cfg.Namespace)
 	}

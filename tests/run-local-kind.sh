@@ -5,7 +5,7 @@ CLUSTER_NAME="kuberhealthy"
 IMAGE="docker.io/kuberhealthy/kuberhealthy:localdev"
 TARGET_NAMESPACE="kuberhealthy"
 KIND_VERSION="v1.29.0"
-KH_CHECK_REPORT_HOSTNAME="kuberhealthy.${TARGET_NAMESPACE}.svc.cluster.local"
+KH_CHECK_REPORT_URL="http://kuberhealthy.${TARGET_NAMESPACE}.svc.cluster.local/check"
 # Ensure we use Podman for kind
 export KIND_EXPERIMENTAL_PROVIDER=podman
 
