@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
@@ -24,12 +25,11 @@ type Config struct {
 	PromMetricsConfig      metrics.PromMetricsConfig
 	TargetNamespace        string
 	DefaultRunInterval     time.Duration
-	checkReportURL         string // the full URL checks will report to
+	checkReportBaseURL     string // base URL checks will report to (protocol, host, port; no path)
 	TerminationGracePeriod time.Duration
 	DefaultCheckTimeout    time.Duration
 	DefaultNamespace       string
 	Namespace              string // the namespace kh is running in
-	ServiceName            string // kuberhealthy service name
 	TLSCertFile            string
 	TLSKeyFile             string
 }
@@ -41,22 +41,16 @@ func New() *Config {
 		ns = GetMyNamespace("kuberhealthy")
 	}
 
-	svc := os.Getenv("KH_SERVICE_NAME")
-	if svc == "" {
-		svc = "kuberhealthy"
-	}
-
 	return &Config{
 		ListenAddress:    ":8080",
 		ListenAddressTLS: ":443",
 		LogLevel:         "info",
 		// Default to the in-cluster service URL
-		checkReportURL:         fmt.Sprintf("http://%s.%s.svc.cluster.local:8080/check", svc, ns),
+		checkReportBaseURL:     fmt.Sprintf("http://kuberhealthy.%s.svc.cluster.local:8080", ns),
 		DefaultRunInterval:     time.Minute * 10,
 		TerminationGracePeriod: time.Minute * 5,
 		DefaultCheckTimeout:    30 * time.Second,
 		Namespace:              ns,
-		ServiceName:            svc,
 		MaxErrorPodCount:       5,
 		ErrorPodRetentionDays:  4,
 	}
@@ -140,10 +134,6 @@ func (c *Config) LoadFromEnv() error {
 		c.Namespace = v
 	}
 
-	if v := os.Getenv("KH_SERVICE_NAME"); v != "" {
-		c.ServiceName = v
-	}
-
 	if v := os.Getenv("KH_DEFAULT_RUN_INTERVAL"); v != "" {
 		d, err := time.ParseDuration(v)
 		if err != nil {
@@ -153,10 +143,20 @@ func (c *Config) LoadFromEnv() error {
 	}
 
 	if v := os.Getenv("KH_CHECK_REPORT_URL"); v != "" {
-		c.checkReportURL = v
+		trimmed := strings.TrimSpace(v)
+		trimmed = strings.TrimRight(trimmed, "/")
+		if strings.HasSuffix(trimmed, "/check") {
+			trimmed = strings.TrimSuffix(trimmed, "/check")
+			trimmed = strings.TrimRight(trimmed, "/")
+			log.Warnln("KH_CHECK_REPORT_URL should not include '/check'. Trimming suffix for compatibility.")
+		}
+		if trimmed == "" {
+			return fmt.Errorf("invalid KH_CHECK_REPORT_URL: %q", v)
+		}
+		c.checkReportBaseURL = trimmed
 	} else {
-		c.checkReportURL = fmt.Sprintf("http://%s.%s.svc.cluster.local/check", c.ServiceName, c.Namespace)
-		log.Warnln("KH_CHECK_REPORT_URL environment variable not set. Using", c.checkReportURL)
+		c.checkReportBaseURL = fmt.Sprintf("http://kuberhealthy.%s.svc.cluster.local:8080", c.Namespace)
+		log.Warnln("KH_CHECK_REPORT_URL environment variable not set. Using", c.checkReportBaseURL)
 	}
 
 	if v := os.Getenv("KH_TERMINATION_GRACE_PERIOD"); v != "" {
@@ -192,5 +192,6 @@ func (c *Config) LoadFromEnv() error {
 
 // ReportingURL returns the full URL for check reporting
 func (c *Config) ReportingURL() string {
-	return c.checkReportURL
+	base := strings.TrimRight(c.checkReportBaseURL, "/")
+	return base + "/check"
 }

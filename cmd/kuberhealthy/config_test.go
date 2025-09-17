@@ -17,13 +17,12 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("KH_PROM_SUPPRESS_ERROR_LABEL", "true")
 	t.Setenv("KH_PROM_ERROR_LABEL_MAX_LENGTH", "20")
 	t.Setenv("KH_TARGET_NAMESPACE", "testing")
-    t.Setenv("KH_DEFAULT_RUN_INTERVAL", "3m")
-    t.Setenv("KH_CHECK_REPORT_URL", "http://example.com/check")
+	t.Setenv("KH_DEFAULT_RUN_INTERVAL", "3m")
+	t.Setenv("KH_CHECK_REPORT_URL", "http://example.com:9000")
 	t.Setenv("KH_TERMINATION_GRACE_PERIOD", "30s")
 	t.Setenv("KH_DEFAULT_CHECK_TIMEOUT", "1m")
 	t.Setenv("KH_DEFAULT_NAMESPACE", "fallback")
 	t.Setenv("POD_NAMESPACE", "podns")
-	t.Setenv("KH_SERVICE_NAME", "svcname")
 
 	cfg := New()
 	if err := cfg.LoadFromEnv(); err != nil {
@@ -63,14 +62,11 @@ func TestLoadFromEnv(t *testing.T) {
 	if cfg.DefaultRunInterval != 3*time.Minute {
 		t.Errorf("DefaultRunInterval parsed incorrectly: %v", cfg.DefaultRunInterval)
 	}
-    if cfg.ReportingURL() != "http://example.com/check" {
-        t.Errorf("ReportingURL parsed incorrectly: %s", cfg.ReportingURL())
-    }
+	if cfg.ReportingURL() != "http://example.com:9000/check" {
+		t.Errorf("ReportingURL parsed incorrectly: %s", cfg.ReportingURL())
+	}
 	if cfg.Namespace != "podns" {
 		t.Errorf("Namespace parsed incorrectly: %s", cfg.Namespace)
-	}
-	if cfg.ServiceName != "svcname" {
-		t.Errorf("ServiceName parsed incorrectly: %s", cfg.ServiceName)
 	}
 	if cfg.TerminationGracePeriod != 30*time.Second {
 		t.Errorf("TerminationGracePeriodSeconds parsed incorrectly: %v", cfg.TerminationGracePeriod)
@@ -95,22 +91,39 @@ func TestLoadFromEnvInvalid(t *testing.T) {
 	}
 }
 
-// TestReportingURLFromServiceAndNamespace constructs the reporting URL using service name and namespace.
-func TestReportingURLFromServiceAndNamespace(t *testing.T) {
+// TestReportingURLDefaultsFromNamespace constructs the reporting URL using the pod namespace when unset.
+func TestReportingURLDefaultsFromNamespace(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping reporting URL test in short mode")
 	}
 	t.Setenv("POD_NAMESPACE", "ns1")
-	t.Setenv("KH_SERVICE_NAME", "svc1")
 
 	cfg := New()
 	if err := cfg.LoadFromEnv(); err != nil {
 		t.Fatalf("LoadFromEnv returned error: %v", err)
 	}
 
-	expected := "http://svc1.ns1.svc.cluster.local/check"
+	expected := "http://kuberhealthy.ns1.svc.cluster.local:8080/check"
 	if cfg.ReportingURL() != expected {
 		t.Errorf("ReportingURL parsed incorrectly: %s", cfg.ReportingURL())
+	}
+}
+
+// TestReportingURLTrimsLegacySuffix ensures legacy values with /check are sanitized.
+func TestReportingURLTrimsLegacySuffix(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping reporting URL suffix trim test in short mode")
+	}
+
+	cfg := New()
+	t.Setenv("KH_CHECK_REPORT_URL", "https://example.com/check")
+	if err := cfg.LoadFromEnv(); err != nil {
+		t.Fatalf("LoadFromEnv returned error: %v", err)
+	}
+
+	expected := "https://example.com/check"
+	if cfg.ReportingURL() != expected {
+		t.Errorf("expected sanitized reporting URL %s, got %s", expected, cfg.ReportingURL())
 	}
 }
 

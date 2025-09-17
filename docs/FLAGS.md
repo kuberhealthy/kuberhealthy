@@ -14,12 +14,11 @@ Kuberhealthy is configured via environment variables and does not accept command
 | `KH_MAX_ERROR_POD_COUNT` | Number of errored pods to always retain for debugging purposes | `5` |
 | `KH_ERROR_POD_RETENTION_DAYS` | Days to retain failed pods | `4` |
 | `POD_NAMESPACE` | Namespace Kuberhealthy runs in | <pod namespace> |
-| `KH_SERVICE_NAME` | Name of Kubernetes service where Kuberhealthy is available within the cluster | `kuberhealthy` |
 | `KH_PROM_SUPPRESS_ERROR_LABEL` | Omit error label in Prometheus metrics | `false` |
 | `KH_PROM_ERROR_LABEL_MAX_LENGTH` | Maximum length for Prometheus error label | `0` |
 | `KH_TARGET_NAMESPACE` | Namespace Kuberhealthy operates in (blank for all) | `` |
 | `KH_DEFAULT_RUN_INTERVAL` | Default check run interval | `10m` |
-| `KH_CHECK_REPORT_URL` | Override URL used for check reports | constructed |
+| `KH_CHECK_REPORT_URL` | Base URL (protocol and optional port) used for check reports; `/check` is appended automatically | `http://kuberhealthy.<namespace>.svc.cluster.local:8080` |
 | `KH_TERMINATION_GRACE_PERIOD` | Shutdown grace period | `5m` |
 | `KH_DEFAULT_CHECK_TIMEOUT` | Default timeout for checks | `30s` |
 | `KH_DEFAULT_NAMESPACE` | Fallback namespace if detection fails | `kuberhealthy` |
