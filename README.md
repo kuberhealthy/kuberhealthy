@@ -12,9 +12,9 @@
 Kuberhealthy is a [Kubernetes operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_monitoring) and [continuous process verification](https://en.wikipedia.org/wiki/Software_verification_and_validation). You can [write your own test containers](docs/CHECK_CREATION.md) in any language or [deploy one of the included ones](docs/CHECKS_REGISTRY.md) and Kuberhealthy will run them and produce metrics for [Prometheus](https://prometheus.io). Includes a simple JSON status page for custom integrations. Kuberhealthy is a **[CNCF Sandbox Project](https://www.cncf.io/sandbox-projects/)**.
 
 
-### DaemonSet Check in Action
+### A Check in Action
 
-Kuberhealthy creating and tearing down a daemonset across the cluster:
+Here is a step by step illustration of Kuberhealthy running the included deployment check that tests the creation and tear down of a Kubernetes deployment:
 
 <img src="assets/kh-ds-check.gif" alt="Daemonset check animation">
 
