@@ -2,6 +2,19 @@
 
 #### Creating your own `khcheck` client is simple! :)
 
+### Client Libraries
+
+The Kuberhealthy organization maintains starter clients for popular languages so you can focus on the logic of your check:
+
+- [Rust](https://github.com/kuberhealthy/rust)
+- [TypeScript](https://github.com/kuberhealthy/typescript)
+- [JavaScript](https://github.com/kuberhealthy/javascript)
+- [Go](https://github.com/kuberhealthy/go)
+- [Python](https://github.com/kuberhealthy/python)
+- [Ruby](https://github.com/kuberhealthy/ruby)
+- [Java](https://github.com/kuberhealthy/java)
+- [Bash](https://github.com/kuberhealthy/bash)
+
 ### Using Go 
 
 If you are using Go, we have an easy to use client package: [found here](https://pkg.go.dev/github.com/kuberhealthy/kuberhealthy/v4/pkg/checks/external/checkclient).

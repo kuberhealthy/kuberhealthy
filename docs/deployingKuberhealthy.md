@@ -103,3 +103,4 @@ curl -f localhost:8080/metrics
 ```
 
 The `kuberhealthy` pod should be in a `Running` state and the metrics endpoint should respond. If checks fail, consult the [troubleshooting guide](TROUBLESHOOTING.md).
+
