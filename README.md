@@ -56,7 +56,7 @@ Kuberhealthy offers starter codebases for making your own check pods and provide
 
 - 🧠 [How Kuberhealthy Works](docs/howItWorks.md)
 - 🚀 [Deploying Kuberhealthy](docs/deployingKuberhealthy.md)
-- 📊 [Viewing Check Status](docs/checkStatus.md)
+- 📊 [Viewing Check Status](docs/howItWorks.md#using-the-json-status-page)
 - 🛠️ [Creating Your Own `khcheck`](docs/CHECK_CREATION.md)
 - 🗂️ [khcheck Registry](docs/CHECKS_REGISTRY.md)
 
