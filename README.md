@@ -30,7 +30,7 @@ Here is a step by step illustration of Kuberhealthy running the included deploym
 2. Forward the Kuberhealthy service to your local machine:
 
    ```sh
-   kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80
+   kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
    ```
 
 3. Visit [http://localhost:8080](http://localhost:8080) to view the status page.
