@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy, tick } from 'svelte';
-  import { checks } from './stores';
+  import { checks, refreshStatus } from './stores';
   import { formatDuration } from './util';
 
   export let name = '';
@@ -17,6 +17,10 @@
   let countdownTimer;
   let runButtonTimer;
   let showRunButton = true;
+  let triggerRefresh = async () => {};
+  let refreshUnsubscribe = () => {};
+  let lastRefreshUnix = null;
+  let lastRefreshTime = 0;
 
   $: st = $checks[name];
 
@@ -26,13 +30,24 @@
     if(runButtonTimer){ clearTimeout(runButtonTimer); runButtonTimer = null; }
   }
 
-  onMount(setup);
-  onDestroy(clearTimers);
+  onMount(() => {
+    refreshUnsubscribe = refreshStatus.subscribe(fn => {
+      triggerRefresh = typeof fn === 'function' ? fn : async () => {};
+    });
+    setup();
+  });
+
+  onDestroy(() => {
+    clearTimers();
+    refreshUnsubscribe();
+  });
 
   $: if (st) { setup(); }
 
   function setup(){
     clearTimers();
+    lastRefreshUnix = null;
+    lastRefreshTime = 0;
     if(!st){ return; }
     showRunButton = true;
     if(st.podName && st.timeoutSeconds){
@@ -58,7 +73,21 @@
   }
 
   function updateNextRun(unix){
-    nextRun = formatDuration(unix * 1000 - Date.now());
+    const diff = unix * 1000 - Date.now();
+    if (diff <= 0) {
+      nextRun = 'refreshing...';
+      const now = Date.now();
+      if (unix !== lastRefreshUnix || now - lastRefreshTime > 5000) {
+        lastRefreshUnix = unix;
+        lastRefreshTime = now;
+        Promise.resolve()
+          .then(() => triggerRefresh())
+          .catch((err) => console.error('failed to refresh status', err));
+      }
+      return;
+    }
+    nextRun = formatDuration(diff);
+    lastRefreshUnix = null;
   }
 
   function updateFail(unix){

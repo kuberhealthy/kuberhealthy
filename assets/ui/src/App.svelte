@@ -3,7 +3,7 @@
   import Menu from './Menu.svelte';
   import Home from './Home.svelte';
   import Check from './Check.svelte';
-  import { checks, currentCheck } from './stores';
+  import { checks, currentCheck, refreshStatus } from './stores';
 
   async function refresh(){
     try{
@@ -12,6 +12,8 @@
       checks.set(data.CheckDetails || {});
     }catch(e){ console.error('failed to fetch status', e); }
   }
+
+  refreshStatus.set(refresh);
 
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
