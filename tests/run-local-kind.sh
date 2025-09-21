@@ -86,8 +86,13 @@ start_port_forward() {
   echo "🔌 Forwarding Kuberhealthy service to http://localhost:${LOCAL_PORT}"
   kubectl --context="kind-${CLUSTER_NAME}" -n "$TARGET_NAMESPACE" port-forward service/kuberhealthy ${LOCAL_PORT}:8080 >/tmp/kuberhealthy-port-forward.log 2>&1 &
   PF_PID=$!
-  sleep 3
+  sleep 1
+  echo ""
+  echo ""
   echo "🌐 View the dashboard at http://localhost:${LOCAL_PORT}"
+  echo ""
+  echo ""
+  sleep 2
 }
 
 stop_logs() {
