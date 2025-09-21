@@ -29,7 +29,60 @@ import (
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const defaultRunInterval = time.Minute * 10
+const (
+	defaultRunInterval   = time.Minute * 10
+	defaultReportTimeout = 30 * time.Second // keep in sync with kuberhealthy.defaultRunTimeout
+)
+
+// reportAllowed determines if an incoming report should be accepted when the main controller is unavailable.
+// Tests rely on this helper so that timeout enforcement remains active even without Globals.kh.
+func reportAllowed(check *khapi.KuberhealthyCheck, uuid string) bool {
+	if check == nil {
+		return true
+	}
+	if uuid == "" {
+		return false
+	}
+
+	if Globals.kh != nil {
+		allowed := Globals.kh.IsReportAllowed(check, uuid)
+		log.WithFields(log.Fields{
+			"check":       types.NamespacedName{Name: check.Name, Namespace: check.Namespace},
+			"reportUUID":  uuid,
+			"currentUUID": check.CurrentUUID(),
+			"lastRunUnix": check.Status.LastRunUnix,
+			"allowed":     allowed,
+		}).Debug("report allowance evaluated")
+		return allowed
+	}
+
+	if check.CurrentUUID() != "" && check.CurrentUUID() != uuid {
+		return false
+	}
+
+	timeout := defaultReportTimeout
+	if check.Spec.Timeout != nil && check.Spec.Timeout.Duration > 0 {
+		timeout = check.Spec.Timeout.Duration
+	}
+	if timeout <= 0 {
+		return true
+	}
+
+	if check.Status.LastRunUnix == 0 {
+		return true
+	}
+
+	started := time.Unix(check.Status.LastRunUnix, 0)
+	if started.IsZero() {
+		return true
+	}
+
+	if time.Since(started) >= timeout {
+		return false
+	}
+
+	return true
+}
 
 // requestLogger logs incoming requests before they reach a handler.
 func requestLogger(next http.Handler) http.Handler {
@@ -633,22 +686,32 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 
 	// fetch the khcheck for event recording when a client is available
 	var khCheck *khapi.KuberhealthyCheck
-	if Globals.khClient != nil {
+	clientForCheck := Globals.khClient
+	if clientForCheck == nil && Globals.kh != nil {
+		clientForCheck = Globals.kh.CheckClient
+	}
+	if clientForCheck != nil {
 		nn := types.NamespacedName{Name: podReport.Name, Namespace: podReport.Namespace}
 		var err error
-		khCheck, err = khapi.GetCheck(ctx, Globals.khClient, nn)
+		khCheck, err = khapi.GetCheck(ctx, clientForCheck, nn)
 		if err != nil {
 			log.Println("webserver:", requestID, "failed to fetch khcheck for event recording:", err)
 			khCheck = nil
 		}
 	}
 
-	if khCheck != nil && Globals.kh != nil {
-		if !Globals.kh.IsReportAllowed(khCheck, podReport.UUID) {
-			w.WriteHeader(http.StatusGone)
-			log.Println("webserver:", requestID, "Rejected report after timeout for", podReport.Namespace, podReport.Name)
-			return nil
-		}
+	if khCheck != nil {
+		log.WithFields(log.Fields{
+			"check":       types.NamespacedName{Name: khCheck.Name, Namespace: khCheck.Namespace},
+			"currentUUID": khCheck.CurrentUUID(),
+			"reportUUID":  podReport.UUID,
+			"lastRunUnix": khCheck.Status.LastRunUnix,
+		}).Debug("report gating snapshot")
+	}
+	if !reportAllowed(khCheck, podReport.UUID) {
+		w.WriteHeader(http.StatusGone)
+		log.Println("webserver:", requestID, "Rejected report after timeout for", podReport.Namespace, podReport.Name)
+		return nil
 	}
 
 	// ensure the client is sending a valid payload in the request body
