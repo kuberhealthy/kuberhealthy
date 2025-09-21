@@ -12,9 +12,29 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+func waitForEvents(t *testing.T, events <-chan string, expected int) []string {
+	t.Helper()
+
+	collected := make([]string, 0, expected)
+	timeout := time.NewTimer(time.Second)
+	defer timeout.Stop()
+
+	for len(collected) < expected {
+		select {
+		case event := <-events:
+			collected = append(collected, event)
+		case <-timeout.C:
+			t.Fatalf("timed out waiting for %d events; received %d", expected, len(collected))
+		}
+	}
+
+	return collected
+}
 
 // TestReaperTimesOutRunningPod ensures pods exceeding their timeout are deleted and the check is marked failed.
 func TestReaperTimesOutRunningPod(t *testing.T) {
@@ -55,6 +75,7 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 		Build()
 
 	kh := New(context.Background(), cl)
+	kh.Recorder = record.NewFakeRecorder(10)
 
 	require.NoError(t, kh.reapOnce())
 
@@ -62,13 +83,15 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 	err := cl.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: "timeout-pod"}, &corev1.Pod{})
 	require.True(t, apierrors.IsNotFound(err))
 
-	// Check status should show timeout
+	// Check status should remain untouched; timeout handling happens outside the reaper now.
 	updated := &khapi.KuberhealthyCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: "timeout-check"}, updated))
-	require.False(t, updated.Status.OK)
-	require.Len(t, updated.Status.Errors, 1)
-	require.Contains(t, updated.Status.Errors[0], "timed out")
-	require.Empty(t, updated.CurrentUUID())
+	require.True(t, updated.Status.OK)
+	require.Empty(t, updated.Status.Errors)
+	require.Equal(t, "abc123", updated.CurrentUUID())
+
+	events := waitForEvents(t, kh.Recorder.(*record.FakeRecorder).Events, 1)
+	require.Contains(t, events[0], "CheckRunTimeout")
 }
 
 // TestReaperKeepsRunningPodsForFiveMinutes ensures running pods are retained for at least five minutes even if they exceed the timeout.
@@ -107,6 +130,7 @@ func TestReaperKeepsRunningPodsForFiveMinutes(t *testing.T) {
 		Build()
 
 	kh := New(context.Background(), cl)
+	kh.Recorder = record.NewFakeRecorder(10)
 
 	require.NoError(t, kh.reapOnce())
 
@@ -117,7 +141,14 @@ func TestReaperKeepsRunningPodsForFiveMinutes(t *testing.T) {
 	updated := &khapi.KuberhealthyCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: "recent-running-check"}, updated))
 	require.True(t, updated.Status.OK)
+	require.Empty(t, updated.Status.Errors)
 	require.Equal(t, "abc123", updated.CurrentUUID())
+
+	select {
+	case e := <-kh.Recorder.(*record.FakeRecorder).Events:
+		t.Fatalf("unexpected event emitted: %s", e)
+	case <-time.After(100 * time.Millisecond):
+	}
 }
 
 // TestReaperRemovesCompletedPods deletes completed pods after ten run intervals have passed.

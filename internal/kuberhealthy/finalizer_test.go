@@ -9,7 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -51,14 +50,10 @@ func TestHandleUpdateRemovesFinalizer(t *testing.T) {
 	}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
-	oldU := &unstructured.Unstructured{}
-	oldU.Object, _ = runtime.DefaultUnstructuredConverter.ToUnstructured(check)
 	now := metav1.Now()
 	deleting := check.DeepCopy()
 	deleting.DeletionTimestamp = &now
-	newU := &unstructured.Unstructured{}
-	newU.Object, _ = runtime.DefaultUnstructuredConverter.ToUnstructured(deleting)
-	kh.handleUpdate(oldU, newU)
+	kh.handleUpdate(check, deleting)
 	fetched := &khapi.KuberhealthyCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "remove-finalizer", Namespace: "default"}, fetched))
 	require.NotContains(t, fetched.Finalizers, khCheckFinalizer)
@@ -82,9 +77,7 @@ func TestHandleDeleteRemovesFinalizer(t *testing.T) {
 	}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
-	u := &unstructured.Unstructured{}
-	u.Object, _ = runtime.DefaultUnstructuredConverter.ToUnstructured(check)
-	kh.handleDelete(u)
+	kh.handleDelete(check.DeepCopy())
 	fetched := &khapi.KuberhealthyCheck{}
 	err := cl.Get(context.Background(), types.NamespacedName{Name: "delete-finalizer", Namespace: "default"}, fetched)
 	if apierrors.IsNotFound(err) {

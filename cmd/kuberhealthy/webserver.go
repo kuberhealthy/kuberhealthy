@@ -643,6 +643,14 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
+	if khCheck != nil && Globals.kh != nil {
+		if !Globals.kh.IsReportAllowed(khCheck, podReport.UUID) {
+			w.WriteHeader(http.StatusGone)
+			log.Println("webserver:", requestID, "Rejected report after timeout for", podReport.Namespace, podReport.Name)
+			return nil
+		}
+	}
+
 	// ensure the client is sending a valid payload in the request body
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
