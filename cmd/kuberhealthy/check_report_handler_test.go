@@ -7,10 +7,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
+	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // TestCheckReportHandler validates the check report handler logic.
@@ -130,5 +136,57 @@ func TestCheckReportHandler(t *testing.T) {
 		if storeCalled {
 			t.Fatalf("storeCheckState should not be called on invalid report")
 		}
+	})
+
+	t.Run("reject report after timeout", func(t *testing.T) {
+		scheme := runtime.NewScheme()
+		require.NoError(t, khapi.AddToScheme(scheme))
+
+		started := time.Now().Add(-time.Minute)
+		timeout := time.Second
+
+		check := &khapi.KuberhealthyCheck{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "expired-check",
+				Namespace:       "default",
+				ResourceVersion: "1",
+			},
+			Spec: khapi.KuberhealthyCheckSpec{
+				Timeout: &metav1.Duration{Duration: timeout},
+			},
+			Status: khapi.KuberhealthyCheckStatus{
+				LastRunUnix: started.Unix(),
+				CurrentUUID: "expired-uuid",
+				OK:          true,
+			},
+		}
+
+		cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+		Globals.khClient = cl
+		Globals.kh = kuberhealthy.New(context.Background(), cl)
+		t.Cleanup(func() {
+			Globals.khClient = nil
+			Globals.kh = nil
+		})
+
+		validateUsingRequestHeaderFunc = func(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
+			return PodReportInfo{Name: check.Name, Namespace: check.Namespace, UUID: check.CurrentUUID()}, true, nil
+		}
+		storeCalled := false
+		storeCheckStateFunc = func(client.Client, string, string, *khapi.KuberhealthyCheckStatus) error {
+			storeCalled = true
+			return nil
+		}
+
+		report := health.Report{OK: true}
+		b, err := json.Marshal(report)
+		require.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(b))
+		req.Header.Set("Content-Type", "application/json")
+		rr := httptest.NewRecorder()
+
+		require.NoError(t, checkReportHandler(rr, req))
+		require.Equal(t, http.StatusGone, rr.Code)
+		require.False(t, storeCalled)
 	})
 }

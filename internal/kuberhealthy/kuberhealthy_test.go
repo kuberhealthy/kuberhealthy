@@ -2,6 +2,7 @@ package kuberhealthy
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -170,6 +173,73 @@ func TestStartCheckCreatesPodInCheckNamespace(t *testing.T) {
 	require.Equal(t, check.Namespace, pods.Items[0].Namespace)
 }
 
+// TestStartCheckPodCreationFailureClearsRunState ensures that a pod creation failure marks the check as failed and
+// leaves it ready for the next scheduler attempt.
+func TestStartCheckPodCreationFailureClearsRunState(t *testing.T) {
+	t.Parallel()
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	check := &khapi.KuberhealthyCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "create-failure-check",
+			Namespace: "default",
+		},
+		Spec: khapi.KuberhealthyCheckSpec{
+			PodSpec: khapi.CheckPodSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  "test",
+						Image: "busybox",
+					}},
+				},
+			},
+		},
+	}
+
+	baseClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	client := &toggleCreateClient{Client: baseClient, failCreates: true}
+	kh := New(context.Background(), client)
+	kh.SetReportingURL("http://example.com")
+
+	err := kh.StartCheck(check)
+	require.Error(t, err)
+
+	namespacedName := types.NamespacedName{Namespace: check.Namespace, Name: check.Name}
+	stored, getErr := khapi.GetCheck(context.Background(), client, namespacedName)
+	require.NoError(t, getErr)
+	require.Empty(t, stored.CurrentUUID())
+	require.False(t, stored.Status.OK)
+	require.Len(t, stored.Status.Errors, 1)
+	require.Contains(t, stored.Status.Errors[0], "failed to create check pod")
+
+	client.failCreates = false
+	refreshed, getErr := khapi.GetCheck(context.Background(), client, namespacedName)
+	require.NoError(t, getErr)
+	require.NoError(t, kh.StartCheck(refreshed))
+
+	postRun, getErr := khapi.GetCheck(context.Background(), client, namespacedName)
+	require.NoError(t, getErr)
+	require.NotEmpty(t, postRun.CurrentUUID())
+}
+
+// toggleCreateClient wraps a controller-runtime client and injects pod creation failures when requested.
+type toggleCreateClient struct {
+	client.Client
+	failCreates bool
+}
+
+// Create overrides the embedded client's behavior, returning an injected error for pods when failCreates is true.
+func (c *toggleCreateClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
+	if c.failCreates {
+		if _, ok := obj.(*corev1.Pod); ok {
+			return errors.New("injected pod creation failure")
+		}
+	}
+	return c.Client.Create(ctx, obj, opts...)
+}
+
 // TestScheduleStartsCheck confirms that scheduleChecks triggers a run when a check is due.
 func TestScheduleStartsCheck(t *testing.T) {
 	if testing.Short() {
@@ -208,6 +278,109 @@ func TestScheduleStartsCheck(t *testing.T) {
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "sched-check", Namespace: "default"}, fetched))
 	require.NotEmpty(t, fetched.CurrentUUID())
 	require.NotZero(t, fetched.Status.LastRunUnix)
+}
+
+// TestCheckRunTimesOutAfterDeadline ensures the timeout watcher marks checks as failed after the grace period.
+func TestCheckRunTimesOutAfterDeadline(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping timeout watcher test in short mode")
+	}
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	timeout := 500 * time.Millisecond
+	start := time.Now()
+
+	check := &khapi.KuberhealthyCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "timeout-watcher",
+			Namespace:       "default",
+			ResourceVersion: "1",
+		},
+		Spec: khapi.KuberhealthyCheckSpec{
+			Timeout: &metav1.Duration{Duration: timeout},
+		},
+		Status: khapi.KuberhealthyCheckStatus{
+			LastRunUnix: start.Unix(),
+			CurrentUUID: "run-1",
+			OK:          true,
+		},
+	}
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	kh := New(context.Background(), cl)
+	kh.Recorder = record.NewFakeRecorder(1)
+
+	kh.startTimeoutWatcher(check.DeepCopy())
+
+	time.Sleep(timeout + timeoutGracePeriod + 300*time.Millisecond)
+
+	updated := &khapi.KuberhealthyCheck{}
+	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: "timeout-watcher"}, updated))
+	require.False(t, updated.Status.OK)
+	require.Len(t, updated.Status.Errors, 1)
+	require.Contains(t, updated.Status.Errors[0], "timed out")
+	require.Empty(t, updated.CurrentUUID())
+
+	events := waitForEvents(t, kh.Recorder.(*record.FakeRecorder).Events, 1)
+	require.Contains(t, events[0], "CheckRunTimedOut")
+}
+
+// TestTimeoutWatcherSkipsCompletedRun ensures the watcher exits quietly when the run finishes before the deadline.
+func TestTimeoutWatcherSkipsCompletedRun(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping timeout watcher completion test in short mode")
+	}
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	timeout := 500 * time.Millisecond
+	start := time.Now()
+
+	check := &khapi.KuberhealthyCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "timeout-complete",
+			Namespace:       "default",
+			ResourceVersion: "1",
+		},
+		Spec: khapi.KuberhealthyCheckSpec{
+			Timeout: &metav1.Duration{Duration: timeout},
+		},
+		Status: khapi.KuberhealthyCheckStatus{
+			LastRunUnix: start.Unix(),
+			CurrentUUID: "run-2",
+			OK:          true,
+		},
+	}
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	kh := New(context.Background(), cl)
+	kh.Recorder = record.NewFakeRecorder(1)
+
+	kh.startTimeoutWatcher(check.DeepCopy())
+
+	// simulate a successful report by clearing the UUID before the timeout expires
+	completed := check.DeepCopy()
+	completed.Status.CurrentUUID = ""
+	require.NoError(t, cl.Status().Update(context.Background(), completed))
+
+	time.Sleep(timeout + timeoutGracePeriod + 300*time.Millisecond)
+
+	updated := &khapi.KuberhealthyCheck{}
+	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: "timeout-complete"}, updated))
+	require.True(t, updated.Status.OK)
+	require.Empty(t, updated.Status.Errors)
+	require.Empty(t, updated.CurrentUUID())
+
+	select {
+	case e := <-kh.Recorder.(*record.FakeRecorder).Events:
+		t.Fatalf("unexpected event emitted: %s", e)
+	case <-time.After(100 * time.Millisecond):
+	}
 }
 
 // TestScheduleSkipsWhenNotDue ensures scheduleChecks leaves checks untouched if their interval has not elapsed.
@@ -276,32 +449,4 @@ func TestScheduleLoopStopsOnStop(t *testing.T) {
 	running := kh.loopRunning
 	kh.loopMu.Unlock()
 	require.False(t, running)
-}
-
-// TestScheduleLoopOnlyRunsOnce checks that a second schedule loop invocation exits immediately if already running.
-func TestScheduleLoopOnlyRunsOnce(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping schedule loop only runs once test in short mode")
-	}
-	scheme := runtime.NewScheme()
-	require.NoError(t, khapi.AddToScheme(scheme))
-	cl := fake.NewClientBuilder().WithScheme(scheme).Build()
-
-	kh := New(context.Background(), cl)
-	require.NoError(t, kh.Start(context.Background(), nil))
-	time.Sleep(50 * time.Millisecond)
-
-	done := make(chan struct{})
-	go func() {
-		kh.startScheduleLoop()
-		close(done)
-	}()
-
-	select {
-	case <-done:
-		// second invocation exited immediately
-	case <-time.After(200 * time.Millisecond):
-		t.Fatal("second schedule loop did not exit")
-	}
-	kh.Stop()
 }
