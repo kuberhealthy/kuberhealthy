@@ -272,7 +272,8 @@ func TestScheduleStartsCheck(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
 
-	kh.scheduleChecks()
+	delay := kh.scheduleChecks()
+	require.Equal(t, minimumScheduleInterval, delay)
 
 	fetched := &khapi.KuberhealthyCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "sched-check", Namespace: "default"}, fetched))
@@ -419,12 +420,59 @@ func TestScheduleSkipsWhenNotDue(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
 
-	kh.scheduleChecks()
+	delay := kh.scheduleChecks()
 
 	fetched := &khapi.KuberhealthyCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "skip-check", Namespace: "default"}, fetched))
 	require.Empty(t, fetched.CurrentUUID())
 	require.Equal(t, last, fetched.Status.LastRunUnix)
+	require.GreaterOrEqual(t, delay, time.Duration(0))
+}
+
+// TestScheduleReturnsRemainingDelay ensures scheduleChecks returns the time remaining until the next run when a check is not yet due.
+func TestScheduleReturnsRemainingDelay(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping schedule delay test in short mode")
+	}
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	remaining := 5 * time.Second
+	runInterval := 15 * time.Second
+	lastRun := time.Now().Add(-(runInterval - remaining)).Unix()
+
+	check := &unstructured.Unstructured{Object: map[string]interface{}{
+		"apiVersion": "kuberhealthy.github.io/v2",
+		"kind":       "KuberhealthyCheck",
+		"metadata": map[string]interface{}{
+			"name":            "delay-check",
+			"namespace":       "default",
+			"resourceVersion": "1",
+		},
+		"spec": map[string]interface{}{
+			"runInterval": runInterval.String(),
+			"podSpec": map[string]interface{}{
+				"spec": map[string]interface{}{
+					"containers": []interface{}{
+						map[string]interface{}{"name": "test", "image": "busybox"},
+					},
+				},
+			},
+		},
+		"status": map[string]interface{}{
+			"lastRunUnix": lastRun,
+		},
+	}}
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	kh := New(context.Background(), cl)
+
+	delay := kh.scheduleChecks()
+	require.GreaterOrEqual(t, delay, remaining-time.Second)
+	require.LessOrEqual(t, delay, remaining+time.Second)
 }
 
 // TestScheduleLoopStopsOnStop verifies that Stop halts the scheduling loop.

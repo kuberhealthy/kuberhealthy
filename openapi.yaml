@@ -88,15 +88,23 @@ paths:
           required: true
           schema:
             type: string
+        - in: query
+          name: format
+          required: true
+          schema:
+            type: string
+            enum: [text]
       responses:
         '200':
           description: Pod logs
           content:
-            application/json:
+            text/plain:
               schema:
-                $ref: '#/components/schemas/PodLog'
+                type: string
         '400':
           description: Missing parameters
+        '406':
+          description: Unsupported format
   /api/logs/stream:
     get:
       summary: Stream logs for a running checker pod
@@ -320,37 +328,6 @@ components:
           type: object
         response:
           type: object
-    PodLog:
-      type: object
-      properties:
-        name:
-          type: string
-        namespace:
-          type: string
-        phase:
-          type: string
-        startTime:
-          type: integer
-          format: int64
-        durationSeconds:
-          type: integer
-          format: int64
-        labels:
-          type: object
-          additionalProperties:
-            type: string
-        annotations:
-          type: object
-          additionalProperties:
-            type: string
-        logs:
-          type: string
-        yaml:
-          type: string
-      required:
-        - name
-        - namespace
-        - phase
     EventSummary:
       type: object
       properties:

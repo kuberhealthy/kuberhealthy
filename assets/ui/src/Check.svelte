@@ -1,5 +1,5 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { checks } from './stores';
   import { formatDuration } from './util';
 
@@ -8,13 +8,13 @@
   let nextRun = '';
   let failIn = '';
   let events = [];
-  let podYaml = '';
+  let eventsText = '';
   let logsURL = '';
   let streamURL = '';
   let isRunning = false;
   let eventsTimer;
+  let eventsBox;
   let countdownTimer;
-  let logStreamAbort;
   let runButtonTimer;
   let showRunButton = true;
 
@@ -23,7 +23,6 @@
   function clearTimers(){
     if(eventsTimer){ clearInterval(eventsTimer); eventsTimer = null; }
     if(countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
-    if(logStreamAbort){ logStreamAbort.abort(); logStreamAbort = null; }
     if(runButtonTimer){ clearTimeout(runButtonTimer); runButtonTimer = null; }
   }
 
@@ -45,9 +44,11 @@
       countdownTimer = setInterval(() => updateNextRun(st.nextRunUnix), 1000);
     }
     if(st.podName){
-      loadLogs();
+      const params = 'namespace=' + encodeURIComponent(st.namespace) + '&khcheck=' + encodeURIComponent(name) + '&pod=' + encodeURIComponent(st.podName);
+      logsURL = '/api/logs?' + params + '&format=text';
+      streamURL = '/api/logs/stream?' + params;
+      isRunning = true;
     } else {
-      podYaml = '';
       logsURL = '';
       streamURL = '';
       isRunning = false;
@@ -67,19 +68,16 @@
   async function loadEvents(){
     try{
       const url = '/api/events?namespace=' + encodeURIComponent(st.namespace) + '&khcheck=' + encodeURIComponent(name) + '&t=' + Date.now();
-      events = await (await fetch(url)).json();
-      events.sort((a,b)=>(b.lastTimestamp||0)-(a.lastTimestamp||0));
-    }catch(e){ console.error(e); }
-  }
-
-  async function loadLogs(){
-    try{
-      const params = 'namespace=' + encodeURIComponent(st.namespace) + '&khcheck=' + encodeURIComponent(name) + '&pod=' + encodeURIComponent(st.podName);
-      const res = await (await fetch('/api/logs?' + params)).json();
-      podYaml = res.yaml || '';
-      isRunning = res.phase === 'Running';
-      logsURL = '/api/logs?' + params + '&format=text';
-      streamURL = '/api/logs/stream?' + params;
+      const nextEvents = await (await fetch(url)).json();
+      nextEvents.sort((a,b)=>(a.lastTimestamp||0)-(b.lastTimestamp||0));
+      events = nextEvents;
+      eventsText = events
+        .map(ev => `${ev.lastTimestamp ? new Date(ev.lastTimestamp * 1000).toLocaleString() + ': ' : ''}[${ev.type}] ${ev.reason} - ${ev.message}`)
+        .join('\n');
+      await tick();
+      if (eventsBox) {
+        eventsBox.scrollTop = eventsBox.scrollHeight;
+      }
     }catch(e){ console.error(e); }
   }
 
@@ -150,15 +148,14 @@
     {#if events.length === 0}
       <div>No events found</div>
     {:else}
-      {#each events as ev}
-        <div class="p-1 border-b border-gray-200 dark:border-gray-700">
-          {ev.lastTimestamp ? new Date(ev.lastTimestamp*1000).toLocaleString()+': ' : ''}[{ev.type}] {ev.reason} - {ev.message}
-        </div>
-      {/each}
+      <textarea
+        class="w-full font-mono text-sm bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded p-2"
+        rows="15"
+        readonly
+        bind:this={eventsBox}
+        value={eventsText}
+        spellcheck="false"
+      ></textarea>
     {/if}
-  </div>
-  <div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4">
-    <h3 class="text-xl font-semibold mb-2">Checker Pod YAML</h3>
-    <pre class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-4 rounded shadow-inner">{podYaml}</pre>
   </div>
 </div>

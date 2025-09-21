@@ -241,13 +241,11 @@ func TestReaperKeepsRecentCompletedPods(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestReaperPrunesFailedPods prunes failed pods based on retention days and maximum count.
+// TestReaperPrunesFailedPods trims older failures once more than three exist.
 func TestReaperPrunesFailedPods(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping prune test in short mode")
 	}
-	t.Setenv("KH_ERROR_POD_RETENTION_DAYS", "2")
-	t.Setenv("KH_MAX_ERROR_POD_COUNT", "2")
 
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
@@ -264,28 +262,50 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 		},
 	}
 
+	now := time.Now()
 	pods := []corev1.Pod{
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "failed-oldest",
-				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-a"},
+				Name:              "failed-oldest",
+				Namespace:         "default",
+				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "run-a"},
+				CreationTimestamp: metav1.NewTime(now.Add(-5 * time.Hour)),
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "failed-middle",
-				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-b"},
+				Name:              "failed-older",
+				Namespace:         "default",
+				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "run-b"},
+				CreationTimestamp: metav1.NewTime(now.Add(-4 * time.Hour)),
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "failed-newest",
-				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-c"},
+				Name:              "failed-middle",
+				Namespace:         "default",
+				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "run-c"},
+				CreationTimestamp: metav1.NewTime(now.Add(-3 * time.Hour)),
+			},
+			Status: corev1.PodStatus{Phase: corev1.PodFailed},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "failed-newer",
+				Namespace:         "default",
+				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "run-d"},
+				CreationTimestamp: metav1.NewTime(now.Add(-2 * time.Hour)),
+			},
+			Status: corev1.PodStatus{Phase: corev1.PodFailed},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "failed-newest",
+				Namespace:         "default",
+				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "run-e"},
+				CreationTimestamp: metav1.NewTime(now.Add(-1 * time.Hour)),
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
@@ -310,16 +330,19 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 			ours = append(ours, remaining.Items[i])
 		}
 	}
-	require.Len(t, ours, 2)
+	require.Len(t, ours, 3)
+	var names []string
+	for i := range ours {
+		names = append(names, ours[i].Name)
+	}
+	require.ElementsMatch(t, []string{"failed-middle", "failed-newer", "failed-newest"}, names)
 }
 
-// TestReaperRetainsFailedPodsWithinRetention keeps failed pods when they fall within retention limits.
-func TestReaperRetainsFailedPodsWithinRetention(t *testing.T) {
+// TestReaperRetainsFailedPodsWithinLimit keeps failed pods when they are at or below the limit.
+func TestReaperRetainsFailedPodsWithinLimit(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping retention test in short mode")
 	}
-	t.Setenv("KH_ERROR_POD_RETENTION_DAYS", "2")
-	t.Setenv("KH_MAX_ERROR_POD_COUNT", "3")
 
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
@@ -353,6 +376,14 @@ func TestReaperRetainsFailedPodsWithinRetention(t *testing.T) {
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "failed-three",
+				Namespace: "default",
+				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-3"},
+			},
+			Status: corev1.PodStatus{Phase: corev1.PodFailed},
+		},
 	}
 
 	objs := []runtime.Object{check}
@@ -374,16 +405,14 @@ func TestReaperRetainsFailedPodsWithinRetention(t *testing.T) {
 			ours = append(ours, remaining.Items[i])
 		}
 	}
-	require.Len(t, ours, 2)
+	require.Len(t, ours, 3)
 }
 
-// TestReaperDeletesFailedPodsPastRetention removes failed pods older than the configured retention period.
-func TestReaperDeletesFailedPodsPastRetention(t *testing.T) {
+// TestReaperTreatsUnknownPhaseAsFailed ensures unexpected pod phases are trimmed with the failed-pod policy.
+func TestReaperTreatsUnknownPhaseAsFailed(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping deletion test in short mode")
+		t.Skip("skipping unexpected phase test in short mode")
 	}
-	t.Setenv("KH_ERROR_POD_RETENTION_DAYS", "1")
-	t.Setenv("KH_MAX_ERROR_POD_COUNT", "5")
 
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
@@ -391,31 +420,52 @@ func TestReaperDeletesFailedPodsPastRetention(t *testing.T) {
 
 	check := &khapi.KuberhealthyCheck{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            "old-check",
+			Name:            "odd-phase-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
 		Status: khapi.KuberhealthyCheckStatus{
-			LastRunUnix: time.Now().Add(-26 * time.Hour).Unix(),
+			LastRunUnix: time.Now().Unix(),
 		},
 	}
 
+	now := time.Now()
 	pods := []corev1.Pod{
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "failed-oldest",
-				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "old-1"},
+				Name:              "mystery-1",
+				Namespace:         "default",
+				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "m1"},
+				CreationTimestamp: metav1.NewTime(now.Add(-4 * time.Hour)),
 			},
-			Status: corev1.PodStatus{Phase: corev1.PodFailed},
+			Status: corev1.PodStatus{Phase: corev1.PodPhase("MysteryPhase")},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "failed-older",
-				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "old-2"},
+				Name:              "mystery-2",
+				Namespace:         "default",
+				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "m2"},
+				CreationTimestamp: metav1.NewTime(now.Add(-3 * time.Hour)),
 			},
-			Status: corev1.PodStatus{Phase: corev1.PodFailed},
+			Status: corev1.PodStatus{Phase: corev1.PodPhase("MysteryPhase")},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "mystery-3",
+				Namespace:         "default",
+				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "m3"},
+				CreationTimestamp: metav1.NewTime(now.Add(-2 * time.Hour)),
+			},
+			Status: corev1.PodStatus{Phase: corev1.PodPhase("MysteryPhase")},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "mystery-4",
+				Namespace:         "default",
+				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "m4"},
+				CreationTimestamp: metav1.NewTime(now.Add(-1 * time.Hour)),
+			},
+			Status: corev1.PodStatus{Phase: corev1.PodPhase("MysteryPhase")},
 		},
 	}
 
@@ -438,5 +488,10 @@ func TestReaperDeletesFailedPodsPastRetention(t *testing.T) {
 			ours = append(ours, remaining.Items[i])
 		}
 	}
-	require.Len(t, ours, 0)
+	require.Len(t, ours, 3)
+	var names []string
+	for i := range ours {
+		names = append(names, ours[i].Name)
+	}
+	require.ElementsMatch(t, []string{"mystery-2", "mystery-3", "mystery-4"}, names)
 }

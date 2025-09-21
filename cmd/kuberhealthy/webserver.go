@@ -345,22 +345,6 @@ func runCheckHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-type podSummary struct {
-	Name            string            `json:"name"`
-	Namespace       string            `json:"namespace"`
-	Phase           string            `json:"phase"`
-	StartTime       int64             `json:"startTime,omitempty"`
-	DurationSeconds int64             `json:"durationSeconds,omitempty"`
-	Labels          map[string]string `json:"labels,omitempty"`
-	Annotations     map[string]string `json:"annotations,omitempty"`
-}
-
-type podLogResponse struct {
-	podSummary
-	Logs string `json:"logs"`
-	YAML string `json:"yaml,omitempty"`
-}
-
 type eventSummary struct {
 	Message       string `json:"message"`
 	Reason        string `json:"reason"`
@@ -420,12 +404,6 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusForbidden)
 		return fmt.Errorf("pod not part of khcheck")
 	}
-	nn := types.NamespacedName{Namespace: namespace, Name: khcheck}
-	check, err := khapi.GetCheck(r.Context(), Globals.khClient, nn)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return err
-	}
 	if Globals.kubeClient == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return fmt.Errorf("kubernetes client not initialized")
@@ -442,39 +420,15 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
-	// Build a templated pod spec as it would be sent to the API, rather than
-	// returning the full live Pod object with managed fields and status.
-	var podYAML []byte
-	if Globals.kh != nil {
-		tpl := Globals.kh.CheckPodSpec(check)
-		// Best-effort marshal; fall back to an empty YAML string on failure.
-		if y, mErr := yaml.Marshal(tpl); mErr == nil {
-			podYAML = y
-		}
+	if r.URL.Query().Get("format") != "text" {
+		w.WriteHeader(http.StatusNotAcceptable)
+		return fmt.Errorf("format must be 'text'")
 	}
-	// Allow callers to request only raw logs in text form for opening in a new tab
-	if r.URL.Query().Get("format") == "text" {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = w.Write(b)
-		return nil
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	if _, err := w.Write(b); err != nil {
+		return err
 	}
-	resp := podLogResponse{
-		podSummary: podSummary{
-			Name:        podName,
-			Namespace:   namespace,
-			Phase:       string(pod.Status.Phase),
-			Labels:      pod.Labels,
-			Annotations: pod.Annotations,
-		},
-		Logs: string(b),
-		YAML: string(podYAML),
-	}
-	if pod.Status.StartTime != nil {
-		resp.StartTime = pod.Status.StartTime.Unix()
-		resp.DurationSeconds = int64(podRunDuration(pod).Seconds())
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	return json.NewEncoder(w).Encode(resp)
+	return nil
 }
 
 // podLogsStreamHandler streams logs for a specific pod in real time.
@@ -541,23 +495,6 @@ func podLogsStreamHandler(w http.ResponseWriter, r *http.Request) error {
 			return err
 		}
 	}
-}
-
-// podRunDuration returns the runtime of a pod.
-func podRunDuration(p *v1.Pod) time.Duration {
-	if p.Status.StartTime == nil {
-		return 0
-	}
-	start := p.Status.StartTime.Time
-	if p.Status.Phase == v1.PodRunning {
-		return time.Since(start)
-	}
-	for _, cs := range p.Status.ContainerStatuses {
-		if cs.State.Terminated != nil {
-			return cs.State.Terminated.FinishedAt.Sub(cs.State.Terminated.StartedAt.Time)
-		}
-	}
-	return time.Since(start)
 }
 
 // PodReportInfo holds info about an incoming IP to the external check reporting endpoint

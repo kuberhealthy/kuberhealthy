@@ -3,9 +3,7 @@ package kuberhealthy
 import (
 	"context"
 	"fmt"
-	"os"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 
@@ -36,20 +34,22 @@ const (
 	defaultRunInterval = time.Minute * 10
 	// defaultRunTimeout is the amount of time a pod is allowed to run before it is considered timed out.
 	defaultRunTimeout = 30 * time.Second
-	// scheduleLoopInterval controls how often Kuberhealthy scans for checks to run.
-	scheduleLoopInterval = 30 * time.Second
-	checkLabel           = "khcheck"
-	runUUIDLabel         = "kh-run-uuid"
+	// minimumScheduleInterval controls the shortest delay between scheduling scans when no check is due immediately.
+	minimumScheduleInterval = time.Second
+	checkLabel              = "khcheck"
+	runUUIDLabel            = "kh-run-uuid"
 	// timeoutGracePeriod adds a tiny buffer before flagging a run as failed so pods can finish cleanly at the
 	// deadline without tripping a race.
 	timeoutGracePeriod = 2 * time.Second
-	// defaultFailedPodRetentionDays is the number of days to retain failed pods before they are reaped.
-	defaultFailedPodRetentionDays = 4
 	// defaultMaxFailedPods is the maximum number of failed pods to retain for a check.
-	defaultMaxFailedPods = 5
+	defaultMaxFailedPods = 3
 )
 
-var kuberhealthyCheckGVR = khapi.GroupVersion.WithResource("kuberhealthychecks")
+var (
+	kuberhealthyCheckGVR = khapi.GroupVersion.WithResource("kuberhealthychecks")
+	recorderSchemeOnce   sync.Once
+	recorderSchemeErr    error
+)
 
 // Kuberhealthy handles background processing for checks
 type Kuberhealthy struct {
@@ -86,8 +86,11 @@ func New(ctx context.Context, checkClient client.Client, doneChan ...chan struct
 		} else {
 			broadcaster := record.NewBroadcaster()
 			broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: cs.CoreV1().Events("")})
-			if err := khapi.AddToScheme(k8scheme.Scheme); err != nil {
-				log.Errorln("event recorder disabled:", err)
+			recorderSchemeOnce.Do(func() {
+				recorderSchemeErr = khapi.AddToScheme(k8scheme.Scheme)
+			})
+			if recorderSchemeErr != nil {
+				log.Errorln("event recorder disabled:", recorderSchemeErr)
 			} else {
 				recorder = broadcaster.NewRecorder(k8scheme.Scheme, corev1.EventSource{Component: "kuberhealthy"})
 			}
@@ -187,27 +190,45 @@ func (kh *Kuberhealthy) startScheduleLoop() {
 	}
 	defer kh.setLoopRunning(false)
 
-	ticker := time.NewTicker(scheduleLoopInterval)
-	defer ticker.Stop()
+	delay := kh.scheduleChecks()
+	if delay <= 0 {
+		delay = minimumScheduleInterval
+	}
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
 	for {
 		select {
 		case <-kh.Context.Done():
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
 			return
-		case <-ticker.C:
-			kh.scheduleChecks()
+		case <-timer.C:
+			delay = kh.scheduleChecks()
+			if delay <= 0 {
+				delay = minimumScheduleInterval
+			}
+			timer.Reset(delay)
 		}
 	}
 }
 
-// scheduleChecks iterates through all khchecks and starts any that are due to run.
-func (kh *Kuberhealthy) scheduleChecks() {
+// scheduleChecks iterates through all khchecks, starts any that are due to run, and returns the shortest delay before the next evaluation should occur.
+func (kh *Kuberhealthy) scheduleChecks() time.Duration {
 	uList := &unstructured.UnstructuredList{}
 	uList.SetGroupVersionKind(khapi.GroupVersion.WithKind("KuberhealthyCheckList"))
 	if err := kh.CheckClient.List(kh.Context, uList); err != nil {
 		log.Errorln("failed to list khchecks:", err)
-		return
+		return minimumScheduleInterval
 	}
 
+	nextDelay := time.Duration(0)
+	started := false
+	now := time.Now()
 	for _, khcheck := range uList.Items {
 		runInterval := kh.runIntervalForCheck(&khcheck)
 
@@ -220,21 +241,50 @@ func (kh *Kuberhealthy) scheduleChecks() {
 
 		lastStart := time.Unix(check.Status.LastRunUnix, 0)
 
-		// skip checks that are already running
+		// determine when this check should run next
+		remaining := runInterval - now.Sub(lastStart)
+		if lastStart.IsZero() {
+			remaining = 0
+		}
+
 		if check.CurrentUUID() != "" {
+			nextDelay = minPositiveDuration(nextDelay, remaining)
 			continue
 		}
 
-		// wait until the run interval has elapsed before starting again
-		remaining := runInterval - time.Since(lastStart)
 		if remaining > 0 {
+			nextDelay = minPositiveDuration(nextDelay, remaining)
 			continue
 		}
 
 		if err := kh.StartCheck(&check); err != nil {
 			log.Errorf("failed to start check %s/%s: %v", check.Namespace, check.Name, err)
+			continue
 		}
+		started = true
+		nextDelay = minPositiveDuration(nextDelay, runInterval)
 	}
+
+	if started {
+		return minimumScheduleInterval
+	}
+	if nextDelay <= 0 {
+		return minimumScheduleInterval
+	}
+	if nextDelay < minimumScheduleInterval {
+		return minimumScheduleInterval
+	}
+	return nextDelay
+}
+
+func minPositiveDuration(current, candidate time.Duration) time.Duration {
+	if candidate <= 0 {
+		return current
+	}
+	if current <= 0 || candidate < current {
+		return candidate
+	}
+	return current
 }
 
 // runIntervalForCheck returns the configured run interval for a check, falling back to the default.
@@ -806,8 +856,7 @@ func (kh *Kuberhealthy) runReaper(ctx context.Context, interval time.Duration) {
 func (kh *Kuberhealthy) reapOnce() error {
 	// gather every khcheck so we can inspect their pod history
 	var checkList khapi.KuberhealthyCheckList
-	err := kh.CheckClient.List(kh.Context, &checkList)
-	if err != nil {
+	if err := kh.CheckClient.List(kh.Context, &checkList); err != nil {
 		return err
 	}
 	for i := range checkList.Items {
@@ -815,159 +864,135 @@ func (kh *Kuberhealthy) reapOnce() error {
 		checkList.Items[i].EnsureCreationTimestamp()
 	}
 
-	// figure out pod retention limits from the environment with sane defaults
-	retention := time.Duration(defaultFailedPodRetentionDays) * 24 * time.Hour
-	value := os.Getenv("KH_ERROR_POD_RETENTION_DAYS")
-	if value != "" {
-		days, parseErr := strconv.Atoi(value)
-		if parseErr == nil && days > 0 {
-			retention = time.Duration(days) * 24 * time.Hour
-		}
-	}
-
-	maxFailed := defaultMaxFailedPods
-	value = os.Getenv("KH_MAX_ERROR_POD_COUNT")
-	if value != "" {
-		count, parseErr := strconv.Atoi(value)
-		if parseErr == nil && count > 0 {
-			maxFailed = count
-		}
-	}
-
 	for i := range checkList.Items {
 		check := &checkList.Items[i]
+		if err := kh.cleanupPodsForCheck(check); err != nil {
+			log.Errorf("reaper: cleanup pods for %s/%s: %v", check.Namespace, check.Name, err)
+		}
+	}
 
-		// start from default scheduling values so all math has a baseline
-		timeout := defaultRunTimeout
-		runInterval := defaultRunInterval
+	return nil
+}
 
-		raw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(check)
-		if err == nil {
-			spec, ok := raw["spec"].(map[string]interface{})
-			if ok {
-				if v, found := spec["timeout"].(string); found {
-					d, parseErr := time.ParseDuration(v)
-					if parseErr == nil {
-						timeout = d
-					}
+// cleanupPodsForCheck evaluates every pod owned by the provided check and deletes any that violate lifecycle policies.
+func (kh *Kuberhealthy) cleanupPodsForCheck(check *khapi.KuberhealthyCheck) error {
+	// start from default scheduling values so all math has a baseline
+	timeout := defaultRunTimeout
+	runInterval := defaultRunInterval
+
+	raw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(check)
+	if err == nil {
+		spec, ok := raw["spec"].(map[string]interface{})
+		if ok {
+			if v, found := spec["timeout"].(string); found {
+				d, parseErr := time.ParseDuration(v)
+				if parseErr == nil {
+					timeout = d
 				}
-				if v, found := spec["runInterval"].(string); found {
-					d, parseErr := time.ParseDuration(v)
-					if parseErr == nil {
-						runInterval = d
-					}
+			}
+			if v, found := spec["runInterval"].(string); found {
+				d, parseErr := time.ParseDuration(v)
+				if parseErr == nil {
+					runInterval = d
 				}
 			}
 		}
+	}
 
-		var podList corev1.PodList
-		err = kh.CheckClient.List(kh.Context, &podList,
-			client.InNamespace(check.Namespace),
-			client.HasLabels{runUUIDLabel},
-		)
-		if err != nil {
-			log.Errorf("reaper: list pods for %s/%s: %v", check.Namespace, check.Name, err)
+	var podList corev1.PodList
+	err = kh.CheckClient.List(kh.Context, &podList,
+		client.InNamespace(check.Namespace),
+		client.HasLabels{runUUIDLabel},
+	)
+	if err != nil {
+		return fmt.Errorf("list pods: %w", err)
+	}
+
+	// compute how long the current run has been active so we can compare against deadlines
+	runStart := time.Unix(check.Status.LastRunUnix, 0)
+	var runAge time.Duration
+	if !runStart.IsZero() {
+		runAge = time.Since(runStart)
+	}
+
+	var failedPods []corev1.Pod
+
+	for pod := range podList.Items {
+		podRef := &podList.Items[pod]
+		if podRef.Labels[checkLabel] != check.Name {
+			// a stale pod from another check slipped through the label selector
 			continue
 		}
 
-		// keep pods that already failed separate so we can apply retention after the main sweep
-		var failedPods []corev1.Pod
-
-		runStart := time.Unix(check.Status.LastRunUnix, 0)
-		// compute how long the current run has been active so we can compare against deadlines
-		var runAge time.Duration
-		if !runStart.IsZero() {
-			runAge = time.Since(runStart)
-		}
-
-		for pod := range podList.Items {
-			podRef := &podList.Items[pod]
-			if podRef.Labels[checkLabel] != check.Name {
-				// a stale pod from another check slipped through the label selector
+		switch podRef.Status.Phase {
+		case corev1.PodRunning, corev1.PodPending, corev1.PodUnknown:
+			maxAge := timeout * 2
+			if maxAge < 5*time.Minute {
+				maxAge = 5 * time.Minute
+			}
+			if runAge <= maxAge {
 				continue
 			}
-
-			switch podRef.Status.Phase {
-			case corev1.PodRunning, corev1.PodPending, corev1.PodUnknown:
-				// the checker is still running so enforce the timeout floor before deleting it
-				maxAge := timeout
-				if maxAge < 5*time.Minute {
-					// the business requirement guarantees at least a five minute window before reaping
-					maxAge = 5 * time.Minute
-				}
-
-				if runAge > maxAge {
-					// the check already timed out and survived the grace period so remove the pod
-					err = kh.CheckClient.Delete(kh.Context, podRef)
-					if err != nil && !apierrors.IsNotFound(err) {
-						log.Errorf("reaper: failed deleting timed out pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
-						continue
-					}
-
-					log.WithFields(log.Fields{
-						"namespace": check.Namespace,
-						"name":      check.Name,
-						"pod":       podRef.Name,
-					}).Info("deleted checker pod")
-
-					if kh.Recorder != nil {
-						kh.Recorder.Eventf(check, corev1.EventTypeWarning, "CheckRunTimeout", "deleted pod %s after exceeding timeout %s", podRef.Name, timeout)
-					}
-				}
-			case corev1.PodSucceeded:
-				// completed pods stick around for a while so operators can inspect their logs
-				if runAge > runInterval*10 {
-					err = kh.CheckClient.Delete(kh.Context, podRef)
-					if err != nil && !apierrors.IsNotFound(err) {
-						log.Errorf("reaper: failed deleting completed pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
-						continue
-					}
-
-					log.WithFields(log.Fields{
-						"namespace": check.Namespace,
-						"name":      check.Name,
-						"pod":       podRef.Name,
-					}).Info("deleted checker pod")
-
-					if kh.Recorder != nil {
-						kh.Recorder.Eventf(check, corev1.EventTypeNormal, "CheckPodReaped", "deleted completed pod %s after %s", podRef.Name, runAge)
-					}
-				}
-			case corev1.PodFailed:
-				// failed pods are evaluated after the main loop so we can respect both count and age limits
-				failedPods = append(failedPods, *podRef)
-			default:
-				// logging unknown phases keeps us aware of new Kubernetes pod states
-				log.Errorf("reaper: encountered pod %s/%s with unexpected phase %s", podRef.Namespace, podRef.Name, podRef.Status.Phase)
+			msg := fmt.Sprintf("deleted pod %s after exceeding timeout %s", podRef.Name, timeout)
+			if err := kh.deletePod(check, podRef, corev1.EventTypeWarning, "CheckRunTimeout", msg); err != nil {
+				log.Errorf("reaper: failed deleting timed out pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
 			}
-		}
-
-		// delete the oldest failed pods first so we retain recent failure data for debugging
-		sort.Slice(failedPods, func(i, j int) bool {
-			return failedPods[i].Name > failedPods[j].Name
-		})
-
-		for pod := range failedPods {
-			podRef := &failedPods[pod]
-			if pod >= maxFailed || runAge > retention {
-				// either the failure backlog exceeds our quota or the pod aged past retention, so delete it
-				err = kh.CheckClient.Delete(kh.Context, podRef)
-				if err != nil && !apierrors.IsNotFound(err) {
-					log.Errorf("reaper: failed deleting failed pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
-					continue
-				}
-
-				log.WithFields(log.Fields{
-					"namespace": check.Namespace,
-					"name":      check.Name,
-					"pod":       podRef.Name,
-				}).Info("deleted checker pod")
-
-				if kh.Recorder != nil {
-					kh.Recorder.Eventf(check, corev1.EventTypeNormal, "CheckFailedPodReaped", "removed failed pod %s after %s", podRef.Name, runAge)
-				}
+		case corev1.PodSucceeded:
+			if runAge <= runInterval*10 {
+				continue
 			}
+			msg := fmt.Sprintf("deleted completed pod %s after %s", podRef.Name, runAge)
+			if err := kh.deletePod(check, podRef, corev1.EventTypeNormal, "CheckPodReaped", msg); err != nil {
+				log.Errorf("reaper: failed deleting completed pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
+			}
+		case corev1.PodFailed:
+			failedPods = append(failedPods, *podRef)
+		default:
+			log.Errorf("reaper: encountered pod %s/%s with unexpected phase %s", podRef.Namespace, podRef.Name, podRef.Status.Phase)
+			failedPods = append(failedPods, *podRef)
 		}
+	}
+
+	if len(failedPods) <= defaultMaxFailedPods {
+		return nil
+	}
+
+	sort.Slice(failedPods, func(i, j int) bool {
+		iTime := failedPods[i].CreationTimestamp.Time
+		jTime := failedPods[j].CreationTimestamp.Time
+		if !iTime.Equal(jTime) {
+			return iTime.Before(jTime)
+		}
+		return failedPods[i].Name < failedPods[j].Name
+	})
+
+	for pod := 0; pod < len(failedPods)-defaultMaxFailedPods; pod++ {
+		podRef := &failedPods[pod]
+		msg := fmt.Sprintf("removed failed pod %s while trimming backlog", podRef.Name)
+		if err := kh.deletePod(check, podRef, corev1.EventTypeNormal, "CheckFailedPodReaped", msg); err != nil {
+			log.Errorf("reaper: failed deleting failed pod %s/%s: %v", podRef.Namespace, podRef.Name, err)
+		}
+	}
+
+	return nil
+}
+
+// deletePod removes the given pod and emits the standard log and Kubernetes event entries.
+func (kh *Kuberhealthy) deletePod(check *khapi.KuberhealthyCheck, pod *corev1.Pod, eventType, reason, message string) error {
+	if err := kh.CheckClient.Delete(kh.Context, pod); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+
+	log.WithFields(log.Fields{
+		"namespace": check.Namespace,
+		"name":      check.Name,
+		"pod":       pod.Name,
+	}).Info("deleted checker pod")
+
+	if kh.Recorder != nil {
+		kh.Recorder.Eventf(check, eventType, reason, message)
 	}
 
 	return nil
