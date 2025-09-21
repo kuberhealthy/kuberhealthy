@@ -61,8 +61,12 @@ start_logs() {
   echo "🪵 Tailing Kuberhealthy logs..."
   kubectl --context="kind-${CLUSTER_NAME}" get pod -n "$TARGET_NAMESPACE"
   set +e
-  kubectl --context="kind-${CLUSTER_NAME}" logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy -f \
-    2> >(sed '/Interrupted by SIG/d' >&2) &
+  (
+    # Ignore Ctrl-C inside this subshell so kubectl doesn't print a SIGINT error.
+    trap '' INT
+    exec kubectl --context="kind-${CLUSTER_NAME}" logs -n "$TARGET_NAMESPACE" -l app=kuberhealthy -f \
+      2> >(sed '/Interrupted by SIG/d' >&2)
+  ) &
   LOG_PID=$!
   set -e
 }
