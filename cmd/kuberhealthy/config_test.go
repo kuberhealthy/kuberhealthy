@@ -25,7 +25,8 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("POD_NAMESPACE", "podns")
 
 	cfg := New()
-	if err := cfg.LoadFromEnv(); err != nil {
+	err := cfg.LoadFromEnv()
+	if err != nil {
 		t.Fatalf("LoadFromEnv returned error: %v", err)
 	}
 
@@ -86,7 +87,8 @@ func TestLoadFromEnvInvalid(t *testing.T) {
 	}
 	t.Setenv("KH_MAX_JOB_AGE", "not-a-duration")
 	cfg := New()
-	if err := cfg.LoadFromEnv(); err == nil {
+	err := cfg.LoadFromEnv()
+	if err == nil {
 		t.Fatalf("expected error for invalid duration")
 	}
 }
@@ -99,7 +101,8 @@ func TestReportingURLDefaultsFromNamespace(t *testing.T) {
 	t.Setenv("POD_NAMESPACE", "ns1")
 
 	cfg := New()
-	if err := cfg.LoadFromEnv(); err != nil {
+	err := cfg.LoadFromEnv()
+	if err != nil {
 		t.Fatalf("LoadFromEnv returned error: %v", err)
 	}
 
@@ -117,7 +120,8 @@ func TestReportingURLTrimsLegacySuffix(t *testing.T) {
 
 	cfg := New()
 	t.Setenv("KH_CHECK_REPORT_URL", "https://example.com/check")
-	if err := cfg.LoadFromEnv(); err != nil {
+	err := cfg.LoadFromEnv()
+	if err != nil {
 		t.Fatalf("LoadFromEnv returned error: %v", err)
 	}
 
@@ -135,7 +139,8 @@ func TestLoadTLSFiles(t *testing.T) {
 	t.Setenv("KH_TLS_CERT_FILE", "/cert")
 	t.Setenv("KH_TLS_KEY_FILE", "/key")
 	cfg := New()
-	if err := cfg.LoadFromEnv(); err != nil {
+	err := cfg.LoadFromEnv()
+	if err != nil {
 		t.Fatalf("LoadFromEnv returned error: %v", err)
 	}
 	if cfg.TLSCertFile != "/cert" {
@@ -153,7 +158,8 @@ func TestTargetNamespaceDefaultsBlank(t *testing.T) {
 	}
 	t.Setenv("POD_NAMESPACE", "podns")
 	cfg := New()
-	if err := cfg.LoadFromEnv(); err != nil {
+	err := cfg.LoadFromEnv()
+	if err != nil {
 		t.Fatalf("LoadFromEnv returned error: %v", err)
 	}
 	if cfg.TargetNamespace != "" {

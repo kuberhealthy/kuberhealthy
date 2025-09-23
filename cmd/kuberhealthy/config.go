@@ -58,92 +58,136 @@ func New() *Config {
 
 // LoadFromEnv populates the config from environment variables.
 func (c *Config) LoadFromEnv() error {
-	if v := os.Getenv("KH_LISTEN_ADDRESS"); v != "" {
-		c.ListenAddress = v
+	// override listen address when an alternate value is provided
+	listenAddress := os.Getenv("KH_LISTEN_ADDRESS")
+	if listenAddress != "" {
+		c.ListenAddress = listenAddress
 	}
 
-	if v := os.Getenv("KH_LISTEN_ADDRESS_TLS"); v != "" {
-		c.ListenAddressTLS = v
+	// override the TLS listener address from the environment
+	listenAddressTLS := os.Getenv("KH_LISTEN_ADDRESS_TLS")
+	if listenAddressTLS != "" {
+		c.ListenAddressTLS = listenAddressTLS
 	}
 
-	if v := os.Getenv("KH_LOG_LEVEL"); v != "" {
-		c.LogLevel = v
+	// allow configuring the global log level with KH_LOG_LEVEL
+	logLevel := os.Getenv("KH_LOG_LEVEL")
+	if logLevel != "" {
+		c.LogLevel = logLevel
 	}
 
-	if v := os.Getenv("KH_MAX_JOB_AGE"); v != "" {
-		d, err := time.ParseDuration(v)
+	// parse the max job age duration override
+	maxJobAge := os.Getenv("KH_MAX_JOB_AGE")
+	if maxJobAge != "" {
+		parsedDuration, err := time.ParseDuration(maxJobAge)
 		if err != nil {
 			return fmt.Errorf("invalid KH_MAX_JOB_AGE: %w", err)
 		}
-		c.MaxKHJobAge = d
+		c.MaxKHJobAge = parsedDuration
 	}
 
-	if v := os.Getenv("KH_MAX_CHECK_POD_AGE"); v != "" {
-		d, err := time.ParseDuration(v)
+	// parse the max check pod age duration override
+	maxCheckPodAge := os.Getenv("KH_MAX_CHECK_POD_AGE")
+	if maxCheckPodAge != "" {
+		parsedDuration, err := time.ParseDuration(maxCheckPodAge)
 		if err != nil {
 			return fmt.Errorf("invalid KH_MAX_CHECK_POD_AGE: %w", err)
 		}
-		c.MaxCheckPodAge = d
+		c.MaxCheckPodAge = parsedDuration
 	}
 
-	if v := os.Getenv("KH_MAX_COMPLETED_POD_COUNT"); v != "" {
-		i, err := strconv.Atoi(v)
-		if err != nil || i < 0 {
-			return fmt.Errorf("invalid KH_MAX_COMPLETED_POD_COUNT: %v", err)
+	// parse the completed pod retention limit override
+	maxCompletedPodCount := os.Getenv("KH_MAX_COMPLETED_POD_COUNT")
+	if maxCompletedPodCount != "" {
+		parsedCount, err := strconv.Atoi(maxCompletedPodCount)
+		if err != nil {
+			return fmt.Errorf("invalid KH_MAX_COMPLETED_POD_COUNT: %w", err)
 		}
-		c.MaxCompletedPodCount = i
-	}
-
-	if v := os.Getenv("KH_MAX_ERROR_POD_COUNT"); v != "" {
-		i, err := strconv.Atoi(v)
-		if err != nil || i < 0 {
-			return fmt.Errorf("invalid KH_MAX_ERROR_POD_COUNT: %v", err)
+		if parsedCount < 0 {
+			return fmt.Errorf("invalid KH_MAX_COMPLETED_POD_COUNT: value must be non-negative")
 		}
-		c.MaxErrorPodCount = i
+		c.MaxCompletedPodCount = parsedCount
 	}
 
-	if v := os.Getenv("KH_ERROR_POD_RETENTION_DAYS"); v != "" {
-		i, err := strconv.Atoi(v)
-		if err != nil || i < 0 {
-			return fmt.Errorf("invalid KH_ERROR_POD_RETENTION_DAYS: %v", err)
+	// parse the error pod retention limit override
+	maxErrorPodCount := os.Getenv("KH_MAX_ERROR_POD_COUNT")
+	if maxErrorPodCount != "" {
+		parsedCount, err := strconv.Atoi(maxErrorPodCount)
+		if err != nil {
+			return fmt.Errorf("invalid KH_MAX_ERROR_POD_COUNT: %w", err)
 		}
-		c.ErrorPodRetentionDays = i
+		if parsedCount < 0 {
+			return fmt.Errorf("invalid KH_MAX_ERROR_POD_COUNT: value must be non-negative")
+		}
+		c.MaxErrorPodCount = parsedCount
 	}
 
-	if v := os.Getenv("KH_PROM_SUPPRESS_ERROR_LABEL"); v != "" {
-		b, err := strconv.ParseBool(v)
+	// parse the error pod retention window override
+	errorPodRetentionDays := os.Getenv("KH_ERROR_POD_RETENTION_DAYS")
+	if errorPodRetentionDays != "" {
+		parsedDays, err := strconv.Atoi(errorPodRetentionDays)
+		if err != nil {
+			return fmt.Errorf("invalid KH_ERROR_POD_RETENTION_DAYS: %w", err)
+		}
+		if parsedDays < 0 {
+			return fmt.Errorf("invalid KH_ERROR_POD_RETENTION_DAYS: value must be non-negative")
+		}
+		c.ErrorPodRetentionDays = parsedDays
+	}
+
+	// parse the metrics error suppression toggle
+	suppressErrorLabel := os.Getenv("KH_PROM_SUPPRESS_ERROR_LABEL")
+	if suppressErrorLabel != "" {
+		parsedBool, err := strconv.ParseBool(suppressErrorLabel)
 		if err != nil {
 			return fmt.Errorf("invalid KH_PROM_SUPPRESS_ERROR_LABEL: %w", err)
 		}
-		c.PromMetricsConfig.SuppressErrorLabel = b
+		c.PromMetricsConfig.SuppressErrorLabel = parsedBool
 	}
 
-	if v := os.Getenv("KH_PROM_ERROR_LABEL_MAX_LENGTH"); v != "" {
-		i, err := strconv.Atoi(v)
-		if err != nil || i < 0 {
-			return fmt.Errorf("invalid KH_PROM_ERROR_LABEL_MAX_LENGTH: %v", err)
+	// parse the metrics error label truncation override
+	errorLabelMaxLength := os.Getenv("KH_PROM_ERROR_LABEL_MAX_LENGTH")
+	if errorLabelMaxLength != "" {
+		parsedLength, err := strconv.Atoi(errorLabelMaxLength)
+		if err != nil {
+			return fmt.Errorf("invalid KH_PROM_ERROR_LABEL_MAX_LENGTH: %w", err)
 		}
-		c.PromMetricsConfig.ErrorLabelMaxLength = i
+		if parsedLength < 0 {
+			return fmt.Errorf("invalid KH_PROM_ERROR_LABEL_MAX_LENGTH: value must be non-negative")
+		}
+		c.PromMetricsConfig.ErrorLabelMaxLength = parsedLength
 	}
 
-	if v := os.Getenv("KH_TARGET_NAMESPACE"); v != "" {
-		c.TargetNamespace = v
+	// update the target namespace for checks when provided
+	targetNamespace := os.Getenv("KH_TARGET_NAMESPACE")
+	if targetNamespace != "" {
+		c.TargetNamespace = targetNamespace
 	}
 
-	if v := os.Getenv("POD_NAMESPACE"); v != "" {
-		c.Namespace = v
+	// capture the running namespace for service discovery
+	podNamespace := os.Getenv("POD_NAMESPACE")
+	if podNamespace != "" {
+		c.Namespace = podNamespace
 	}
 
-	if v := os.Getenv("KH_DEFAULT_RUN_INTERVAL"); v != "" {
-		d, err := time.ParseDuration(v)
+	// parse the default run interval override
+	defaultRunInterval := os.Getenv("KH_DEFAULT_RUN_INTERVAL")
+	if defaultRunInterval != "" {
+		parsedDuration, err := time.ParseDuration(defaultRunInterval)
 		if err != nil {
 			return fmt.Errorf("invalid KH_DEFAULT_RUN_INTERVAL: %w", err)
 		}
-		c.DefaultRunInterval = d
+		c.DefaultRunInterval = parsedDuration
 	}
 
-	if v := os.Getenv("KH_CHECK_REPORT_URL"); v != "" {
-		trimmed := strings.TrimSpace(v)
+	// parse and normalize the check report endpoint override
+	checkReportURL := os.Getenv("KH_CHECK_REPORT_URL")
+	if checkReportURL == "" {
+		c.checkReportBaseURL = fmt.Sprintf("http://kuberhealthy.%s.svc.cluster.local:8080", c.Namespace)
+		log.Warnln("KH_CHECK_REPORT_URL environment variable not set. Using", c.checkReportBaseURL)
+	}
+	if checkReportURL != "" {
+		trimmed := strings.TrimSpace(checkReportURL)
 		trimmed = strings.TrimRight(trimmed, "/")
 		if strings.HasSuffix(trimmed, "/check") {
 			trimmed = strings.TrimSuffix(trimmed, "/check")
@@ -151,40 +195,46 @@ func (c *Config) LoadFromEnv() error {
 			log.Warnln("KH_CHECK_REPORT_URL should not include '/check'. Trimming suffix for compatibility.")
 		}
 		if trimmed == "" {
-			return fmt.Errorf("invalid KH_CHECK_REPORT_URL: %q", v)
+			return fmt.Errorf("invalid KH_CHECK_REPORT_URL: %q", checkReportURL)
 		}
 		c.checkReportBaseURL = trimmed
-	} else {
-		c.checkReportBaseURL = fmt.Sprintf("http://kuberhealthy.%s.svc.cluster.local:8080", c.Namespace)
-		log.Warnln("KH_CHECK_REPORT_URL environment variable not set. Using", c.checkReportBaseURL)
 	}
 
-	if v := os.Getenv("KH_TERMINATION_GRACE_PERIOD"); v != "" {
-		d, err := time.ParseDuration(v)
+	// parse the termination grace period override
+	terminationGracePeriod := os.Getenv("KH_TERMINATION_GRACE_PERIOD")
+	if terminationGracePeriod != "" {
+		parsedDuration, err := time.ParseDuration(terminationGracePeriod)
 		if err != nil {
 			return fmt.Errorf("invalid KH_TERMINATION_GRACE_PERIOD: %w", err)
 		}
-		c.TerminationGracePeriod = d
+		c.TerminationGracePeriod = parsedDuration
 	}
 
-	if v := os.Getenv("KH_DEFAULT_CHECK_TIMEOUT"); v != "" {
-		d, err := time.ParseDuration(v)
+	// parse the default check timeout override
+	defaultCheckTimeout := os.Getenv("KH_DEFAULT_CHECK_TIMEOUT")
+	if defaultCheckTimeout != "" {
+		parsedDuration, err := time.ParseDuration(defaultCheckTimeout)
 		if err != nil {
 			return fmt.Errorf("invalid KH_DEFAULT_CHECK_TIMEOUT: %w", err)
 		}
-		c.DefaultCheckTimeout = d
+		c.DefaultCheckTimeout = parsedDuration
 	}
 
-	if v := os.Getenv("KH_DEFAULT_NAMESPACE"); v != "" {
-		c.DefaultNamespace = v
+	// override the namespace checks default to when none is specified
+	defaultNamespace := os.Getenv("KH_DEFAULT_NAMESPACE")
+	if defaultNamespace != "" {
+		c.DefaultNamespace = defaultNamespace
 	}
 
-	if v := os.Getenv("KH_TLS_CERT_FILE"); v != "" {
-		c.TLSCertFile = v
+	// capture TLS certificate paths when supplied
+	tlsCertFile := os.Getenv("KH_TLS_CERT_FILE")
+	if tlsCertFile != "" {
+		c.TLSCertFile = tlsCertFile
 	}
 
-	if v := os.Getenv("KH_TLS_KEY_FILE"); v != "" {
-		c.TLSKeyFile = v
+	tlsKeyFile := os.Getenv("KH_TLS_KEY_FILE")
+	if tlsKeyFile != "" {
+		c.TLSKeyFile = tlsKeyFile
 	}
 
 	return nil

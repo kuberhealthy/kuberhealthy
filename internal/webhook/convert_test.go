@@ -154,6 +154,7 @@ spec:
 	require.NoError(t, err)
 }
 
+// runtimeRawExtension wraps a byte slice inside a RawExtension for AdmissionReview payloads.
 func runtimeRawExtension(b []byte) runtime.RawExtension {
 	return runtime.RawExtension{Raw: b}
 }

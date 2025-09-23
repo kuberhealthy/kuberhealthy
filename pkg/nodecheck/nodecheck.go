@@ -90,9 +90,9 @@ func waitForKuberhealthyEndpointReady(ctx context.Context, kuberhealthyEndpoint 
 			log.Debugln(kuberhealthyEndpoint, "is ready.")
 			doneChan <- nil
 			return doneChan
-		} else {
-			log.Debugln(kuberhealthyEndpoint, "is not ready yet..."+err.Error())
 		}
+
+		log.Debugln(kuberhealthyEndpoint, "is not ready yet..."+err.Error())
 		time.Sleep(time.Second * 3)
 	}
 }

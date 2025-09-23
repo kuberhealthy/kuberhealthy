@@ -29,12 +29,14 @@ func NewClient() (client.Client, error) {
 	}
 
 	// Add Kubernetes core types to the scheme
-	if err := scheme.AddToScheme(khScheme); err != nil {
+	err = scheme.AddToScheme(khScheme)
+	if err != nil {
 		return nil, fmt.Errorf("failed to add Kubernetes core scheme to client: %v", err)
 	}
 
 	// Add Kuberhealthy's custom CRDs to the scheme
-	if err = khapi.AddToScheme(khScheme); err != nil {
+	err = khapi.AddToScheme(khScheme)
+	if err != nil {
 		return nil, fmt.Errorf("failed to add Kuberhealthy's custom CRDs to scheme: %v", err)
 	}
 

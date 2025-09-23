@@ -92,6 +92,7 @@ func TestCheckPodSpec(t *testing.T) {
 	require.True(t, *owner.BlockOwnerDeletion)
 }
 
+// requireEnvVar asserts the provided env var exists with the expected value.
 func requireEnvVar(t *testing.T, env []corev1.EnvVar, name, val string) {
 	t.Helper()
 	for i := range env {

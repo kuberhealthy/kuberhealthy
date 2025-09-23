@@ -19,8 +19,10 @@ type sink struct {
 	values []interface{}
 }
 
+// Init satisfies the logr.LogSink interface but logrus does not need runtime metadata.
 func (s *sink) Init(info logr.RuntimeInfo) {}
 
+// Enabled reports whether the requested log level should be emitted.
 func (s *sink) Enabled(level int) bool {
 	if level > 0 {
 		return s.logger.IsLevelEnabled(log.DebugLevel)
@@ -28,6 +30,7 @@ func (s *sink) Enabled(level int) bool {
 	return s.logger.IsLevelEnabled(log.InfoLevel)
 }
 
+// Info writes structured key/value data to logrus with the correct level.
 func (s *sink) Info(level int, msg string, kv ...interface{}) {
 	fields := s.collect(kv...)
 	entry := s.logger.WithFields(fields)
@@ -47,6 +50,7 @@ func (s *sink) Info(level int, msg string, kv ...interface{}) {
 	entry.Info(msg)
 }
 
+// Error writes error details and structured context to logrus.
 func (s *sink) Error(err error, msg string, kv ...interface{}) {
 	fields := s.collect(kv...)
 	if err != nil {
@@ -59,6 +63,7 @@ func (s *sink) Error(err error, msg string, kv ...interface{}) {
 	entry.Error(msg)
 }
 
+// collect merges key/value pairs from the logger state and folds them into a logrus field map.
 func (s *sink) collect(kv ...interface{}) log.Fields {
 	out := log.Fields{}
 	all := append(append([]interface{}{}, s.values...), kv...)
@@ -72,18 +77,21 @@ func (s *sink) collect(kv ...interface{}) log.Fields {
 	return out
 }
 
+// WithValues returns a copy of the sink that remembers additional key/value pairs.
 func (s *sink) WithValues(kv ...interface{}) logr.LogSink {
 	ns := *s
 	ns.values = append(append([]interface{}{}, s.values...), kv...)
 	return &ns
 }
 
+// WithName returns a copy of the sink annotated with a hierarchical logger name.
 func (s *sink) WithName(name string) logr.LogSink {
 	ns := *s
 	if s.name == "" {
 		ns.name = name
-	} else {
-		ns.name = s.name + "/" + name
+		return &ns
 	}
+
+	ns.name = s.name + "/" + name
 	return &ns
 }

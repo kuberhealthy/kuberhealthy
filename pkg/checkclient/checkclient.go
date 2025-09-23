@@ -74,8 +74,8 @@ func sendReport(s khapi.KuberhealthyCheckStatus) error {
 	writeLog("DEBUG: Sending report with error length of:", len(s.Errors))
 	writeLog("DEBUG: Sending report with ok state of:", s.OK)
 
-	// marshal the request body
-	b, err := json.Marshal(s)
+	// marshal the request body so the API receives our status payload
+	body, err := json.Marshal(s)
 	if err != nil {
 		writeLog("ERROR: Failed to marshal status JSON:", err)
 		return fmt.Errorf("error mashaling status report json: %w", err)
@@ -88,7 +88,7 @@ func sendReport(s khapi.KuberhealthyCheckStatus) error {
 	}
 	writeLog("INFO: Using kuberhealthy reporting URL: ", url)
 
-	// fetch the kh run UUID
+	// fetch the kh run UUID so the server can match the request to the pod
 	uuid, err := getKuberhealthyRunUUID()
 	if err != nil {
 		return fmt.Errorf("failed to fetch the kuberhealthy run uuid: %w", err)
@@ -96,34 +96,24 @@ func sendReport(s khapi.KuberhealthyCheckStatus) error {
 	writeLog("INFO: Using kuberhealthy run UUID: ", uuid)
 
 	// create the Kuberhealthy post request with the kh-run-uuid header
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(b))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("error creating http request: %w", err)
 	}
 	req.Header.Set("kh-run-uuid", uuid)
 	req.Header.Set("Content-Type", "application/json")
 
+	// configure a bounded exponential backoff so retries stop after a short window
 	exponentialBackOff := backoff.NewExponentialBackOff()
 	exponentialBackOff.MaxElapsedTime = maxElapsedTime
 
+	// send to the server with a helper that implements the retry contract
 	client := &http.Client{}
-	// send to the server
-	var resp *http.Response
-	err = backoff.Retry(func() error {
-		var err error
-		writeLog("DEBUG: Making POST request to kuberhealthy:")
-		resp, err = client.Do(req)
-		// retry on any errors
-		if err != nil {
-			return err
-		}
-		// retry on status codes that do not return a 200 or 400
-		if !(resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusBadRequest) {
-			writeLog("ERROR: got a bad status code from kuberhealthy:", resp.StatusCode, resp.Status)
-			return fmt.Errorf("bad status code from kuberhealthy status reporting url: [%d] %s ", resp.StatusCode, resp.Status)
-		}
-		return nil
-	}, exponentialBackOff)
+	sender := reportSender{
+		client:  client,
+		request: req,
+	}
+	err = backoff.Retry(sender.Attempt, exponentialBackOff)
 	if err != nil {
 		writeLog("ERROR: got an error sending POST to kuberhealthy:", err)
 		return fmt.Errorf("bad POST request to kuberhealthy status reporting url: %w", err)
@@ -131,7 +121,43 @@ func sendReport(s khapi.KuberhealthyCheckStatus) error {
 
 	writeLog("INFO: Got a good http return status code from kuberhealthy URL:", url)
 
-	return err
+	return nil
+}
+
+// reportSender attempts to deliver a request to the kuberhealthy API with retries.
+type reportSender struct {
+	client  *http.Client
+	request *http.Request
+}
+
+// Attempt sends the configured request and returns an error when a retry is needed.
+func (r *reportSender) Attempt() error {
+	// log the attempt so debugging shows each retry
+	writeLog("DEBUG: Making POST request to kuberhealthy:")
+
+	// send the request to the kuberhealthy server
+	resp, err := r.client.Do(r.request)
+	if err != nil {
+		return err
+	}
+	// retry when kuberhealthy does not return a success or validation response
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusBadRequest {
+		writeLog("ERROR: got a bad status code from kuberhealthy:", resp.StatusCode, resp.Status)
+		// close the response body because we will retry the request
+		closeErr := resp.Body.Close()
+		if closeErr != nil {
+			return fmt.Errorf("failed to close response body after bad status: %w", closeErr)
+		}
+		return fmt.Errorf("bad status code from kuberhealthy status reporting url: [%d] %s ", resp.StatusCode, resp.Status)
+	}
+
+	// close successful responses because the caller does not inspect them
+	closeErr := resp.Body.Close()
+	if closeErr != nil {
+		return fmt.Errorf("failed to close response body: %w", closeErr)
+	}
+
+	return nil
 }
 
 // getKuberhealthyURL fetches the URL that we need to send our external checker

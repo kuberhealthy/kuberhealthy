@@ -92,9 +92,16 @@ func requestLogger(next http.Handler) http.Handler {
 		if ip != "" {
 			parts := strings.Split(ip, ",")
 			ip = strings.TrimSpace(parts[0])
-		} else {
-			// ignore the port on the remote address
-			ip, _, _ = net.SplitHostPort(r.RemoteAddr)
+		}
+		if ip == "" {
+			// fall back to parsing the remote address when no forwarded header is present
+			host, _, splitErr := net.SplitHostPort(r.RemoteAddr)
+			if splitErr == nil {
+				ip = host
+			}
+			if splitErr != nil {
+				ip = r.RemoteAddr
+			}
 		}
 
 		// capture the user agent string
@@ -119,56 +126,64 @@ func newServeMux() *http.ServeMux {
 
 	// Metrics endpoint for prometheus metrics
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		if err := prometheusMetricsHandler(w, r); err != nil {
+		err := prometheusMetricsHandler(w, r)
+		if err != nil {
 			log.Errorln(err)
 		}
 	})
 
 	// General healthcheck endpoint for heartbeats
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		if err := healthzHandler(w, r); err != nil {
+		err := healthzHandler(w, r)
+		if err != nil {
 			log.Errorln(err)
 		}
 	})
 
 	// JSON status page for easy API integration
 	mux.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
-		if err := healthCheckHandler(w, r); err != nil {
+		err := healthCheckHandler(w, r)
+		if err != nil {
 			log.Errorln(err)
 		}
 	})
 
 	// UI Endpoint for listing khcheck events
 	mux.HandleFunc("/api/events", func(w http.ResponseWriter, r *http.Request) {
-		if err := eventListHandler(w, r); err != nil {
+		err := eventListHandler(w, r)
+		if err != nil {
 			log.Errorln(err)
 		}
 	})
 
 	// UI Endpoint for fetching khcheck pod logs
 	mux.HandleFunc("/api/logs", func(w http.ResponseWriter, r *http.Request) {
-		if err := podLogsHandler(w, r); err != nil {
+		err := podLogsHandler(w, r)
+		if err != nil {
 			log.Errorln(err)
 		}
 	})
 
 	// UI Endpoint for tailing khcheck pod logs
 	mux.HandleFunc("/api/logs/stream", func(w http.ResponseWriter, r *http.Request) {
-		if err := podLogsStreamHandler(w, r); err != nil {
+		err := podLogsStreamHandler(w, r)
+		if err != nil {
 			log.Errorln(err)
 		}
 	})
 
 	// YAML output of OpenAPI spec
 	mux.HandleFunc("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
-		if err := openapiYAMLHandler(w, r); err != nil {
+		err := openapiYAMLHandler(w, r)
+		if err != nil {
 			log.Errorln(err)
 		}
 	})
 
 	// JSON output of OpenAPI spec
 	mux.HandleFunc("/openapi.json", func(w http.ResponseWriter, r *http.Request) {
-		if err := openapiJSONHandler(w, r); err != nil {
+		err := openapiJSONHandler(w, r)
+		if err != nil {
 			log.Errorln(err)
 		}
 	})
@@ -178,7 +193,8 @@ func newServeMux() *http.ServeMux {
 
 	// allows the web interface to kick off a khcheck run immediately
 	mux.HandleFunc("/api/run", func(w http.ResponseWriter, r *http.Request) {
-		if err := runCheckHandler(w, r); err != nil {
+		err := runCheckHandler(w, r)
+		if err != nil {
 			log.Errorln(err)
 		}
 	})
@@ -189,7 +205,8 @@ func newServeMux() *http.ServeMux {
 
 	// this is where khcheck pods report back with their check status
 	mux.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
-		if err := checkReportHandler(w, r); err != nil {
+		err := checkReportHandler(w, r)
+		if err != nil {
 			log.Errorln("checkStatus endpoint error:", err)
 		}
 	})
@@ -201,14 +218,16 @@ func newServeMux() *http.ServeMux {
 
 		// if we get a post, handle it as a checker pod reporting in
 		if r.Method == http.MethodPost {
-			if err := checkReportHandler(w, r); err != nil {
+			err := checkReportHandler(w, r)
+			if err != nil {
 				log.Errorln("checkStatus endpoint error:", err)
 			}
 			return
 		}
 
 		// all other request types just cause the UI to be served
-		if err := statusPageHandler(w, r); err != nil {
+		err := statusPageHandler(w, r)
+		if err != nil {
 			log.Errorln(err)
 		}
 	})
@@ -216,6 +235,7 @@ func newServeMux() *http.ServeMux {
 	return mux
 }
 
+// startTLSServer launches the HTTPS listener when certificates are provided.
 func startTLSServer(certFile string, keyFile string, handler http.Handler) {
 	log.Infoln("TLS ceritificate and key configured. Starting TLS listener on", GlobalConfig.ListenAddressTLS)
 
@@ -245,6 +265,7 @@ func startTLSServer(certFile string, keyFile string, handler http.Handler) {
 
 }
 
+// startHTTPServer launches the HTTP listener for the public endpoints.
 func startHTTPServer(handler http.Handler) {
 	log.Infoln("Starting HTTP web services on", GlobalConfig.ListenAddress)
 	go func() {
@@ -331,13 +352,15 @@ func runCheckHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusConflict)
 		return fmt.Errorf("check already running")
 	}
-	if err := Globals.kh.StartCheck(check); err != nil {
+	err = Globals.kh.StartCheck(check)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
 	// reset the check ticker so the next automatic run starts from now
 	check.Status.LastRunUnix = time.Now().Unix()
-	if err := khapi.UpdateCheck(r.Context(), Globals.khClient, check); err != nil {
+	err = khapi.UpdateCheck(r.Context(), Globals.khClient, check)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return fmt.Errorf("failed to update last run time: %w", err)
 	}
@@ -396,7 +419,8 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("kubernetes client not initialized")
 	}
 	pod := &v1.Pod{}
-	if err := Globals.khClient.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: podName}, pod); err != nil {
+	err := Globals.khClient.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: podName}, pod)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
@@ -425,8 +449,9 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("format must be 'text'")
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	if _, err := w.Write(b); err != nil {
-		return err
+	_, writeErr := w.Write(b)
+	if writeErr != nil {
+		return writeErr
 	}
 	return nil
 }
@@ -445,7 +470,8 @@ func podLogsStreamHandler(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("kubernetes client not initialized")
 	}
 	pod := &v1.Pod{}
-	if err := Globals.khClient.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: podName}, pod); err != nil {
+	err := Globals.khClient.Get(r.Context(), client.ObjectKey{Namespace: namespace, Name: podName}, pod)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
@@ -458,7 +484,8 @@ func podLogsStreamHandler(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("pod not running")
 	}
 	nn := types.NamespacedName{Namespace: namespace, Name: khcheck}
-	if _, err := khapi.GetCheck(r.Context(), Globals.khClient, nn); err != nil {
+	_, err = khapi.GetCheck(r.Context(), Globals.khClient, nn)
+	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return err
 	}
@@ -483,8 +510,9 @@ func podLogsStreamHandler(w http.ResponseWriter, r *http.Request) error {
 	for {
 		n, err := stream.Read(buf)
 		if n > 0 {
-			if _, werr := w.Write(buf[:n]); werr != nil {
-				return werr
+			_, writeErr := w.Write(buf[:n])
+			if writeErr != nil {
+				return writeErr
 			}
 			flusher.Flush()
 		}
@@ -764,7 +792,8 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 	if len(namespaces) == 1 {
 		opts = append(opts, client.InNamespace(namespaces[0]))
 	}
-	if err := Globals.khClient.List(ctx, uList, opts...); err != nil {
+	err := Globals.khClient.List(ctx, uList, opts...)
+	if err != nil {
 		state.OK = false
 		state.AddError(err.Error())
 		return state
@@ -779,7 +808,8 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 		timeout := timeoutForCheck(&u)
 
 		var check khapi.KuberhealthyCheck
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &check); err != nil {
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &check)
+		if err != nil {
 			log.Errorf("failed to convert check %s/%s: %v", u.GetNamespace(), u.GetName(), err)
 			continue
 		}
@@ -816,6 +846,7 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 	return state
 }
 
+// runIntervalForCheck extracts the configured run interval for a check object.
 func runIntervalForCheck(u *unstructured.Unstructured) time.Duration {
 	if v, found, err := unstructured.NestedString(u.Object, "spec", "runInterval"); err == nil && found && v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
@@ -826,6 +857,7 @@ func runIntervalForCheck(u *unstructured.Unstructured) time.Duration {
 	return defaultRunInterval
 }
 
+// timeoutForCheck extracts the timeout duration from a check object when present.
 func timeoutForCheck(u *unstructured.Unstructured) time.Duration {
 	if v, found, err := unstructured.NestedString(u.Object, "spec", "timeout"); err == nil && found && v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
@@ -863,7 +895,8 @@ func findCheckByUUID(ctx context.Context, uuid string) (*khapi.KuberhealthyCheck
 		return nil, fmt.Errorf("kubernetes client not initialized")
 	}
 	list := &khapi.KuberhealthyCheckList{}
-	if err := Globals.khClient.List(ctx, list); err != nil {
+	err := Globals.khClient.List(ctx, list)
+	if err != nil {
 		return nil, err
 	}
 	for i := range list.Items {
@@ -877,12 +910,13 @@ func findCheckByUUID(ctx context.Context, uuid string) (*khapi.KuberhealthyCheck
 // storeCheckState stores the check status on its cluster CRD
 func storeCheckState(c client.Client, checkName string, checkNamespace string, khcheck *khapi.KuberhealthyCheckStatus) error {
 	// ensure the CRD resource exists
-	if err := ensureCheckResourceExists(c, checkName, checkNamespace); err != nil {
+	err := ensureCheckResourceExists(c, checkName, checkNamespace)
+	if err != nil {
 		return err
 	}
 
 	// put the status on the CRD from the check
-	err := setCheckStatus(c, checkName, checkNamespace, khcheck)
+	err = setCheckStatus(c, checkName, checkNamespace, khcheck)
 
 	//TODO: Make this retry of updating custom resources repeatable
 	//
@@ -927,7 +961,8 @@ func ensureCheckResourceExists(c client.Client, checkName string, checkNamespace
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			khCheck := &khapi.KuberhealthyCheck{ObjectMeta: metav1.ObjectMeta{Name: checkName, Namespace: checkNamespace}}
-			if err := khapi.CreateCheck(ctx, c, khCheck); err != nil {
+			err = khapi.CreateCheck(ctx, c, khCheck)
+			if err != nil {
 				return fmt.Errorf("failed to create khcheck %s/%s: %w", checkNamespace, checkName, err)
 			}
 			return nil
@@ -981,7 +1016,8 @@ func setCheckStatus(c client.Client, checkName string, checkNamespace string, in
 		}
 	}
 
-	if err := khapi.UpdateCheck(ctx, c, khCheck); err != nil {
+	err = khapi.UpdateCheck(ctx, c, khCheck)
+	if err != nil {
 		return fmt.Errorf("failed to update khcheck status: %w", err)
 	}
 

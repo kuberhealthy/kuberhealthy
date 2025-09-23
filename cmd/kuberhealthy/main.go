@@ -44,6 +44,8 @@ var Globals struct {
 // When empty, it is set to "EXPERIMENTAL" during startup.
 var GitRevision string
 
+// main wires configuration, controller dependencies, and web handlers together.
+// It blocks until shutdown and coordinates graceful termination.
 func main() {
 
 	// root context of Kuberhealthy. Revoke this and everything shuts down.
@@ -79,7 +81,8 @@ func main() {
 
 	Globals.kh = kuberhealthy.New(ctx, Globals.khClient, doneChan)
 	Globals.kh.SetReportingURL(GlobalConfig.ReportingURL())
-	if err := Globals.kh.Start(ctx, Globals.kubeConfig); err != nil {
+	err = Globals.kh.Start(ctx, Globals.kubeConfig)
+	if err != nil {
 		log.Errorln("startup: failed to start kuberhealthy:", err)
 	}
 
@@ -127,7 +130,8 @@ func listenForInterrupts(ctx context.Context, interruptChan chan struct{}) {
 // Everytime kuberhealthy sees a configuration change, configurations should reload and reset
 func initConfig() error {
 	GlobalConfig = New()
-	if err := GlobalConfig.LoadFromEnv(); err != nil {
+	err := GlobalConfig.LoadFromEnv()
+	if err != nil {
 		return err
 	}
 	log.Infoln("External check reporting URL set to:", GlobalConfig.ReportingURL())

@@ -24,7 +24,8 @@ func TestPrometheusMetricsEndpoint(t *testing.T) {
 	})
 
 	s := runtime.NewScheme()
-	if err := khapi.AddToScheme(s); err != nil {
+	err := khapi.AddToScheme(s)
+	if err != nil {
 		t.Fatalf("failed to add scheme: %v", err)
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
@@ -38,7 +39,8 @@ func TestPrometheusMetricsEndpoint(t *testing.T) {
 			http.NotFound(w, r)
 			return
 		}
-		if err := prometheusMetricsHandler(w, r); err != nil {
+		err := prometheusMetricsHandler(w, r)
+		if err != nil {
 			t.Fatalf("handler error: %v", err)
 		}
 	}))

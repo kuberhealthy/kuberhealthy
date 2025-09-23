@@ -25,7 +25,8 @@ func Convert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	review := apiextv1.ConversionReview{}
-	if err := json.Unmarshal(body, &review); err != nil {
+	err = json.Unmarshal(body, &review)
+	if err != nil {
 		http.Error(w, fmt.Sprintf("unmarshal review: %v", err), http.StatusBadRequest)
 		return
 	}
@@ -37,7 +38,8 @@ func Convert(w http.ResponseWriter, r *http.Request) {
 	resp := &apiextv1.ConversionResponse{UID: review.Request.UID}
 	for _, obj := range review.Request.Objects {
 		job := khJob{}
-		if err := json.Unmarshal(obj.Raw, &job); err != nil {
+		err = json.Unmarshal(obj.Raw, &job)
+		if err != nil {
 			resp.Result = metav1.Status{Message: fmt.Sprintf("parse job: %v", err)}
 			review.Response = resp
 			writeReview(w, &review)
@@ -82,6 +84,7 @@ func Convert(w http.ResponseWriter, r *http.Request) {
 	writeReview(w, &review)
 }
 
+// writeReview marshals the review back to the HTTP response.
 func writeReview(w http.ResponseWriter, review *apiextv1.ConversionReview) {
 	w.Header().Set("Content-Type", "application/json")
 	respBytes, err := json.Marshal(review)

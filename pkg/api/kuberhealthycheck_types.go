@@ -106,6 +106,7 @@ type KuberhealthyCheckList struct {
 	Items           []KuberhealthyCheck `json:"items"`
 }
 
+// init registers the custom resource types with the shared scheme builder.
 func init() {
 	SchemeBuilder.Register(&KuberhealthyCheck{}, &KuberhealthyCheckList{})
 }
@@ -153,11 +154,13 @@ func CreateCheck(ctx context.Context, cl client.Client, check *KuberhealthyCheck
 // GetCheck fetches the current version of a check.
 func GetCheck(ctx context.Context, cl client.Client, nn types.NamespacedName) (*KuberhealthyCheck, error) {
 	out := &KuberhealthyCheck{}
-	if err := cl.Get(ctx, nn, out); err != nil {
+	err := cl.Get(ctx, nn, out)
+	if err != nil {
 		return nil, err
 	}
 	if out.EnsureCreationTimestamp() {
-		if err := cl.Update(ctx, out); err != nil {
+		err = cl.Update(ctx, out)
+		if err != nil {
 			return nil, err
 		}
 	}

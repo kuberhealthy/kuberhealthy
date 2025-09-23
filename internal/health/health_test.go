@@ -19,7 +19,8 @@ func TestWriteHTTPStatusResponse(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	if err := s.WriteHTTPStatusResponse(rr); err != nil {
+	err := s.WriteHTTPStatusResponse(rr)
+	if err != nil {
 		t.Fatalf("WriteHTTPStatusResponse returned error: %v", err)
 	}
 

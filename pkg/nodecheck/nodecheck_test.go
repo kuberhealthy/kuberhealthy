@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// init ensures node check tests emit verbose output for debugging failures.
 func init() {
 	// tests always run with debug logging
 	log.SetLevel(log.DebugLevel)

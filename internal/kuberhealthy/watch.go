@@ -9,8 +9,10 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+// convertToKHCheck normalizes informer objects into concrete KuberhealthyCheck resources.
 func convertToKHCheck(obj interface{}) (*khapi.KuberhealthyCheck, error) {
 	if tombstone, ok := obj.(cache.DeletedFinalStateUnknown); ok {
+		// handles delete events delivered as tombstones when objects disappear rapidly
 		obj = tombstone.Obj
 	}
 	u, ok := obj.(*unstructured.Unstructured)
@@ -18,7 +20,8 @@ func convertToKHCheck(obj interface{}) (*khapi.KuberhealthyCheck, error) {
 		return nil, fmt.Errorf("unexpected object type %T", obj)
 	}
 	khc := &khapi.KuberhealthyCheck{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, khc); err != nil {
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, khc)
+	if err != nil {
 		return nil, err
 	}
 	// ensure the converted object retains its original namespace

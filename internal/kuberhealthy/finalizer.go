@@ -11,6 +11,7 @@ const khCheckFinalizer = "kuberhealthy.io/kuberhealthycheck"
 
 // hasFinalizer returns true when the check contains the kuberhealthy finalizer.
 func (k *Kuberhealthy) hasFinalizer(check *khapi.KuberhealthyCheck) bool {
+	// iterate over the finalizers and return when the kuberhealthy finalizer is present
 	for _, f := range check.Finalizers {
 		if f == khCheckFinalizer {
 			return true
@@ -24,8 +25,10 @@ func (k *Kuberhealthy) addFinalizer(ctx context.Context, check *khapi.Kuberhealt
 	if k.hasFinalizer(check) {
 		return nil
 	}
+	// append the kuberhealthy finalizer so we control resource cleanup
 	check.Finalizers = append(check.Finalizers, khCheckFinalizer)
-	if err := k.CheckClient.Update(ctx, check); err != nil {
+	err := k.CheckClient.Update(ctx, check)
+	if err != nil {
 		return fmt.Errorf("failed to add finalizer: %w", err)
 	}
 	return nil
@@ -36,6 +39,7 @@ func (k *Kuberhealthy) deleteFinalizer(ctx context.Context, check *khapi.Kuberhe
 	if !k.hasFinalizer(check) {
 		return nil
 	}
+	// build a new finalizer slice that omits the kuberhealthy finalizer
 	var finalizers []string
 	for _, f := range check.Finalizers {
 		if f != khCheckFinalizer {
@@ -43,7 +47,9 @@ func (k *Kuberhealthy) deleteFinalizer(ctx context.Context, check *khapi.Kuberhe
 		}
 	}
 	check.Finalizers = finalizers
-	if err := k.CheckClient.Update(ctx, check); err != nil {
+	// persist the updated finalizers back to the API server
+	err := k.CheckClient.Update(ctx, check)
+	if err != nil {
 		return fmt.Errorf("failed to remove finalizer: %w", err)
 	}
 	return nil
