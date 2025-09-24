@@ -16,23 +16,28 @@ type PromMetricsConfig struct {
 // promMetricName: helper fn for GenerateMetrics, does a quick format of the metric line - checkOrJob is literally the string "check" or "job"
 func promMetricName(config PromMetricsConfig, checkOrJob string, checkName string, namespace string, status string, errors []string) string {
 	metricName := fmt.Sprintf("kuberhealthy_%s{check=\"%s\",namespace=\"%s\",status=\"%s\"", checkOrJob, checkName, namespace, status)
-	if !config.SuppressErrorLabel {
-		errorsStr := ""
-		if len(errors) > 0 {
-			for _, error := range errors {
-				errorsStr += fmt.Sprintf("%s|", error)
-			}
-			errorsStr = strings.TrimSuffix(errorsStr, "|")
-			errorsStr = strings.ReplaceAll(errorsStr, "\"", "'")
-		}
-		if config.ErrorLabelMaxLength > 0 && len(errorsStr) > config.ErrorLabelMaxLength {
-			errorsStr = errorsStr[0:config.ErrorLabelMaxLength]
-		}
-		metricName += fmt.Sprintf(",error=\"%s\"}", errorsStr)
-	} else {
-		metricName += "}"
+
+	// return early when the error label is suppressed entirely
+	if config.SuppressErrorLabel {
+		return metricName + "}"
 	}
-	return metricName
+
+	// build a serialized error string for inclusion in the metric label
+	errorsStr := ""
+	if len(errors) > 0 {
+		for _, error := range errors {
+			errorsStr += fmt.Sprintf("%s|", error)
+		}
+		errorsStr = strings.TrimSuffix(errorsStr, "|")
+		errorsStr = strings.ReplaceAll(errorsStr, "\"", "'")
+	}
+
+	// truncate the error payload when an explicit bound is configured
+	if config.ErrorLabelMaxLength > 0 && len(errorsStr) > config.ErrorLabelMaxLength {
+		errorsStr = errorsStr[0:config.ErrorLabelMaxLength]
+	}
+
+	return metricName + fmt.Sprintf(",error=\"%s\"}", errorsStr)
 }
 
 // GenerateMetrics takes the state and returns it in the Prometheus format

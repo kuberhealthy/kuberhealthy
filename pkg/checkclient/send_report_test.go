@@ -61,7 +61,8 @@ func TestReportSuccessAndFailure(t *testing.T) {
 			t.Setenv(envs.KHReportingURL, srv.URL)
 			t.Setenv(envs.KHRunUUID, uuid)
 
-			if err := tc.call(); err != nil {
+			err := tc.call()
+			if err != nil {
 				t.Fatalf("call returned error: %v", err)
 			}
 
@@ -70,7 +71,8 @@ func TestReportSuccessAndFailure(t *testing.T) {
 			}
 
 			var status khapi.KuberhealthyCheckStatus
-			if err := json.Unmarshal(gotBody, &status); err != nil {
+			err = json.Unmarshal(gotBody, &status)
+			if err != nil {
 				t.Fatalf("failed to unmarshal body: %v", err)
 			}
 			if status.OK != tc.expected.OK {
@@ -109,7 +111,8 @@ func TestSendReportRetry(t *testing.T) {
 	t.Setenv(envs.KHReportingURL, srv.URL)
 	t.Setenv(envs.KHRunUUID, uuid)
 
-	if err := ReportSuccess(); err != nil {
+	err := ReportSuccess()
+	if err != nil {
 		t.Fatalf("ReportSuccess returned error: %v", err)
 	}
 

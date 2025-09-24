@@ -20,7 +20,8 @@ func TestSetCheckStatusMergesAndClearsUUID(t *testing.T) {
 	t.Parallel()
 
 	scheme := runtime.NewScheme()
-	if err := khapi.AddToScheme(scheme); err != nil {
+	err := khapi.AddToScheme(scheme)
+	if err != nil {
 		t.Fatalf("failed to add scheme: %v", err)
 	}
 
@@ -50,12 +51,14 @@ func TestSetCheckStatusMergesAndClearsUUID(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(existing).WithStatusSubresource(existing).Build()
 
 	incoming := &khapi.KuberhealthyCheckStatus{OK: true, Errors: []string{}, CurrentUUID: ""}
-	if err := setCheckStatus(cl, name, namespace, incoming); err != nil {
+	err = setCheckStatus(cl, name, namespace, incoming)
+	if err != nil {
 		t.Fatalf("setCheckStatus returned error: %v", err)
 	}
 
 	var updated khapi.KuberhealthyCheck
-	if err := cl.Get(t.Context(), types.NamespacedName{Name: name, Namespace: namespace}, &updated); err != nil {
+	err = cl.Get(t.Context(), types.NamespacedName{Name: name, Namespace: namespace}, &updated)
+	if err != nil {
 		t.Fatalf("failed to get updated object: %v", err)
 	}
 

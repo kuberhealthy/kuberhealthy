@@ -18,6 +18,7 @@ type conflictClient struct {
 	updateCalls int
 }
 
+// Status wraps the underlying status writer so the test can inject a conflict.
 func (c *conflictClient) Status() client.StatusWriter {
 	return &conflictStatusWriter{StatusWriter: c.Client.Status(), parent: c}
 }
@@ -27,9 +28,11 @@ type conflictStatusWriter struct {
 	parent *conflictClient
 }
 
+// Update returns a conflict error on the first call and delegates to the embedded writer afterward.
 func (w *conflictStatusWriter) Update(ctx context.Context, obj client.Object, opts ...client.SubResourceUpdateOption) error {
 	w.parent.updateCalls++
 	if w.parent.updateCalls == 1 {
+		// simulate resource version conflicts so storeCheckState must retry
 		return fmt.Errorf("the object has been modified")
 	}
 	return w.StatusWriter.Update(ctx, obj, opts...)
@@ -41,7 +44,8 @@ func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 		t.Skip("skipping test in short mode")
 	}
 	scheme := runtime.NewScheme()
-	if err := khapi.AddToScheme(scheme); err != nil {
+	err := khapi.AddToScheme(scheme)
+	if err != nil {
 		t.Fatalf("failed to add scheme: %v", err)
 	}
 	existing := &khapi.KuberhealthyCheck{
@@ -54,7 +58,8 @@ func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 	cc := &conflictClient{Client: fakeClient}
 
 	status := &khapi.KuberhealthyCheckStatus{OK: true}
-	if err := storeCheckState(cc, "conflict-check", "default", status); err != nil {
+	err = storeCheckState(cc, "conflict-check", "default", status)
+	if err != nil {
 		t.Fatalf("storeCheckState returned error: %v", err)
 	}
 	if cc.updateCalls < 2 {
@@ -62,7 +67,8 @@ func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 	}
 
 	var updated khapi.KuberhealthyCheck
-	if err := cc.Get(context.Background(), types.NamespacedName{Name: "conflict-check", Namespace: "default"}, &updated); err != nil {
+	err = cc.Get(context.Background(), types.NamespacedName{Name: "conflict-check", Namespace: "default"}, &updated)
+	if err != nil {
 		t.Fatalf("failed to get updated khcheck: %v", err)
 	}
 	if !updated.Status.OK {

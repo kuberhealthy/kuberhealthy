@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+// waitForEvents drains the fake recorder until the expected number of events arrive or times out the test.
 func waitForEvents(t *testing.T, events <-chan string, expected int) []string {
 	t.Helper()
 

@@ -9,11 +9,13 @@ import (
 // containsString returns a boolean value based on whether or not a slice of strings contains
 // a string.
 func containsString(s string, list []string) bool {
+	// walk through each entry looking for the provided string
 	for _, str := range list {
 		if s == str {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -35,9 +37,10 @@ func GetMyNamespace(defaultNamespace string) string {
 	if len(instanceNamespaceEnv) != 0 {
 		log.Infoln("Found instance namespace:", string(data))
 		instanceNamespace = instanceNamespaceEnv
-	} else {
-		log.Warnln("Did not find instance namespace. Using default namespace:", defaultNamespace)
+		return instanceNamespace
 	}
+
+	log.Warnln("Did not find instance namespace. Using default namespace:", defaultNamespace)
 
 	return instanceNamespace
 }

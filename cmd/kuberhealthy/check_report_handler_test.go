@@ -62,7 +62,8 @@ func TestCheckReportHandler(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 
-		if err := checkReportHandler(rr, req); err != nil {
+		err = checkReportHandler(rr, req)
+		if err != nil {
 			t.Fatalf("handler returned error: %v", err)
 		}
 		if rr.Code != http.StatusOK {
@@ -96,7 +97,8 @@ func TestCheckReportHandler(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 
-		if err := checkReportHandler(rr, req); err != nil {
+		err = checkReportHandler(rr, req)
+		if err != nil {
 			t.Fatalf("handler returned error: %v", err)
 		}
 		if rr.Code != http.StatusBadRequest {
@@ -127,7 +129,8 @@ func TestCheckReportHandler(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 
-		if err := checkReportHandler(rr, req); err != nil {
+		err = checkReportHandler(rr, req)
+		if err != nil {
 			t.Fatalf("handler returned error: %v", err)
 		}
 		if rr.Code != http.StatusBadRequest {
