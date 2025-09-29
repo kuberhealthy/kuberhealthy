@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
-	"github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -165,8 +164,12 @@ func TestCheckReportHandler(t *testing.T) {
 		}
 
 		cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+		fetched := &khapi.KuberhealthyCheck{}
+		require.NoError(t, cl.Get(context.Background(), client.ObjectKeyFromObject(check), fetched))
+		require.Equal(t, check.Status.LastRunUnix, fetched.Status.LastRunUnix)
+		require.Equal(t, check.Status.CurrentUUID, fetched.Status.CurrentUUID)
 		Globals.khClient = cl
-		Globals.kh = kuberhealthy.New(context.Background(), cl)
+		Globals.kh = nil
 		t.Cleanup(func() {
 			Globals.khClient = nil
 			Globals.kh = nil
