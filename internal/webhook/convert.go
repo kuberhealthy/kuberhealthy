@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	jsonpatch "gomodules.xyz/jsonpatch/v2"
 	admissionv1 "k8s.io/api/admission/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -112,10 +113,63 @@ func convertLegacy(raw []byte, kind string) (*khapi.KuberhealthyCheck, string, e
 			return nil, "", fmt.Errorf("parse object: %w", err)
 		}
 		out.APIVersion = "kuberhealthy.github.io/v2"
+
+		// populate missing pod spec details when the legacy payload used the v1 layout
+		legacy := legacyCheck{}
+		err = json.Unmarshal(raw, &legacy)
+		if err != nil {
+			return nil, "", fmt.Errorf("parse legacy object: %w", err)
+		}
+		upgradeLegacyPodSpec(&out.Spec.PodSpec, legacy.Spec)
+
 		return &out, "converted legacy comcast.github.io/v1 KuberhealthyCheck to kuberhealthy.github.io/v2", nil
 	default:
 		return nil, "", nil
 	}
+}
+
+// legacyCheck captures the legacy v1 layout so we can normalize it.
+type legacyCheck struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              legacyCheckSpec `json:"spec,omitempty"`
+}
+
+// legacyCheckSpec reflects the comcast.github.io/v1 spec structure.
+type legacyCheckSpec struct {
+	RunInterval      *metav1.Duration  `json:"runInterval,omitempty"`
+	Timeout          *metav1.Duration  `json:"timeout,omitempty"`
+	ExtraAnnotations map[string]string `json:"extraAnnotations,omitempty"`
+	ExtraLabels      map[string]string `json:"extraLabels,omitempty"`
+	PodSpec          corev1.PodSpec    `json:"podSpec,omitempty"`
+	PodAnnotations   map[string]string `json:"podAnnotations,omitempty"`
+	PodLabels        map[string]string `json:"podLabels,omitempty"`
+}
+
+// upgradeLegacyPodSpec copies pod configuration from the legacy layout when required.
+func upgradeLegacyPodSpec(out *khapi.CheckPodSpec, legacy legacyCheckSpec) {
+	if len(out.Spec.Containers) > 0 || len(out.Spec.Volumes) > 0 {
+		return
+	}
+
+	if len(legacy.PodSpec.Containers) == 0 && len(legacy.PodSpec.Volumes) == 0 {
+		return
+	}
+
+	out.Spec = legacy.PodSpec
+
+	if len(legacy.PodAnnotations) == 0 && len(legacy.PodLabels) == 0 {
+		return
+	}
+
+	metadata := &khapi.CheckPodMetadata{}
+	if len(legacy.PodAnnotations) > 0 {
+		metadata.Annotations = legacy.PodAnnotations
+	}
+	if len(legacy.PodLabels) > 0 {
+		metadata.Labels = legacy.PodLabels
+	}
+	out.Metadata = metadata
 }
 
 // toError creates an AdmissionResponse describing the supplied error in a standard format.

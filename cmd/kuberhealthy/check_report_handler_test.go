@@ -28,7 +28,6 @@ func TestCheckReportHandler(t *testing.T) {
 	origStore := storeCheckStateFunc
 	origClient := Globals.khClient
 	origKH := Globals.kh
-	t.Parallel()
 	defer func() {
 		validateUsingRequestHeaderFunc = origValidateHeader
 		storeCheckStateFunc = origStore
