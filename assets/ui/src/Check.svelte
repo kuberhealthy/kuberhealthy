@@ -17,6 +17,7 @@
   let countdownTimer;
   let runButtonTimer;
   let showRunButton = true;
+  let countdownAllowsRunButton = true;
   let triggerRefresh = async () => {};
   let refreshUnsubscribe = () => {};
   let lastRefreshUnix = null;
@@ -72,10 +73,12 @@
     eventsTimer = setInterval(loadEvents, 5000);
   }
 
+  // updateNextRun updates the text shown for the next run countdown and triggers a refresh when the countdown completes.
   function updateNextRun(unix){
     const diff = unix * 1000 - Date.now();
     if (diff <= 0) {
-      nextRun = 'refreshing...';
+      nextRun = 'Starting check run...';
+      countdownAllowsRunButton = false;
       const now = Date.now();
       if (unix !== lastRefreshUnix || now - lastRefreshTime > 5000) {
         lastRefreshUnix = unix;
@@ -87,6 +90,7 @@
       return;
     }
     nextRun = formatDuration(diff);
+    countdownAllowsRunButton = true;
     lastRefreshUnix = null;
   }
 
@@ -153,12 +157,12 @@
         </div>
       {:else if st.nextRunUnix}
         <p class="mb-2 flex items-center gap-2"><span class="font-semibold">Next run in:</span> {nextRun}
-          {#if showRunButton}
+          {#if showRunButton && countdownAllowsRunButton}
             <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run again now</button>
           {/if}
         </p>
       {:else}
-        {#if showRunButton}
+        {#if showRunButton && countdownAllowsRunButton}
           <p class="mb-2 flex items-center gap-2">
             <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run again now</button>
           </p>
