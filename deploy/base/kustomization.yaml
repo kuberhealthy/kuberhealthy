@@ -5,6 +5,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - kuberhealthycheck.yaml
+  - legacyKhcheckCrd.yaml
   - clusterrole.yaml
   - serviceaccount.yaml
   - khcheck-example.yaml

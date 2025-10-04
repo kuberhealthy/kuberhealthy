@@ -10,6 +10,12 @@ configuration.
   - Inputs: desired run interval, timeout, target `PodSpec`, optional metadata.
   - Outputs: status block populated with `OK`, error strings, run durations, and
     bookkeeping such as the authoritative pod and run UUID.
+- **Legacy `KuberhealthyCheck` CRD** (`comcast.github.io/v1`)
+  - Inputs: same core fields as the modern check along with legacy `podAnnotations`
+    and `podLabels` blocks that are preserved during conversion.
+  - Outputs: legacy checks persist status in the same format so the admission
+    webhook can upgrade them to the v2 schema before the controller consumes
+    them.
 - **Pods**
   - Created by the controller for each check run using the embedded `PodSpec`.
   - Annotated with labels defined in `internal/kuberhealthy` to link the pod to
