@@ -5,6 +5,46 @@
   import Check from './Check.svelte';
   import { checks, currentCheck, refreshStatus } from './stores';
 
+  let initialNamespace = '';
+  let initialCheck = '';
+  let pendingQuerySelection = false;
+  let allowURLSync = false;
+
+  /**
+   * findCheckFromQuery locates the check name that matches the query parameters.
+   * It returns an empty string when no matching check is found.
+   */
+  function findCheckFromQuery(targetNamespace, targetName, allChecks){
+    if(!targetName){
+      return '';
+    }
+
+    const direct = allChecks[targetName];
+    if(direct && (!targetNamespace || direct.namespace === targetNamespace)){
+      return targetName;
+    }
+
+    for(const [name, detail] of Object.entries(allChecks)){
+      if(!detail){
+        continue;
+      }
+
+      const segments = name.split('/');
+      const lastSegment = segments[segments.length - 1];
+      if(lastSegment !== targetName){
+        continue;
+      }
+
+      if(targetNamespace && detail.namespace !== targetNamespace){
+        continue;
+      }
+
+      return name;
+    }
+
+    return '';
+  }
+
   async function refresh(){
     try{
       const resp = await fetch('/json');
@@ -17,14 +57,31 @@
 
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
-    const check = params.get('check');
-    if(check){ currentCheck.set(check); }
+    const namespaceFromQuery = params.get('namespace') || '';
+    const checkFromQuery = params.get('check') || '';
+
+    if(checkFromQuery){
+      currentCheck.set(checkFromQuery);
+      initialNamespace = namespaceFromQuery;
+      initialCheck = checkFromQuery;
+      pendingQuerySelection = true;
+    }
+
     refresh();
     const timer = setInterval(refresh, 5000);
+    allowURLSync = true;
     return () => clearInterval(timer);
   });
 
-  $: if ($currentCheck) {
+  $: if (pendingQuerySelection){
+    const resolved = findCheckFromQuery(initialNamespace, initialCheck, $checks);
+    if(resolved){
+      currentCheck.set(resolved);
+      pendingQuerySelection = false;
+    }
+  }
+
+  $: if (allowURLSync && $currentCheck) {
     const st = $checks[$currentCheck];
     if (st) {
       const params = new URLSearchParams();
@@ -32,7 +89,9 @@
       params.set('check', $currentCheck);
       history.replaceState(null, '', '?' + params.toString());
     }
-  } else {
+  }
+
+  $: if (allowURLSync && !$currentCheck) {
     history.replaceState(null, '', location.pathname);
   }
 
