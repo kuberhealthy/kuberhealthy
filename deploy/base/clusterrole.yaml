@@ -20,9 +20,9 @@ rules:
   # Kuberhealthy CRDs (cluster-wide)
   - apiGroups: ["kuberhealthy.github.io"]
     resources:
-      - kuberhealthychecks
-      - kuberhealthychecks/finalizers
-      - kuberhealthychecks/status
+      - healthchecks
+      - healthchecks/finalizers
+      - healthchecks/status
     verbs: ["create","delete","get","list","patch","update","watch"]
 
   # Core v1 (cluster-wide)

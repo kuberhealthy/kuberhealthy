@@ -1,18 +1,18 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: kuberhealthychecks.kuberhealthy.github.io
+  name: healthchecks.kuberhealthy.github.io
 spec:
   group: kuberhealthy.github.io
   names:
-    kind: KuberhealthyCheck
-    listKind: KuberhealthyCheckList
-    plural: kuberhealthychecks
+    kind: healthcheck
+    listKind: healthcheckList
+    plural: healthchecks
     shortNames:
-      #- khc
-      #- khcheck
-      #- kuberhealthycheck
-    singular: kuberhealthycheck
+      #- hc
+      #- healthcheck
+      #- healthchecks
+    singular: healthcheck
   scope: Namespaced
   versions:
     - name: v2
