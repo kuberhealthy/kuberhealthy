@@ -8,3 +8,5 @@ resources:
   - base/legacyKhcheckCrd.yaml
   - base/clusterrole.yaml
   - base/serviceaccount.yaml
+  - base/mutatingwebhook.yaml
+  - base/webhook-tls-secret.yaml

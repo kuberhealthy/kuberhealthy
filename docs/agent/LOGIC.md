@@ -61,3 +61,12 @@ specification and schedules a background cleanup loop that removes the original
 `khchecks.comcast.github.io` object once it has been persisted. A JSON patch is
 still returned so the API server accepts the request, allowing clients to use
 legacy manifests without seeing an admission failure.
+
+The mutating webhook relies on TLS to serve the Kubernetes API server. Each
+cluster must generate its own serving certificate and CA bundle so the API
+server trusts the hook. The helper script at
+`deploy/base/scripts/generateWebhookCert.sh` (or the job definition in
+`deploy/base/scripts/webhookCertJob.yaml`) can be used after deployment to
+create a namespace-scoped secret and update the webhook's `caBundle` so the API
+The service exposes HTTPS on port `443` exclusively for webhook traffic while
+port `8080` continues to serve the public HTTP endpoints.

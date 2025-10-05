@@ -1,8 +1,7 @@
 # AGENTS
 
-This file defines contributor guidelines for the entire repository.
-
 # Maintain Documentation
+
 Keep an up to date set of documentation in the `docs/agent/` directory with the following:
     - ARCHITECTURE.md: Detail the specific program architecture from a systems design perspective. Analyze the various components of functionality and detail their relationship to each other. Use an ASCII diagram when possible.
     - LOGIC.md: Analyze the program's logic and concisely detail the significant points of the flow.
@@ -10,6 +9,7 @@ Keep an up to date set of documentation in the `docs/agent/` directory with the 
     - STRUCTURES.md: Detail the significant data and programatic structures that are defined within the program clearly so that humans can understand their purpose and programatic shape.
 
 # Create Simple Code
+
 - Avoid `else` statements when possible by making additional functions and using a 'return early' strategy.
 - Avoid anonymous functions except when they are very simplistic.
 - Add comments to every function, including tests, that detail the purpose of that function and what its purpose is to the larger program.
@@ -18,10 +18,13 @@ Keep an up to date set of documentation in the `docs/agent/` directory with the 
 - Add comments to each stanza of code. Avoid large chunks of code without comments of any kind. Add comments even when they should be obvious.
 
 # Software Preferences
+
+- Use the Go programming language when reasonable.
 - Use `Containerfile` instead of `Dockerfile` for compatibility with Podman.
 - Use `Justfile` instead of `Makefile` for compatibility with `just`.
 
 # Create Modular Program Architecture
+
 - When adding a new data structure or component to the program architecture, ensure that the overall program continues to retain a low-complexity architecture with appropriate delegation of logic and functionality.
 - Take care to contain clear abstractions between different program components.
 - Ensure that function signatures are kept small and remain widely applicable to future code, even if that means repeating logic in some places.
@@ -45,6 +48,7 @@ Keep an up to date set of documentation in the `docs/agent/` directory with the 
 - Every package must include a README.md describing its scope of responsibility.
 
 ## Project decisions
+
 - Logging is handled with `github.com/sirupsen/logrus`.
 - Use `context.Context` as the first parameter for functions that perform I/O or long running work.
 - Tests should be written with Go's testing package and live beside the code they test.
@@ -55,5 +59,6 @@ Keep an up to date set of documentation in the `docs/agent/` directory with the 
 - Just is used instead of Make
 
 ## Formatting and tests
+
 - Run `gofmt -w` on changed Go files.
 - Run `go test -short ./...` before committing. Use `go test ./...` for the full suite.

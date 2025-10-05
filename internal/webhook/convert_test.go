@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -417,6 +418,104 @@ func TestLegacyConversionCreatesModernResource(t *testing.T) {
 	require.Equal(t, client.ObjectKey{Namespace: "kuberhealthy", Name: "deployment"}, deleted[0])
 }
 
+// TestConvertLegacyWithoutTypeMeta ensures conversion succeeds when the incoming payload lacks TypeMeta fields but the admission request describes the legacy resource.
+func TestConvertLegacyWithoutTypeMeta(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping legacy conversion without typemeta test in short mode")
+	}
+
+	legacyJSON := loadLegacyDeploymentCheck(t)
+	var doc map[string]any
+	err := json.Unmarshal(legacyJSON, &doc)
+	require.NoError(t, err)
+	delete(doc, "apiVersion")
+	delete(doc, "kind")
+	noMetaJSON, err := json.Marshal(doc)
+	require.NoError(t, err)
+
+	review := admissionv1.AdmissionReview{
+		Request: &admissionv1.AdmissionRequest{
+			UID:      "legacy-no-meta",
+			Resource: metav1.GroupVersionResource{Group: "comcast.github.io", Version: "v1", Resource: "khchecks"},
+			Object:   runtimeRawExtension(noMetaJSON),
+		},
+	}
+	body, err := json.Marshal(review)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("POST", "/api/convert", bytes.NewReader(body))
+	resp := httptest.NewRecorder()
+	Convert(resp, req)
+
+	result := resp.Result()
+	defer result.Body.Close()
+	require.Equal(t, http.StatusOK, result.StatusCode)
+
+	convertedReview := admissionv1.AdmissionReview{}
+	err = json.NewDecoder(result.Body).Decode(&convertedReview)
+	require.NoError(t, err)
+	require.NotNil(t, convertedReview.Response)
+	require.True(t, convertedReview.Response.Allowed)
+
+	patch, err := jsonpatch.DecodePatch(convertedReview.Response.Patch)
+	require.NoError(t, err)
+	mutated, err := patch.Apply(noMetaJSON)
+	require.NoError(t, err)
+
+	out := khapi.KuberhealthyCheck{}
+	err = json.Unmarshal(mutated, &out)
+	require.NoError(t, err)
+	require.Equal(t, "kuberhealthy.github.io/v2", out.APIVersion)
+}
+
+// TestLegacyDeleteBypass ensures delete admissions skip conversion and do not invoke creation handlers.
+func TestLegacyDeleteBypass(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping legacy delete bypass test in short mode")
+	}
+
+	legacyJSON := loadLegacyDeploymentCheck(t)
+
+	var created bool
+	restore := SetLegacyHandlers(
+		func(ctx context.Context, check *khapi.KuberhealthyCheck) error {
+			created = true
+			return nil
+		},
+		nil,
+		nil,
+	)
+	defer restore()
+
+	review := admissionv1.AdmissionReview{
+		Request: &admissionv1.AdmissionRequest{
+			UID:       "legacy-delete-bypass",
+			Operation: admissionv1.Delete,
+			Resource:  metav1.GroupVersionResource{Group: "comcast.github.io", Version: "v1", Resource: "khchecks"},
+			OldObject: runtimeRawExtension(legacyJSON),
+		},
+	}
+	body, err := json.Marshal(review)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("POST", "/api/convert", bytes.NewReader(body))
+	resp := httptest.NewRecorder()
+	Convert(resp, req)
+
+	result := resp.Result()
+	defer result.Body.Close()
+	require.Equal(t, http.StatusOK, result.StatusCode)
+
+	converted := admissionv1.AdmissionReview{}
+	err = json.NewDecoder(result.Body).Decode(&converted)
+	require.NoError(t, err)
+	require.NotNil(t, converted.Response)
+	require.True(t, converted.Response.Allowed)
+	require.Nil(t, converted.Response.Patch)
+
+	require.False(t, created, "delete admission should not trigger creation")
+}
+
 // TestConvertLegacyResourceNames verifies the webhook upgrades every legacy resource alias to the modern API group.
 func TestConvertLegacyResourceNames(t *testing.T) {
 	if testing.Short() {
@@ -485,7 +584,8 @@ func TestLegacyWebhookResourceCoverage(t *testing.T) {
 	var cfg struct {
 		Webhooks []struct {
 			Rules []struct {
-				Resources []string `yaml:"resources"`
+				Operations []string `yaml:"operations"`
+				Resources  []string `yaml:"resources"`
 			} `yaml:"rules"`
 		} `yaml:"webhooks"`
 	}
@@ -501,17 +601,31 @@ func TestLegacyWebhookResourceCoverage(t *testing.T) {
 		"khchecks":           false,
 		"kuberhealthychecks": false,
 	}
+	var wildcard bool
 
 	for _, rule := range cfg.Webhooks[0].Rules {
+		ops := map[string]bool{}
+		for _, op := range rule.Operations {
+			ops[strings.ToUpper(op)] = true
+		}
+		require.True(t, ops["CREATE"], "legacy webhook missing CREATE operation")
+		require.True(t, ops["UPDATE"], "legacy webhook missing UPDATE operation")
+
 		for _, res := range rule.Resources {
+			if res == "*" {
+				wildcard = true
+				continue
+			}
 			if _, ok := needed[res]; ok {
 				needed[res] = true
 			}
 		}
 	}
 
-	for name, found := range needed {
-		require.Truef(t, found, "legacy resource %s missing from mutating webhook", name)
+	if !wildcard {
+		for name, found := range needed {
+			require.Truef(t, found, "legacy resource %s missing from mutating webhook", name)
+		}
 	}
 }
 

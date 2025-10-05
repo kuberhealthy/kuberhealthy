@@ -201,6 +201,19 @@ func Convert(w http.ResponseWriter, r *http.Request) {
 // convertReview creates an AdmissionResponse converting legacy checks to v2.
 func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	if ar.Request == nil {
+		log.WithFields(log.Fields{"reason": "nil request"}).Info("legacy webhook passthrough")
+		return &admissionv1.AdmissionResponse{Allowed: true}
+	}
+
+	if ar.Request.Operation == admissionv1.Delete {
+		log.WithFields(log.Fields{
+			"operation": admissionv1.Delete,
+			"resource":  ar.Request.Resource.Resource,
+			"group":     ar.Request.Resource.Group,
+			"version":   ar.Request.Resource.Version,
+			"namespace": ar.Request.Namespace,
+			"name":      ar.Request.Name,
+		}).Info("legacy webhook bypassed delete operation")
 		return &admissionv1.AdmissionResponse{Allowed: true}
 	}
 
@@ -208,20 +221,44 @@ func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admiss
 	raw := ar.Request.Object.Raw
 	meta := metav1.TypeMeta{}
 	err := json.Unmarshal(raw, &meta)
+	f := log.Fields{
+		"operation": ar.Request.Operation,
+		"resource":  ar.Request.Resource.Resource,
+		"group":     ar.Request.Resource.Group,
+		"version":   ar.Request.Resource.Version,
+		"namespace": ar.Request.Namespace,
+		"name":      ar.Request.Name,
+	}
+
 	if err != nil {
+		log.WithError(err).WithFields(f).Error("legacy webhook failed to parse typemeta")
 		return toError(fmt.Errorf("parse typemeta: %w", err))
 	}
 
-	if meta.APIVersion != "comcast.github.io/v1" {
+	if meta.APIVersion == "" && ar.Request.Resource.Group != "" && ar.Request.Resource.Version != "" {
+		meta.APIVersion = fmt.Sprintf("%s/%s", ar.Request.Resource.Group, ar.Request.Resource.Version)
+	}
+	if meta.Kind == "" {
+		meta.Kind = legacyKindFromResource(ar.Request.Resource.Resource)
+	}
+
+	f["apiVersion"] = meta.APIVersion
+	f["kind"] = meta.Kind
+
+	legacyGroup := meta.APIVersion == "comcast.github.io/v1" || ar.Request.Resource.Group == "comcast.github.io"
+	if !legacyGroup {
+		log.WithFields(f).Info("legacy webhook passthrough")
 		return &admissionv1.AdmissionResponse{Allowed: true}
 	}
 
 	// attempt to convert the incoming legacy object into the modern representation
 	check, legacyObj, warning, err := convertLegacy(raw, meta.Kind)
 	if err != nil {
+		log.WithError(err).WithFields(f).Error("legacy webhook conversion failed")
 		return toError(err)
 	}
 	if check == nil {
+		log.WithFields(f).Info("legacy webhook passthrough")
 		return &admissionv1.AdmissionResponse{Allowed: true}
 	}
 
@@ -231,6 +268,7 @@ func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admiss
 		resetMetadataForCreate(&createTarget.ObjectMeta)
 		err = createCheckFunc(ctx, createTarget)
 		if err != nil {
+			log.WithError(err).WithFields(f).Error("legacy webhook failed to create converted resource")
 			return toError(fmt.Errorf("create kuberhealthy.github.io/v2 check: %w", err))
 		}
 		if legacyObj != nil {
@@ -250,10 +288,13 @@ func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admiss
 	}
 	patchBytes, err := json.Marshal(ops)
 	if err != nil {
+		log.WithError(err).WithFields(f).Error("legacy webhook failed to marshal patch")
 		return toError(fmt.Errorf("marshal patch: %w", err))
 	}
 
 	pt := admissionv1.PatchTypeJSONPatch
+	f["convertedTo"] = "kuberhealthy.github.io/v2"
+	log.WithFields(f).Info("legacy webhook converted resource")
 	return &admissionv1.AdmissionResponse{
 		Allowed:   true,
 		Patch:     patchBytes,
@@ -285,6 +326,16 @@ func convertLegacy(raw []byte, kind string) (*khapi.KuberhealthyCheck, *legacyCh
 		return &out, &legacy, "converted legacy comcast.github.io/v1 KuberhealthyCheck to kuberhealthy.github.io/v2", nil
 	default:
 		return nil, nil, "", nil
+	}
+}
+
+// legacyKindFromResource maps legacy resource aliases to their canonical kind.
+func legacyKindFromResource(resource string) string {
+	switch resource {
+	case "khc", "khcheck", "khchecks", "kuberhealthycheck", "kuberhealthychecks":
+		return "KuberhealthyCheck"
+	default:
+		return ""
 	}
 }
 

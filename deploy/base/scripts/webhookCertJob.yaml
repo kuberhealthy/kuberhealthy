@@ -1,0 +1,90 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kuberhealthy-webhook-cert
+  namespace: kuberhealthy
+spec:
+  template:
+    metadata:
+      name: kuberhealthy-webhook-cert
+    spec:
+      serviceAccountName: kuberhealthy
+      restartPolicy: OnFailure
+      containers:
+        - name: certgen
+          image: bitnami/kubectl:1.30
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -euo pipefail
+              CN=kuberhealthy.kuberhealthy.svc
+              CRT=/tmp/tls.crt
+              KEY=/tmp/tls.key
+              CA_KEY=/tmp/ca.key
+              CA_CERT=/tmp/ca.crt
+              CSR=/tmp/server.csr
+
+              cat <<'CA_CONF' > /tmp/ca.conf
+              [req]
+              req_extensions = v3_ca
+              distinguished_name = req_distinguished_name
+              prompt = no
+
+              [req_distinguished_name]
+              CN = kuberhealthy.kuberhealthy.svc.cluster.local
+
+              [v3_ca]
+              subjectKeyIdentifier = hash
+              authorityKeyIdentifier = keyid:always,issuer
+              basicConstraints = critical, CA:true
+              keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+              CA_CONF
+
+              cat <<'REQ_CONF' > /tmp/csr.conf
+              [req]
+              req_extensions = v3_req
+              distinguished_name = req_distinguished_name
+              prompt = no
+
+              [req_distinguished_name]
+              CN = ${CN}
+
+              [v3_req]
+              keyUsage = critical, digitalSignature, keyEncipherment
+              extendedKeyUsage = serverAuth
+              subjectAltName = @alt_names
+
+              [alt_names]
+              DNS.1 = ${CN}
+              DNS.2 = kuberhealthy
+              DNS.3 = kuberhealthy.kuberhealthy
+              DNS.4 = kuberhealthy.kuberhealthy.svc.cluster.local
+              REQ_CONF
+
+              openssl genrsa -out "${CA_KEY}" 4096
+              openssl req -x509 -new -nodes -key "${CA_KEY}" -sha256 -days 3650 \
+                -out "${CA_CERT}" -config /tmp/ca.conf
+
+              openssl genrsa -out "${KEY}" 2048
+              openssl req -new -key "${KEY}" -out "${CSR}" -config /tmp/csr.conf
+              openssl x509 -req -in "${CSR}" -CA "${CA_CERT}" -CAkey "${CA_KEY}" -CAcreateserial \
+                -out "${CRT}" -days 3650 -sha256 -extensions v3_req -extfile /tmp/csr.conf
+
+              kubectl create secret tls kuberhealthy-webhook-tls \
+                --namespace kuberhealthy \
+                --cert="${CRT}" \
+                --key="${KEY}" \
+                --dry-run=client \
+                -o yaml | kubectl apply -f -
+
+              BASE64_CA=$(base64 -w0 < "${CA_CERT}")
+              kubectl patch mutatingwebhookconfiguration kuberhealthy-legacy-conversion \
+                --type='json' \
+                -p="[{\"op\":\"replace\",\"path\":\"/webhooks/0/clientConfig/caBundle\",\"value\":\"${BASE64_CA}\"}]"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
