@@ -150,7 +150,7 @@
             <p class="mb-2"><span class="font-semibold">Pod:</span> {st.podName}</p>
           {/if}
         </div>
-        <div class="w-full md:w-1/2 mt-4 md:mt-0 md:pl-4 min-w-[260px]">
+        <div class="w-full md:w-1/2 mt-4 md:mt-0 min-w-[260px]">
           <h3 class="text-xl font-semibold mb-2">Pod Run Status</h3>
           {#if st.podName}
             {#if st.timeoutSeconds}
