@@ -130,7 +130,7 @@
     <h3 class="text-xl font-semibold mb-2">Overview</h3>
     {#if st}
       <div class="flex flex-wrap items-start">
-        <div class="flex-1 min-w-[260px] md:pr-4">
+        <div class="w-full md:w-1/2 md:pr-4 min-w-[260px]">
           <p class="mb-2"><span class="font-semibold">Status:</span>
             <span class={st.podName ? 'text-blue-600' : (st.ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold')}>
               {st.podName ? 'Running' : (st.ok ? 'OK' : 'ERROR')}
@@ -150,7 +150,8 @@
             <p class="mb-2"><span class="font-semibold">Pod:</span> {st.podName}</p>
           {/if}
         </div>
-        <div class="flex-1 min-w-[260px] mt-4 md:mt-0 md:pl-4">
+        <div class="w-full md:w-1/2 mt-4 md:mt-0 md:pl-4 min-w-[260px]">
+          <h3 class="text-xl font-semibold mb-2">Pod Run Status</h3>
           {#if st.podName}
             {#if st.timeoutSeconds}
               <p class="mb-2"><span class="font-semibold">Fail in:</span> {failIn}</p>
