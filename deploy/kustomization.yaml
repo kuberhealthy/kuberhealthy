@@ -4,7 +4,7 @@ resources:
   - base/namespace.yaml
   - base/deployment.yaml
   - base/service.yaml
-  - base/kuberhealthycheck.yaml
+  - base/healthcheckCrd.yaml
   - base/legacyKhcheckCrd.yaml
   - base/clusterrole.yaml
   - base/serviceaccount.yaml
