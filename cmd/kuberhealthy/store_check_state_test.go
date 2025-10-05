@@ -48,7 +48,7 @@ func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to add scheme: %v", err)
 	}
-	existing := &khapi.KuberhealthyCheck{
+	existing := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "conflict-check",
 			Namespace: "default",
@@ -57,7 +57,7 @@ func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(existing).WithStatusSubresource(existing).Build()
 	cc := &conflictClient{Client: fakeClient}
 
-	status := &khapi.KuberhealthyCheckStatus{OK: true}
+	status := &khapi.HealthCheckStatus{OK: true}
 	err = storeCheckState(cc, "conflict-check", "default", status)
 	if err != nil {
 		t.Fatalf("storeCheckState returned error: %v", err)
@@ -66,7 +66,7 @@ func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 		t.Fatalf("expected at least 2 update calls, got %d", cc.updateCalls)
 	}
 
-	var updated khapi.KuberhealthyCheck
+	var updated khapi.HealthCheck
 	err = cc.Get(context.Background(), types.NamespacedName{Name: "conflict-check", Namespace: "default"}, &updated)
 	if err != nil {
 		t.Fatalf("failed to get updated khcheck: %v", err)

@@ -27,39 +27,39 @@ func New() (*KHClient, error) {
 	return &KHClient{Client: crdClient}, nil
 }
 
-// GetKuberhealthyCheck fetches a KuberhealthyCheck resource.
-func (khc *KHClient) GetKuberhealthyCheck(name, namespace string) (*khapi.KuberhealthyCheck, error) {
+// GetHealthCheck fetches a HealthCheck resource.
+func (khc *KHClient) GetHealthCheck(name, namespace string) (*khapi.HealthCheck, error) {
 	ctx := context.Background()
 	nn := client.ObjectKey{Name: name, Namespace: namespace}
 
 	khCheck, err := khapi.GetCheck(ctx, khc.Client, nn)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching KuberhealthyCheck: %w", err)
+		return nil, fmt.Errorf("error fetching HealthCheck: %w", err)
 	}
 	return khCheck, nil
 }
 
-// CreateKuberhealthyCheck creates a new KuberhealthyCheck resource.
-func (khc *KHClient) CreateKuberhealthyCheck(khCheck *khapi.KuberhealthyCheck) error {
+// CreateHealthCheck creates a new HealthCheck resource.
+func (khc *KHClient) CreateHealthCheck(khCheck *khapi.HealthCheck) error {
 	ctx := context.Background()
 	return khc.Client.Create(ctx, khCheck)
 }
 
-// UpdateKuberhealthyCheck updates an existing KuberhealthyCheck resource.
-func (khc *KHClient) UpdateKuberhealthyCheck(khCheck *khapi.KuberhealthyCheck) error {
+// UpdateHealthCheck updates an existing HealthCheck resource.
+func (khc *KHClient) UpdateHealthCheck(khCheck *khapi.HealthCheck) error {
 	ctx := context.Background()
 	return khc.Client.Update(ctx, khCheck)
 }
 
-// ListKuberhealthyChecks lists all KuberhealthyCheck resources in a given namespace with optional ListOptions.
-func (khc *KHClient) ListKuberhealthyChecks(namespace string, opts *client.ListOptions) (*khapi.KuberhealthyCheckList, error) {
+// ListHealthChecks lists all HealthCheck resources in a given namespace with optional ListOptions.
+func (khc *KHClient) ListHealthChecks(namespace string, opts *client.ListOptions) (*khapi.HealthCheckList, error) {
 	ctx := context.Background()
-	khCheckList := &khapi.KuberhealthyCheckList{}
+	khCheckList := &khapi.HealthCheckList{}
 	opts.Namespace = namespace // enforce the namespace setting that the user supplied
 
 	err := khc.Client.List(ctx, khCheckList, opts)
 	if err != nil {
-		return nil, fmt.Errorf("error listing KuberhealthyChecks: %w", err)
+		return nil, fmt.Errorf("error listing HealthChecks: %w", err)
 	}
 	for i := range khCheckList.Items {
 		khCheckList.Items[i].EnsureCreationTimestamp()
@@ -67,10 +67,10 @@ func (khc *KHClient) ListKuberhealthyChecks(namespace string, opts *client.ListO
 	return khCheckList, nil
 }
 
-// DeleteKuberhealthyCheck deletes a KuberhealthyCheck resource with optional DeleteOptions.
-func (khc *KHClient) DeleteKuberhealthyCheck(name, namespace string, opts *metav1.DeleteOptions) error {
+// DeleteHealthCheck deletes a HealthCheck resource with optional DeleteOptions.
+func (khc *KHClient) DeleteHealthCheck(name, namespace string, opts *metav1.DeleteOptions) error {
 	ctx := context.Background()
-	khCheck, err := khc.GetKuberhealthyCheck(name, namespace)
+	khCheck, err := khc.GetHealthCheck(name, namespace)
 	if err != nil {
 		return err
 	}

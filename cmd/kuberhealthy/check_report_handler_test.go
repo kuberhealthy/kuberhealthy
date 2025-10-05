@@ -43,8 +43,8 @@ func TestCheckReportHandler(t *testing.T) {
 			return PodReportInfo{Name: "my-check", Namespace: "my-namespace", UUID: "abc"}, true, nil
 		}
 		var storedName, storedNamespace string
-		var storedDetails *khapi.KuberhealthyCheckStatus
-		storeCheckStateFunc = func(_ client.Client, name, namespace string, details *khapi.KuberhealthyCheckStatus) error {
+		var storedDetails *khapi.HealthCheckStatus
+		storeCheckStateFunc = func(_ client.Client, name, namespace string, details *khapi.HealthCheckStatus) error {
 			storedName = name
 			storedNamespace = namespace
 			storedDetails = details
@@ -81,7 +81,7 @@ func TestCheckReportHandler(t *testing.T) {
 			return PodReportInfo{Name: "my-check", Namespace: "my-namespace", UUID: "abc"}, true, nil
 		}
 		storeCalled := false
-		storeCheckStateFunc = func(client.Client, string, string, *khapi.KuberhealthyCheckStatus) error {
+		storeCheckStateFunc = func(client.Client, string, string, *khapi.HealthCheckStatus) error {
 			storeCalled = true
 			return nil
 		}
@@ -113,7 +113,7 @@ func TestCheckReportHandler(t *testing.T) {
 			return PodReportInfo{Name: "my-check", Namespace: "my-namespace", UUID: "abc"}, true, nil
 		}
 		storeCalled := false
-		storeCheckStateFunc = func(client.Client, string, string, *khapi.KuberhealthyCheckStatus) error {
+		storeCheckStateFunc = func(client.Client, string, string, *khapi.HealthCheckStatus) error {
 			storeCalled = true
 			return nil
 		}
@@ -146,16 +146,16 @@ func TestCheckReportHandler(t *testing.T) {
 		started := time.Now().Add(-time.Minute)
 		timeout := time.Second
 
-		check := &khapi.KuberhealthyCheck{
+		check := &khapi.HealthCheck{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            "expired-check",
 				Namespace:       "default",
 				ResourceVersion: "1",
 			},
-			Spec: khapi.KuberhealthyCheckSpec{
+			Spec: khapi.HealthCheckSpec{
 				Timeout: &metav1.Duration{Duration: timeout},
 			},
-			Status: khapi.KuberhealthyCheckStatus{
+			Status: khapi.HealthCheckStatus{
 				LastRunUnix: started.Unix(),
 				CurrentUUID: "expired-uuid",
 				OK:          true,
@@ -163,7 +163,7 @@ func TestCheckReportHandler(t *testing.T) {
 		}
 
 		cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
-		fetched := &khapi.KuberhealthyCheck{}
+		fetched := &khapi.HealthCheck{}
 		require.NoError(t, cl.Get(context.Background(), client.ObjectKeyFromObject(check), fetched))
 		require.Equal(t, check.Status.LastRunUnix, fetched.Status.LastRunUnix)
 		require.Equal(t, check.Status.CurrentUUID, fetched.Status.CurrentUUID)
@@ -178,7 +178,7 @@ func TestCheckReportHandler(t *testing.T) {
 			return PodReportInfo{Name: check.Name, Namespace: check.Namespace, UUID: check.CurrentUUID()}, true, nil
 		}
 		storeCalled := false
-		storeCheckStateFunc = func(client.Client, string, string, *khapi.KuberhealthyCheckStatus) error {
+		storeCheckStateFunc = func(client.Client, string, string, *khapi.HealthCheckStatus) error {
 			storeCalled = true
 			return nil
 		}

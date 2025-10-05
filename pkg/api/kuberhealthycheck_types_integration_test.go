@@ -19,7 +19,7 @@ func TestGetCheckSetsCreationTimestamp(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, AddToScheme(scheme))
 
-	check := &KuberhealthyCheck{
+	check := &HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "default",

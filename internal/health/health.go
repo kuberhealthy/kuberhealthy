@@ -14,7 +14,7 @@ import (
 // next time the check is expected to run.  NextRunUnix is zero when the
 // last run time is unknown.
 type CheckDetail struct {
-	khapi.KuberhealthyCheckStatus
+	khapi.HealthCheckStatus
 	NextRunUnix        int64  `json:"nextRunUnix,omitempty"`
 	PodName            string `json:"podName,omitempty"`
 	TimeoutSeconds     int64  `json:"timeoutSeconds,omitempty"`

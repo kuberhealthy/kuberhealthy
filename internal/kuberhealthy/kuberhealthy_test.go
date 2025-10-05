@@ -26,13 +26,13 @@ func TestCheckPodSpec(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
 
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "example-check",
 			Namespace: "example-ns",
 			UID:       types.UID("abc123"),
 		},
-		Spec: khapi.KuberhealthyCheckSpec{
+		Spec: khapi.HealthCheckSpec{
 			ExtraLabels:      map[string]string{"extra": "label"},
 			ExtraAnnotations: map[string]string{"anno": "value"},
 			PodSpec: khapi.CheckPodSpec{
@@ -85,7 +85,7 @@ func TestCheckPodSpec(t *testing.T) {
 	require.Equal(t, check.Name, owner.Name)
 	require.Equal(t, check.UID, owner.UID)
 	require.Equal(t, khapi.GroupVersion.String(), owner.APIVersion)
-	require.Equal(t, "KuberhealthyCheck", owner.Kind)
+	require.Equal(t, "HealthCheck", owner.Kind)
 	require.NotNil(t, owner.Controller)
 	require.True(t, *owner.Controller)
 	require.NotNil(t, owner.BlockOwnerDeletion)
@@ -119,7 +119,7 @@ func TestSetFreshUUID(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
 
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "uuid-check",
 			Namespace:       "default",
@@ -145,12 +145,12 @@ func TestStartCheckCreatesPodInCheckNamespace(t *testing.T) {
 	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "ns-check",
 			Namespace: "check-ns",
 		},
-		Spec: khapi.KuberhealthyCheckSpec{
+		Spec: khapi.HealthCheckSpec{
 			PodSpec: khapi.CheckPodSpec{
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
@@ -182,12 +182,12 @@ func TestStartCheckPodCreationFailureClearsRunState(t *testing.T) {
 	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "create-failure-check",
 			Namespace: "default",
 		},
-		Spec: khapi.KuberhealthyCheckSpec{
+		Spec: khapi.HealthCheckSpec{
 			PodSpec: khapi.CheckPodSpec{
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
@@ -252,7 +252,7 @@ func TestScheduleStartsCheck(t *testing.T) {
 
 	check := &unstructured.Unstructured{Object: map[string]interface{}{
 		"apiVersion": "kuberhealthy.github.io/v2",
-		"kind":       "KuberhealthyCheck",
+		"kind":       "HealthCheck",
 		"metadata": map[string]interface{}{
 			"name":            "sched-check",
 			"namespace":       "default",
@@ -276,7 +276,7 @@ func TestScheduleStartsCheck(t *testing.T) {
 	delay := kh.scheduleChecks()
 	require.Equal(t, minimumScheduleInterval, delay)
 
-	fetched := &khapi.KuberhealthyCheck{}
+	fetched := &khapi.HealthCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "sched-check", Namespace: "default"}, fetched))
 	require.NotEmpty(t, fetched.CurrentUUID())
 	require.NotZero(t, fetched.Status.LastRunUnix)
@@ -295,16 +295,16 @@ func TestCheckRunTimesOutAfterDeadline(t *testing.T) {
 	timeout := 500 * time.Millisecond
 	start := time.Now()
 
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "timeout-watcher",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Spec: khapi.KuberhealthyCheckSpec{
+		Spec: khapi.HealthCheckSpec{
 			Timeout: &metav1.Duration{Duration: timeout},
 		},
-		Status: khapi.KuberhealthyCheckStatus{
+		Status: khapi.HealthCheckStatus{
 			LastRunUnix: start.Unix(),
 			CurrentUUID: "run-1",
 			OK:          true,
@@ -319,7 +319,7 @@ func TestCheckRunTimesOutAfterDeadline(t *testing.T) {
 
 	time.Sleep(timeout + timeoutGracePeriod + 300*time.Millisecond)
 
-	updated := &khapi.KuberhealthyCheck{}
+	updated := &khapi.HealthCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: "timeout-watcher"}, updated))
 	require.False(t, updated.Status.OK)
 	require.Len(t, updated.Status.Errors, 1)
@@ -343,16 +343,16 @@ func TestTimeoutWatcherSkipsCompletedRun(t *testing.T) {
 	timeout := 500 * time.Millisecond
 	start := time.Now()
 
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "timeout-complete",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Spec: khapi.KuberhealthyCheckSpec{
+		Spec: khapi.HealthCheckSpec{
 			Timeout: &metav1.Duration{Duration: timeout},
 		},
-		Status: khapi.KuberhealthyCheckStatus{
+		Status: khapi.HealthCheckStatus{
 			LastRunUnix: start.Unix(),
 			CurrentUUID: "run-2",
 			OK:          true,
@@ -372,7 +372,7 @@ func TestTimeoutWatcherSkipsCompletedRun(t *testing.T) {
 
 	time.Sleep(timeout + timeoutGracePeriod + 300*time.Millisecond)
 
-	updated := &khapi.KuberhealthyCheck{}
+	updated := &khapi.HealthCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: "timeout-complete"}, updated))
 	require.True(t, updated.Status.OK)
 	require.Empty(t, updated.Status.Errors)
@@ -397,7 +397,7 @@ func TestScheduleSkipsWhenNotDue(t *testing.T) {
 	last := time.Now().Unix()
 	check := &unstructured.Unstructured{Object: map[string]interface{}{
 		"apiVersion": "kuberhealthy.github.io/v2",
-		"kind":       "KuberhealthyCheck",
+		"kind":       "HealthCheck",
 		"metadata": map[string]interface{}{
 			"name":            "skip-check",
 			"namespace":       "default",
@@ -423,7 +423,7 @@ func TestScheduleSkipsWhenNotDue(t *testing.T) {
 
 	delay := kh.scheduleChecks()
 
-	fetched := &khapi.KuberhealthyCheck{}
+	fetched := &khapi.HealthCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "skip-check", Namespace: "default"}, fetched))
 	require.Empty(t, fetched.CurrentUUID())
 	require.Equal(t, last, fetched.Status.LastRunUnix)
@@ -447,7 +447,7 @@ func TestScheduleReturnsRemainingDelay(t *testing.T) {
 
 	check := &unstructured.Unstructured{Object: map[string]interface{}{
 		"apiVersion": "kuberhealthy.github.io/v2",
-		"kind":       "KuberhealthyCheck",
+		"kind":       "HealthCheck",
 		"metadata": map[string]interface{}{
 			"name":            "delay-check",
 			"namespace":       "default",

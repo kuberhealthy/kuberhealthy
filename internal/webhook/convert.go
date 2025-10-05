@@ -26,7 +26,7 @@ const (
 )
 
 type (
-	checkCreatorFunc   func(context.Context, *khapi.KuberhealthyCheck) error
+	checkCreatorFunc   func(context.Context, *khapi.HealthCheck) error
 	legacyDeleterFunc  func(context.Context, string, string) error
 	cleanupSchedulerFn func(string, string, legacyDeleterFunc)
 )
@@ -66,16 +66,16 @@ func ConfigureClient(cl client.Client) {
 		return
 	}
 
-	create := func(ctx context.Context, check *khapi.KuberhealthyCheck) error {
+	create := func(ctx context.Context, check *khapi.HealthCheck) error {
 		if check == nil {
 			return fmt.Errorf("nil check provided to creator")
 		}
 		copy := check.DeepCopy()
 		resetMetadataForCreate(&copy.ObjectMeta)
-		copy.SetGroupVersionKind(khapi.GroupVersion.WithKind("KuberhealthyCheck"))
+		copy.SetGroupVersionKind(khapi.GroupVersion.WithKind("HealthCheck"))
 		err := cl.Create(ctx, copy)
 		if apierrors.IsAlreadyExists(err) {
-			existing := &khapi.KuberhealthyCheck{}
+			existing := &khapi.HealthCheck{}
 			e := cl.Get(ctx, client.ObjectKeyFromObject(copy), existing)
 			if e != nil {
 				return e
@@ -83,7 +83,7 @@ func ConfigureClient(cl client.Client) {
 			existing.Labels = copy.Labels
 			existing.Annotations = copy.Annotations
 			existing.Spec = copy.Spec
-			existing.SetGroupVersionKind(khapi.GroupVersion.WithKind("KuberhealthyCheck"))
+			existing.SetGroupVersionKind(khapi.GroupVersion.WithKind("HealthCheck"))
 			return cl.Update(ctx, existing)
 		}
 		return err
@@ -94,7 +94,7 @@ func ConfigureClient(cl client.Client) {
 			return nil
 		}
 		obj := &unstructured.Unstructured{}
-		obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "comcast.github.io", Version: "v1", Kind: "KuberhealthyCheck"})
+		obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "comcast.github.io", Version: "v1", Kind: "HealthCheck"})
 		obj.SetNamespace(namespace)
 		obj.SetName(name)
 		err := cl.Delete(ctx, obj)
@@ -304,11 +304,11 @@ func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admiss
 }
 
 // convertLegacy upgrades a legacy Kuberhealthy object into a modern v2 check when supported.
-func convertLegacy(raw []byte, kind string) (*khapi.KuberhealthyCheck, *legacyCheck, string, error) {
+func convertLegacy(raw []byte, kind string) (*khapi.HealthCheck, *legacyCheck, string, error) {
 	switch kind {
-	case "KuberhealthyCheck":
+	case "HealthCheck":
 		// decode the legacy object and rewrite the API version to the current value
-		out := khapi.KuberhealthyCheck{}
+		out := khapi.HealthCheck{}
 		err := json.Unmarshal(raw, &out)
 		if err != nil {
 			return nil, nil, "", fmt.Errorf("parse object: %w", err)
@@ -323,7 +323,7 @@ func convertLegacy(raw []byte, kind string) (*khapi.KuberhealthyCheck, *legacyCh
 		}
 		upgradeLegacyPodSpec(&out.Spec.PodSpec, legacy.Spec)
 
-		return &out, &legacy, "converted legacy comcast.github.io/v1 KuberhealthyCheck to kuberhealthy.github.io/v2", nil
+		return &out, &legacy, "converted legacy comcast.github.io/v1 HealthCheck to kuberhealthy.github.io/v2", nil
 	default:
 		return nil, nil, "", nil
 	}
@@ -333,7 +333,7 @@ func convertLegacy(raw []byte, kind string) (*khapi.KuberhealthyCheck, *legacyCh
 func legacyKindFromResource(resource string) string {
 	switch resource {
 	case "khc", "khcheck", "khchecks", "kuberhealthycheck", "kuberhealthychecks":
-		return "KuberhealthyCheck"
+		return "HealthCheck"
 	default:
 		return ""
 	}

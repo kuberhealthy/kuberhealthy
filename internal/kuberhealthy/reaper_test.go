@@ -48,13 +48,13 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 
 	lastRun := time.Now().Add(-time.Hour)
 
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "timeout-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Status: khapi.KuberhealthyCheckStatus{
+		Status: khapi.HealthCheckStatus{
 			LastRunUnix: lastRun.Unix(),
 		},
 	}
@@ -85,7 +85,7 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 	require.True(t, apierrors.IsNotFound(err))
 
 	// Check status should remain untouched; timeout handling happens outside the reaper now.
-	updated := &khapi.KuberhealthyCheck{}
+	updated := &khapi.HealthCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: "timeout-check"}, updated))
 	require.True(t, updated.Status.OK)
 	require.Empty(t, updated.Status.Errors)
@@ -103,13 +103,13 @@ func TestReaperKeepsRunningPodsForFiveMinutes(t *testing.T) {
 
 	lastRun := time.Now().Add(-2 * time.Minute)
 
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "recent-running-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Status: khapi.KuberhealthyCheckStatus{
+		Status: khapi.HealthCheckStatus{
 			LastRunUnix: lastRun.Unix(),
 		},
 	}
@@ -139,7 +139,7 @@ func TestReaperKeepsRunningPodsForFiveMinutes(t *testing.T) {
 	err := cl.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: "recent-running-pod"}, &corev1.Pod{})
 	require.NoError(t, err)
 
-	updated := &khapi.KuberhealthyCheck{}
+	updated := &khapi.HealthCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Namespace: "default", Name: "recent-running-check"}, updated))
 	require.True(t, updated.Status.OK)
 	require.Empty(t, updated.Status.Errors)
@@ -163,13 +163,13 @@ func TestReaperRemovesCompletedPods(t *testing.T) {
 
 	lastRun := time.Now().Add(-defaultRunInterval*10 - time.Minute)
 
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "complete-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Status: khapi.KuberhealthyCheckStatus{
+		Status: khapi.HealthCheckStatus{
 			LastRunUnix: lastRun.Unix(),
 		},
 	}
@@ -208,13 +208,13 @@ func TestReaperKeepsRecentCompletedPods(t *testing.T) {
 
 	lastRun := time.Now().Add(-defaultRunInterval * 2)
 
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "recent-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Status: khapi.KuberhealthyCheckStatus{
+		Status: khapi.HealthCheckStatus{
 			LastRunUnix: lastRun.Unix(),
 		},
 	}
@@ -252,13 +252,13 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "failed-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Status: khapi.KuberhealthyCheckStatus{
+		Status: khapi.HealthCheckStatus{
 			LastRunUnix: time.Now().Unix(),
 		},
 	}
@@ -349,13 +349,13 @@ func TestReaperRetainsFailedPodsWithinLimit(t *testing.T) {
 	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "retain-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Status: khapi.KuberhealthyCheckStatus{
+		Status: khapi.HealthCheckStatus{
 			LastRunUnix: time.Now().Unix(),
 		},
 	}
@@ -419,13 +419,13 @@ func TestReaperTreatsUnknownPhaseAsFailed(t *testing.T) {
 	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "odd-phase-check",
 			Namespace:       "default",
 			ResourceVersion: "1",
 		},
-		Status: khapi.KuberhealthyCheckStatus{
+		Status: khapi.HealthCheckStatus{
 			LastRunUnix: time.Now().Unix(),
 		},
 	}
