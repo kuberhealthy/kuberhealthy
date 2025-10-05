@@ -9,6 +9,7 @@
   let initialCheck = '';
   let pendingQuerySelection = false;
   let allowURLSync = false;
+  let statusLoaded = false;
 
   /**
    * findCheckFromQuery locates the check name that matches the query parameters.
@@ -45,11 +46,41 @@
     return '';
   }
 
+  /**
+   * namespaceExists reports whether the requested namespace matches a check in the response payload.
+   */
+  function namespaceExists(targetNamespace, allChecks){
+    if(!targetNamespace){
+      return true;
+    }
+
+    for(const detail of Object.values(allChecks)){
+      if(!detail){
+        continue;
+      }
+
+      if(detail.namespace === targetNamespace){
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * clearQuerySelection resets the current check selection when the query parameters do not resolve to a check.
+   */
+  function clearQuerySelection(){
+    currentCheck.set('');
+    pendingQuerySelection = false;
+  }
+
   async function refresh(){
     try{
       const resp = await fetch('/json');
       const data = await resp.json();
       checks.set(data.CheckDetails || {});
+      statusLoaded = true;
     }catch(e){ console.error('failed to fetch status', e); }
   }
 
@@ -73,11 +104,16 @@
     return () => clearInterval(timer);
   });
 
-  $: if (pendingQuerySelection){
+  $: if (pendingQuerySelection && statusLoaded){
     const resolved = findCheckFromQuery(initialNamespace, initialCheck, $checks);
     if(resolved){
       currentCheck.set(resolved);
       pendingQuerySelection = false;
+    }
+
+    const namespaceValid = namespaceExists(initialNamespace, $checks);
+    if(!resolved || !namespaceValid){
+      clearQuerySelection();
     }
   }
 
