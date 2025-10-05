@@ -10,7 +10,7 @@ import (
 const khCheckFinalizer = "kuberhealthy.io/kuberhealthycheck"
 
 // hasFinalizer returns true when the check contains the kuberhealthy finalizer.
-func (k *Kuberhealthy) hasFinalizer(check *khapi.KuberhealthyCheck) bool {
+func (k *Kuberhealthy) hasFinalizer(check *khapi.HealthCheck) bool {
 	// iterate over the finalizers and return when the kuberhealthy finalizer is present
 	for _, f := range check.Finalizers {
 		if f == khCheckFinalizer {
@@ -21,7 +21,7 @@ func (k *Kuberhealthy) hasFinalizer(check *khapi.KuberhealthyCheck) bool {
 }
 
 // addFinalizer appends the kuberhealthy finalizer if it is missing.
-func (k *Kuberhealthy) addFinalizer(ctx context.Context, check *khapi.KuberhealthyCheck) error {
+func (k *Kuberhealthy) addFinalizer(ctx context.Context, check *khapi.HealthCheck) error {
 	if k.hasFinalizer(check) {
 		return nil
 	}
@@ -35,7 +35,7 @@ func (k *Kuberhealthy) addFinalizer(ctx context.Context, check *khapi.Kuberhealt
 }
 
 // deleteFinalizer removes the kuberhealthy finalizer when present.
-func (k *Kuberhealthy) deleteFinalizer(ctx context.Context, check *khapi.KuberhealthyCheck) error {
+func (k *Kuberhealthy) deleteFinalizer(ctx context.Context, check *khapi.HealthCheck) error {
 	if !k.hasFinalizer(check) {
 		return nil
 	}

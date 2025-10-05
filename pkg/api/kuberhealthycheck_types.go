@@ -42,12 +42,12 @@ type CheckPodSpec struct {
 	Spec corev1.PodSpec `json:"spec,omitempty"`
 }
 
-// KuberhealthyCheckSpec defines the desired state of KuberhealthyCheck
-type KuberhealthyCheckSpec struct {
+// HealthCheckSpec defines the desired state of a HealthCheck.
+type HealthCheckSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// SingleRun indicates that this KuberhealthyCheck will run only once.
+	// SingleRun indicates that this HealthCheck will run only once.
 	SingleRun bool `json:"singleRunOnly,omitempty"`
 	// RunInterval specifies how often Kuberhealthy schedules the check.
 	RunInterval *metav1.Duration `json:"runInterval,omitempty"`
@@ -61,8 +61,8 @@ type KuberhealthyCheckSpec struct {
 	PodSpec CheckPodSpec `json:"podSpec,omitempty"`
 }
 
-// KuberhealthyCheckStatus defines the observed state of KuberhealthyCheck
-type KuberhealthyCheckStatus struct {
+// HealthCheckStatus defines the observed state of a HealthCheck.
+type HealthCheckStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	// OK indicates if this check is currently throwing an error or not.
@@ -89,56 +89,55 @@ type KuberhealthyCheckStatus struct {
 	// custom resource.
 }
 
-// KuberhealthyCheck is the Schema for the kuberhealthychecks API
-type KuberhealthyCheck struct {
+// HealthCheck is the Schema for the healthcheck API.
+type HealthCheck struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec KuberhealthyCheckSpec `json:"spec,omitempty"`
-	// +optional
-	Status KuberhealthyCheckStatus `json:"status,omitempty"`
+	Spec   HealthCheckSpec   `json:"spec,omitempty"`
+	Status HealthCheckStatus `json:"status,omitempty"`
 }
 
-// KuberhealthyCheckList contains a list of KuberhealthyCheck
-type KuberhealthyCheckList struct {
+// HealthCheckList contains a list of HealthCheck.
+type HealthCheckList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KuberhealthyCheck `json:"items"`
+	Items           []HealthCheck `json:"items"`
 }
 
 // init registers the custom resource types with the shared scheme builder.
 func init() {
-	SchemeBuilder.Register(&KuberhealthyCheck{}, &KuberhealthyCheckList{})
+	SchemeBuilder.Register(&HealthCheck{}, &HealthCheckList{})
 }
 
 // CurrentUUID returns the running UUID for this check.
-func (k *KuberhealthyCheck) CurrentUUID() string {
+func (k *HealthCheck) CurrentUUID() string {
 	return k.Status.CurrentUUID
 }
 
 // SetCurrentUUID updates the running UUID on the check status.
-func (k *KuberhealthyCheck) SetCurrentUUID(u string) {
+func (k *HealthCheck) SetCurrentUUID(u string) {
 	k.Status.CurrentUUID = u
 }
 
 // SetOK marks the check status as healthy.
-func (k *KuberhealthyCheck) SetOK() {
+func (k *HealthCheck) SetOK() {
 	k.Status.OK = true
 }
 
 // SetNotOK marks the check status as unhealthy.
-func (k *KuberhealthyCheck) SetNotOK() {
+func (k *HealthCheck) SetNotOK() {
 	k.Status.OK = false
 }
 
 // SetCheckExecutionError assigns execution errors on the check status.
-func (k *KuberhealthyCheck) SetCheckExecutionError(errs []string) {
+func (k *HealthCheck) SetCheckExecutionError(errs []string) {
 	k.Status.Errors = errs
 }
 
 // EnsureCreationTimestamp sets CreationTimestamp to now when unset.
 // It returns true when the timestamp was modified.
-func (k *KuberhealthyCheck) EnsureCreationTimestamp() bool {
+func (k *HealthCheck) EnsureCreationTimestamp() bool {
 	if k.CreationTimestamp.IsZero() {
 		k.CreationTimestamp = metav1.NewTime(time.Now())
 		return true
@@ -147,13 +146,13 @@ func (k *KuberhealthyCheck) EnsureCreationTimestamp() bool {
 }
 
 // CreateCheck writes a new check object to the cluster.
-func CreateCheck(ctx context.Context, cl client.Client, check *KuberhealthyCheck) error {
+func CreateCheck(ctx context.Context, cl client.Client, check *HealthCheck) error {
 	return cl.Create(ctx, check)
 }
 
 // GetCheck fetches the current version of a check.
-func GetCheck(ctx context.Context, cl client.Client, nn types.NamespacedName) (*KuberhealthyCheck, error) {
-	out := &KuberhealthyCheck{}
+func GetCheck(ctx context.Context, cl client.Client, nn types.NamespacedName) (*HealthCheck, error) {
+	out := &HealthCheck{}
 	err := cl.Get(ctx, nn, out)
 	if err != nil {
 		return nil, err
@@ -168,11 +167,11 @@ func GetCheck(ctx context.Context, cl client.Client, nn types.NamespacedName) (*
 }
 
 // UpdateCheck persists status changes for a check.
-func UpdateCheck(ctx context.Context, cl client.Client, check *KuberhealthyCheck) error {
+func UpdateCheck(ctx context.Context, cl client.Client, check *HealthCheck) error {
 	return cl.Status().Update(ctx, check)
 }
 
 // DeleteCheck removes a check from the cluster.
-func DeleteCheck(ctx context.Context, cl client.Client, check *KuberhealthyCheck) error {
+func DeleteCheck(ctx context.Context, cl client.Client, check *HealthCheck) error {
 	return cl.Delete(ctx, check)
 }

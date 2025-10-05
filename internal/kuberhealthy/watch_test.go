@@ -10,7 +10,7 @@ import (
 func TestConvertToKHCheckNamespace(t *testing.T) {
 	u := &unstructured.Unstructured{Object: map[string]interface{}{
 		"apiVersion": "kuberhealthy.github.io/v2",
-		"kind":       "KuberhealthyCheck",
+		"kind":       "HealthCheck",
 		"metadata": map[string]interface{}{
 			"name": "example",
 		},

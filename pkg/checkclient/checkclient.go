@@ -35,7 +35,7 @@ func ReportSuccess() error {
 	writeLog("DEBUG: Reporting SUCCESS")
 
 	// make a new report without errors
-	newReport := khapi.KuberhealthyCheckStatus{}
+	newReport := khapi.HealthCheckStatus{}
 	newReport.OK = true
 	newReport.Errors = []string{}
 
@@ -52,7 +52,7 @@ func ReportFailure(errorMessages []string) error {
 	writeLog("DEBUG: Reporting FAILURE")
 
 	// make a new report without errors
-	newReport := khapi.KuberhealthyCheckStatus{}
+	newReport := khapi.HealthCheckStatus{}
 	newReport.OK = false
 	newReport.Errors = errorMessages
 
@@ -69,7 +69,7 @@ func writeLog(i ...interface{}) {
 
 // sendReport marshals the report and sends it to the kuberhealthy endpoint
 // as shown in the environment variables.
-func sendReport(s khapi.KuberhealthyCheckStatus) error {
+func sendReport(s khapi.HealthCheckStatus) error {
 
 	writeLog("DEBUG: Sending report with error length of:", len(s.Errors))
 	writeLog("DEBUG: Sending report with ok state of:", s.OK)

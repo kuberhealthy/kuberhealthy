@@ -56,7 +56,7 @@ func TestConvertJob(t *testing.T) {
 	require.Equal(t, "123", string(out.Response.UID))
 	require.Len(t, out.Response.ConvertedObjects, 1)
 
-	converted := khapi.KuberhealthyCheck{}
+	converted := khapi.HealthCheck{}
 	err = json.Unmarshal(out.Response.ConvertedObjects[0].Raw, &converted)
 	require.NoError(t, err)
 	require.Equal(t, "kuberhealthy.github.io/v2", converted.APIVersion)

@@ -19,7 +19,7 @@ func TestAddFinalizer(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "add-finalizer",
 			Namespace:       "default",
@@ -29,7 +29,7 @@ func TestAddFinalizer(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).Build()
 	kh := New(context.Background(), cl)
 	require.NoError(t, kh.addFinalizer(context.Background(), check))
-	fetched := &khapi.KuberhealthyCheck{}
+	fetched := &khapi.HealthCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "add-finalizer", Namespace: "default"}, fetched))
 	require.Contains(t, fetched.Finalizers, khCheckFinalizer)
 }
@@ -40,7 +40,7 @@ func TestHandleUpdateRemovesFinalizer(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "remove-finalizer",
 			Namespace:       "default",
@@ -54,7 +54,7 @@ func TestHandleUpdateRemovesFinalizer(t *testing.T) {
 	deleting := check.DeepCopy()
 	deleting.DeletionTimestamp = &now
 	kh.handleUpdate(check, deleting)
-	fetched := &khapi.KuberhealthyCheck{}
+	fetched := &khapi.HealthCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "remove-finalizer", Namespace: "default"}, fetched))
 	require.NotContains(t, fetched.Finalizers, khCheckFinalizer)
 }
@@ -66,7 +66,7 @@ func TestHandleDeleteRemovesFinalizer(t *testing.T) {
 	require.NoError(t, khapi.AddToScheme(scheme))
 	require.NoError(t, corev1.AddToScheme(scheme))
 	now := metav1.Now()
-	check := &khapi.KuberhealthyCheck{
+	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "delete-finalizer",
 			Namespace:         "default",
@@ -78,7 +78,7 @@ func TestHandleDeleteRemovesFinalizer(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
 	kh.handleDelete(check.DeepCopy())
-	fetched := &khapi.KuberhealthyCheck{}
+	fetched := &khapi.HealthCheck{}
 	err := cl.Get(context.Background(), types.NamespacedName{Name: "delete-finalizer", Namespace: "default"}, fetched)
 	if apierrors.IsNotFound(err) {
 		return

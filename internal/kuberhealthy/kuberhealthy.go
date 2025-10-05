@@ -232,7 +232,7 @@ func (kh *Kuberhealthy) startScheduleLoop() {
 // scheduleChecks iterates through all khchecks, starts any that are due to run, and returns the shortest delay before the next evaluation should occur.
 func (kh *Kuberhealthy) scheduleChecks() time.Duration {
 	uList := &unstructured.UnstructuredList{}
-	uList.SetGroupVersionKind(khapi.GroupVersion.WithKind("KuberhealthyCheckList"))
+	uList.SetGroupVersionKind(khapi.GroupVersion.WithKind("HealthCheckList"))
 	err := kh.CheckClient.List(kh.Context, uList)
 	if err != nil {
 		log.Errorln("failed to list khchecks:", err)
@@ -245,7 +245,7 @@ func (kh *Kuberhealthy) scheduleChecks() time.Duration {
 	for _, khcheck := range uList.Items {
 		runInterval := kh.runIntervalForCheck(&khcheck)
 
-		var check khapi.KuberhealthyCheck
+		var check khapi.HealthCheck
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(khcheck.Object, &check)
 		if err != nil {
 			log.Errorf("failed to convert check %s/%s: %v", khcheck.GetNamespace(), khcheck.GetName(), err)
@@ -314,7 +314,7 @@ func (kh *Kuberhealthy) runIntervalForCheck(u *unstructured.Unstructured) time.D
 	return defaultRunInterval
 }
 
-// startKHCheckWatch begins watching KuberhealthyCheck resources and reacts to events.
+// startKHCheckWatch begins watching HealthCheck resources and reacts to events.
 func (kh *Kuberhealthy) startKHCheckWatch() {
 	if kh.restConfig == nil {
 		log.Errorln("kuberhealthy: start watch requested without a rest config")
@@ -366,7 +366,7 @@ func (kh *Kuberhealthy) startKHCheckWatch() {
 }
 
 // handleCreate registers a finalizer on new checks and starts their initial run.
-func (kh *Kuberhealthy) handleCreate(khc *khapi.KuberhealthyCheck) {
+func (kh *Kuberhealthy) handleCreate(khc *khapi.HealthCheck) {
 	err := kh.addFinalizer(kh.Context, khc)
 	if err != nil {
 		log.Errorln("error:", err)
@@ -380,7 +380,7 @@ func (kh *Kuberhealthy) handleCreate(khc *khapi.KuberhealthyCheck) {
 }
 
 // handleUpdate reconciles finalizers and restarts checks when their spec changes.
-func (kh *Kuberhealthy) handleUpdate(oldCheck *khapi.KuberhealthyCheck, newCheck *khapi.KuberhealthyCheck) {
+func (kh *Kuberhealthy) handleUpdate(oldCheck *khapi.HealthCheck, newCheck *khapi.HealthCheck) {
 	if !newCheck.GetDeletionTimestamp().IsZero() {
 		if kh.hasFinalizer(newCheck) {
 			err := kh.StopCheck(newCheck)
@@ -415,7 +415,7 @@ func (kh *Kuberhealthy) handleUpdate(oldCheck *khapi.KuberhealthyCheck, newCheck
 }
 
 // handleDelete removes finalizers and ensures pods are terminated when a check disappears.
-func (kh *Kuberhealthy) handleDelete(khc *khapi.KuberhealthyCheck) {
+func (kh *Kuberhealthy) handleDelete(khc *khapi.HealthCheck) {
 	if kh.hasFinalizer(khc) {
 		err := kh.StopCheck(khc)
 		if err != nil {
@@ -450,7 +450,7 @@ func (kh *Kuberhealthy) resumeCheckTimeouts() error {
 	}
 
 	// pull every khcheck so we can resume timers for anything currently marked as running
-	list := &khapi.KuberhealthyCheckList{}
+	list := &khapi.HealthCheckList{}
 	err := kh.CheckClient.List(kh.Context, list)
 	if err != nil {
 		return err
@@ -472,7 +472,7 @@ func (kh *Kuberhealthy) resumeCheckTimeouts() error {
 
 // startTimeoutWatcher schedules a timeout evaluation for the provided check. The watcher runs in a separate
 // goroutine so the caller does not block while waiting for the deadline.
-func (kh *Kuberhealthy) startTimeoutWatcher(check *khapi.KuberhealthyCheck) {
+func (kh *Kuberhealthy) startTimeoutWatcher(check *khapi.HealthCheck) {
 	if check == nil {
 		return
 	}
@@ -603,7 +603,7 @@ func (kh *Kuberhealthy) recordPodCreationFailure(checkName types.NamespacedName,
 }
 
 // checkTimeoutDuration returns the runtime limit for the provided check, defaulting when unset.
-func (kh *Kuberhealthy) checkTimeoutDuration(check *khapi.KuberhealthyCheck) time.Duration {
+func (kh *Kuberhealthy) checkTimeoutDuration(check *khapi.HealthCheck) time.Duration {
 	if check == nil {
 		return 0
 	}
@@ -614,7 +614,7 @@ func (kh *Kuberhealthy) checkTimeoutDuration(check *khapi.KuberhealthyCheck) tim
 }
 
 // IsReportAllowed returns true when a checker pod is still permitted to report its result via the /check endpoint.
-func (kh *Kuberhealthy) IsReportAllowed(check *khapi.KuberhealthyCheck, uuid string) bool {
+func (kh *Kuberhealthy) IsReportAllowed(check *khapi.HealthCheck, uuid string) bool {
 	if check == nil {
 		return true
 	}
@@ -640,7 +640,7 @@ func (kh *Kuberhealthy) IsReportAllowed(check *khapi.KuberhealthyCheck, uuid str
 }
 
 // StartCheck begins tracking and managing a khcheck. This occurs when a khcheck is added.
-func (kh *Kuberhealthy) StartCheck(khcheck *khapi.KuberhealthyCheck) error {
+func (kh *Kuberhealthy) StartCheck(khcheck *khapi.HealthCheck) error {
 	log.Infoln("Starting Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
 
 	// create a NamespacedName for additional calls
@@ -706,7 +706,7 @@ func (kh *Kuberhealthy) StartCheck(khcheck *khapi.KuberhealthyCheck) error {
 }
 
 // CheckPodSpec builds a pod for this check's run.
-func (kh *Kuberhealthy) CheckPodSpec(khcheck *khapi.KuberhealthyCheck) *corev1.Pod {
+func (kh *Kuberhealthy) CheckPodSpec(khcheck *khapi.HealthCheck) *corev1.Pod {
 
 	// generate a random suffix and concatenate a unique pod name
 	suffix := uuid.NewString()
@@ -729,7 +729,7 @@ func (kh *Kuberhealthy) CheckPodSpec(khcheck *khapi.KuberhealthyCheck) *corev1.P
 			Annotations: map[string]string{},
 			Labels:      map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(khcheck, khapi.GroupVersion.WithKind("KuberhealthyCheck")),
+				*metav1.NewControllerRef(khcheck, khapi.GroupVersion.WithKind("HealthCheck")),
 			},
 		},
 		Spec: khcheck.Spec.PodSpec.Spec,
@@ -790,7 +790,7 @@ func setEnvVar(vars []corev1.EnvVar, v corev1.EnvVar) []corev1.EnvVar {
 }
 
 // StartCheck stops tracking and managing a khcheck. This occurs when a khcheck is removed.
-func (kh *Kuberhealthy) StopCheck(khcheck *khapi.KuberhealthyCheck) error {
+func (kh *Kuberhealthy) StopCheck(khcheck *khapi.HealthCheck) error {
 	log.Infoln("Stopping Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
 
 	// clear CurrentUUID to indicate the check is no longer running
@@ -839,7 +839,7 @@ func (kh *Kuberhealthy) StopCheck(khcheck *khapi.KuberhealthyCheck) error {
 }
 
 // UpdateCheck handles the event of a check getting updated in place
-func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khapi.KuberhealthyCheck, newKHCheck *khapi.KuberhealthyCheck) error {
+func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khapi.HealthCheck, newKHCheck *khapi.HealthCheck) error {
 	log.WithFields(log.Fields{
 		"namespace": newKHCheck.Namespace,
 		"name":      newKHCheck.Name,
@@ -890,7 +890,7 @@ func (kh *Kuberhealthy) runReaper(ctx context.Context, interval time.Duration) {
 // reapOnce performs a single scan of khchecks and applies cleanup logic. It is primarily exposed for unit testing.
 func (kh *Kuberhealthy) reapOnce() error {
 	// gather every khcheck so we can inspect their pod history
-	var checkList khapi.KuberhealthyCheckList
+	var checkList khapi.HealthCheckList
 	err := kh.CheckClient.List(kh.Context, &checkList)
 	if err != nil {
 		return err
@@ -912,7 +912,7 @@ func (kh *Kuberhealthy) reapOnce() error {
 }
 
 // cleanupPodsForCheck evaluates every pod owned by the provided check and deletes any that violate lifecycle policies.
-func (kh *Kuberhealthy) cleanupPodsForCheck(check *khapi.KuberhealthyCheck) error {
+func (kh *Kuberhealthy) cleanupPodsForCheck(check *khapi.HealthCheck) error {
 	// start from default scheduling values so all math has a baseline
 	timeout := defaultRunTimeout
 	runInterval := defaultRunInterval
@@ -1018,7 +1018,7 @@ func (kh *Kuberhealthy) cleanupPodsForCheck(check *khapi.KuberhealthyCheck) erro
 }
 
 // deletePod removes the given pod and emits the standard log and Kubernetes event entries.
-func (kh *Kuberhealthy) deletePod(check *khapi.KuberhealthyCheck, pod *corev1.Pod, eventType, reason, message string) error {
+func (kh *Kuberhealthy) deletePod(check *khapi.HealthCheck, pod *corev1.Pod, eventType, reason, message string) error {
 	err := kh.CheckClient.Delete(kh.Context, pod)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -1040,7 +1040,7 @@ func (kh *Kuberhealthy) deletePod(check *khapi.KuberhealthyCheck, pod *corev1.Po
 }
 
 // readCheck fetches a check from the cluster.
-func (k *Kuberhealthy) readCheck(checkName types.NamespacedName) (*khapi.KuberhealthyCheck, error) {
+func (k *Kuberhealthy) readCheck(checkName types.NamespacedName) (*khapi.HealthCheck, error) {
 	return khapi.GetCheck(k.Context, k.CheckClient, checkName)
 }
 

@@ -16,7 +16,7 @@ import (
 
 // Convert handles ConversionReview requests for legacy KuberhealthyJob
 // objects and returns a response containing converted v2
-// KuberhealthyCheck resources.
+// HealthCheck resources.
 func Convert(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -54,13 +54,13 @@ func Convert(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		check := khapi.KuberhealthyCheck{
+		check := khapi.HealthCheck{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kuberhealthy.github.io/v2",
-				Kind:       "KuberhealthyCheck",
+				Kind:       "HealthCheck",
 			},
 			ObjectMeta: job.ObjectMeta,
-			Spec: khapi.KuberhealthyCheckSpec{
+			Spec: khapi.HealthCheckSpec{
 				SingleRun:        job.Spec.RunOnce,
 				RunInterval:      job.Spec.RunInterval,
 				Timeout:          job.Spec.Timeout,

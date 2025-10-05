@@ -32,12 +32,12 @@ func TestSetCheckStatusMergesAndClearsUUID(t *testing.T) {
 	originalLast := time.Now().Add(-2 * time.Minute).Unix()
 	originalDur := 42 * time.Second
 
-	existing := &khapi.KuberhealthyCheck{
+	existing := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Status: khapi.KuberhealthyCheckStatus{
+		Status: khapi.HealthCheckStatus{
 			OK:                  false,
 			Errors:              []string{"prior error"},
 			ConsecutiveFailures: 2,
@@ -50,13 +50,13 @@ func TestSetCheckStatusMergesAndClearsUUID(t *testing.T) {
 
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(existing).WithStatusSubresource(existing).Build()
 
-	incoming := &khapi.KuberhealthyCheckStatus{OK: true, Errors: []string{}, CurrentUUID: ""}
+	incoming := &khapi.HealthCheckStatus{OK: true, Errors: []string{}, CurrentUUID: ""}
 	err = setCheckStatus(cl, name, namespace, incoming)
 	if err != nil {
 		t.Fatalf("setCheckStatus returned error: %v", err)
 	}
 
-	var updated khapi.KuberhealthyCheck
+	var updated khapi.HealthCheck
 	err = cl.Get(t.Context(), types.NamespacedName{Name: name, Namespace: namespace}, &updated)
 	if err != nil {
 		t.Fatalf("failed to get updated object: %v", err)

@@ -55,10 +55,10 @@ func TestConvert(t *testing.T) {
 	}
 	ri := metav1.Duration{Duration: 5 * time.Minute}
 	to := metav1.Duration{Duration: 2 * time.Minute}
-	old := &khapi.KuberhealthyCheck{
-		TypeMeta:   metav1.TypeMeta{APIVersion: "comcast.github.io/v1", Kind: "KuberhealthyCheck"},
+	old := &khapi.HealthCheck{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "comcast.github.io/v1", Kind: "HealthCheck"},
 		ObjectMeta: metav1.ObjectMeta{Name: "ssh-check", Namespace: "kuberhealthy"},
-		Spec: khapi.KuberhealthyCheckSpec{
+		Spec: khapi.HealthCheckSpec{
 			RunInterval: &ri,
 			Timeout:     &to,
 			PodSpec:     khapi.CheckPodSpec{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "ssh-check", Image: "test"}}}},
@@ -98,7 +98,7 @@ func TestConvert(t *testing.T) {
 	patched, err := patch.Apply(oldRaw)
 	require.NoError(t, err)
 
-	converted := khapi.KuberhealthyCheck{}
+	converted := khapi.HealthCheck{}
 	err = json.Unmarshal(patched, &converted)
 	require.NoError(t, err)
 
@@ -112,7 +112,7 @@ func TestConvertLegacySpec(t *testing.T) {
 	}
 	// legacy YAML representing a comcast.github.io/v1 check
 	legacy := `apiVersion: comcast.github.io/v1
-kind: KuberhealthyCheck
+kind: HealthCheck
 metadata:
   name: ssh-check
   namespace: kuberhealthy
@@ -173,7 +173,7 @@ spec:
 	patched, err := patch.Apply(legacyJSON)
 	require.NoError(t, err)
 
-	converted := &khapi.KuberhealthyCheck{}
+	converted := &khapi.HealthCheck{}
 	err = json.Unmarshal(patched, converted)
 	require.NoError(t, err)
 
@@ -191,7 +191,7 @@ func TestConvertDeploymentCheckSpec(t *testing.T) {
 	}
 
 	legacy := `apiVersion: comcast.github.io/v1
-kind: KuberhealthyCheck
+kind: HealthCheck
 metadata:
   name: deployment
   namespace: kuberhealthy
@@ -243,7 +243,7 @@ spec:
 	patched, err := patch.Apply(legacyJSON)
 	require.NoError(t, err)
 
-	converted := &khapi.KuberhealthyCheck{}
+	converted := &khapi.HealthCheck{}
 	err = json.Unmarshal(patched, converted)
 	require.NoError(t, err)
 
@@ -303,7 +303,7 @@ func TestConvertLegacyDeploymentManifest(t *testing.T) {
 	err := json.Unmarshal(legacyJSON, &legacyMeta)
 	require.NoError(t, err)
 	require.Equal(t, "comcast.github.io/v1", legacyMeta.APIVersion)
-	require.Equal(t, "KuberhealthyCheck", legacyMeta.Kind)
+	require.Equal(t, "HealthCheck", legacyMeta.Kind)
 
 	// build a minimal AdmissionReview payload targeting the legacy document
 	review := admissionv1.AdmissionReview{
@@ -351,7 +351,7 @@ func TestConvertLegacyDeploymentManifest(t *testing.T) {
 	require.NoError(t, err)
 	mutatedJSON, err := patch.Apply(legacyJSON)
 	require.NoError(t, err)
-	mutated := khapi.KuberhealthyCheck{}
+	mutated := khapi.HealthCheck{}
 	err = json.Unmarshal(mutatedJSON, &mutated)
 	require.NoError(t, err)
 	require.Equal(t, "kuberhealthy.github.io/v2", mutated.APIVersion)
@@ -365,10 +365,10 @@ func TestLegacyConversionCreatesModernResource(t *testing.T) {
 
 	legacyJSON := loadLegacyDeploymentCheck(t)
 
-	var created []*khapi.KuberhealthyCheck
+	var created []*khapi.HealthCheck
 	var deleted []client.ObjectKey
 	restore := SetLegacyHandlers(
-		func(ctx context.Context, check *khapi.KuberhealthyCheck) error {
+		func(ctx context.Context, check *khapi.HealthCheck) error {
 			created = append(created, check.DeepCopy())
 			return nil
 		},
@@ -462,7 +462,7 @@ func TestConvertLegacyWithoutTypeMeta(t *testing.T) {
 	mutated, err := patch.Apply(noMetaJSON)
 	require.NoError(t, err)
 
-	out := khapi.KuberhealthyCheck{}
+	out := khapi.HealthCheck{}
 	err = json.Unmarshal(mutated, &out)
 	require.NoError(t, err)
 	require.Equal(t, "kuberhealthy.github.io/v2", out.APIVersion)
@@ -478,7 +478,7 @@ func TestLegacyDeleteBypass(t *testing.T) {
 
 	var created bool
 	restore := SetLegacyHandlers(
-		func(ctx context.Context, check *khapi.KuberhealthyCheck) error {
+		func(ctx context.Context, check *khapi.HealthCheck) error {
 			created = true
 			return nil
 		},
@@ -563,7 +563,7 @@ func TestConvertLegacyResourceNames(t *testing.T) {
 			mutated, err := patch.Apply(legacyJSON)
 			require.NoError(t, err)
 
-			out := khapi.KuberhealthyCheck{}
+			out := khapi.HealthCheck{}
 			err = json.Unmarshal(mutated, &out)
 			require.NoError(t, err)
 			require.Equal(t, "kuberhealthy.github.io/v2", out.APIVersion)

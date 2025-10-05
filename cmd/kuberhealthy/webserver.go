@@ -36,7 +36,7 @@ const (
 
 // reportAllowed determines if an incoming report should be accepted when the main controller is unavailable.
 // Tests rely on this helper so that timeout enforcement remains active even without Globals.kh.
-func reportAllowed(check *khapi.KuberhealthyCheck, uuid string) bool {
+func reportAllowed(check *khapi.HealthCheck, uuid string) bool {
 	if check == nil {
 		return true
 	}
@@ -387,7 +387,7 @@ func eventListHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return fmt.Errorf("kubernetes client not initialized")
 	}
-	fs := fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=KuberhealthyCheck", khcheck)
+	fs := fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=HealthCheck", khcheck)
 	evList, err := Globals.kubeClient.CoreV1().Events(namespace).List(r.Context(), metav1.ListOptions{FieldSelector: fs})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -650,7 +650,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	requestID = requestID + " (" + podReport.Namespace + "/" + podReport.Name + ")"
 
 	// fetch the khcheck for event recording when a client is available
-	var khCheck *khapi.KuberhealthyCheck
+	var khCheck *khapi.HealthCheck
 	clientForCheck := Globals.khClient
 	if clientForCheck == nil && Globals.kh != nil {
 		clientForCheck = Globals.kh.CheckClient
@@ -727,7 +727,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// checkRunDuration = checkDetails[podReport.Namespace+"/"+podReport.Name].RunDuration
 
 	// create a details object from our incoming status report before storing it on the khcheck status field
-	details := &khapi.KuberhealthyCheckStatus{}
+	details := &khapi.HealthCheckStatus{}
 	details.Errors = state.Errors
 	details.OK = state.OK
 	// details.RunDuration = checkRunDuration
@@ -787,7 +787,7 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 
 	ctx := context.Background()
 	uList := &unstructured.UnstructuredList{}
-	uList.SetGroupVersionKind(khapi.GroupVersion.WithKind("KuberhealthyCheckList"))
+	uList.SetGroupVersionKind(khapi.GroupVersion.WithKind("HealthCheckList"))
 	var opts []client.ListOption
 	if len(namespaces) == 1 {
 		opts = append(opts, client.InNamespace(namespaces[0]))
@@ -807,7 +807,7 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 		runInterval := runIntervalForCheck(&u)
 		timeout := timeoutForCheck(&u)
 
-		var check khapi.KuberhealthyCheck
+		var check khapi.HealthCheck
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, &check)
 		if err != nil {
 			log.Errorf("failed to convert check %s/%s: %v", u.GetNamespace(), u.GetName(), err)
@@ -815,7 +815,7 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 		}
 		check.EnsureCreationTimestamp()
 
-		status := health.CheckDetail{KuberhealthyCheckStatus: check.Status}
+		status := health.CheckDetail{HealthCheckStatus: check.Status}
 		status.RunIntervalSeconds = int64(runInterval.Seconds())
 		if timeout > 0 {
 			status.TimeoutSeconds = int64(timeout.Seconds())
@@ -869,7 +869,7 @@ func timeoutForCheck(u *unstructured.Unstructured) time.Duration {
 }
 
 // validateUsingRequestHeader ensures the request includes a valid kh-run-uuid header and
-// returns information about the associated KuberhealthyCheck.
+// returns information about the associated HealthCheck.
 func validateUsingRequestHeader(ctx context.Context, r *http.Request) (PodReportInfo, bool, error) {
 	var info PodReportInfo
 	uuid := r.Header.Get("kh-run-uuid")
@@ -889,12 +889,12 @@ func validateUsingRequestHeader(ctx context.Context, r *http.Request) (PodReport
 	return info, true, nil
 }
 
-// findCheckByUUID searches for a KuberhealthyCheck whose status CurrentUUID matches the provided uuid.
-func findCheckByUUID(ctx context.Context, uuid string) (*khapi.KuberhealthyCheck, error) {
+// findCheckByUUID searches for a HealthCheck whose status CurrentUUID matches the provided uuid.
+func findCheckByUUID(ctx context.Context, uuid string) (*khapi.HealthCheck, error) {
 	if Globals.khClient == nil {
 		return nil, fmt.Errorf("kubernetes client not initialized")
 	}
-	list := &khapi.KuberhealthyCheckList{}
+	list := &khapi.HealthCheckList{}
 	err := Globals.khClient.List(ctx, list)
 	if err != nil {
 		return nil, err
@@ -908,7 +908,7 @@ func findCheckByUUID(ctx context.Context, uuid string) (*khapi.KuberhealthyCheck
 }
 
 // storeCheckState stores the check status on its cluster CRD
-func storeCheckState(c client.Client, checkName string, checkNamespace string, khcheck *khapi.KuberhealthyCheckStatus) error {
+func storeCheckState(c client.Client, checkName string, checkNamespace string, khcheck *khapi.HealthCheckStatus) error {
 	// ensure the CRD resource exists
 	err := ensureCheckResourceExists(c, checkName, checkNamespace)
 	if err != nil {
@@ -960,7 +960,7 @@ func ensureCheckResourceExists(c client.Client, checkName string, checkNamespace
 	_, err := khapi.GetCheck(ctx, c, nn)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			khCheck := &khapi.KuberhealthyCheck{ObjectMeta: metav1.ObjectMeta{Name: checkName, Namespace: checkNamespace}}
+			khCheck := &khapi.HealthCheck{ObjectMeta: metav1.ObjectMeta{Name: checkName, Namespace: checkNamespace}}
 			err = khapi.CreateCheck(ctx, c, khCheck)
 			if err != nil {
 				return fmt.Errorf("failed to create khcheck %s/%s: %w", checkNamespace, checkName, err)
@@ -973,7 +973,7 @@ func ensureCheckResourceExists(c client.Client, checkName string, checkNamespace
 }
 
 // setCheckStatus sets the status on the khcheck custom resource
-func setCheckStatus(c client.Client, checkName string, checkNamespace string, incoming *khapi.KuberhealthyCheckStatus) error {
+func setCheckStatus(c client.Client, checkName string, checkNamespace string, incoming *khapi.HealthCheckStatus) error {
 	if c == nil {
 		return fmt.Errorf("kubernetes client not initialized")
 	}

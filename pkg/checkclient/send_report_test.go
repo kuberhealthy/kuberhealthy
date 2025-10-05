@@ -19,13 +19,13 @@ func TestReportSuccessAndFailure(t *testing.T) {
 	tests := []struct {
 		name     string
 		call     func() error
-		expected khapi.KuberhealthyCheckStatus
+		expected khapi.HealthCheckStatus
 	}{
 		// success reports a healthy status with no errors
 		{
 			name: "success",
 			call: ReportSuccess,
-			expected: khapi.KuberhealthyCheckStatus{
+			expected: khapi.HealthCheckStatus{
 				OK:     true,
 				Errors: []string{},
 			},
@@ -34,7 +34,7 @@ func TestReportSuccessAndFailure(t *testing.T) {
 		{
 			name: "failure",
 			call: func() error { return ReportFailure([]string{"err1", "err2"}) },
-			expected: khapi.KuberhealthyCheckStatus{
+			expected: khapi.HealthCheckStatus{
 				OK:     false,
 				Errors: []string{"err1", "err2"},
 			},
@@ -70,7 +70,7 @@ func TestReportSuccessAndFailure(t *testing.T) {
 				t.Fatalf("kh-run-uuid header = %q, want %q", gotHeader, uuid)
 			}
 
-			var status khapi.KuberhealthyCheckStatus
+			var status khapi.HealthCheckStatus
 			err = json.Unmarshal(gotBody, &status)
 			if err != nil {
 				t.Fatalf("failed to unmarshal body: %v", err)
