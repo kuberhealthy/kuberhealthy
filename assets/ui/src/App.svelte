@@ -105,7 +105,7 @@
 </header>
 <div id="main" class="flex flex-1 overflow-hidden">
   <Menu />
-  <div id="content" class="flex-1 p-4 overflow-y-auto bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
+  <div id="content" class="flex-1 flex flex-col min-h-0 p-4 overflow-y-auto bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
     {#if $currentCheck}
       <Check name={$currentCheck} />
     {:else}
