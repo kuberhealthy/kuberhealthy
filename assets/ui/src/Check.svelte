@@ -129,48 +129,56 @@
   <div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4">
     <h3 class="text-xl font-semibold mb-2">Overview</h3>
     {#if st}
-      <p class="mb-2"><span class="font-semibold">Status:</span>
-        <span class={st.podName ? 'text-blue-600' : (st.ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold')}>
-          {st.podName ? 'Running' : (st.ok ? 'OK' : 'ERROR')}
-        </span>
-        {#if !st.ok && st.errors && st.errors.length}
-          - {st.errors[0]}
-        {/if}
-      </p>
-      <p class="mb-2"><span class="font-semibold">Namespace:</span> {st.namespace}</p>
-      {#if st.runIntervalSeconds}
-        <p class="mb-2"><span class="font-semibold">Run interval:</span> {formatDuration(st.runIntervalSeconds*1000)}</p>
-      {/if}
-      {#if st.timeoutSeconds}
-        <p class="mb-2"><span class="font-semibold">Timeout:</span> {formatDuration(st.timeoutSeconds*1000)}</p>
-      {/if}
-      {#if st.podName}
-        <p class="mb-2"><span class="font-semibold">Pod:</span> {st.podName}</p>
-        {#if st.timeoutSeconds}
-          <p class="mb-2"><span class="font-semibold">Fail in:</span> {failIn}</p>
-        {/if}
-        <div class="mb-2 flex gap-4 items-center">
-          <a class="px-2 py-1 text-xs bg-blue-600 text-white rounded" href={logsURL} target="_blank" rel="noopener noreferrer">Open logs (new tab)</a>
-          {#if isRunning}
-            <a class="px-2 py-1 text-xs bg-indigo-600 text-white rounded" href={streamURL} target="_blank" rel="noopener noreferrer">Open streaming logs (new tab)</a>
+      <div class="md:overflow-hidden">
+        <div class="md:pr-4">
+          <p class="mb-2"><span class="font-semibold">Status:</span>
+            <span class={st.podName ? 'text-blue-600' : (st.ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold')}>
+              {st.podName ? 'Running' : (st.ok ? 'OK' : 'ERROR')}
+            </span>
+            {#if !st.ok && st.errors && st.errors.length}
+              - {st.errors[0]}
+            {/if}
+          </p>
+          <p class="mb-2"><span class="font-semibold">Namespace:</span> {st.namespace}</p>
+          {#if st.runIntervalSeconds}
+            <p class="mb-2"><span class="font-semibold">Run interval:</span> {formatDuration(st.runIntervalSeconds*1000)}</p>
+          {/if}
+          {#if st.timeoutSeconds}
+            <p class="mb-2"><span class="font-semibold">Timeout:</span> {formatDuration(st.timeoutSeconds*1000)}</p>
+          {/if}
+          {#if st.podName}
+            <p class="mb-2"><span class="font-semibold">Pod:</span> {st.podName}</p>
           {/if}
         </div>
-      {:else if st.nextRunUnix}
-        <p class="mb-2 flex items-center gap-2"><span class="font-semibold">Next run in:</span> {nextRun}
-          {#if showRunButton && countdownAllowsRunButton}
-            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run again now</button>
+        <div class="mt-4 md:mt-0 md:float-right md:w-1/2 md:pl-4">
+          {#if st.podName}
+            {#if st.timeoutSeconds}
+              <p class="mb-2"><span class="font-semibold">Fail in:</span> {failIn}</p>
+            {/if}
+            <div class="mb-2 flex gap-4 items-center">
+              <a class="px-2 py-1 text-xs bg-blue-600 text-white rounded" href={logsURL} target="_blank" rel="noopener noreferrer">Open logs (new tab)</a>
+              {#if isRunning}
+                <a class="px-2 py-1 text-xs bg-indigo-600 text-white rounded" href={streamURL} target="_blank" rel="noopener noreferrer">Open streaming logs (new tab)</a>
+              {/if}
+            </div>
+          {:else if st.nextRunUnix}
+            <p class="mb-2 flex items-center gap-2"><span class="font-semibold">Next run in:</span> {nextRun}
+              {#if showRunButton && countdownAllowsRunButton}
+                <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run again now</button>
+              {/if}
+            </p>
+          {:else}
+            {#if showRunButton && countdownAllowsRunButton}
+              <p class="mb-2 flex items-center gap-2">
+                <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run again now</button>
+              </p>
+            {/if}
           {/if}
-        </p>
-      {:else}
-        {#if showRunButton && countdownAllowsRunButton}
-          <p class="mb-2 flex items-center gap-2">
-            <button class="px-2 py-1 text-xs bg-blue-600 text-white rounded" on:click={runNow}>Run again now</button>
-          </p>
-        {/if}
-      {/if}
-      {#if st.lastRunUnix}
-        <p class="mb-2"><span class="font-semibold">Last run:</span> {new Date(st.lastRunUnix*1000).toLocaleString()}</p>
-      {/if}
+          {#if st.lastRunUnix}
+            <p class="mb-2"><span class="font-semibold">Last run:</span> {new Date(st.lastRunUnix*1000).toLocaleString()}</p>
+          {/if}
+        </div>
+      </div>
       {#if st.errors && st.errors.length}
         <div class="mb-2"><span class="font-semibold text-red-600">Errors:</span><ul class="list-disc list-inside">{#each st.errors as e}<li>{e}</li>{/each}</ul></div>
       {/if}
