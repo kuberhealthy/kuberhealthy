@@ -124,13 +124,13 @@
   }
 </script>
 
-<div>
+<div class="flex flex-col flex-1 min-h-0">
   <h2 class="text-2xl font-bold mb-4">{name}</h2>
   <div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4">
     <h3 class="text-xl font-semibold mb-2">Overview</h3>
     {#if st}
-      <div class="md:overflow-hidden">
-        <div class="md:pr-4">
+      <div class="flex flex-wrap items-start">
+        <div class="flex-1 min-w-[260px] md:pr-4">
           <p class="mb-2"><span class="font-semibold">Status:</span>
             <span class={st.podName ? 'text-blue-600' : (st.ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold')}>
               {st.podName ? 'Running' : (st.ok ? 'OK' : 'ERROR')}
@@ -150,7 +150,7 @@
             <p class="mb-2"><span class="font-semibold">Pod:</span> {st.podName}</p>
           {/if}
         </div>
-        <div class="mt-4 md:mt-0 md:float-right md:w-1/2 md:pl-4">
+        <div class="flex-1 min-w-[260px] mt-4 md:mt-0 md:pl-4">
           {#if st.podName}
             {#if st.timeoutSeconds}
               <p class="mb-2"><span class="font-semibold">Fail in:</span> {failIn}</p>
@@ -184,14 +184,13 @@
       {/if}
     {/if}
   </div>
-  <div class="mb-4 bg-white dark:bg-gray-900 rounded shadow p-4">
+  <div class="flex-1 mb-4 bg-white dark:bg-gray-900 rounded shadow p-4 flex flex-col min-h-0">
     <h3 class="text-xl font-semibold mb-2">Events</h3>
     {#if events.length === 0}
-      <div>No events found</div>
+      <div class="flex-1 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">No events found</div>
     {:else}
       <textarea
-        class="w-full font-mono text-sm bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded p-2"
-        rows="15"
+        class="flex-1 w-full min-h-0 resize-none font-mono text-sm bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded p-2"
         readonly
         bind:this={eventsBox}
         value={eventsText}
