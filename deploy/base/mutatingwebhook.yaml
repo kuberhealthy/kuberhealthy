@@ -23,4 +23,8 @@ webhooks:
         apiVersions:
           - v1
         resources:
+          - khc
+          - khcheck
+          - khchecks
+          - kuberhealthycheck
           - kuberhealthychecks

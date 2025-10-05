@@ -1,0 +1,3 @@
+- [ ] Migrate /deploy/* to /deploy/kustomize
+- [ ] Add a Helm chart that continues from the existing old Kuberhealthy Helm chart
+- [ ] Explore integration or support for AnalysisTemplate from Argo and Kargo

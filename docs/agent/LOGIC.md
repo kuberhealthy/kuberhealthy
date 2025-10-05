@@ -55,5 +55,9 @@ Kuberhealthy's runtime revolves around four primary flows that start in
 
 When the Kubernetes API server sends an admission review to the legacy
 conversion webhook, `internal/webhook` inspects the payload. Legacy
-`comcast.github.io/v1` resources are converted into the modern `v2` schema and a
-JSON patch response is returned so the API server stores the upgraded version.
+`comcast.github.io/v1` resources are converted into the modern `v2` schema. The
+webhook now upserts a `kuberhealthy.github.io/v2` resource with the translated
+specification and schedules a background cleanup loop that removes the original
+`khchecks.comcast.github.io` object once it has been persisted. A JSON patch is
+still returned so the API server accepts the request, allowing clients to use
+legacy manifests without seeing an admission failure.

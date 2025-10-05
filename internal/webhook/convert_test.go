@@ -2,9 +2,12 @@ package webhook
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -16,8 +19,33 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 	yaml "sigs.k8s.io/yaml"
 )
+
+// loadLegacyDeploymentCheck reads the legacy deployment check manifest used for webhook tests and returns the first YAML document as JSON.
+func loadLegacyDeploymentCheck(t *testing.T) []byte {
+	// helping the caller re-use the decoded manifest without cluttering the main test body
+	t.Helper()
+
+	// locate the shared test manifest so the conversion test uses the real legacy deployment example
+	manifestPath := filepath.Join("..", "..", "tests", "khcheck-test-v1-deployment.yaml")
+	data, err := os.ReadFile(manifestPath)
+	require.NoError(t, err)
+
+	// decode only the first YAML document because the later role and service account objects are irrelevant to conversion
+	decoder := utilyaml.NewYAMLOrJSONDecoder(bytes.NewReader(data), 4096)
+	firstDoc := map[string]any{}
+	err = decoder.Decode(&firstDoc)
+	require.NoError(t, err)
+
+	// convert the YAML document into JSON so it can be embedded in the AdmissionReview payload
+	jsonBytes, err := json.Marshal(firstDoc)
+	require.NoError(t, err)
+	return jsonBytes
+}
 
 // TestConvert upgrades a v1 check to the current API version via the conversion webhook.
 func TestConvert(t *testing.T) {
@@ -257,6 +285,234 @@ spec:
 	cpuLimit := container.Resources.Limits.Cpu()
 	require.NotNil(t, cpuLimit)
 	require.True(t, cpuLimit.Equal(resource.MustParse("1")))
+}
+
+// TestConvertLegacyDeploymentManifest simulates the admission of the published legacy deployment manifest and verifies the webhook upgrades the API group.
+func TestConvertLegacyDeploymentManifest(t *testing.T) {
+	// skip the expensive fixture work when the test suite runs in short mode
+	if testing.Short() {
+		t.Skip("skipping legacy manifest conversion test in short mode")
+	}
+
+	// load the canonical legacy manifest so the behavior matches the user facing sample
+	legacyJSON := loadLegacyDeploymentCheck(t)
+
+	// assert that the fixture really represents the legacy group and kind before conversion
+	legacyMeta := metav1.TypeMeta{}
+	err := json.Unmarshal(legacyJSON, &legacyMeta)
+	require.NoError(t, err)
+	require.Equal(t, "comcast.github.io/v1", legacyMeta.APIVersion)
+	require.Equal(t, "KuberhealthyCheck", legacyMeta.Kind)
+
+	// build a minimal AdmissionReview payload targeting the legacy document
+	review := admissionv1.AdmissionReview{
+		Request: &admissionv1.AdmissionRequest{
+			UID:    "legacy-deployment-manifest",
+			Object: runtimeRawExtension(legacyJSON),
+		},
+	}
+	body, err := json.Marshal(review)
+	require.NoError(t, err)
+
+	// execute the webhook handler exactly like the Kubernetes API server would
+	req := httptest.NewRequest("POST", "/api/convert", bytes.NewReader(body))
+	resp := httptest.NewRecorder()
+	Convert(resp, req)
+
+	// decode the response and confirm the webhook accepted and mutated the resource
+	result := resp.Result()
+	defer result.Body.Close()
+	require.Equal(t, http.StatusOK, result.StatusCode)
+	convertedReview := admissionv1.AdmissionReview{}
+	err = json.NewDecoder(result.Body).Decode(&convertedReview)
+	require.NoError(t, err)
+	require.NotNil(t, convertedReview.Response)
+	require.True(t, convertedReview.Response.Allowed)
+
+	// verify the JSON patch explicitly replaces the apiVersion so the resource is stored in the modern group
+	var ops []map[string]any
+	err = json.Unmarshal(convertedReview.Response.Patch, &ops)
+	require.NoError(t, err)
+	isAPIPatched := false
+	for _, op := range ops {
+		pathValue, _ := op["path"].(string)
+		if pathValue != "/apiVersion" {
+			continue
+		}
+		apiValue, _ := op["value"].(string)
+		require.Equal(t, "kuberhealthy.github.io/v2", apiValue)
+		isAPIPatched = true
+	}
+	require.True(t, isAPIPatched)
+
+	// apply the patch locally and confirm the resulting object uses the kuberhealthy.github.io group
+	patch, err := jsonpatch.DecodePatch(convertedReview.Response.Patch)
+	require.NoError(t, err)
+	mutatedJSON, err := patch.Apply(legacyJSON)
+	require.NoError(t, err)
+	mutated := khapi.KuberhealthyCheck{}
+	err = json.Unmarshal(mutatedJSON, &mutated)
+	require.NoError(t, err)
+	require.Equal(t, "kuberhealthy.github.io/v2", mutated.APIVersion)
+}
+
+// TestLegacyConversionCreatesModernResource verifies that applying a legacy manifest produces a modern resource and triggers legacy cleanup.
+func TestLegacyConversionCreatesModernResource(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping legacy conversion creation test in short mode")
+	}
+
+	legacyJSON := loadLegacyDeploymentCheck(t)
+
+	var created []*khapi.KuberhealthyCheck
+	var deleted []client.ObjectKey
+	restore := SetLegacyHandlers(
+		func(ctx context.Context, check *khapi.KuberhealthyCheck) error {
+			created = append(created, check.DeepCopy())
+			return nil
+		},
+		func(ctx context.Context, namespace, name string) error {
+			deleted = append(deleted, client.ObjectKey{Namespace: namespace, Name: name})
+			return nil
+		},
+		func(namespace, name string, deleter legacyDeleterFunc) {
+			if deleter == nil {
+				return
+			}
+			_ = deleter(context.Background(), namespace, name)
+		},
+	)
+	defer restore()
+
+	review := admissionv1.AdmissionReview{
+		Request: &admissionv1.AdmissionRequest{
+			UID:      "legacy-convert-create",
+			Resource: metav1.GroupVersionResource{Group: "comcast.github.io", Version: "v1", Resource: "kuberhealthychecks"},
+			Object:   runtimeRawExtension(legacyJSON),
+		},
+	}
+	body, err := json.Marshal(review)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("POST", "/api/convert", bytes.NewReader(body))
+	resp := httptest.NewRecorder()
+	Convert(resp, req)
+
+	result := resp.Result()
+	defer result.Body.Close()
+	require.Equal(t, http.StatusOK, result.StatusCode)
+
+	out := admissionv1.AdmissionReview{}
+	err = json.NewDecoder(result.Body).Decode(&out)
+	require.NoError(t, err)
+	require.NotNil(t, out.Response)
+	require.True(t, out.Response.Allowed)
+
+	require.Len(t, created, 1)
+	require.Equal(t, "kuberhealthy.github.io/v2", created[0].APIVersion)
+	require.Equal(t, "deployment", created[0].Name)
+	require.Equal(t, "kuberhealthy", created[0].Namespace)
+
+	require.Len(t, deleted, 1)
+	require.Equal(t, client.ObjectKey{Namespace: "kuberhealthy", Name: "deployment"}, deleted[0])
+}
+
+// TestConvertLegacyResourceNames verifies the webhook upgrades every legacy resource alias to the modern API group.
+func TestConvertLegacyResourceNames(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping legacy resource alias conversion test in short mode")
+	}
+
+	legacyJSON := loadLegacyDeploymentCheck(t)
+	aliases := []string{"khc", "khcheck", "kuberhealthycheck", "khchecks", "kuberhealthychecks"}
+
+	for _, alias := range aliases {
+		// capture range variable for the subtest closure
+		alias := alias
+		t.Run(alias, func(t *testing.T) {
+			review := admissionv1.AdmissionReview{
+				Request: &admissionv1.AdmissionRequest{
+					UID: types.UID("legacy-alias-" + alias),
+					Resource: metav1.GroupVersionResource{
+						Group:    "comcast.github.io",
+						Version:  "v1",
+						Resource: alias,
+					},
+					Object: runtimeRawExtension(legacyJSON),
+				},
+			}
+
+			body, err := json.Marshal(review)
+			require.NoError(t, err)
+
+			req := httptest.NewRequest("POST", "/api/convert", bytes.NewReader(body))
+			resp := httptest.NewRecorder()
+			Convert(resp, req)
+
+			result := resp.Result()
+			t.Cleanup(func() { result.Body.Close() })
+			require.Equal(t, http.StatusOK, result.StatusCode)
+
+			convertedReview := admissionv1.AdmissionReview{}
+			err = json.NewDecoder(result.Body).Decode(&convertedReview)
+			require.NoError(t, err)
+			require.NotNil(t, convertedReview.Response)
+			require.True(t, convertedReview.Response.Allowed)
+
+			patch, err := jsonpatch.DecodePatch(convertedReview.Response.Patch)
+			require.NoError(t, err)
+			mutated, err := patch.Apply(legacyJSON)
+			require.NoError(t, err)
+
+			out := khapi.KuberhealthyCheck{}
+			err = json.Unmarshal(mutated, &out)
+			require.NoError(t, err)
+			require.Equal(t, "kuberhealthy.github.io/v2", out.APIVersion)
+		})
+	}
+}
+
+// TestLegacyWebhookResourceCoverage ensures the mutating webhook watches every legacy resource alias so legacy manifests are always converted.
+func TestLegacyWebhookResourceCoverage(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping webhook manifest coverage test in short mode")
+	}
+
+	manifestPath := filepath.Join("..", "..", "deploy", "base", "mutatingwebhook.yaml")
+	data, err := os.ReadFile(manifestPath)
+	require.NoError(t, err)
+
+	var cfg struct {
+		Webhooks []struct {
+			Rules []struct {
+				Resources []string `yaml:"resources"`
+			} `yaml:"rules"`
+		} `yaml:"webhooks"`
+	}
+	err = yaml.Unmarshal(data, &cfg)
+	require.NoError(t, err)
+	require.NotEmpty(t, cfg.Webhooks)
+	require.NotEmpty(t, cfg.Webhooks[0].Rules)
+
+	needed := map[string]bool{
+		"khc":                false,
+		"khcheck":            false,
+		"kuberhealthycheck":  false,
+		"khchecks":           false,
+		"kuberhealthychecks": false,
+	}
+
+	for _, rule := range cfg.Webhooks[0].Rules {
+		for _, res := range rule.Resources {
+			if _, ok := needed[res]; ok {
+				needed[res] = true
+			}
+		}
+	}
+
+	for name, found := range needed {
+		require.Truef(t, found, "legacy resource %s missing from mutating webhook", name)
+	}
 }
 
 // runtimeRawExtension wraps a byte slice inside a RawExtension for AdmissionReview payloads.

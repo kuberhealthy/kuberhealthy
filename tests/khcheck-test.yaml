@@ -5,7 +5,7 @@ metadata:
   namespace: kuberhealthy
 spec:
   singleRunOnly: false
-  runInterval: 15s
+  runInterval: 40s
   timeout: 30s
   podSpec:
     spec:
@@ -17,6 +17,7 @@ spec:
             - -c
             - |
               set -x
+              sleep 20
               report='{"OK":true,"Errors":[]}'
               echo "Reporting to $KH_REPORTING_URL with KH_RUN_UUID=$KH_RUN_UUID payload: $report"
               curl -v --fail-with-body \

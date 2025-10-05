@@ -24,6 +24,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/kuberhealthy"
+	"github.com/kuberhealthy/kuberhealthy/v3/internal/webhook"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 )
 
@@ -78,6 +79,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("startup: failed to create controller-runtime client:", err)
 	}
+	webhook.ConfigureClient(Globals.khClient)
 
 	Globals.kh = kuberhealthy.New(ctx, Globals.khClient, doneChan)
 	Globals.kh.SetReportingURL(GlobalConfig.ReportingURL())

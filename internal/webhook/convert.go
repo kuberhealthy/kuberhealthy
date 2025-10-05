@@ -1,18 +1,165 @@
 package webhook
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	jsonpatch "gomodules.xyz/jsonpatch/v2"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const (
+	legacyCleanupTimeout = 30 * time.Second
+	legacyCleanupRetry   = 500 * time.Millisecond
+)
+
+type (
+	checkCreatorFunc   func(context.Context, *khapi.KuberhealthyCheck) error
+	legacyDeleterFunc  func(context.Context, string, string) error
+	cleanupSchedulerFn func(string, string, legacyDeleterFunc)
+)
+
+var (
+	createCheckFunc       checkCreatorFunc
+	legacyDeleteFunc      legacyDeleterFunc
+	scheduleLegacyCleanup cleanupSchedulerFn = defaultLegacyCleanup
+)
+
+// SetLegacyHandlers allows tests or the main program to override how legacy
+// resources are persisted and cleaned up. It returns a restore function so
+// callers can revert to the previous configuration.
+func SetLegacyHandlers(create checkCreatorFunc, delete legacyDeleterFunc, scheduler cleanupSchedulerFn) func() {
+	prevCreate := createCheckFunc
+	prevDelete := legacyDeleteFunc
+	prevScheduler := scheduleLegacyCleanup
+
+	createCheckFunc = create
+	legacyDeleteFunc = delete
+	if scheduler != nil {
+		scheduleLegacyCleanup = scheduler
+	}
+
+	return func() {
+		createCheckFunc = prevCreate
+		legacyDeleteFunc = prevDelete
+		scheduleLegacyCleanup = prevScheduler
+	}
+}
+
+// ConfigureClient wires a controller-runtime client into the legacy
+// conversion path so converted resources can be created and legacy ones can be
+// removed.
+func ConfigureClient(cl client.Client) {
+	if cl == nil {
+		return
+	}
+
+	create := func(ctx context.Context, check *khapi.KuberhealthyCheck) error {
+		if check == nil {
+			return fmt.Errorf("nil check provided to creator")
+		}
+		copy := check.DeepCopy()
+		resetMetadataForCreate(&copy.ObjectMeta)
+		copy.SetGroupVersionKind(khapi.GroupVersion.WithKind("KuberhealthyCheck"))
+		err := cl.Create(ctx, copy)
+		if apierrors.IsAlreadyExists(err) {
+			existing := &khapi.KuberhealthyCheck{}
+			e := cl.Get(ctx, client.ObjectKeyFromObject(copy), existing)
+			if e != nil {
+				return e
+			}
+			existing.Labels = copy.Labels
+			existing.Annotations = copy.Annotations
+			existing.Spec = copy.Spec
+			existing.SetGroupVersionKind(khapi.GroupVersion.WithKind("KuberhealthyCheck"))
+			return cl.Update(ctx, existing)
+		}
+		return err
+	}
+
+	deleteFn := func(ctx context.Context, namespace, name string) error {
+		if name == "" {
+			return nil
+		}
+		obj := &unstructured.Unstructured{}
+		obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "comcast.github.io", Version: "v1", Kind: "KuberhealthyCheck"})
+		obj.SetNamespace(namespace)
+		obj.SetName(name)
+		err := cl.Delete(ctx, obj)
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	SetLegacyHandlers(create, deleteFn, nil)
+}
+
+// resetMetadataForCreate removes fields that block create/update calls when
+// cloning a legacy resource into the modern API group.
+func resetMetadataForCreate(meta *metav1.ObjectMeta) {
+	if meta == nil {
+		return
+	}
+	meta.UID = ""
+	meta.ResourceVersion = ""
+	meta.Generation = 0
+	meta.CreationTimestamp = metav1.Time{}
+	meta.ManagedFields = nil
+	meta.SelfLink = ""
+}
+
+// defaultLegacyCleanup schedules background deletion attempts for the legacy
+// resource until the API server confirms removal or the timeout expires.
+func defaultLegacyCleanup(namespace, name string, deleter legacyDeleterFunc) {
+	if deleter == nil || name == "" {
+		return
+	}
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), legacyCleanupTimeout)
+		defer cancel()
+
+		ticker := time.NewTicker(legacyCleanupRetry)
+		defer ticker.Stop()
+
+		for {
+			err := deleter(ctx, namespace, name)
+			if err == nil {
+				return
+			}
+			if apierrors.IsNotFound(err) {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					continue
+				}
+			}
+
+			log.WithError(err).Warnf("legacy webhook cleanup retry for %s/%s", namespace, name)
+
+			select {
+			case <-ctx.Done():
+				log.Warnf("legacy webhook cleanup timed out removing %s/%s", namespace, name)
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
+}
 
 // Convert handles AdmissionReview requests for legacy Kuberhealthy checks and
 // returns a response that upgrades them to the v2 API.
@@ -33,7 +180,7 @@ func Convert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// build a conversion response that upgrades the incoming resource when needed
-	review.Response = convertReview(&review)
+	review.Response = convertReview(r.Context(), &review)
 	if review.Request != nil {
 		review.Response.UID = review.Request.UID
 	}
@@ -52,7 +199,7 @@ func Convert(w http.ResponseWriter, r *http.Request) {
 }
 
 // convertReview creates an AdmissionResponse converting legacy checks to v2.
-func convertReview(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
+func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	if ar.Request == nil {
 		return &admissionv1.AdmissionResponse{Allowed: true}
 	}
@@ -70,12 +217,25 @@ func convertReview(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionRespon
 	}
 
 	// attempt to convert the incoming legacy object into the modern representation
-	check, warning, err := convertLegacy(raw, meta.Kind)
+	check, legacyObj, warning, err := convertLegacy(raw, meta.Kind)
 	if err != nil {
 		return toError(err)
 	}
 	if check == nil {
 		return &admissionv1.AdmissionResponse{Allowed: true}
+	}
+
+	// persist the converted object into the modern API group when configured
+	if createCheckFunc != nil {
+		createTarget := check.DeepCopy()
+		resetMetadataForCreate(&createTarget.ObjectMeta)
+		err = createCheckFunc(ctx, createTarget)
+		if err != nil {
+			return toError(fmt.Errorf("create kuberhealthy.github.io/v2 check: %w", err))
+		}
+		if legacyObj != nil {
+			scheduleLegacyCleanup(legacyObj.Namespace, legacyObj.Name, legacyDeleteFunc)
+		}
 	}
 
 	// marshal the converted object and create a JSON patch from the original payload
@@ -103,14 +263,14 @@ func convertReview(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionRespon
 }
 
 // convertLegacy upgrades a legacy Kuberhealthy object into a modern v2 check when supported.
-func convertLegacy(raw []byte, kind string) (*khapi.KuberhealthyCheck, string, error) {
+func convertLegacy(raw []byte, kind string) (*khapi.KuberhealthyCheck, *legacyCheck, string, error) {
 	switch kind {
 	case "KuberhealthyCheck":
 		// decode the legacy object and rewrite the API version to the current value
 		out := khapi.KuberhealthyCheck{}
 		err := json.Unmarshal(raw, &out)
 		if err != nil {
-			return nil, "", fmt.Errorf("parse object: %w", err)
+			return nil, nil, "", fmt.Errorf("parse object: %w", err)
 		}
 		out.APIVersion = "kuberhealthy.github.io/v2"
 
@@ -118,13 +278,13 @@ func convertLegacy(raw []byte, kind string) (*khapi.KuberhealthyCheck, string, e
 		legacy := legacyCheck{}
 		err = json.Unmarshal(raw, &legacy)
 		if err != nil {
-			return nil, "", fmt.Errorf("parse legacy object: %w", err)
+			return nil, nil, "", fmt.Errorf("parse legacy object: %w", err)
 		}
 		upgradeLegacyPodSpec(&out.Spec.PodSpec, legacy.Spec)
 
-		return &out, "converted legacy comcast.github.io/v1 KuberhealthyCheck to kuberhealthy.github.io/v2", nil
+		return &out, &legacy, "converted legacy comcast.github.io/v1 KuberhealthyCheck to kuberhealthy.github.io/v2", nil
 	default:
-		return nil, "", nil
+		return nil, nil, "", nil
 	}
 }
 

@@ -9,9 +9,9 @@ spec:
     listKind: KuberhealthyCheckList
     plural: kuberhealthychecks
     shortNames:
-      - khc
-      - khcheck
-      - kuberhealthycheck
+      #- khc
+      #- khcheck
+      #- kuberhealthycheck
     singular: kuberhealthycheck
   scope: Namespaced
   versions:
