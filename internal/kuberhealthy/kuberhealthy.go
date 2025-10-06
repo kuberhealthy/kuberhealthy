@@ -46,9 +46,9 @@ const (
 )
 
 var (
-	kuberhealthyCheckGVR = khapi.GroupVersion.WithResource("kuberhealthychecks")
-	recorderSchemeOnce   sync.Once
-	recorderSchemeErr    error
+	healthCheckGVR     = khapi.GroupVersion.WithResource("healthchecks")
+	recorderSchemeOnce sync.Once
+	recorderSchemeErr  error
 )
 
 // Kuberhealthy handles background processing for checks
@@ -135,8 +135,8 @@ func (kh *Kuberhealthy) SetReportingURL(url string) {
 	kh.ReportingURL = url
 }
 
-// Start begins background processing for Kuberhealthy checks.
-// A Kubernetes rest.Config is optional; when provided, khchecks will be
+// Start begins background processing for HealthCheck resources.
+// A Kubernetes rest.Config is optional; when provided, healthchecks will be
 // watched for creation, update, and deletion events.
 func (kh *Kuberhealthy) Start(ctx context.Context, cfg *rest.Config) error {
 	if kh.IsStarted() {
@@ -328,7 +328,7 @@ func (kh *Kuberhealthy) startKHCheckWatch() {
 	}
 
 	factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dyn, 0, metav1.NamespaceAll, nil)
-	inf := factory.ForResource(kuberhealthyCheckGVR).Informer()
+	inf := factory.ForResource(healthCheckGVR).Informer()
 
 	inf.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -641,7 +641,7 @@ func (kh *Kuberhealthy) IsReportAllowed(check *khapi.HealthCheck, uuid string) b
 
 // StartCheck begins tracking and managing a khcheck. This occurs when a khcheck is added.
 func (kh *Kuberhealthy) StartCheck(khcheck *khapi.HealthCheck) error {
-	log.Infoln("Starting Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
+	log.Infoln("Starting healthcheck", khcheck.GetNamespace(), khcheck.GetName())
 
 	// create a NamespacedName for additional calls
 	checkName := types.NamespacedName{
@@ -791,7 +791,7 @@ func setEnvVar(vars []corev1.EnvVar, v corev1.EnvVar) []corev1.EnvVar {
 
 // StartCheck stops tracking and managing a khcheck. This occurs when a khcheck is removed.
 func (kh *Kuberhealthy) StopCheck(khcheck *khapi.HealthCheck) error {
-	log.Infoln("Stopping Kuberhealthy check", khcheck.GetNamespace(), khcheck.GetName())
+	log.Infoln("Stopping healthcheck", khcheck.GetNamespace(), khcheck.GetName())
 
 	// clear CurrentUUID to indicate the check is no longer running
 	oldUUID := khcheck.CurrentUUID()

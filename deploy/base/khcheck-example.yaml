@@ -1,5 +1,5 @@
 apiVersion: kuberhealthy.github.io/v2
-kind: KuberhealthyCheck
+kind: HealthCheck
 metadata:
   name: example-check
   namespace: kuberhealthy

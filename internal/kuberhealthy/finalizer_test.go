@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// TestAddFinalizer attaches the finalizer to new Kuberhealthy checks.
+// TestAddFinalizer attaches the finalizer to new HealthCheck resources.
 func TestAddFinalizer(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()

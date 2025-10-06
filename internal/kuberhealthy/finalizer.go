@@ -7,9 +7,9 @@ import (
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 )
 
-const khCheckFinalizer = "kuberhealthy.io/kuberhealthycheck"
+const khCheckFinalizer = "kuberhealthy.io/healthcheck"
 
-// hasFinalizer returns true when the check contains the kuberhealthy finalizer.
+// hasFinalizer returns true when the check contains the kuberhealthy healthcheck finalizer.
 func (k *Kuberhealthy) hasFinalizer(check *khapi.HealthCheck) bool {
 	// iterate over the finalizers and return when the kuberhealthy finalizer is present
 	for _, f := range check.Finalizers {
@@ -25,7 +25,7 @@ func (k *Kuberhealthy) addFinalizer(ctx context.Context, check *khapi.HealthChec
 	if k.hasFinalizer(check) {
 		return nil
 	}
-	// append the kuberhealthy finalizer so we control resource cleanup
+	// append the kuberhealthy healthcheck finalizer so we control resource cleanup
 	check.Finalizers = append(check.Finalizers, khCheckFinalizer)
 	err := k.CheckClient.Update(ctx, check)
 	if err != nil {

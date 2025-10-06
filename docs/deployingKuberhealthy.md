@@ -90,7 +90,7 @@ You can list checks that are configured with:
 kubectl -n kuberhealthy get khcheck
 ```
 
-Check status can be accessed via the JSON status page endpoint or by inspecting the status field on the `KuberhealthyCheck` resource.
+Check status can be accessed via the JSON status page endpoint or by inspecting the status field on the `HealthCheck` resource.
 
 ## Verifying the Deployment
 

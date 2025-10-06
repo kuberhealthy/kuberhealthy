@@ -6,7 +6,7 @@ configuration.
 
 ## Kubernetes API
 
-- **`KuberhealthyCheck` Custom Resource** (`pkg/api`)
+- **`HealthCheck` Custom Resource** (`pkg/api`)
   - Inputs: desired run interval, timeout, target `PodSpec`, optional metadata.
   - Outputs: status block populated with `OK`, error strings, run durations, and
     bookkeeping such as the authoritative pod and run UUID.
@@ -35,7 +35,7 @@ The HTTP server configured in `cmd/kuberhealthy/webserver.go` exposes:
   include the run UUID and status information defined in `pkg/api`.
 - `POST /api/run` – Triggers an immediate run of a specific check using
   `khcheck` and `namespace` query parameters.
-- `GET /api/events` – Lists Kubernetes events for a `KuberhealthyCheck`.
+- `GET /api/events` – Lists Kubernetes events for a `HealthCheck`.
 - `GET /api/logs` and `GET /api/logs/stream` – Fetches or streams pod logs for a
   particular check run.
 - `GET /openapi.yaml` and `GET /openapi.json` – Serves the OpenAPI schema.

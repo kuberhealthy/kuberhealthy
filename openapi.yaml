@@ -180,7 +180,7 @@ paths:
           description: Check already running
   /api/convert:
     post:
-      summary: Convert legacy v1 KuberhealthyCheck resources to v2
+      summary: Convert legacy v1 KuberhealthyCheck resources to v2 HealthCheck objects
       requestBody:
         required: true
         content:
@@ -196,7 +196,7 @@ paths:
                 $ref: '#/components/schemas/AdmissionReview'
   /api/khjobconvert:
     post:
-      summary: Convert legacy KuberhealthyJob resources to v2 KuberhealthyCheck
+      summary: Convert legacy KuberhealthyJob resources to v2 HealthCheck objects
       requestBody:
         required: true
         content:
