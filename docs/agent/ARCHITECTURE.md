@@ -34,7 +34,7 @@ Key components:
   specification, and helper endpoints for running checks and inspecting pod
   output.
 - **`internal/kuberhealthy`** implements the scheduling engine. It watches for
-  `healthcheck` resources, starts checker pods, tracks run lifecycles, and
+  `HealthCheck` resources, starts checker pods, tracks run lifecycles, and
   writes results back to the Kubernetes API.
 - **`internal/envs`** collects configuration from environment variables so the
   controller and web server share consistent defaults.

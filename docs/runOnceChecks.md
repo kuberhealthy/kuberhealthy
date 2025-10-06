@@ -1,14 +1,14 @@
 # Run Once Checks
 
-Sometimes you only need a single proof that things still work, like after a risky cluster upgrade or before rolling out a new admission policy. Run once checks let you use the familiar `healthcheck` resource to launch a pod exactly one time and capture the result without additional runs.
+Sometimes you only need a single proof that things still work, like after a risky cluster upgrade or before rolling out a new admission policy. Run once checks let you use the familiar `HealthCheck` resource to launch a pod exactly one time and capture the result without additional runs.
 
-## Craft a Single-Run `healthcheck`
+## Craft a Single-Run `HealthCheck`
 
 Start with the same manifest structure as a recurring check and add `singleRunOnly: true` to the spec. The following example runs a smoke test pod once and exits:
 
 ```yaml
 apiVersion: kuberhealthy.github.io/v2
-kind: healthcheck
+kind: HealthCheck
 metadata:
   name: upgrade-smoke
   namespace: kuberhealthy
@@ -57,4 +57,4 @@ Single-run checks stay in the cluster so you can review their status later, but 
 kubectl -n kuberhealthy delete healthcheck upgrade-smoke
 ```
 
-This pattern gives you the confidence of a full `healthcheck` lifecycle with the simplicity of a one-time job—perfect for upgrade smoke tests, feature flags, or ephemeral diagnostics.
+This pattern gives you the confidence of a full `HealthCheck` lifecycle with the simplicity of a one-time job—perfect for upgrade smoke tests, feature flags, or ephemeral diagnostics.

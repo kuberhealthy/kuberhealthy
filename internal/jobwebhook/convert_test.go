@@ -60,7 +60,7 @@ func TestConvertJob(t *testing.T) {
 	err = json.Unmarshal(out.Response.ConvertedObjects[0].Raw, &converted)
 	require.NoError(t, err)
 	require.Equal(t, "kuberhealthy.github.io/v2", converted.APIVersion)
-	require.Equal(t, "healthcheck", converted.Kind)
+	require.Equal(t, "HealthCheck", converted.Kind)
 	require.True(t, converted.Spec.SingleRun)
 	require.Equal(t, job.Spec.Timeout, converted.Spec.Timeout)
 	require.Equal(t, "b", converted.Spec.ExtraAnnotations["a"])

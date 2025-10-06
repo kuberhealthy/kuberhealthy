@@ -19,7 +19,7 @@ is propagated across packages.
 ## `internal/kuberhealthy`
 
 - **`Kuberhealthy`** (`kuberhealthy.go`)
-  - Encapsulates the scheduling logic for `healthcheck` resources.
+  - Encapsulates the scheduling logic for `HealthCheck` resources.
   - Stores the process context, cancellation function, Kubernetes client, event
     recorder, reporting URL, and coordination primitives such as `loopMu`.
   - Exposes methods for starting and stopping the scheduler, beginning specific

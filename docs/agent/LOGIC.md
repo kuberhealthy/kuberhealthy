@@ -8,7 +8,7 @@ Kuberhealthy's runtime revolves around four primary flows that start in
 1. `main` loads configuration via `setUp`, which reads environment variables
    into the `GlobalConfig` struct defined in `cmd/kuberhealthy/config.go`.
 2. Kubernetes REST clients and the controller-runtime client are created once
-   so the process can watch `healthcheck` resources and interact with
+   so the process can watch `HealthCheck` resources and interact with
    pods, events, and other cluster state.
 3. `kuberhealthy.New` creates the controller instance, wiring in the context and
    optional shutdown notifier channel used later during graceful termination.
@@ -35,7 +35,7 @@ Kuberhealthy's runtime revolves around four primary flows that start in
 1. Check pods submit their status to the `/report` endpoint on the HTTP server.
 2. `checkReportHandler` validates the payload, verifies the run UUID, and writes
    the success flag and any error strings into the `status` block of the
-   `healthcheck` resource.
+   `HealthCheck` resource.
 3. `internal/kuberhealthy` records the run metadata (duration, timestamps, and
    failure counts) so subsequent scheduling decisions can skip recent runs and
    inform the Prometheus exporter.
@@ -56,7 +56,7 @@ Kuberhealthy's runtime revolves around four primary flows that start in
 When the Kubernetes API server sends an admission review to the legacy
 conversion webhook, `internal/webhook` inspects the payload. Legacy
 `comcast.github.io/v1` resources are converted into the modern `v2` schema. The
-webhook now upserts a `kuberhealthy.github.io/v2/healthcheck` resource with the
+webhook now upserts a `kuberhealthy.github.io/v2/HealthCheck` resource with the
 translated specification and schedules a background cleanup loop that removes
 the original `khchecks.comcast.github.io` object once it has been persisted. A
 JSON patch is

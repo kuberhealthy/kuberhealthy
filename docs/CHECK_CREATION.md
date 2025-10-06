@@ -1,6 +1,6 @@
-## Creating Your Own `healthcheck`
+## Creating Your Own `HealthCheck`
 
-#### Creating your own `healthcheck` client is simple! :)
+#### Creating your own `HealthCheck` client is simple! :)
 
 ### Client Libraries
 
@@ -66,7 +66,7 @@ const report = async () => {
 
 report()
 ```
-> _NOTE: KH_REPORTING_URL must be set in your env. This is usually done automatically if running as a `healthcheck` pod on Kubernetes._
+> _NOTE: KH_REPORTING_URL must be set in your env. This is usually done automatically if running as a `HealthCheck` pod on Kubernetes._
 
 
 ### Using Another Language
@@ -75,7 +75,7 @@ Your check only needs to do a few things:
 
 - Read the `KH_REPORTING_URL` environment variable.
 - Send a `POST` to the `KH_REPORTING_URL` with the following JSON body:
-- Ensure that your check finishes before the [unixtime](https://en.wikipedia.org/wiki/Unix_time) deadline specified in the `KH_CHECK_RUN_DEADLINE` environment variable. If `KH_CHECK_RUN_DEADLINE` is not respected, your check may run into a `400` error when reporting its state to Kuberhealthy. This deadline is calculated by the `timeout:` setting in the `healthcheck` resource.
+- Ensure that your check finishes before the [unixtime](https://en.wikipedia.org/wiki/Unix_time) deadline specified in the `KH_CHECK_RUN_DEADLINE` environment variable. If `KH_CHECK_RUN_DEADLINE` is not respected, your check may run into a `400` error when reporting its state to Kuberhealthy. This deadline is calculated by the `timeout:` setting in the `HealthCheck` resource.
 
 ```json
 {
@@ -89,10 +89,10 @@ Your check only needs to do a few things:
 
 > Never send `"OK": true` if `Errors` has values or you will be given a `400` return code.
 
-Simply build your program into a container, `docker push` it to somewhere your cluster has access and craft a `healthcheck` resource to enable it in your cluster where Kuberhealthy is installed.
+Simply build your program into a container, `docker push` it to somewhere your cluster has access and craft a `HealthCheck` resource to enable it in your cluster where Kuberhealthy is installed.
 
 #### Injected Check Pod Environment Variables
-The following environment variables are injected into every checker pod that Kuberhealthy runs. When writing your checker code, you can depend on these environment variables always being available to you, even if you do not specify them in your `healthcheck` spec.
+The following environment variables are injected into every checker pod that Kuberhealthy runs. When writing your checker code, you can depend on these environment variables always being available to you, even if you do not specify them in your `HealthCheck` spec.
 ```
 KH_REPORTING_URL: The Kuberhealthy URL to send POST requests to for check statuses.
 KH_CHECK_RUN_DEADLINE: The Kuberhealthy deadline for checks as calculated by the check timeout given in Unix.
@@ -100,15 +100,15 @@ KH_RUN_UUID: The UUID of the check run.  This must be sent back as the header 'k
 KH_POD_NAMESPACE: The namespace of the checker pod.
 ```
 
-### Creating Your `healthcheck` Resource
+### Creating Your `HealthCheck` Resource
 
-Every check needs a `healthcheck` to enable and configure it. As soon as this resource is applied to the cluster, Kuberhealthy will begin running your check. Whenever you make a change, Kuberhealthy will automatically re-load the check and restart any checks currently in progress gracefully.
+Every check needs a `HealthCheck` to enable and configure it. As soon as this resource is applied to the cluster, Kuberhealthy will begin running your check. Whenever you make a change, Kuberhealthy will automatically re-load the check and restart any checks currently in progress gracefully.
 
-Here is a minimal `healthcheck` resource to start hacking with:
+Here is a minimal `HealthCheck` resource to start hacking with:
 
 ```yaml
 apiVersion: kuberhealthy.github.io/v2
-kind: healthcheck
+kind: HealthCheck
 metadata:
   name: kh-test-check
 spec:
@@ -124,7 +124,7 @@ spec:
       name: main
 ```
 
-That's it! As soon as this `healthcheck` is applied, Kuberhealthy will begin running your check, serving Prometheus metrics for it, and displaying status JSON on the status page.
+That's it! As soon as this `HealthCheck` is applied, Kuberhealthy will begin running your check, serving Prometheus metrics for it, and displaying status JSON on the status page.
 
 ### Contribute Your Check
 

@@ -57,7 +57,7 @@ func Convert(w http.ResponseWriter, r *http.Request) {
 		check := khapi.HealthCheck{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kuberhealthy.github.io/v2",
-				Kind:       "healthcheck",
+				Kind:       "HealthCheck",
 			},
 			ObjectMeta: job.ObjectMeta,
 			Spec: khapi.HealthCheckSpec{
@@ -70,7 +70,7 @@ func Convert(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 
-		check.SetGroupVersionKind(khapi.GroupVersion.WithKind("healthcheck"))
+		check.SetGroupVersionKind(khapi.GroupVersion.WithKind("HealthCheck"))
 
 		raw, err := json.Marshal(check)
 		if err != nil {

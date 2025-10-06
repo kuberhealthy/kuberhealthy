@@ -73,7 +73,7 @@ func ConfigureClient(cl client.Client) {
 		}
 		copy := check.DeepCopy()
 		resetMetadataForCreate(&copy.ObjectMeta)
-		copy.SetGroupVersionKind(khapi.GroupVersion.WithKind("healthcheck"))
+		copy.SetGroupVersionKind(khapi.GroupVersion.WithKind("HealthCheck"))
 		err := cl.Create(ctx, copy)
 		if apierrors.IsAlreadyExists(err) {
 			existing := &khapi.HealthCheck{}
@@ -84,7 +84,7 @@ func ConfigureClient(cl client.Client) {
 			existing.Labels = copy.Labels
 			existing.Annotations = copy.Annotations
 			existing.Spec = copy.Spec
-			existing.SetGroupVersionKind(khapi.GroupVersion.WithKind("healthcheck"))
+			existing.SetGroupVersionKind(khapi.GroupVersion.WithKind("HealthCheck"))
 			return cl.Update(ctx, existing)
 		}
 		return err
@@ -297,7 +297,7 @@ func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admiss
 	}
 
 	pt := admissionv1.PatchTypeJSONPatch
-	f["convertedTo"] = "kuberhealthy.github.io/v2/healthcheck"
+	f["convertedTo"] = "kuberhealthy.github.io/v2/HealthCheck"
 	log.WithFields(f).Info("legacy webhook converted resource")
 	return &admissionv1.AdmissionResponse{
 		Allowed:   true,
@@ -318,8 +318,8 @@ func convertLegacy(raw []byte, kind string) (*khapi.HealthCheck, *legacyCheck, s
 			return nil, nil, "", fmt.Errorf("parse object: %w", err)
 		}
 		out.APIVersion = "kuberhealthy.github.io/v2"
-		out.Kind = "healthcheck"
-		out.SetGroupVersionKind(khapi.GroupVersion.WithKind("healthcheck"))
+		out.Kind = "HealthCheck"
+		out.SetGroupVersionKind(khapi.GroupVersion.WithKind("HealthCheck"))
 
 		// populate missing pod spec details when the legacy payload used the v1 layout
 		legacy := legacyCheck{}
@@ -329,7 +329,7 @@ func convertLegacy(raw []byte, kind string) (*khapi.HealthCheck, *legacyCheck, s
 		}
 		upgradeLegacyPodSpec(&out.Spec.PodSpec, legacy.Spec)
 
-		return &out, &legacy, "converted legacy comcast.github.io/v1 HealthCheck to kuberhealthy.github.io/v2 healthcheck", nil
+		return &out, &legacy, "converted legacy comcast.github.io/v1 HealthCheck to kuberhealthy.github.io/v2 HealthCheck", nil
 	default:
 		return nil, nil, "", nil
 	}

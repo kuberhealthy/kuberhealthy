@@ -5,8 +5,8 @@ metadata:
 spec:
   group: kuberhealthy.github.io
   names:
-    kind: healthcheck
-    listKind: healthcheckList
+    kind: HealthCheck
+    listKind: HealthCheckList
     plural: healthchecks
     shortNames:
       #- hc

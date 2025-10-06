@@ -103,7 +103,7 @@ func TestConvert(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, "kuberhealthy.github.io/v2", converted.APIVersion)
-	require.Equal(t, "healthcheck", converted.Kind)
+	require.Equal(t, "HealthCheck", converted.Kind)
 }
 
 // TestConvertLegacySpec converts a legacy YAML check definition to the current API version.
@@ -179,7 +179,7 @@ spec:
 	require.NoError(t, err)
 
 	require.Equal(t, "kuberhealthy.github.io/v2", converted.APIVersion)
-	require.Equal(t, "healthcheck", converted.Kind)
+	require.Equal(t, "HealthCheck", converted.Kind)
 
 	// ensure the converted object marshals without error
 	_, err = json.Marshal(converted)
@@ -250,7 +250,7 @@ spec:
 	require.NoError(t, err)
 
 	require.Equal(t, "kuberhealthy.github.io/v2", converted.APIVersion)
-	require.Equal(t, "healthcheck", converted.Kind)
+	require.Equal(t, "HealthCheck", converted.Kind)
 	require.Equal(t, "deployment", converted.Name)
 	require.Equal(t, "kuberhealthy", converted.Namespace)
 
@@ -348,7 +348,7 @@ func TestConvertLegacyDeploymentManifest(t *testing.T) {
 		}
 		if pathValue == "/kind" {
 			kindValue, _ := op["value"].(string)
-			require.Equal(t, "healthcheck", kindValue)
+			require.Equal(t, "HealthCheck", kindValue)
 			isKindPatched = true
 		}
 	}
@@ -364,7 +364,7 @@ func TestConvertLegacyDeploymentManifest(t *testing.T) {
 	err = json.Unmarshal(mutatedJSON, &mutated)
 	require.NoError(t, err)
 	require.Equal(t, "kuberhealthy.github.io/v2", mutated.APIVersion)
-	require.Equal(t, "healthcheck", mutated.Kind)
+	require.Equal(t, "HealthCheck", mutated.Kind)
 }
 
 // TestLegacyConversionCreatesModernResource verifies that applying a legacy manifest produces a modern resource and triggers legacy cleanup.
@@ -421,7 +421,7 @@ func TestLegacyConversionCreatesModernResource(t *testing.T) {
 
 	require.Len(t, created, 1)
 	require.Equal(t, "kuberhealthy.github.io/v2", created[0].APIVersion)
-	require.Equal(t, "healthcheck", created[0].Kind)
+	require.Equal(t, "HealthCheck", created[0].Kind)
 	require.Equal(t, "deployment", created[0].Name)
 	require.Equal(t, "kuberhealthy", created[0].Namespace)
 
@@ -477,7 +477,7 @@ func TestConvertLegacyWithoutTypeMeta(t *testing.T) {
 	err = json.Unmarshal(mutated, &out)
 	require.NoError(t, err)
 	require.Equal(t, "kuberhealthy.github.io/v2", out.APIVersion)
-	require.Equal(t, "healthcheck", out.Kind)
+	require.Equal(t, "HealthCheck", out.Kind)
 }
 
 // TestLegacyDeleteBypass ensures delete admissions skip conversion and do not invoke creation handlers.
@@ -579,7 +579,7 @@ func TestConvertLegacyResourceNames(t *testing.T) {
 			err = json.Unmarshal(mutated, &out)
 			require.NoError(t, err)
 			require.Equal(t, "kuberhealthy.github.io/v2", out.APIVersion)
-			require.Equal(t, "healthcheck", out.Kind)
+			require.Equal(t, "HealthCheck", out.Kind)
 		})
 	}
 }
