@@ -103,6 +103,7 @@ func TestConvert(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, "kuberhealthy.github.io/v2", converted.APIVersion)
+	require.Equal(t, "healthcheck", converted.Kind)
 }
 
 // TestConvertLegacySpec converts a legacy YAML check definition to the current API version.
@@ -178,6 +179,7 @@ spec:
 	require.NoError(t, err)
 
 	require.Equal(t, "kuberhealthy.github.io/v2", converted.APIVersion)
+	require.Equal(t, "healthcheck", converted.Kind)
 
 	// ensure the converted object marshals without error
 	_, err = json.Marshal(converted)
@@ -248,6 +250,7 @@ spec:
 	require.NoError(t, err)
 
 	require.Equal(t, "kuberhealthy.github.io/v2", converted.APIVersion)
+	require.Equal(t, "healthcheck", converted.Kind)
 	require.Equal(t, "deployment", converted.Name)
 	require.Equal(t, "kuberhealthy", converted.Namespace)
 
@@ -335,16 +338,22 @@ func TestConvertLegacyDeploymentManifest(t *testing.T) {
 	err = json.Unmarshal(convertedReview.Response.Patch, &ops)
 	require.NoError(t, err)
 	isAPIPatched := false
+	isKindPatched := false
 	for _, op := range ops {
 		pathValue, _ := op["path"].(string)
-		if pathValue != "/apiVersion" {
-			continue
+		if pathValue == "/apiVersion" {
+			apiValue, _ := op["value"].(string)
+			require.Equal(t, "kuberhealthy.github.io/v2", apiValue)
+			isAPIPatched = true
 		}
-		apiValue, _ := op["value"].(string)
-		require.Equal(t, "kuberhealthy.github.io/v2", apiValue)
-		isAPIPatched = true
+		if pathValue == "/kind" {
+			kindValue, _ := op["value"].(string)
+			require.Equal(t, "healthcheck", kindValue)
+			isKindPatched = true
+		}
 	}
 	require.True(t, isAPIPatched)
+	require.True(t, isKindPatched)
 
 	// apply the patch locally and confirm the resulting object uses the kuberhealthy.github.io group
 	patch, err := jsonpatch.DecodePatch(convertedReview.Response.Patch)
@@ -355,6 +364,7 @@ func TestConvertLegacyDeploymentManifest(t *testing.T) {
 	err = json.Unmarshal(mutatedJSON, &mutated)
 	require.NoError(t, err)
 	require.Equal(t, "kuberhealthy.github.io/v2", mutated.APIVersion)
+	require.Equal(t, "healthcheck", mutated.Kind)
 }
 
 // TestLegacyConversionCreatesModernResource verifies that applying a legacy manifest produces a modern resource and triggers legacy cleanup.
@@ -411,6 +421,7 @@ func TestLegacyConversionCreatesModernResource(t *testing.T) {
 
 	require.Len(t, created, 1)
 	require.Equal(t, "kuberhealthy.github.io/v2", created[0].APIVersion)
+	require.Equal(t, "healthcheck", created[0].Kind)
 	require.Equal(t, "deployment", created[0].Name)
 	require.Equal(t, "kuberhealthy", created[0].Namespace)
 
@@ -466,6 +477,7 @@ func TestConvertLegacyWithoutTypeMeta(t *testing.T) {
 	err = json.Unmarshal(mutated, &out)
 	require.NoError(t, err)
 	require.Equal(t, "kuberhealthy.github.io/v2", out.APIVersion)
+	require.Equal(t, "healthcheck", out.Kind)
 }
 
 // TestLegacyDeleteBypass ensures delete admissions skip conversion and do not invoke creation handlers.
@@ -567,6 +579,7 @@ func TestConvertLegacyResourceNames(t *testing.T) {
 			err = json.Unmarshal(mutated, &out)
 			require.NoError(t, err)
 			require.Equal(t, "kuberhealthy.github.io/v2", out.APIVersion)
+			require.Equal(t, "healthcheck", out.Kind)
 		})
 	}
 }
