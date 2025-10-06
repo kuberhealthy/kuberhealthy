@@ -8,7 +8,7 @@ observability interfaces.
 ```
 +-------------------+        +-----------------------+        +-----------------+
 | Kubernetes API    |<------>| internal/kuberhealthy |<------>| internal/envs   |
-|  - khchecks CRDs  |  CRUD  |  - scheduling loop    |  env   |  - runtime cfg  |
+|  - healthchecks   |  CRUD  |  - scheduling loop    |  env   |  - runtime cfg  |
 |  - pods/events    |        |  - timeout tracking   |        +-----------------+
 +-------------------+        |  - status updates     |                  |
          ^                   +-----------------------+                  v
@@ -34,7 +34,7 @@ Key components:
   specification, and helper endpoints for running checks and inspecting pod
   output.
 - **`internal/kuberhealthy`** implements the scheduling engine. It watches for
-  `HealthCheck` resources, starts checker pods, tracks run lifecycles, and
+  `healthcheck` resources, starts checker pods, tracks run lifecycles, and
   writes results back to the Kubernetes API.
 - **`internal/envs`** collects configuration from environment variables so the
   controller and web server share consistent defaults.

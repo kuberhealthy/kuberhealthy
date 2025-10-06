@@ -1,6 +1,6 @@
 # How Kuberhealthy Works
 
-Kuberhealthy watches the Kubernetes API for `HealthCheck` resources and continuously records their success or failure. It empowers you to run synthetic checks that simulate real user behavior so issues surface exactly as your users would experience them.
+Kuberhealthy watches the Kubernetes API for `healthcheck` resources and continuously records their success or failure. It empowers you to run synthetic checks that simulate real user behavior so issues surface exactly as your users would experience them.
 
 ## 📚 Table of Contents
 
@@ -18,18 +18,18 @@ kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/mas
 
 As soon as the manifest is applied, Kuberhealthy orchestrates the following cycle:
 
-1. **Detect the check.** Kuberhealthy sees the new `HealthCheck` resource.
+1. **Detect the check.** Kuberhealthy sees the new `healthcheck` resource.
 2. **Schedule runs.** It begins creating checker pods on the interval specified in the resource.
 3. **Start the pod.** Kubernetes launches the pod just like any other workload.
 4. **Run the logic.** The container executes your test logic and decides whether the cluster behaved correctly.
 5. **Enforce deadlines.** If the pod runs longer than the configured timeout, Kuberhealthy stops it and records a failure.
 6. **Report in.** The pod calls back to the Kuberhealthy API at the `KH_REPORTING_URL`, sharing a boolean OK value and any error messages.
-7. **Persist status.** Kuberhealthy writes the reported state to the `status` block of the `khcheck` so you can read it later.
+7. **Persist status.** Kuberhealthy writes the reported state to the `status` block of the `healthcheck` so you can read it later.
 8. **Publish metrics.** The stored OK and error values become Prometheus metrics served from the `/metrics` endpoint.
 
 Behind the scenes, the deployment check follows the same create, observe, and clean-up loop you would execute manually:
 
-- Kuberhealthy observes the new [`HealthCheck`](CHECKS.md#khcheck-anatomy).
+- Kuberhealthy observes the new [`healthcheck`](CHECKS.md#khcheck-anatomy).
 - The controller schedules a checker pod according to the configured interval.
 - That pod creates a deployment with the Kubernetes API and waits for every replica to become `Ready`.
 - Once the verification succeeds, the pod deletes the deployment and waits for the cleanup to finish.
@@ -40,21 +40,21 @@ Behind the scenes, the deployment check follows the same create, observe, and cl
 You can follow along with the run lifecycle directly from the cluster:
 
 ```sh
-kubectl -n kuberhealthy get khcheck deployment -o wide
-kubectl -n kuberhealthy describe khcheck deployment
+kubectl -n kuberhealthy get healthcheck deployment -o wide
+kubectl -n kuberhealthy describe healthcheck deployment
 ```
 
 The wide view shows the current phase and last run time, while the describe output expands on the stored `status` block.
 
 Once a check has reported in, explore the results in three ways:
 
-1. **Check the resource:** `kubectl -n kuberhealthy describe khcheck deployment` displays the `status.ok` flag and any reported errors.
+1. **Check the resource:** `kubectl -n kuberhealthy describe healthcheck deployment` displays the `status.ok` flag and any reported errors.
 2. **Inspect the status page:** port-forward the service with `kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80` and then visit `http://localhost:8080/status` in your browser or call it with `curl -fsS localhost:8080/status`.
 3. **View the metrics:** with the same port-forward session, run `curl -fsS localhost:8080/metrics | grep kuberhealthy_check` to see the Prometheus series that includes the deployment check.
 
 ## Using the JSON Status Page
 
-Kuberhealthy exposes the state of every `khcheck` through two interfaces: the web status page and the `HealthCheck` custom resource. The service hosts a read-only JSON document at `/status` that aggregates every registered check:
+Kuberhealthy exposes the state of every `healthcheck` through two interfaces: the web status page and the `healthcheck` custom resource. The service hosts a read-only JSON document at `/status` that aggregates every registered check:
 
 ```json
 {
@@ -86,10 +86,10 @@ Kuberhealthy exposes the state of every `khcheck` through two interfaces: the we
 
 Use `kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80` if the service is only reachable inside the cluster. The document shows global health via the top-level `OK` flag, while the `CheckDetails` section lists run-level diagnostics for every check.
 
-Each `khcheck` resource records the same information in its `status` block. View it with:
+Each `healthcheck` resource records the same information in its `status` block. View it with:
 
 ```sh
-kubectl -n kuberhealthy describe khcheck <name>
+kubectl -n kuberhealthy describe healthcheck <name>
 ```
 
 Key fields include:

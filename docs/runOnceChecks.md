@@ -1,8 +1,8 @@
 # Run Once Checks
 
-Sometimes you only need a single proof that things still work, like after a risky cluster upgrade or before rolling out a new admission policy. Run once checks let you use the familiar `HealthCheck` resource to launch a pod exactly one time and capture the result without additional runs.
+Sometimes you only need a single proof that things still work, like after a risky cluster upgrade or before rolling out a new admission policy. Run once checks let you use the familiar `healthcheck` resource to launch a pod exactly one time and capture the result without additional runs.
 
-## Craft a Single-Run `khcheck`
+## Craft a Single-Run `healthcheck`
 
 Start with the same manifest structure as a recurring check and add `singleRunOnly: true` to the spec. The following example runs a smoke test pod once and exits:
 
@@ -42,19 +42,19 @@ You can make `kubectl` block until the first status update arrives by waiting fo
 kubectl -n kuberhealthy wait \
   --for=jsonpath='{.status.lastRunUnix}'!=0 \
   --timeout=10m \
-  khcheck/mycheck
+  healthcheck/mycheck
 ```
 
 Replace `mycheck` with the name of your resource—`upgrade-smoke` in this example.
 
-When the command returns, the pod has either reported success or delivered an error payload back to the controller. Inspect the detailed result with `kubectl -n kuberhealthy describe khcheck upgrade-smoke` or by port-forwarding to the `/status` page like any other check.
+When the command returns, the pod has either reported success or delivered an error payload back to the controller. Inspect the detailed result with `kubectl -n kuberhealthy describe healthcheck upgrade-smoke` or by port-forwarding to the `/status` page like any other check.
 
 ## Clean Up After the Run
 
 Single-run checks stay in the cluster so you can review their status later, but they will not schedule again. Delete the resource once you have captured the outcome:
 
 ```sh
-kubectl -n kuberhealthy delete khcheck upgrade-smoke
+kubectl -n kuberhealthy delete healthcheck upgrade-smoke
 ```
 
-This pattern gives you the confidence of a full `khcheck` lifecycle with the simplicity of a one-time job—perfect for upgrade smoke tests, feature flags, or ephemeral diagnostics.
+This pattern gives you the confidence of a full `healthcheck` lifecycle with the simplicity of a one-time job—perfect for upgrade smoke tests, feature flags, or ephemeral diagnostics.
