@@ -8,7 +8,7 @@ Start with the same manifest structure as a recurring check and add `singleRunOn
 
 ```yaml
 apiVersion: kuberhealthy.github.io/v2
-kind: HealthCheck
+kind: healthcheck
 metadata:
   name: upgrade-smoke
   namespace: kuberhealthy
