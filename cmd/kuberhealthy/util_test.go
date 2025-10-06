@@ -8,7 +8,6 @@ import (
 
 // TestGetMyNamespaceTrimsWhitespace verifies that namespace values are trimmed before being returned.
 func TestGetMyNamespaceTrimsWhitespace(t *testing.T) {
-	t.Parallel()
 
 	// preserve the original namespace path so the test can restore it
 	originalPath := serviceAccountNamespacePath
@@ -36,7 +35,6 @@ func TestGetMyNamespaceTrimsWhitespace(t *testing.T) {
 
 // TestGetMyNamespaceFallsBackToDefault verifies that the default namespace is returned when the file is empty.
 func TestGetMyNamespaceFallsBackToDefault(t *testing.T) {
-	t.Parallel()
 
 	// preserve the original namespace file path to avoid leaking state between tests
 	originalPath := serviceAccountNamespacePath
