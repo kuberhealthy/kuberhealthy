@@ -87,10 +87,10 @@ Kuberhealthy is configured entirely with environment variables. The deployment m
 You can list checks that are configured with:
 
 ```sh
-kubectl -n kuberhealthy get khcheck
+kubectl -n kuberhealthy get healthcheck
 ```
 
-Check status can be accessed via the JSON status page endpoint or by inspecting the status field on the `HealthCheck` resource.
+Check status can be accessed via the JSON status page endpoint or by inspecting the status field on the `healthcheck` resource.
 
 ## Verifying the Deployment
 

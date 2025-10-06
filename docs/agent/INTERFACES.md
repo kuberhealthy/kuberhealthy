@@ -6,16 +6,17 @@ configuration.
 
 ## Kubernetes API
 
-- **`HealthCheck` Custom Resource** (`pkg/api`)
+- **`healthcheck` Custom Resource** (`pkg/api`)
   - Inputs: desired run interval, timeout, target `PodSpec`, optional metadata.
   - Outputs: status block populated with `OK`, error strings, run durations, and
     bookkeeping such as the authoritative pod and run UUID.
-- **Legacy `KuberhealthyCheck` CRD** (`comcast.github.io/v1`)
+- **Legacy `KuberhealthyCheck` CRD** (`comcast.github.io/v1`, converted to
+  `healthcheck`)
   - Inputs: same core fields as the modern check along with legacy `podAnnotations`
     and `podLabels` blocks that are preserved during conversion.
   - Outputs: legacy checks persist status in the same format so the admission
-    webhook can upgrade them to the v2 schema before the controller consumes
-    them.
+    webhook can upgrade them to the v2 `healthcheck` schema before the controller
+    consumes them.
 - **Pods**
   - Created by the controller for each check run using the embedded `PodSpec`.
   - Annotated with labels defined in `internal/kuberhealthy` to link the pod to
@@ -34,15 +35,16 @@ The HTTP server configured in `cmd/kuberhealthy/webserver.go` exposes:
 - `POST /check` and `POST /` – Reporting endpoint for check pods. Payload must
   include the run UUID and status information defined in `pkg/api`.
 - `POST /api/run` – Triggers an immediate run of a specific check using
-  `khcheck` and `namespace` query parameters.
-- `GET /api/events` – Lists Kubernetes events for a `HealthCheck`.
+  the `healthcheck` name (and accepting the legacy `khcheck` alias) plus a
+  `namespace` query parameter.
+- `GET /api/events` – Lists Kubernetes events for a `healthcheck`.
 - `GET /api/logs` and `GET /api/logs/stream` – Fetches or streams pod logs for a
   particular check run.
 - `GET /openapi.yaml` and `GET /openapi.json` – Serves the OpenAPI schema.
 - `POST /api/convert` – Admission webhook handled by `internal/webhook` for
-  converting legacy checks to v2.
+  converting legacy checks to v2 `healthcheck` resources.
 - `POST /api/khjobconvert` – Admission webhook for converting legacy job-based
-  checks handled by `internal/jobwebhook`.
+  checks handled by `internal/jobwebhook` into `healthcheck` resources.
 
 Static assets for the status UI are served from `/static/` and the root path `/`
 returns the HTML interface unless a POST report is received.

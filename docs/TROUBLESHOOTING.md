@@ -10,9 +10,9 @@ If Kuberhealthy checks are failing:
   ```sh
   kubectl logs -n kuberhealthy deployment/kuberhealthy
   ```
-- Review `khcheck` resources for detailed error messages:
+- Review `healthcheck` resources for detailed error messages:
   ```sh
-  kubectl get khcheck -n kuberhealthy -o yaml
+  kubectl get healthcheck -n kuberhealthy -o yaml
   ```
 - Confirm the status page and metrics endpoint are reachable:
   ```sh

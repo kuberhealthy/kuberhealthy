@@ -18,11 +18,11 @@ Kuberhealthy provides example applications and importable clients for multiple l
 ## Table of Contents
 
 - 🚀 [Deploying Kuberhealthy](deployingKuberhealthy.md): Install with Kustomize or ArgoCD and expose the `/status` page with load balancers or an ingress.
-- 📊 [Viewing Kuberhealthy Check Status](howItWorks.md#using-the-json-status-page): Reach the `/status` endpoint and inspect `khcheck` status fields.
+- 📊 [Viewing Kuberhealthy Check Status](howItWorks.md#using-the-json-status-page): Reach the `/status` endpoint and inspect `healthcheck` status fields.
 - 🧠 [How Kuberhealthy Works](howItWorks.md): Illustration of the check lifecycle and controller interaction.
-- 🕒 [Run Once Checks](runOnceChecks.md): Launch a `khcheck` for a single validation run and wait for the result.
-- 🛠️ [Creating Your Own `khcheck`](CHECK_CREATION.md): Build custom checks and craft `HealthCheck` resources.
-- 🗂️ [khcheck Registry](CHECKS_REGISTRY.md): Discover ready-made checks contributed by the community.
+- 🕒 [Run Once Checks](runOnceChecks.md): Launch a `healthcheck` for a single validation run and wait for the result.
+- 🛠️ [Creating Your Own `healthcheck`](CHECK_CREATION.md): Build custom checks and craft `healthcheck` resources.
+- 🗂️ [`healthcheck` Registry](CHECKS_REGISTRY.md): Discover ready-made checks contributed by the community.
 - 🚩 [Flags](FLAGS.md): Reference of command-line flags supported by Kuberhealthy.
 - 🐞 [Troubleshooting](TROUBLESHOOTING.md): Solutions to common issues.
 - 🏗️ [Build and Release Process](buildAndRelease.md): Automated image builds and cutting new releases.

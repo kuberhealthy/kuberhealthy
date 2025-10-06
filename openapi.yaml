@@ -157,7 +157,7 @@ paths:
                 type: object
   /api/run:
     post:
-      summary: Trigger an immediate check run
+      summary: Trigger an immediate healthcheck run
       parameters:
         - in: query
           name: namespace
@@ -165,10 +165,11 @@ paths:
           schema:
             type: string
         - in: query
-          name: khcheck
+          name: healthcheck
           required: true
           schema:
             type: string
+          description: Name of the healthcheck to run (legacy `khcheck` alias also accepted).
       responses:
         '202':
           description: Run started
@@ -180,7 +181,7 @@ paths:
           description: Check already running
   /api/convert:
     post:
-      summary: Convert legacy v1 KuberhealthyCheck resources to v2 HealthCheck objects
+      summary: Convert legacy v1 KuberhealthyCheck resources to v2 healthcheck objects
       requestBody:
         required: true
         content:
@@ -196,7 +197,7 @@ paths:
                 $ref: '#/components/schemas/AdmissionReview'
   /api/khjobconvert:
     post:
-      summary: Convert legacy KuberhealthyJob resources to v2 HealthCheck objects
+      summary: Convert legacy KuberhealthyJob resources to v2 healthcheck objects
       requestBody:
         required: true
         content:
