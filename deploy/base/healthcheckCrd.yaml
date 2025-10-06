@@ -9,9 +9,9 @@ spec:
     listKind: HealthCheckList
     plural: healthchecks
     shortNames:
-      #- hc
-      #- healthcheck
-      #- healthchecks
+      - hc
+      - healthcheck
+      - healthchecks
     singular: healthcheck
   scope: Namespaced
   versions:
