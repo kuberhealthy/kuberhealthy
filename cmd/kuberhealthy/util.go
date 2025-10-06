@@ -2,9 +2,14 @@ package main
 
 import (
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
+
+// serviceAccountNamespacePath records the location of the namespace file written by
+// Kubernetes. Tests override this path to supply fixture data.
+var serviceAccountNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 
 // containsString returns a boolean value based on whether or not a slice of strings contains
 // a string.
@@ -24,20 +29,19 @@ func GetMyNamespace(defaultNamespace string) string {
 
 	instanceNamespace := defaultNamespace
 
-	// instanceNamespaceEnv is a variable for storing namespace instance information
-	var instanceNamespaceEnv string
-
-	data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	// read the namespace file so we can determine the runtime namespace
+	data, err := os.ReadFile(serviceAccountNamespacePath)
 	if err != nil {
 		log.Warnln("Failed to open namespace file:", err.Error())
 	}
+
+	// trim whitespace from the namespace so newline terminated files still parse correctly
 	if len(data) != 0 {
-		instanceNamespaceEnv = string(data)
-	}
-	if len(instanceNamespaceEnv) != 0 {
-		log.Infoln("Found instance namespace:", string(data))
-		instanceNamespace = instanceNamespaceEnv
-		return instanceNamespace
+		trimmedNamespace := strings.TrimSpace(string(data))
+		if len(trimmedNamespace) != 0 {
+			log.Infoln("Found instance namespace:", trimmedNamespace)
+			return trimmedNamespace
+		}
 	}
 
 	log.Warnln("Did not find instance namespace. Using default namespace:", defaultNamespace)
