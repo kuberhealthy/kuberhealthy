@@ -1,6 +1,6 @@
 # How Kuberhealthy Works
 
-Kuberhealthy watches the Kubernetes API for `KuberhealthyCheck` resources and continuously records their success or failure. It empowers you to run synthetic checks that simulate real user behavior so issues surface exactly as your users would experience them.
+Kuberhealthy watches the Kubernetes API for `HealthCheck` resources and continuously records their success or failure. It empowers you to run synthetic checks that simulate real user behavior so issues surface exactly as your users would experience them.
 
 ## 📚 Table of Contents
 
@@ -18,7 +18,7 @@ kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/mas
 
 As soon as the manifest is applied, Kuberhealthy orchestrates the following cycle:
 
-1. **Detect the check.** Kuberhealthy sees the new `KuberhealthyCheck` resource.
+1. **Detect the check.** Kuberhealthy sees the new `HealthCheck` resource.
 2. **Schedule runs.** It begins creating checker pods on the interval specified in the resource.
 3. **Start the pod.** Kubernetes launches the pod just like any other workload.
 4. **Run the logic.** The container executes your test logic and decides whether the cluster behaved correctly.
@@ -29,7 +29,7 @@ As soon as the manifest is applied, Kuberhealthy orchestrates the following cycl
 
 Behind the scenes, the deployment check follows the same create, observe, and clean-up loop you would execute manually:
 
-- Kuberhealthy observes the new [`KuberhealthyCheck`](CHECKS.md#khcheck-anatomy).
+- Kuberhealthy observes the new [`HealthCheck`](CHECKS.md#khcheck-anatomy).
 - The controller schedules a checker pod according to the configured interval.
 - That pod creates a deployment with the Kubernetes API and waits for every replica to become `Ready`.
 - Once the verification succeeds, the pod deletes the deployment and waits for the cleanup to finish.
@@ -54,7 +54,7 @@ Once a check has reported in, explore the results in three ways:
 
 ## Using the JSON Status Page
 
-Kuberhealthy exposes the state of every `khcheck` through two interfaces: the web status page and the `KuberhealthyCheck` custom resource. The service hosts a read-only JSON document at `/status` that aggregates every registered check:
+Kuberhealthy exposes the state of every `khcheck` through two interfaces: the web status page and the `HealthCheck` custom resource. The service hosts a read-only JSON document at `/status` that aggregates every registered check:
 
 ```json
 {

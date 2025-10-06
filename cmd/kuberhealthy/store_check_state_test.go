@@ -69,7 +69,7 @@ func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 	var updated khapi.HealthCheck
 	err = cc.Get(context.Background(), types.NamespacedName{Name: "conflict-check", Namespace: "default"}, &updated)
 	if err != nil {
-		t.Fatalf("failed to get updated khcheck: %v", err)
+		t.Fatalf("failed to get updated healthcheck: %v", err)
 	}
 	if !updated.Status.OK {
 		t.Fatalf("expected status OK true, got false")

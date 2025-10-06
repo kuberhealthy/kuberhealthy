@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// TestConvertToKHCheckNamespace ensures that a converted khcheck preserves its namespace
+// TestConvertToKHCheckNamespace ensures that a converted healthcheck preserves its namespace.
 func TestConvertToKHCheckNamespace(t *testing.T) {
 	u := &unstructured.Unstructured{Object: map[string]interface{}{
 		"apiVersion": "kuberhealthy.github.io/v2",

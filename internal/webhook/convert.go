@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
@@ -241,6 +242,9 @@ func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admiss
 	if meta.Kind == "" {
 		meta.Kind = legacyKindFromResource(ar.Request.Resource.Resource)
 	}
+	if strings.EqualFold(meta.Kind, "kuberhealthycheck") {
+		meta.Kind = "HealthCheck"
+	}
 
 	f["apiVersion"] = meta.APIVersion
 	f["kind"] = meta.Kind
@@ -305,8 +309,8 @@ func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admiss
 
 // convertLegacy upgrades a legacy Kuberhealthy object into a modern v2 check when supported.
 func convertLegacy(raw []byte, kind string) (*khapi.HealthCheck, *legacyCheck, string, error) {
-	switch kind {
-	case "HealthCheck":
+	switch strings.ToLower(kind) {
+	case "healthcheck", "kuberhealthycheck":
 		// decode the legacy object and rewrite the API version to the current value
 		out := khapi.HealthCheck{}
 		err := json.Unmarshal(raw, &out)
@@ -314,6 +318,7 @@ func convertLegacy(raw []byte, kind string) (*khapi.HealthCheck, *legacyCheck, s
 			return nil, nil, "", fmt.Errorf("parse object: %w", err)
 		}
 		out.APIVersion = "kuberhealthy.github.io/v2"
+		out.Kind = "HealthCheck"
 
 		// populate missing pod spec details when the legacy payload used the v1 layout
 		legacy := legacyCheck{}

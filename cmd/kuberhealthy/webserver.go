@@ -120,6 +120,38 @@ func requestLogger(next http.Handler) http.Handler {
 	})
 }
 
+// healthCheckParam returns the requested healthcheck name from accepted query parameters.
+// It prefers the new `healthcheck` parameter but continues to support the legacy `khcheck` name.
+func healthCheckParam(r *http.Request) string {
+	value := strings.TrimSpace(r.URL.Query().Get("healthcheck"))
+	if value != "" {
+		return value
+	}
+	legacy := strings.TrimSpace(r.URL.Query().Get("khcheck"))
+	if legacy != "" {
+		return legacy
+	}
+	return ""
+}
+
+// podBelongsToHealthCheck reports whether the supplied pod is labeled for the provided healthcheck name.
+// It accepts both the modern `healthcheck` label and the legacy `khcheck` label for compatibility.
+func podBelongsToHealthCheck(pod *v1.Pod, healthCheck string) bool {
+	if pod == nil {
+		return false
+	}
+	if healthCheck == "" {
+		return false
+	}
+	if pod.Labels == nil {
+		return false
+	}
+	if pod.Labels["healthcheck"] == healthCheck {
+		return true
+	}
+	return pod.Labels["khcheck"] == healthCheck
+}
+
 // newServeMux configures and returns a mux with all web handlers mounted.
 func newServeMux() *http.ServeMux {
 	mux := http.NewServeMux()
@@ -148,7 +180,7 @@ func newServeMux() *http.ServeMux {
 		}
 	})
 
-	// UI Endpoint for listing khcheck events
+	// UI Endpoint for listing healthcheck events
 	mux.HandleFunc("/api/events", func(w http.ResponseWriter, r *http.Request) {
 		err := eventListHandler(w, r)
 		if err != nil {
@@ -156,7 +188,7 @@ func newServeMux() *http.ServeMux {
 		}
 	})
 
-	// UI Endpoint for fetching khcheck pod logs
+	// UI Endpoint for fetching healthcheck pod logs
 	mux.HandleFunc("/api/logs", func(w http.ResponseWriter, r *http.Request) {
 		err := podLogsHandler(w, r)
 		if err != nil {
@@ -164,7 +196,7 @@ func newServeMux() *http.ServeMux {
 		}
 	})
 
-	// UI Endpoint for tailing khcheck pod logs
+	// UI Endpoint for tailing healthcheck pod logs
 	mux.HandleFunc("/api/logs/stream", func(w http.ResponseWriter, r *http.Request) {
 		err := podLogsStreamHandler(w, r)
 		if err != nil {
@@ -191,7 +223,7 @@ func newServeMux() *http.ServeMux {
 	// static asset hosting for web ui
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./assets"))))
 
-	// allows the web interface to kick off a khcheck run immediately
+	// allows the web interface to kick off a healthcheck run immediately
 	mux.HandleFunc("/api/run", func(w http.ResponseWriter, r *http.Request) {
 		err := runCheckHandler(w, r)
 		if err != nil {
@@ -203,7 +235,7 @@ func newServeMux() *http.ServeMux {
 	mux.HandleFunc("/api/convert", webhook.Convert)
 	mux.HandleFunc("/api/khjobconvert", jobwebhook.Convert)
 
-	// this is where khcheck pods report back with their check status
+	// this is where healthcheck pods report back with their check status
 	mux.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
 		err := checkReportHandler(w, r)
 		if err != nil {
@@ -211,7 +243,7 @@ func newServeMux() *http.ServeMux {
 		}
 	})
 
-	// This is the main handler that serves the web interface or handles khcheck reports depending on
+	// This is the main handler that serves the web interface or handles healthcheck reports depending on
 	// on the http request type. This is partially for backwards compatibility with other older versions
 	// of Kuberhealthy.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -328,9 +360,9 @@ func runCheckHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return nil
 	}
-	khcheck := r.URL.Query().Get("khcheck")
-	namespace := r.URL.Query().Get("namespace")
-	if khcheck == "" || namespace == "" {
+	healthCheck := healthCheckParam(r)
+	namespace := strings.TrimSpace(r.URL.Query().Get("namespace"))
+	if healthCheck == "" || namespace == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return fmt.Errorf("missing parameters")
 	}
@@ -338,7 +370,7 @@ func runCheckHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return fmt.Errorf("kuberhealthy not initialized")
 	}
-	nn := types.NamespacedName{Namespace: namespace, Name: khcheck}
+	nn := types.NamespacedName{Namespace: namespace, Name: healthCheck}
 	check, err := khapi.GetCheck(r.Context(), Globals.khClient, nn)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -375,11 +407,11 @@ type eventSummary struct {
 	LastTimestamp int64  `json:"lastTimestamp,omitempty"`
 }
 
-// eventListHandler returns events for a given check.
+// eventListHandler returns events for a given healthcheck.
 func eventListHandler(w http.ResponseWriter, r *http.Request) error {
-	khcheck := r.URL.Query().Get("khcheck")
-	namespace := r.URL.Query().Get("namespace")
-	if khcheck == "" || namespace == "" {
+	healthCheck := healthCheckParam(r)
+	namespace := strings.TrimSpace(r.URL.Query().Get("namespace"))
+	if healthCheck == "" || namespace == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return fmt.Errorf("missing parameters")
 	}
@@ -387,7 +419,7 @@ func eventListHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return fmt.Errorf("kubernetes client not initialized")
 	}
-	fs := fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=HealthCheck", khcheck)
+	fs := fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=HealthCheck", healthCheck)
 	evList, err := Globals.kubeClient.CoreV1().Events(namespace).List(r.Context(), metav1.ListOptions{FieldSelector: fs})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -407,10 +439,10 @@ func eventListHandler(w http.ResponseWriter, r *http.Request) error {
 
 // podLogsHandler returns logs and details for a specific pod.
 func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
-	podName := r.URL.Query().Get("pod")
-	namespace := r.URL.Query().Get("namespace")
-	khcheck := r.URL.Query().Get("khcheck")
-	if podName == "" || namespace == "" || khcheck == "" {
+	podName := strings.TrimSpace(r.URL.Query().Get("pod"))
+	namespace := strings.TrimSpace(r.URL.Query().Get("namespace"))
+	healthCheck := healthCheckParam(r)
+	if podName == "" || namespace == "" || healthCheck == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return fmt.Errorf("missing parameters")
 	}
@@ -424,9 +456,9 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
-	if pod.Labels["khcheck"] != khcheck {
+	if !podBelongsToHealthCheck(pod, healthCheck) {
 		w.WriteHeader(http.StatusForbidden)
-		return fmt.Errorf("pod not part of khcheck")
+		return fmt.Errorf("pod not part of healthcheck")
 	}
 	if Globals.kubeClient == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -458,10 +490,10 @@ func podLogsHandler(w http.ResponseWriter, r *http.Request) error {
 
 // podLogsStreamHandler streams logs for a specific pod in real time.
 func podLogsStreamHandler(w http.ResponseWriter, r *http.Request) error {
-	podName := r.URL.Query().Get("pod")
-	namespace := r.URL.Query().Get("namespace")
-	khcheck := r.URL.Query().Get("khcheck")
-	if podName == "" || namespace == "" || khcheck == "" {
+	podName := strings.TrimSpace(r.URL.Query().Get("pod"))
+	namespace := strings.TrimSpace(r.URL.Query().Get("namespace"))
+	healthCheck := healthCheckParam(r)
+	if podName == "" || namespace == "" || healthCheck == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return fmt.Errorf("missing parameters")
 	}
@@ -475,15 +507,15 @@ func podLogsStreamHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
-	if pod.Labels["khcheck"] != khcheck {
+	if !podBelongsToHealthCheck(pod, healthCheck) {
 		w.WriteHeader(http.StatusForbidden)
-		return fmt.Errorf("pod not part of khcheck")
+		return fmt.Errorf("pod not part of healthcheck")
 	}
 	if pod.Status.Phase != v1.PodRunning {
 		w.WriteHeader(http.StatusConflict)
 		return fmt.Errorf("pod not running")
 	}
-	nn := types.NamespacedName{Namespace: namespace, Name: khcheck}
+	nn := types.NamespacedName{Namespace: namespace, Name: healthCheck}
 	_, err = khapi.GetCheck(r.Context(), Globals.khClient, nn)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -596,7 +628,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	// fetch the current status from our khcheck resources
+	// fetch the current status from our healthcheck resources
 	state := getCurrentState(namespaces)
 
 	// write summarized health check results back to caller
@@ -636,7 +668,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
-		log.Println("webserver:", requestID, "Failed to look up khcheck by its kh-run-uuid header:", r.Header.Get("kh-run-uuid"), err)
+		log.Println("webserver:", requestID, "Failed to look up healthcheck by its kh-run-uuid header:", r.Header.Get("kh-run-uuid"), err)
 		return nil
 	}
 	if !reportValidated {
@@ -649,8 +681,8 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// append pod info to request id for easy check tracing in logs
 	requestID = requestID + " (" + podReport.Namespace + "/" + podReport.Name + ")"
 
-	// fetch the khcheck for event recording when a client is available
-	var khCheck *khapi.HealthCheck
+	// fetch the healthcheck for event recording when a client is available
+	var healthCheck *khapi.HealthCheck
 	clientForCheck := Globals.khClient
 	if clientForCheck == nil && Globals.kh != nil {
 		clientForCheck = Globals.kh.CheckClient
@@ -658,22 +690,22 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	if clientForCheck != nil {
 		nn := types.NamespacedName{Name: podReport.Name, Namespace: podReport.Namespace}
 		var err error
-		khCheck, err = khapi.GetCheck(ctx, clientForCheck, nn)
+		healthCheck, err = khapi.GetCheck(ctx, clientForCheck, nn)
 		if err != nil {
-			log.Println("webserver:", requestID, "failed to fetch khcheck for event recording:", err)
-			khCheck = nil
+			log.Println("webserver:", requestID, "failed to fetch healthcheck for event recording:", err)
+			healthCheck = nil
 		}
 	}
 
-	if khCheck != nil {
+	if healthCheck != nil {
 		log.WithFields(log.Fields{
-			"check":       types.NamespacedName{Name: khCheck.Name, Namespace: khCheck.Namespace},
-			"currentUUID": khCheck.CurrentUUID(),
+			"check":       types.NamespacedName{Name: healthCheck.Name, Namespace: healthCheck.Namespace},
+			"currentUUID": healthCheck.CurrentUUID(),
 			"reportUUID":  podReport.UUID,
-			"lastRunUnix": khCheck.Status.LastRunUnix,
+			"lastRunUnix": healthCheck.Status.LastRunUnix,
 		}).Debug("report gating snapshot")
 	}
-	if !reportAllowed(khCheck, podReport.UUID) {
+	if !reportAllowed(healthCheck, podReport.UUID) {
 		w.WriteHeader(http.StatusGone)
 		log.Println("webserver:", requestID, "Rejected report after timeout for", podReport.Namespace, podReport.Name)
 		return nil
@@ -726,7 +758,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	// checkDetails := stateReflector.CurrentStatus().CheckDetails
 	// checkRunDuration = checkDetails[podReport.Namespace+"/"+podReport.Name].RunDuration
 
-	// create a details object from our incoming status report before storing it on the khcheck status field
+	// create a details object from our incoming status report before storing it on the healthcheck status field
 	details := &khapi.HealthCheckStatus{}
 	details.Errors = state.Errors
 	details.OK = state.OK
@@ -738,8 +770,8 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 	log.Println("webserver:", requestID, "Setting check with name", podReport.Name, "in namespace", podReport.Namespace, "to 'OK' state:", details.OK, "uuid", details.CurrentUUID)
 	err = storeCheckStateFunc(Globals.khClient, podReport.Name, podReport.Namespace, details)
 	if err != nil {
-		if khCheck != nil && Globals.kh != nil && Globals.kh.Recorder != nil {
-			Globals.kh.Recorder.Eventf(khCheck, v1.EventTypeWarning, "CheckReportFailed", "failed to store check state: %v", err)
+		if healthCheck != nil && Globals.kh != nil && Globals.kh.Recorder != nil {
+			Globals.kh.Recorder.Eventf(healthCheck, v1.EventTypeWarning, "CheckReportFailed", "failed to store check state: %v", err)
 		}
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println("webserver:", requestID, "failed to store check state for %s: %w", podReport.Name, err)
@@ -752,11 +784,11 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 		"errors":    state.Errors,
 	}).Info("checker pod reported")
 
-	if khCheck != nil && Globals.kh != nil && Globals.kh.Recorder != nil {
+	if healthCheck != nil && Globals.kh != nil && Globals.kh.Recorder != nil {
 		if state.OK {
-			Globals.kh.Recorder.Event(khCheck, v1.EventTypeNormal, "CheckReported", "check reported OK")
+			Globals.kh.Recorder.Event(healthCheck, v1.EventTypeNormal, "CheckReported", "check reported OK")
 		} else {
-			Globals.kh.Recorder.Eventf(khCheck, v1.EventTypeWarning, "CheckReported", strings.Join(state.Errors, "; "))
+			Globals.kh.Recorder.Eventf(healthCheck, v1.EventTypeWarning, "CheckReported", strings.Join(state.Errors, "; "))
 		}
 	}
 
@@ -878,7 +910,7 @@ func validateUsingRequestHeader(ctx context.Context, r *http.Request) (PodReport
 	}
 	check, err := findCheckByUUID(ctx, uuid)
 	if err != nil {
-		return info, true, fmt.Errorf("failed to lookup khcheck for uuid %s: %w", uuid, err)
+		return info, true, fmt.Errorf("failed to lookup healthcheck for uuid %s: %w", uuid, err)
 	}
 	if check == nil {
 		return info, true, fmt.Errorf("run uuid %s is invalid or expired", uuid)
@@ -907,8 +939,8 @@ func findCheckByUUID(ctx context.Context, uuid string) (*khapi.HealthCheck, erro
 	return nil, nil
 }
 
-// storeCheckState stores the check status on its cluster CRD
-func storeCheckState(c client.Client, checkName string, checkNamespace string, khcheck *khapi.HealthCheckStatus) error {
+// storeCheckState stores the healthcheck status on its cluster CRD.
+func storeCheckState(c client.Client, checkName string, checkNamespace string, healthCheckStatus *khapi.HealthCheckStatus) error {
 	// ensure the CRD resource exists
 	err := ensureCheckResourceExists(c, checkName, checkNamespace)
 	if err != nil {
@@ -916,12 +948,12 @@ func storeCheckState(c client.Client, checkName string, checkNamespace string, k
 	}
 
 	// put the status on the CRD from the check
-	err = setCheckStatus(c, checkName, checkNamespace, khcheck)
+	err = setCheckStatus(c, checkName, checkNamespace, healthCheckStatus)
 
 	//TODO: Make this retry of updating custom resources repeatable
 	//
 	// We commonly see a race here with the following type of error:
-	// "Error storing CRD state for check: pod-restarts in namespace kuberhealthy Operation cannot be fulfilled on kuberhealthychecks, comcast.github.io \"pod-restarts\": the object
+	// "Error storing CRD state for check: pod-restarts in namespace kuberhealthy Operation cannot be fulfilled on healthchecks.kuberhealthy.github.io \"pod-restarts\": the object
 	// has been modified; please apply your changes to the latest version and try again"
 	//
 	// If we see this error, we fetch the updated object, re-apply our changes, and try again
@@ -931,16 +963,16 @@ func storeCheckState(c client.Client, checkName string, checkNamespace string, k
 	for err != nil && strings.Contains(err.Error(), "the object has been modified") {
 		// if too many retries have occurred, we fail up the stack further
 		if tries > maxTries {
-			return fmt.Errorf("failed to update khcheck status for check %s in namespace %s after %d with error %w", checkName, checkNamespace, maxTries, err)
+			return fmt.Errorf("failed to update healthcheck status for check %s in namespace %s after %d with error %w", checkName, checkNamespace, maxTries, err)
 		}
-		log.Warnln("Failed to update khcheck status because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
+		log.Warnln("Failed to update healthcheck status because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
 
 		// sleep and double the delay between checks (exponential backoff)
 		time.Sleep(delay)
 		delay = delay + delay
 
 		// try setting the check state again
-		err = setCheckStatus(c, checkName, checkNamespace, khcheck)
+		err = setCheckStatus(c, checkName, checkNamespace, healthCheckStatus)
 
 		// count how many times we've retried
 		tries++
@@ -949,7 +981,7 @@ func storeCheckState(c client.Client, checkName string, checkNamespace string, k
 	return err
 }
 
-// ensureCheckResourceExists ensures that the khcheck resource exists so that status can be updated
+// ensureCheckResourceExists ensures that the healthcheck resource exists so that status can be updated.
 func ensureCheckResourceExists(c client.Client, checkName string, checkNamespace string) error {
 	if c == nil {
 		return fmt.Errorf("kubernetes client not initialized")
@@ -960,19 +992,19 @@ func ensureCheckResourceExists(c client.Client, checkName string, checkNamespace
 	_, err := khapi.GetCheck(ctx, c, nn)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			khCheck := &khapi.HealthCheck{ObjectMeta: metav1.ObjectMeta{Name: checkName, Namespace: checkNamespace}}
-			err = khapi.CreateCheck(ctx, c, khCheck)
+			hc := &khapi.HealthCheck{ObjectMeta: metav1.ObjectMeta{Name: checkName, Namespace: checkNamespace}}
+			err = khapi.CreateCheck(ctx, c, hc)
 			if err != nil {
-				return fmt.Errorf("failed to create khcheck %s/%s: %w", checkNamespace, checkName, err)
+				return fmt.Errorf("failed to create healthcheck %s/%s: %w", checkNamespace, checkName, err)
 			}
 			return nil
 		}
-		return fmt.Errorf("failed to get khcheck %s/%s: %w", checkNamespace, checkName, err)
+		return fmt.Errorf("failed to get healthcheck %s/%s: %w", checkNamespace, checkName, err)
 	}
 	return nil
 }
 
-// setCheckStatus sets the status on the khcheck custom resource
+// setCheckStatus sets the status on the healthcheck custom resource.
 func setCheckStatus(c client.Client, checkName string, checkNamespace string, incoming *khapi.HealthCheckStatus) error {
 	if c == nil {
 		return fmt.Errorf("kubernetes client not initialized")
@@ -982,7 +1014,7 @@ func setCheckStatus(c client.Client, checkName string, checkNamespace string, in
 	nn := types.NamespacedName{Name: checkName, Namespace: checkNamespace}
 	khCheck, err := khapi.GetCheck(ctx, c, nn)
 	if err != nil {
-		return fmt.Errorf("failed to get khcheck: %w", err)
+		return fmt.Errorf("failed to get healthcheck: %w", err)
 	}
 
 	// Merge the incoming status onto the existing status to avoid wiping
@@ -1018,7 +1050,7 @@ func setCheckStatus(c client.Client, checkName string, checkNamespace string, in
 
 	err = khapi.UpdateCheck(ctx, c, khCheck)
 	if err != nil {
-		return fmt.Errorf("failed to update khcheck status: %w", err)
+		return fmt.Errorf("failed to update healthcheck status: %w", err)
 	}
 
 	return nil

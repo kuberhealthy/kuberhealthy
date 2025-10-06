@@ -108,7 +108,7 @@ Here is a minimal `khcheck` resource to start hacking with:
 
 ```yaml
 apiVersion: kuberhealthy.github.io/v2
-kind: KuberhealthyCheck
+kind: HealthCheck
 metadata:
   name: kh-test-check
 spec:

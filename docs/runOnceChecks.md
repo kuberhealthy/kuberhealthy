@@ -1,6 +1,6 @@
 # Run Once Checks
 
-Sometimes you only need a single proof that things still work, like after a risky cluster upgrade or before rolling out a new admission policy. Run once checks let you use the familiar `KuberhealthyCheck` resource to launch a pod exactly one time and capture the result without additional runs.
+Sometimes you only need a single proof that things still work, like after a risky cluster upgrade or before rolling out a new admission policy. Run once checks let you use the familiar `HealthCheck` resource to launch a pod exactly one time and capture the result without additional runs.
 
 ## Craft a Single-Run `khcheck`
 
@@ -8,7 +8,7 @@ Start with the same manifest structure as a recurring check and add `singleRunOn
 
 ```yaml
 apiVersion: kuberhealthy.github.io/v2
-kind: KuberhealthyCheck
+kind: HealthCheck
 metadata:
   name: upgrade-smoke
   namespace: kuberhealthy

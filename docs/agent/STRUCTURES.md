@@ -19,7 +19,7 @@ is propagated across packages.
 ## `internal/kuberhealthy`
 
 - **`Kuberhealthy`** (`kuberhealthy.go`)
-  - Encapsulates the scheduling logic for `KuberhealthyCheck` resources.
+  - Encapsulates the scheduling logic for `HealthCheck` resources.
   - Stores the process context, cancellation function, Kubernetes client, event
     recorder, reporting URL, and coordination primitives such as `loopMu`.
   - Exposes methods for starting and stopping the scheduler, beginning specific
@@ -31,7 +31,7 @@ is propagated across packages.
 
 ## `pkg/api`
 
-- **`KuberhealthyCheck`**
+- **`HealthCheck`**
   - Custom resource definition representing a synthetic check.
   - `Spec` embeds a `CheckPodSpec` that includes Kubernetes pod metadata and the
     exact `PodSpec` to run, while `Status` captures runtime results.
