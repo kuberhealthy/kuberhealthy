@@ -308,6 +308,14 @@ func TestConvertLegacyDeploymentManifest(t *testing.T) {
 	require.Equal(t, "comcast.github.io/v1", legacyMeta.APIVersion)
 	require.Equal(t, "HealthCheck", legacyMeta.Kind)
 
+	// rewrite the manifest to represent the original legacy kind so conversion must update both apiVersion and kind
+	legacyDoc := map[string]any{}
+	err = json.Unmarshal(legacyJSON, &legacyDoc)
+	require.NoError(t, err)
+	legacyDoc["kind"] = "KuberhealthyCheck"
+	legacyJSON, err = json.Marshal(legacyDoc)
+	require.NoError(t, err)
+
 	// build a minimal AdmissionReview payload targeting the legacy document
 	review := admissionv1.AdmissionReview{
 		Request: &admissionv1.AdmissionRequest{

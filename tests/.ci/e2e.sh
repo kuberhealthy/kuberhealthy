@@ -26,13 +26,13 @@ kubectl apply -k "$REPO_ROOT/deploy"
 kubectl -n "$NS" set image deployment/kuberhealthy kuberhealthy="$IMAGE_URL"
 
 # Wait for the CRD to be established before creating checks
-kubectl wait --for=condition=Established --timeout=60s crd/kuberhealthychecks.kuberhealthy.github.io
+kubectl wait --for=condition=Established --timeout=60s crd/healthchecks.kuberhealthy.github.io
 
 # Wait for kuberhealthy to be ready
 kubectl -n "$NS" rollout status deployment/kuberhealthy
 
 # Create a sample check for testing
-kubectl apply -f "$REPO_ROOT/tests/khcheck-test.yaml"
+kubectl apply -f "$REPO_ROOT/tests/healthcheck-test.yaml"
 
 print_block() {
   printf '[%s] === %s ===\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1"
@@ -49,23 +49,23 @@ print_check_pod_logs() {
 
 # repeatedly check for the test check to run successfully
 for i in {1..20}; do
-    checksOK=$(kubectl get -n "$NS" kuberhealthycheck -o jsonpath='{range .items[*]}{.status.ok}{"\n"}{end}' 2>/dev/null | grep -c true || true)
+    checksOK=$(kubectl get -n "$NS" healthchecks.kuberhealthy.github.io -o jsonpath='{range .items[*]}{.status.ok}{"\n"}{end}' 2>/dev/null | grep -c true || true)
     checksOK=${checksOK//[[:space:]]/}
     completedPods=$(kubectl -n "$NS" get pods --field-selector=status.phase=Succeeded -o name | wc -l | tr -d '[:space:]')
 
     if [ "$checksOK" -ge 1 ] && [ "$completedPods" -ge 1 ]; then
-        echo "ALL KUBERHEALTHY CHECKS PASSED!!"
+        echo "ALL KUBERHEALTHY HEALTHCHECKS PASSED!!"
         print_block "Pod List" kubectl -n "$NS" get pods
-        print_block "KuberhealthyCheck List" kubectl -n "$NS" get kuberhealthycheck
+        print_block "HealthCheck List" kubectl -n "$NS" get healthchecks.kuberhealthy.github.io
         print_block "Kuberhealthy Pod Logs" kubectl -n "$NS" logs deployment/kuberhealthy
         print_check_pod_logs
         exit 0 # successful testing
     else
-        echo "--- Waiting for kuberhealthy check to pass...\n"
+        echo "--- Waiting for kuberhealthy healthcheck to pass...\n"
         echo "Checks Successful: $checksOK"
         echo "Completed check pods: $completedPods"
         print_block "Pod List" kubectl -n "$NS" get pods
-        print_block "KuberhealthyCheck List" kubectl -n "$NS" get kuberhealthycheck
+        print_block "HealthCheck List" kubectl -n "$NS" get healthchecks.kuberhealthy.github.io
         print_block "Kuberhealthy Pod Logs" kubectl -n "$NS" logs deployment/kuberhealthy
         print_check_pod_logs
         sleep 10
