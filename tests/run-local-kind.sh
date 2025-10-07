@@ -178,8 +178,8 @@ if [ "$READY_POD" = false ]; then
   exit 1
 fi
 
-echo "⏳ Deploying test khcheck..."
-kubectl --context="kind-${CLUSTER_NAME}" apply -n "$TARGET_NAMESPACE" -f tests/khcheck-test.yaml
+echo "⏳ Deploying test healthcheck..."
+kubectl --context="kind-${CLUSTER_NAME}" apply -n "$TARGET_NAMESPACE" -f tests/healthcheck-test.yaml
 
 start_logs
 start_port_forward
