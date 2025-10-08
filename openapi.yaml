@@ -54,10 +54,11 @@ paths:
           schema:
             type: string
         - in: query
-          name: khcheck
+          name: healthcheck
           required: true
           schema:
             type: string
+          description: Name of the healthcheck to inspect. The legacy `khcheck` query key remains accepted for backward compatibility.
       responses:
         '200':
           description: Event list
@@ -79,10 +80,11 @@ paths:
           schema:
             type: string
         - in: query
-          name: khcheck
+          name: healthcheck
           required: true
           schema:
             type: string
+          description: Name of the healthcheck to inspect. The legacy `khcheck` query key remains accepted for backward compatibility.
         - in: query
           name: pod
           required: true
@@ -115,10 +117,11 @@ paths:
           schema:
             type: string
         - in: query
-          name: khcheck
+          name: healthcheck
           required: true
           schema:
             type: string
+          description: Name of the healthcheck to inspect. The legacy `khcheck` query key remains accepted for backward compatibility.
         - in: query
           name: pod
           required: true

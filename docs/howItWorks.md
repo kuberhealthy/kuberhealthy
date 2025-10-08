@@ -29,7 +29,7 @@ As soon as the manifest is applied, Kuberhealthy orchestrates the following cycl
 
 Behind the scenes, the deployment check follows the same create, observe, and clean-up loop you would execute manually:
 
-- Kuberhealthy observes the new [`healthcheck`](CHECKS.md#khcheck-anatomy).
+- Kuberhealthy observes the new [`HealthCheck`](CHECK_CREATION.md#creating-your-healthcheck-resource).
 - The controller schedules a checker pod according to the configured interval.
 - That pod creates a deployment with the Kubernetes API and waits for every replica to become `Ready`.
 - Once the verification succeeds, the pod deletes the deployment and waits for the cleanup to finish.

@@ -27,7 +27,7 @@ webhooks:
         resources:
           - "*"
           #- khc
-          #- khcheck
-          #- khchecks
+          #- healthcheck
+          #- healthchecks
           #- kuberhealthycheck
           #- kuberhealthychecks

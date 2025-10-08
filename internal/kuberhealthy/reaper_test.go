@@ -65,7 +65,7 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "timeout-pod",
 			Namespace: "default",
-			Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: check.CurrentUUID()},
+			Labels:    map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: check.CurrentUUID()},
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodRunning},
 	}
@@ -120,7 +120,7 @@ func TestReaperKeepsRunningPodsForFiveMinutes(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "recent-running-pod",
 			Namespace: "default",
-			Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: check.CurrentUUID()},
+			Labels:    map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: check.CurrentUUID()},
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodRunning},
 	}
@@ -178,7 +178,7 @@ func TestReaperRemovesCompletedPods(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "complete-pod",
 			Namespace: "default",
-			Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-1"},
+			Labels:    map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-1"},
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodSucceeded},
 	}
@@ -223,7 +223,7 @@ func TestReaperKeepsRecentCompletedPods(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "recent-pod",
 			Namespace: "default",
-			Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-2"},
+			Labels:    map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-2"},
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodSucceeded},
 	}
@@ -269,7 +269,7 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "failed-oldest",
 				Namespace:         "default",
-				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "run-a"},
+				Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-a"},
 				CreationTimestamp: metav1.NewTime(now.Add(-5 * time.Hour)),
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
@@ -278,7 +278,7 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "failed-older",
 				Namespace:         "default",
-				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "run-b"},
+				Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-b"},
 				CreationTimestamp: metav1.NewTime(now.Add(-4 * time.Hour)),
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
@@ -287,7 +287,7 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "failed-middle",
 				Namespace:         "default",
-				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "run-c"},
+				Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-c"},
 				CreationTimestamp: metav1.NewTime(now.Add(-3 * time.Hour)),
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
@@ -296,7 +296,7 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "failed-newer",
 				Namespace:         "default",
-				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "run-d"},
+				Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-d"},
 				CreationTimestamp: metav1.NewTime(now.Add(-2 * time.Hour)),
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
@@ -305,7 +305,7 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "failed-newest",
 				Namespace:         "default",
-				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "run-e"},
+				Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-e"},
 				CreationTimestamp: metav1.NewTime(now.Add(-1 * time.Hour)),
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
@@ -327,7 +327,7 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 	require.NoError(t, cl.List(context.Background(), &remaining, client.InNamespace("default"), client.HasLabels{runUUIDLabel}))
 	var ours []corev1.Pod
 	for i := range remaining.Items {
-		if remaining.Items[i].Labels[checkLabel] == check.Name {
+		if remaining.Items[i].Labels[primaryCheckLabel] == check.Name {
 			ours = append(ours, remaining.Items[i])
 		}
 	}
@@ -365,7 +365,7 @@ func TestReaperRetainsFailedPodsWithinLimit(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "failed-one",
 				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-1"},
+				Labels:    map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-1"},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
@@ -373,7 +373,7 @@ func TestReaperRetainsFailedPodsWithinLimit(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "failed-two",
 				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-2"},
+				Labels:    map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-2"},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
@@ -381,7 +381,7 @@ func TestReaperRetainsFailedPodsWithinLimit(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "failed-three",
 				Namespace: "default",
-				Labels:    map[string]string{checkLabel: check.Name, runUUIDLabel: "run-3"},
+				Labels:    map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-3"},
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodFailed},
 		},
@@ -402,7 +402,7 @@ func TestReaperRetainsFailedPodsWithinLimit(t *testing.T) {
 	require.NoError(t, cl.List(context.Background(), &remaining, client.InNamespace("default"), client.HasLabels{runUUIDLabel}))
 	var ours []corev1.Pod
 	for i := range remaining.Items {
-		if remaining.Items[i].Labels[checkLabel] == check.Name {
+		if remaining.Items[i].Labels[primaryCheckLabel] == check.Name {
 			ours = append(ours, remaining.Items[i])
 		}
 	}
@@ -436,7 +436,7 @@ func TestReaperTreatsUnknownPhaseAsFailed(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "mystery-1",
 				Namespace:         "default",
-				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "m1"},
+				Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "m1"},
 				CreationTimestamp: metav1.NewTime(now.Add(-4 * time.Hour)),
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodPhase("MysteryPhase")},
@@ -445,7 +445,7 @@ func TestReaperTreatsUnknownPhaseAsFailed(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "mystery-2",
 				Namespace:         "default",
-				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "m2"},
+				Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "m2"},
 				CreationTimestamp: metav1.NewTime(now.Add(-3 * time.Hour)),
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodPhase("MysteryPhase")},
@@ -454,7 +454,7 @@ func TestReaperTreatsUnknownPhaseAsFailed(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "mystery-3",
 				Namespace:         "default",
-				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "m3"},
+				Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "m3"},
 				CreationTimestamp: metav1.NewTime(now.Add(-2 * time.Hour)),
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodPhase("MysteryPhase")},
@@ -463,7 +463,7 @@ func TestReaperTreatsUnknownPhaseAsFailed(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              "mystery-4",
 				Namespace:         "default",
-				Labels:            map[string]string{checkLabel: check.Name, runUUIDLabel: "m4"},
+				Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "m4"},
 				CreationTimestamp: metav1.NewTime(now.Add(-1 * time.Hour)),
 			},
 			Status: corev1.PodStatus{Phase: corev1.PodPhase("MysteryPhase")},
@@ -485,7 +485,7 @@ func TestReaperTreatsUnknownPhaseAsFailed(t *testing.T) {
 	require.NoError(t, cl.List(context.Background(), &remaining, client.InNamespace("default"), client.HasLabels{runUUIDLabel}))
 	var ours []corev1.Pod
 	for i := range remaining.Items {
-		if remaining.Items[i].Labels[checkLabel] == check.Name {
+		if remaining.Items[i].Labels[primaryCheckLabel] == check.Name {
 			ours = append(ours, remaining.Items[i])
 		}
 	}

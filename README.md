@@ -35,7 +35,7 @@ Here is a step by step illustration of Kuberhealthy running the included deploym
 
 3. Visit [http://localhost:8080](http://localhost:8080) to view the status page.
 
-4. Create a [khcheck](docs/CHECKS_REGISTRY.md) with `kubectl apply`.
+4. Create a [HealthCheck](docs/CHECKS_REGISTRY.md) with `kubectl apply`.
 
 For advanced configuration options, see the [deployment guide](docs/deployingKuberhealthy.md).
 
@@ -57,8 +57,8 @@ Kuberhealthy offers starter codebases for making your own check pods and provide
 - 🧠 [How Kuberhealthy Works](docs/howItWorks.md)
 - 🚀 [Deploying Kuberhealthy](docs/deployingKuberhealthy.md)
 - 📊 [Viewing Check Status](docs/howItWorks.md#using-the-json-status-page)
-- 🛠️ [Creating Your Own `khcheck`](docs/CHECK_CREATION.md)
-- 🗂️ [khcheck Registry](docs/CHECKS_REGISTRY.md)
+- 🛠️ [Creating Your Own `HealthCheck`](docs/CHECK_CREATION.md)
+- 🗂️ [HealthCheck Registry](docs/CHECKS_REGISTRY.md)
 
 ## Contributing
 

@@ -8,6 +8,6 @@ resources:
   - legacyKhcheckCrd.yaml
   - clusterrole.yaml
   - serviceaccount.yaml
-  - khcheck-example.yaml
+  - healthcheckExample.yaml
   - mutatingwebhook.yaml
   - webhook-tls-secret.yaml

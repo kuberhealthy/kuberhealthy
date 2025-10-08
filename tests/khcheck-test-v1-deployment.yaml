@@ -1,6 +1,6 @@
 ---
 apiVersion: comcast.github.io/v1
-kind: HealthCheck
+kind: KuberhealthyCheck
 metadata:
   name: deployment
   namespace: kuberhealthy

@@ -60,7 +60,7 @@
       countdownTimer = setInterval(() => updateNextRun(st.nextRunUnix), 1000);
     }
     if(st.podName){
-      const params = 'namespace=' + encodeURIComponent(st.namespace) + '&khcheck=' + encodeURIComponent(name) + '&pod=' + encodeURIComponent(st.podName);
+      const params = 'namespace=' + encodeURIComponent(st.namespace) + '&healthcheck=' + encodeURIComponent(name) + '&pod=' + encodeURIComponent(st.podName);
       logsURL = '/api/logs?' + params + '&format=text';
       streamURL = '/api/logs/stream?' + params;
       isRunning = true;
@@ -100,7 +100,7 @@
 
   async function loadEvents(){
     try{
-      const url = '/api/events?namespace=' + encodeURIComponent(st.namespace) + '&khcheck=' + encodeURIComponent(name) + '&t=' + Date.now();
+      const url = '/api/events?namespace=' + encodeURIComponent(st.namespace) + '&healthcheck=' + encodeURIComponent(name) + '&t=' + Date.now();
       const nextEvents = await (await fetch(url)).json();
       nextEvents.sort((a,b)=>(a.lastTimestamp||0)-(b.lastTimestamp||0));
       events = nextEvents;
@@ -119,7 +119,7 @@
       showRunButton = false;
       if(runButtonTimer){ clearTimeout(runButtonTimer); }
       runButtonTimer = setTimeout(() => { showRunButton = true; runButtonTimer = null; }, 5000);
-      await fetch('/api/run?namespace=' + encodeURIComponent(st.namespace) + '&khcheck=' + encodeURIComponent(name), {method:'POST'});
+      await fetch('/api/run?namespace=' + encodeURIComponent(st.namespace) + '&healthcheck=' + encodeURIComponent(name), {method:'POST'});
     }catch(e){ console.error(e); }
   }
 </script>
