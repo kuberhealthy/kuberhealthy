@@ -4,11 +4,11 @@ metadata:
   name: kuberhealthy-legacy-conversion
 webhooks:
   - name: legacy.kuberhealthy.conversion
-    # Converts comcast.github.io/v1 checks into kuberhealthy.github.io/v2/HealthCheck resources.
+    # Converts comcast.github.io/v1 KuberhealthyCheck resources into kuberhealthy.github.io/v2/HealthCheck objects.
     admissionReviewVersions:
       - v1
     sideEffects: None
-    failurePolicy: Ignore
+    failurePolicy: Deny
     clientConfig:
       service:
         name: kuberhealthy

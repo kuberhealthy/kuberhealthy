@@ -95,7 +95,7 @@ func ConfigureClient(cl client.Client) {
 			return nil
 		}
 		obj := &unstructured.Unstructured{}
-		obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "comcast.github.io", Version: "v1", Kind: "HealthCheck"})
+		obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "comcast.github.io", Version: "v1", Kind: "KuberhealthyCheck"})
 		obj.SetNamespace(namespace)
 		obj.SetName(name)
 		err := cl.Delete(ctx, obj)
@@ -243,7 +243,7 @@ func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admiss
 		meta.Kind = legacyKindFromResource(ar.Request.Resource.Resource)
 	}
 	if strings.EqualFold(meta.Kind, "kuberhealthycheck") {
-		meta.Kind = "HealthCheck"
+		meta.Kind = "KuberhealthyCheck"
 	}
 
 	f["apiVersion"] = meta.APIVersion
@@ -310,7 +310,7 @@ func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admiss
 // convertLegacy upgrades a legacy Kuberhealthy object into a modern v2 check when supported.
 func convertLegacy(raw []byte, kind string) (*khapi.HealthCheck, *legacyCheck, string, error) {
 	switch strings.ToLower(kind) {
-	case "healthcheck", "kuberhealthycheck":
+	case "kuberhealthycheck":
 		// decode the legacy object and rewrite the API version to the current value
 		out := khapi.HealthCheck{}
 		err := json.Unmarshal(raw, &out)
@@ -329,7 +329,7 @@ func convertLegacy(raw []byte, kind string) (*khapi.HealthCheck, *legacyCheck, s
 		}
 		upgradeLegacyPodSpec(&out.Spec.PodSpec, legacy.Spec)
 
-		return &out, &legacy, "converted legacy comcast.github.io/v1 HealthCheck to kuberhealthy.github.io/v2 HealthCheck", nil
+		return &out, &legacy, "converted legacy comcast.github.io/v1 KuberhealthyCheck to kuberhealthy.github.io/v2 HealthCheck", nil
 	default:
 		return nil, nil, "", nil
 	}
@@ -339,7 +339,7 @@ func convertLegacy(raw []byte, kind string) (*khapi.HealthCheck, *legacyCheck, s
 func legacyKindFromResource(resource string) string {
 	switch resource {
 	case "khc", "khcheck", "khchecks", "kuberhealthycheck", "kuberhealthychecks":
-		return "HealthCheck"
+		return "KuberhealthyCheck"
 	default:
 		return ""
 	}

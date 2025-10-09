@@ -56,7 +56,7 @@ func TestConvert(t *testing.T) {
 	ri := metav1.Duration{Duration: 5 * time.Minute}
 	to := metav1.Duration{Duration: 2 * time.Minute}
 	old := &khapi.HealthCheck{
-		TypeMeta:   metav1.TypeMeta{APIVersion: "comcast.github.io/v1", Kind: "HealthCheck"},
+		TypeMeta:   metav1.TypeMeta{APIVersion: "comcast.github.io/v1", Kind: "KuberhealthyCheck"},
 		ObjectMeta: metav1.ObjectMeta{Name: "ssh-check", Namespace: "kuberhealthy"},
 		Spec: khapi.HealthCheckSpec{
 			RunInterval: &ri,
@@ -113,7 +113,7 @@ func TestConvertLegacySpec(t *testing.T) {
 	}
 	// legacy YAML representing a comcast.github.io/v1 check
 	legacy := `apiVersion: comcast.github.io/v1
-kind: HealthCheck
+kind: KuberhealthyCheck
 metadata:
   name: ssh-check
   namespace: kuberhealthy
@@ -193,7 +193,7 @@ func TestConvertDeploymentCheckSpec(t *testing.T) {
 	}
 
 	legacy := `apiVersion: comcast.github.io/v1
-kind: HealthCheck
+kind: KuberhealthyCheck
 metadata:
   name: deployment
   namespace: kuberhealthy
@@ -306,7 +306,7 @@ func TestConvertLegacyDeploymentManifest(t *testing.T) {
 	err := json.Unmarshal(legacyJSON, &legacyMeta)
 	require.NoError(t, err)
 	require.Equal(t, "comcast.github.io/v1", legacyMeta.APIVersion)
-	require.Equal(t, "HealthCheck", legacyMeta.Kind)
+	require.Equal(t, "KuberhealthyCheck", legacyMeta.Kind)
 
 	// rewrite the manifest to represent the original legacy kind so conversion must update both apiVersion and kind
 	legacyDoc := map[string]any{}
