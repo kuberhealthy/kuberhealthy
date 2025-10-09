@@ -8,7 +8,7 @@ webhooks:
     admissionReviewVersions:
       - v1
     sideEffects: None
-    failurePolicy: Deny
+    failurePolicy: Fail
     clientConfig:
       service:
         name: kuberhealthy

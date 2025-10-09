@@ -54,7 +54,9 @@ is propagated across packages.
 - **Conversion helpers** (`convert.go`)
   - `Convert` handles HTTP requests from the Kubernetes API server.
   - `convertReview` and `convertLegacy` transform legacy v1 payloads into v2
-    checks and produce JSON patch responses via `jsonpatch.CreatePatch`.
+    checks, persist them through injected handlers, and return admission
+    responses that warn callers while allowing the legacy request to store
+    unchanged.
 
 These structures communicate primarily through the Kubernetes API server and the
 shared `Globals` clients, enabling the controller to orchestrate checks while the

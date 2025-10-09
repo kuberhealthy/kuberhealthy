@@ -16,7 +16,7 @@ configuration.
     and `podLabels` blocks that are preserved during conversion.
   - Outputs: legacy checks persist status in the same format so the admission
     webhook can upgrade them to the v2 `HealthCheck` schema before the controller
-    consumes them. Because the mutating configuration uses `failurePolicy: Deny`,
+    consumes them. Because the mutating configuration uses `failurePolicy: Fail`,
     requests fail fast if the conversion endpoint cannot respond, preventing
     unconverted legacy objects from being persisted.
 - **Pods**

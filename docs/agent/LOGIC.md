@@ -58,10 +58,12 @@ conversion webhook, `internal/webhook` inspects the payload. Legacy
 `comcast.github.io/v1` resources are converted into the modern `v2` schema. The
 webhook now upserts a `kuberhealthy.github.io/v2/HealthCheck` resource with the
 translated specification and schedules a background cleanup loop that removes
-the original `khchecks.comcast.github.io` object once it has been persisted. A
-JSON patch is
-still returned so the API server accepts the request, allowing clients to use
-legacy manifests without seeing an admission failure.
+the original `khchecks.comcast.github.io` object once it has been persisted. The
+webhook now allows the legacy admission to proceed unchanged while emitting a
+warning, relying on the background cleanup job to delete the v1 object after
+the modern resource exists. This keeps legacy manifests functional without
+requiring the AdmissionReview response to rewrite the object into a different
+API group.
 
 The mutating webhook relies on TLS to serve the Kubernetes API server. Each
 cluster must generate its own serving certificate and CA bundle so the API
@@ -70,7 +72,7 @@ server trusts the hook. The helper script at
 `deploy/base/scripts/webhookCertJob.yaml`) creates a namespace-scoped secret and
 updates the webhook's `caBundle`. Operations should re-run the script whenever
 the HTTPS secret needs rotation so the API server continues to accept the hook.
-With `failurePolicy: Deny`, the API server now rejects legacy objects if the
+With `failurePolicy: Fail`, the API server now rejects legacy objects if the
 conversion webhook is unavailable, ensuring that unconverted payloads never hit
 storage. The service exposes HTTPS on port `443` exclusively for webhook traffic
 while port `8080` continues to serve the public HTTP endpoints.

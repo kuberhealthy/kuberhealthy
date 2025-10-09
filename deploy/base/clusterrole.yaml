@@ -25,6 +25,12 @@ rules:
       - healthchecks/status
     verbs: ["create","delete","get","list","patch","update","watch"]
 
+  # Legacy comcast.github.io KuberhealthyCheck cleanup so conversion can delete originals
+  - apiGroups: ["comcast.github.io"]
+    resources:
+      - khchecks
+    verbs: ["delete","get","list","watch"]
+
   # Core v1 (cluster-wide)
   - apiGroups: [""]
     resources:

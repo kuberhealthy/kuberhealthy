@@ -11,7 +11,6 @@ import (
 
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
-	jsonpatch "gomodules.xyz/jsonpatch/v2"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -139,15 +138,12 @@ func defaultLegacyCleanup(namespace, name string, deleter legacyDeleterFunc) {
 		for {
 			err := deleter(ctx, namespace, name)
 			if err == nil {
+				log.WithFields(log.Fields{"namespace": namespace, "name": name}).Info("legacy webhook cleaned up original resource")
 				return
 			}
 			if apierrors.IsNotFound(err) {
-				select {
-				case <-ctx.Done():
-					return
-				case <-ticker.C:
-					continue
-				}
+				log.WithFields(log.Fields{"namespace": namespace, "name": name}).Info("legacy webhook cleanup confirmed resource already absent")
+				return
 			}
 
 			log.WithError(err).Warnf("legacy webhook cleanup retry for %s/%s", namespace, name)
@@ -277,34 +273,17 @@ func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admiss
 		}
 		if legacyObj != nil {
 			scheduleLegacyCleanup(legacyObj.Namespace, legacyObj.Name, legacyDeleteFunc)
+			log.WithFields(f).Info("legacy webhook scheduled cleanup for original resource")
 		}
 	}
 
-	// marshal the converted object and create a JSON patch from the original payload
-	newRaw, err := json.Marshal(check)
-	if err != nil {
-		return toError(fmt.Errorf("marshal v2: %w", err))
-	}
-
-	ops, err := jsonpatch.CreatePatch(raw, newRaw)
-	if err != nil {
-		return toError(fmt.Errorf("create patch: %w", err))
-	}
-	patchBytes, err := json.Marshal(ops)
-	if err != nil {
-		log.WithError(err).WithFields(f).Error("legacy webhook failed to marshal patch")
-		return toError(fmt.Errorf("marshal patch: %w", err))
-	}
-
-	pt := admissionv1.PatchTypeJSONPatch
 	f["convertedTo"] = "kuberhealthy.github.io/v2/HealthCheck"
 	log.WithFields(f).Info("legacy webhook converted resource")
-	return &admissionv1.AdmissionResponse{
-		Allowed:   true,
-		Patch:     patchBytes,
-		PatchType: &pt,
-		Warnings:  []string{warning},
+	resp := &admissionv1.AdmissionResponse{Allowed: true}
+	if warning != "" {
+		resp.Warnings = []string{warning}
 	}
+	return resp
 }
 
 // convertLegacy upgrades a legacy Kuberhealthy object into a modern v2 check when supported.

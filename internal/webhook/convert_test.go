@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	jsonpatch "github.com/evanphx/json-patch/v5"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	"github.com/stretchr/testify/require"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -53,6 +52,17 @@ func TestConvert(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping webhook conversion test in short mode")
 	}
+	var created []*khapi.HealthCheck
+	restore := SetLegacyHandlers(
+		func(ctx context.Context, check *khapi.HealthCheck) error {
+			created = append(created, check.DeepCopy())
+			return nil
+		},
+		nil,
+		nil,
+	)
+	defer restore()
+
 	ri := metav1.Duration{Duration: 5 * time.Minute}
 	to := metav1.Duration{Duration: 2 * time.Minute}
 	old := &khapi.HealthCheck{
@@ -92,18 +102,11 @@ func TestConvert(t *testing.T) {
 
 	require.True(t, out.Response.Allowed)
 	require.Len(t, out.Response.Warnings, 1)
-
-	patch, err := jsonpatch.DecodePatch(out.Response.Patch)
-	require.NoError(t, err)
-	patched, err := patch.Apply(oldRaw)
-	require.NoError(t, err)
-
-	converted := khapi.HealthCheck{}
-	err = json.Unmarshal(patched, &converted)
-	require.NoError(t, err)
-
-	require.Equal(t, "kuberhealthy.github.io/v2", converted.APIVersion)
-	require.Equal(t, "HealthCheck", converted.Kind)
+	require.Nil(t, out.Response.Patch)
+	require.Len(t, created, 1)
+	require.Equal(t, "kuberhealthy.github.io/v2", created[0].APIVersion)
+	require.Equal(t, "HealthCheck", created[0].Kind)
+	require.Equal(t, old.Spec, created[0].Spec)
 }
 
 // TestConvertLegacySpec converts a legacy YAML check definition to the current API version.
@@ -111,6 +114,17 @@ func TestConvertLegacySpec(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping legacy webhook conversion test in short mode")
 	}
+	var created []*khapi.HealthCheck
+	restore := SetLegacyHandlers(
+		func(ctx context.Context, check *khapi.HealthCheck) error {
+			created = append(created, check.DeepCopy())
+			return nil
+		},
+		nil,
+		nil,
+	)
+	defer restore()
+
 	// legacy YAML representing a comcast.github.io/v1 check
 	legacy := `apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
@@ -168,21 +182,13 @@ spec:
 	err = json.NewDecoder(res.Body).Decode(&out)
 	require.NoError(t, err)
 
-	patch, err := jsonpatch.DecodePatch(out.Response.Patch)
-	require.NoError(t, err)
-
-	patched, err := patch.Apply(legacyJSON)
-	require.NoError(t, err)
-
-	converted := &khapi.HealthCheck{}
-	err = json.Unmarshal(patched, converted)
-	require.NoError(t, err)
-
-	require.Equal(t, "kuberhealthy.github.io/v2", converted.APIVersion)
-	require.Equal(t, "HealthCheck", converted.Kind)
-
-	// ensure the converted object marshals without error
-	_, err = json.Marshal(converted)
+	require.True(t, out.Response.Allowed)
+	require.Nil(t, out.Response.Patch)
+	require.Len(t, out.Response.Warnings, 1)
+	require.Len(t, created, 1)
+	require.Equal(t, "kuberhealthy.github.io/v2", created[0].APIVersion)
+	require.Equal(t, "HealthCheck", created[0].Kind)
+	_, err = json.Marshal(created[0])
 	require.NoError(t, err)
 }
 
@@ -191,6 +197,17 @@ func TestConvertDeploymentCheckSpec(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping deployment webhook conversion test in short mode")
 	}
+
+	var created []*khapi.HealthCheck
+	restore := SetLegacyHandlers(
+		func(ctx context.Context, check *khapi.HealthCheck) error {
+			created = append(created, check.DeepCopy())
+			return nil
+		},
+		nil,
+		nil,
+	)
+	defer restore()
 
 	legacy := `apiVersion: comcast.github.io/v1
 kind: KuberhealthyCheck
@@ -239,16 +256,11 @@ spec:
 	err = json.NewDecoder(res.Body).Decode(&out)
 	require.NoError(t, err)
 
-	patch, err := jsonpatch.DecodePatch(out.Response.Patch)
-	require.NoError(t, err)
+	require.True(t, out.Response.Allowed)
+	require.Nil(t, out.Response.Patch)
+	require.Len(t, created, 1)
 
-	patched, err := patch.Apply(legacyJSON)
-	require.NoError(t, err)
-
-	converted := &khapi.HealthCheck{}
-	err = json.Unmarshal(patched, converted)
-	require.NoError(t, err)
-
+	converted := created[0]
 	require.Equal(t, "kuberhealthy.github.io/v2", converted.APIVersion)
 	require.Equal(t, "HealthCheck", converted.Kind)
 	require.Equal(t, "deployment", converted.Name)
@@ -297,6 +309,24 @@ func TestConvertLegacyDeploymentManifest(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping legacy manifest conversion test in short mode")
 	}
+	var created []*khapi.HealthCheck
+	var deleted []client.ObjectKey
+	restore := SetLegacyHandlers(
+		func(ctx context.Context, check *khapi.HealthCheck) error {
+			created = append(created, check.DeepCopy())
+			return nil
+		},
+		func(ctx context.Context, namespace, name string) error {
+			deleted = append(deleted, client.ObjectKey{Namespace: namespace, Name: name})
+			return nil
+		},
+		func(namespace, name string, deleter legacyDeleterFunc) {
+			if deleter != nil {
+				_ = deleter(context.Background(), namespace, name)
+			}
+		},
+	)
+	defer restore()
 
 	// load the canonical legacy manifest so the behavior matches the user facing sample
 	legacyJSON := loadLegacyDeploymentCheck(t)
@@ -340,39 +370,15 @@ func TestConvertLegacyDeploymentManifest(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, convertedReview.Response)
 	require.True(t, convertedReview.Response.Allowed)
+	require.Nil(t, convertedReview.Response.Patch)
+	require.Len(t, convertedReview.Response.Warnings, 1)
 
-	// verify the JSON patch explicitly replaces the apiVersion so the resource is stored in the modern group
-	var ops []map[string]any
-	err = json.Unmarshal(convertedReview.Response.Patch, &ops)
-	require.NoError(t, err)
-	isAPIPatched := false
-	isKindPatched := false
-	for _, op := range ops {
-		pathValue, _ := op["path"].(string)
-		if pathValue == "/apiVersion" {
-			apiValue, _ := op["value"].(string)
-			require.Equal(t, "kuberhealthy.github.io/v2", apiValue)
-			isAPIPatched = true
-		}
-		if pathValue == "/kind" {
-			kindValue, _ := op["value"].(string)
-			require.Equal(t, "HealthCheck", kindValue)
-			isKindPatched = true
-		}
-	}
-	require.True(t, isAPIPatched)
-	require.True(t, isKindPatched)
-
-	// apply the patch locally and confirm the resulting object uses the kuberhealthy.github.io group
-	patch, err := jsonpatch.DecodePatch(convertedReview.Response.Patch)
-	require.NoError(t, err)
-	mutatedJSON, err := patch.Apply(legacyJSON)
-	require.NoError(t, err)
-	mutated := khapi.HealthCheck{}
-	err = json.Unmarshal(mutatedJSON, &mutated)
-	require.NoError(t, err)
-	require.Equal(t, "kuberhealthy.github.io/v2", mutated.APIVersion)
-	require.Equal(t, "HealthCheck", mutated.Kind)
+	require.Len(t, created, 1)
+	require.Equal(t, "kuberhealthy.github.io/v2", created[0].APIVersion)
+	require.Equal(t, "HealthCheck", created[0].Kind)
+	require.Equal(t, "deployment", created[0].Name)
+	require.Len(t, deleted, 1)
+	require.Equal(t, client.ObjectKey{Namespace: "kuberhealthy", Name: "deployment"}, deleted[0])
 }
 
 // TestLegacyConversionCreatesModernResource verifies that applying a legacy manifest produces a modern resource and triggers legacy cleanup.
@@ -426,6 +432,7 @@ func TestLegacyConversionCreatesModernResource(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, out.Response)
 	require.True(t, out.Response.Allowed)
+	require.Nil(t, out.Response.Patch)
 
 	require.Len(t, created, 1)
 	require.Equal(t, "kuberhealthy.github.io/v2", created[0].APIVersion)
@@ -442,6 +449,17 @@ func TestConvertLegacyWithoutTypeMeta(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping legacy conversion without typemeta test in short mode")
 	}
+
+	var created []*khapi.HealthCheck
+	restore := SetLegacyHandlers(
+		func(ctx context.Context, check *khapi.HealthCheck) error {
+			created = append(created, check.DeepCopy())
+			return nil
+		},
+		nil,
+		nil,
+	)
+	defer restore()
 
 	legacyJSON := loadLegacyDeploymentCheck(t)
 	var doc map[string]any
@@ -475,17 +493,10 @@ func TestConvertLegacyWithoutTypeMeta(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, convertedReview.Response)
 	require.True(t, convertedReview.Response.Allowed)
-
-	patch, err := jsonpatch.DecodePatch(convertedReview.Response.Patch)
-	require.NoError(t, err)
-	mutated, err := patch.Apply(noMetaJSON)
-	require.NoError(t, err)
-
-	out := khapi.HealthCheck{}
-	err = json.Unmarshal(mutated, &out)
-	require.NoError(t, err)
-	require.Equal(t, "kuberhealthy.github.io/v2", out.APIVersion)
-	require.Equal(t, "HealthCheck", out.Kind)
+	require.Nil(t, convertedReview.Response.Patch)
+	require.Len(t, created, 1)
+	require.Equal(t, "kuberhealthy.github.io/v2", created[0].APIVersion)
+	require.Equal(t, "HealthCheck", created[0].Kind)
 }
 
 // TestLegacyDeleteBypass ensures delete admissions skip conversion and do not invoke creation handlers.
@@ -549,6 +560,17 @@ func TestConvertLegacyResourceNames(t *testing.T) {
 		// capture range variable for the subtest closure
 		alias := alias
 		t.Run(alias, func(t *testing.T) {
+			var created []*khapi.HealthCheck
+			restore := SetLegacyHandlers(
+				func(ctx context.Context, check *khapi.HealthCheck) error {
+					created = append(created, check.DeepCopy())
+					return nil
+				},
+				nil,
+				nil,
+			)
+			defer restore()
+
 			review := admissionv1.AdmissionReview{
 				Request: &admissionv1.AdmissionRequest{
 					UID: types.UID("legacy-alias-" + alias),
@@ -577,17 +599,10 @@ func TestConvertLegacyResourceNames(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, convertedReview.Response)
 			require.True(t, convertedReview.Response.Allowed)
-
-			patch, err := jsonpatch.DecodePatch(convertedReview.Response.Patch)
-			require.NoError(t, err)
-			mutated, err := patch.Apply(legacyJSON)
-			require.NoError(t, err)
-
-			out := khapi.HealthCheck{}
-			err = json.Unmarshal(mutated, &out)
-			require.NoError(t, err)
-			require.Equal(t, "kuberhealthy.github.io/v2", out.APIVersion)
-			require.Equal(t, "HealthCheck", out.Kind)
+			require.Nil(t, convertedReview.Response.Patch)
+			require.Len(t, created, 1)
+			require.Equal(t, "kuberhealthy.github.io/v2", created[0].APIVersion)
+			require.Equal(t, "HealthCheck", created[0].Kind)
 		})
 	}
 }
