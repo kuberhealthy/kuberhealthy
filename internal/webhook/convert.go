@@ -14,6 +14,7 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -93,26 +94,30 @@ func ConfigureClient(cl client.Client) {
 		if name == "" {
 			return nil
 		}
-		check := &unstructured.Unstructured{}
-		check.SetGroupVersionKind(schema.GroupVersionKind{Group: "comcast.github.io", Version: "v1", Kind: "KuberhealthyCheck"})
-		check.SetNamespace(namespace)
-		check.SetName(name)
-		err := cl.Delete(ctx, check)
-		if err == nil || apierrors.IsNotFound(err) {
-			job := &unstructured.Unstructured{}
-			job.SetGroupVersionKind(schema.GroupVersionKind{Group: "kuberhealthy.comcast.io", Version: "v1", Kind: "KuberhealthyJob"})
-			job.SetNamespace(namespace)
-			job.SetName(name)
-			jobErr := cl.Delete(ctx, job)
-			if apierrors.IsNotFound(jobErr) {
+
+		targets := []schema.GroupVersionKind{
+			{Group: "comcast.github.io", Version: "v1", Kind: "KuberhealthyCheck"},
+			{Group: "comcast.github.io", Version: "v1", Kind: "KuberhealthyJob"},
+			{Group: "kuberhealthy.comcast.io", Version: "v1", Kind: "KuberhealthyJob"},
+		}
+
+		for _, gvk := range targets {
+			obj := &unstructured.Unstructured{}
+			obj.SetGroupVersionKind(gvk)
+			obj.SetNamespace(namespace)
+			obj.SetName(name)
+
+			err := cl.Delete(ctx, obj)
+			if err == nil {
 				return nil
 			}
-			if jobErr != nil {
-				return jobErr
+			if apierrors.IsNotFound(err) || meta.IsNoMatchError(err) {
+				continue
 			}
-			return nil
+			return err
 		}
-		return err
+
+		return nil
 	}
 
 	SetLegacyHandlers(create, deleteFn, nil)

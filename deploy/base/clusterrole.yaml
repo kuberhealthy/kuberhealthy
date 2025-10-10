@@ -29,6 +29,7 @@ rules:
   - apiGroups: ["comcast.github.io"]
     resources:
       - khchecks
+      - khjobs
     verbs: ["delete","get","list","watch"]
 
   # Core v1 (cluster-wide)
