@@ -55,7 +55,8 @@ Kuberhealthy's runtime revolves around four primary flows that start in
 
 When the Kubernetes API server sends an admission review to the legacy
 conversion webhook, `internal/webhook` inspects the payload. Legacy
-`comcast.github.io/v1` checks and `kuberhealthy.comcast.io/v1` jobs are
+`comcast.github.io/v1` checks and jobs (including aliases formerly served from
+`kuberhealthy.comcast.io/v1`) are
 converted into the modern `v2` schema. The webhook upserts a
 `kuberhealthy.github.io/v2/HealthCheck` resource with the translated
 specification, forcing converted jobs to set `spec.singleRunOnly` so they behave

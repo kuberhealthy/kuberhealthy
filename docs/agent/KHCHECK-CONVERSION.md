@@ -83,7 +83,7 @@ once the v2 object exists.
   `deploy/base/scripts/generateWebhookcert.sh` when needed so the API server
   maintains trust in the webhook service.
 - The `kuberhealthy-manager` cluster role must allow deleting
-  `khchecks.comcast.github.io` and `khjobs.kuberhealthy.comcast.io` resources;
+  `khchecks.comcast.github.io` and `khjobs.comcast.github.io` resources;
   otherwise the cleanup loop logs forbidden errors and the legacy objects linger
   alongside the converted `HealthCheck`.
 

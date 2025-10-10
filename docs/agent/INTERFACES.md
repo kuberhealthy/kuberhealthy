@@ -19,7 +19,8 @@ configuration.
     consumes them. Because the mutating configuration uses `failurePolicy: Fail`,
     requests fail fast if the conversion endpoint cannot respond, preventing
     unconverted legacy objects from being persisted.
-- **Legacy `KuberhealthyJob` CRD** (`kuberhealthy.comcast.io/v1`, converted to
+- **Legacy `KuberhealthyJob` CRD** (`comcast.github.io/v1`, with support for the
+  historical `kuberhealthy.comcast.io/v1` alias, converted to
   `HealthCheck`)
   - Inputs: one-shot job definitions that embed a `PodTemplateSpec`, optional
     labels, and annotations.
