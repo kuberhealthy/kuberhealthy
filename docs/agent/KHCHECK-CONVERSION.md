@@ -80,7 +80,7 @@ once the v2 object exists.
 - The `MutatingWebhookConfiguration` now uses `failurePolicy: Fail`, which means
   legacy manifests are rejected outright if the conversion endpoint or its TLS
   assets are unavailable. Rotate the serving certificate with
-  `deploy/base/scripts/generateWebhookcert.sh` when needed so the API server
+  `deploy/kustomize/base/scripts/generateWebhookcert.sh` when needed so the API server
   maintains trust in the webhook service.
 - The `kuberhealthy-manager` cluster role must allow deleting
   `khchecks.comcast.github.io` and `khjobs.comcast.github.io` resources;

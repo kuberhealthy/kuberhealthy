@@ -119,7 +119,7 @@ ensure_cluster
 build_and_load
 
 echo "📤 Ensuring deployment manifest is applied"
-kubectl --context="kind-${CLUSTER_NAME}" apply -k deploy/
+kubectl --context="kind-${CLUSTER_NAME}" apply -k deploy/kustomize/
 
 echo "⏳ Waiting for Kuberhealthy deployment to apply..."
 FOUND_DEPLOYMENT=false

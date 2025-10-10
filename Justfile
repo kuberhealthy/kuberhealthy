@@ -18,7 +18,7 @@ test: # Run tests locally
 run: # Run Kuberhealthy locally
 	@bash tests/runLocal.sh
 
-kustomize: # Apply Kubernetes specs from deploy/ directory
+kustomize: # Apply Kubernetes specs from deploy/kustomize/ directory
 	@bash tests/kustomizeApply.sh
 
 browse: # Port-forward Kuberhealthy service and open browser

@@ -129,9 +129,9 @@ kubectl get ns "$NAMESPACE" >/dev/null 2>&1 || kubectl create ns "$NAMESPACE"
 
 bold "Applying Kuberhealthy manifests via kustomize (pinned to node k8s1)"
 if command -v kustomize >/dev/null 2>&1; then
-  kustomize build deploy/overlays/k8s1 | kubectl apply -f -
+  kustomize build deploy/kustomize/overlays/k8s1 | kubectl apply -f -
 else
-  kubectl kustomize deploy/overlays/k8s1 | kubectl apply -f -
+  kubectl kustomize deploy/kustomize/overlays/k8s1 | kubectl apply -f -
 fi
 
 bold "Restarting deployment to pick up updated local image"

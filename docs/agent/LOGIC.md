@@ -70,8 +70,8 @@ AdmissionReview response to rewrite the object into a different API group.
 The mutating webhook relies on TLS to serve the Kubernetes API server. Each
 cluster must generate its own serving certificate and CA bundle so the API
 server trusts the hook. The helper script at
-`deploy/base/scripts/generateWebhookcert.sh` (or the job definition in
-`deploy/base/scripts/webhookCertJob.yaml`) creates a namespace-scoped secret and
+`deploy/kustomize/base/scripts/generateWebhookcert.sh` (or the job definition in
+`deploy/kustomize/base/scripts/webhookCertJob.yaml`) creates a namespace-scoped secret and
 updates the webhook's `caBundle`. Operations should re-run the script whenever
 the HTTPS secret needs rotation so the API server continues to accept the hook.
 With `failurePolicy: Fail`, the API server now rejects legacy objects if the

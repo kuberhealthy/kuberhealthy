@@ -22,7 +22,7 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           sed -i -E "s|(github.com/kuberhealthy/kuberhealthy/deploy)(@[^ \n]+)?|\1@${TAG}|g" README.md
-          sed -i -E "s|(image: docker.io/kuberhealthy/kuberhealthy:).*|\1${TAG}|" deploy/base/deployment.yaml
+          sed -i -E "s|(image: docker.io/kuberhealthy/kuberhealthy:).*|\1${TAG}|" deploy/kustomize/base/deployment.yaml
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git diff --quiet || (git commit -am "docs: update install tag to ${TAG}" && git push origin HEAD:main)

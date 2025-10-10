@@ -24,7 +24,7 @@ Here is a step by step illustration of Kuberhealthy running the included deploym
 1. Install Kuberhealthy into your cluster:
 
    ```sh
-   kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy
+   kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize
    ```
 
 2. Forward the Kuberhealthy service to your local machine:
