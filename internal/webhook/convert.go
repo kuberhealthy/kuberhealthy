@@ -93,12 +93,23 @@ func ConfigureClient(cl client.Client) {
 		if name == "" {
 			return nil
 		}
-		obj := &unstructured.Unstructured{}
-		obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "comcast.github.io", Version: "v1", Kind: "KuberhealthyCheck"})
-		obj.SetNamespace(namespace)
-		obj.SetName(name)
-		err := cl.Delete(ctx, obj)
-		if apierrors.IsNotFound(err) {
+		check := &unstructured.Unstructured{}
+		check.SetGroupVersionKind(schema.GroupVersionKind{Group: "comcast.github.io", Version: "v1", Kind: "KuberhealthyCheck"})
+		check.SetNamespace(namespace)
+		check.SetName(name)
+		err := cl.Delete(ctx, check)
+		if err == nil || apierrors.IsNotFound(err) {
+			job := &unstructured.Unstructured{}
+			job.SetGroupVersionKind(schema.GroupVersionKind{Group: "kuberhealthy.comcast.io", Version: "v1", Kind: "KuberhealthyJob"})
+			job.SetNamespace(namespace)
+			job.SetName(name)
+			jobErr := cl.Delete(ctx, job)
+			if apierrors.IsNotFound(jobErr) {
+				return nil
+			}
+			if jobErr != nil {
+				return jobErr
+			}
 			return nil
 		}
 		return err
@@ -318,6 +329,9 @@ func convertLegacy(raw []byte, kind string) (*khapi.HealthCheck, *metav1.ObjectM
 		}
 
 		// create a modern health check that always runs a single execution for legacy jobs
+		loose := legacyJobLoose{}
+		_ = json.Unmarshal(raw, &loose)
+
 		check := khapi.HealthCheck{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kuberhealthy.github.io/v2",
@@ -330,7 +344,7 @@ func convertLegacy(raw []byte, kind string) (*khapi.HealthCheck, *metav1.ObjectM
 				Timeout:          job.Spec.Timeout,
 				ExtraAnnotations: job.Spec.ExtraAnnotations,
 				ExtraLabels:      job.Spec.ExtraLabels,
-				PodSpec:          convertLegacyJobPodSpec(job.Spec.PodSpec),
+				PodSpec:          convertLegacyJobPodSpec(job.Spec.PodSpec, loose.Spec.PodSpec),
 			},
 		}
 		check.SetGroupVersionKind(khapi.GroupVersion.WithKind("HealthCheck"))
@@ -409,6 +423,13 @@ type legacyJobSpec struct {
 	PodSpec          corev1.PodTemplateSpec `json:"podSpec,omitempty"`
 }
 
+// legacyJobLoose captures the original podSpec layout where containers lived directly under the podSpec map.
+type legacyJobLoose struct {
+	Spec struct {
+		PodSpec corev1.PodSpec `json:"podSpec,omitempty"`
+	} `json:"spec,omitempty"`
+}
+
 // upgradeLegacyPodSpec copies pod configuration from the legacy layout when required.
 func upgradeLegacyPodSpec(out *khapi.CheckPodSpec, legacy legacyCheckSpec) {
 	if len(out.Spec.Containers) > 0 || len(out.Spec.Volumes) > 0 {
@@ -436,8 +457,15 @@ func upgradeLegacyPodSpec(out *khapi.CheckPodSpec, legacy legacyCheckSpec) {
 }
 
 // convertLegacyJobPodSpec normalizes the legacy job pod template into a modern CheckPodSpec.
-func convertLegacyJobPodSpec(template corev1.PodTemplateSpec) khapi.CheckPodSpec {
-	podSpec := khapi.CheckPodSpec{Spec: template.Spec}
+func convertLegacyJobPodSpec(template corev1.PodTemplateSpec, legacy corev1.PodSpec) khapi.CheckPodSpec {
+	podSpec := khapi.CheckPodSpec{}
+
+	// prefer the template spec when containers are populated
+	if len(template.Spec.Containers) > 0 || len(template.Spec.Volumes) > 0 {
+		podSpec.Spec = template.Spec
+	} else {
+		podSpec.Spec = legacy
+	}
 
 	// avoid creating empty metadata to keep the resulting HealthCheck clean
 	if template.ObjectMeta.Labels == nil && template.ObjectMeta.Annotations == nil {
