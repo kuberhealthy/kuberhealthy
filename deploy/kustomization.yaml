@@ -4,8 +4,9 @@ resources:
   - base/namespace.yaml
   - base/deployment.yaml
   - base/service.yaml
-  - base/healthcheckCrd.yaml
-  - base/legacyKhcheckCrd.yaml
+  - base/healthcheck.yaml
+  - base/khcheck.yaml
+  - base/khjob.yaml
   - base/clusterrole.yaml
   - base/serviceaccount.yaml
   - base/mutatingwebhook.yaml
