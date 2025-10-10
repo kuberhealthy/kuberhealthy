@@ -16,12 +16,16 @@ import (
 	"github.com/stretchr/testify/require"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	yaml "sigs.k8s.io/yaml"
 )
 
@@ -51,13 +55,52 @@ func loadLegacyDeploymentCheck(t *testing.T) []byte {
 func loadLegacyJob(t *testing.T) []byte {
 	t.Helper()
 
-	path := filepath.Join("..", "..", "tests", "khjob-test-v1-test.yaml")
+	path := filepath.Join("..", "..", "tests", "khjob-test.yaml")
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)
 
 	jsonBytes, err := yaml.YAMLToJSON(data)
 	require.NoError(t, err)
 	return jsonBytes
+}
+
+// TestConfigureClientLegacyJobCleanup ensures ConfigureClient removes legacy jobs after conversion.
+func TestConfigureClientLegacyJobCleanup(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+
+	jobGVK := schema.GroupVersion{Group: "comcast.github.io", Version: "v1"}.WithKind("KuberhealthyJob")
+	checkGVK := schema.GroupVersion{Group: "comcast.github.io", Version: "v1"}.WithKind("KuberhealthyCheck")
+	kuberhealthyJobGVK := schema.GroupVersion{Group: "kuberhealthy.comcast.io", Version: "v1"}.WithKind("KuberhealthyJob")
+
+	scheme.AddKnownTypeWithName(jobGVK, &unstructured.Unstructured{})
+	scheme.AddKnownTypeWithName(checkGVK, &unstructured.Unstructured{})
+	scheme.AddKnownTypeWithName(kuberhealthyJobGVK, &unstructured.Unstructured{})
+
+	job := &unstructured.Unstructured{}
+	job.SetGroupVersionKind(jobGVK)
+	job.SetNamespace("kuberhealthy")
+	job.SetName("kh-test-job")
+
+	cl := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithRuntimeObjects(job).
+		Build()
+
+	ConfigureClient(cl)
+	t.Cleanup(func() {
+		SetLegacyHandlers(nil, nil, nil)
+	})
+
+	require.NotNil(t, legacyDeleteFunc, "legacy delete func should be configured")
+
+	err := legacyDeleteFunc(context.Background(), "kuberhealthy", "kh-test-job")
+	require.NoError(t, err)
+
+	lookup := &unstructured.Unstructured{}
+	lookup.SetGroupVersionKind(jobGVK)
+	err = cl.Get(context.Background(), client.ObjectKey{Namespace: "kuberhealthy", Name: "kh-test-job"}, lookup)
+	require.True(t, apierrors.IsNotFound(err))
 }
 
 // TestConvert upgrades a v1 check to the current API version via the conversion webhook.
