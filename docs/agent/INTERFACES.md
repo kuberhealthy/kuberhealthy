@@ -19,6 +19,14 @@ configuration.
     consumes them. Because the mutating configuration uses `failurePolicy: Fail`,
     requests fail fast if the conversion endpoint cannot respond, preventing
     unconverted legacy objects from being persisted.
+- **Legacy `KuberhealthyJob` CRD** (`kuberhealthy.comcast.io/v1`, converted to
+  `HealthCheck`)
+  - Inputs: one-shot job definitions that embed a `PodTemplateSpec`, optional
+    labels, and annotations.
+  - Outputs: the mutating webhook converts the job into a
+    `HealthCheck` with `spec.singleRunOnly` forced to `true`, ensuring the
+    controller treats the legacy job as a single execution check and removing
+    the original job resource after the modern copy is stored.
 - **Pods**
   - Created by the controller for each check run using the embedded `PodSpec`.
   - Annotated with labels defined in `internal/kuberhealthy` to link the pod to
@@ -44,7 +52,8 @@ The HTTP server configured in `cmd/kuberhealthy/webserver.go` exposes:
   particular check run.
 - `GET /openapi.yaml` and `GET /openapi.json` – Serves the OpenAPI schema.
 - `POST /api/convert` – Admission webhook handled by `internal/webhook` for
-  converting legacy checks to v2 `HealthCheck` resources.
+  converting both legacy checks and legacy jobs to v2 `HealthCheck` resources,
+  coercing legacy jobs into single-run checks.
 - `POST /api/khjobconvert` – Admission webhook for converting legacy job-based
   checks handled by `internal/jobwebhook` into `HealthCheck` resources.
 

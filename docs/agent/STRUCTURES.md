@@ -57,6 +57,9 @@ is propagated across packages.
     checks, persist them through injected handlers, and return admission
     responses that warn callers while allowing the legacy request to store
     unchanged.
+  - `legacyJob` mirrors the legacy `KuberhealthyJob` spec and
+    `convertLegacyJobPodSpec` maps its pod template into the modern
+    `CheckPodSpec` while forcing `singleRunOnly` on the resulting check.
 
 These structures communicate primarily through the Kubernetes API server and the
 shared `Globals` clients, enabling the controller to orchestrate checks while the

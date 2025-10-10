@@ -2,10 +2,11 @@
 
 The mutating webhook located in `internal/webhook` keeps the cluster backward
 compatible with the legacy `comcast.github.io/v1` `KuberhealthyCheck` (historically
-called `khcheck`) custom resource. Whenever the Kubernetes API server receives
-an `AdmissionReview` for a legacy object, it calls this webhook so the payload
-can be rewritten into the modern `kuberhealthy.github.io/v2` `HealthCheck`
-shape before the controller stores or processes it.
+called `khcheck`) custom resource and the legacy `kuberhealthy.comcast.io/v1`
+`KuberhealthyJob`. Whenever the Kubernetes API server receives an
+`AdmissionReview` for one of these legacy objects, it calls this webhook so the
+payload can be rewritten into the modern `kuberhealthy.github.io/v2`
+`HealthCheck` shape before the controller stores or processes it.
 
 > The webhook is intentionally idempotent. If it sees a resource that already
 > targets the modern API group, it simply approves the request without
@@ -24,14 +25,16 @@ shape before the controller stores or processes it.
      webhook immediately returns `Allowed: true` with no patch.
    - Requests lacking `TypeMeta` information are normalized using the
      `resource` stanza from the `AdmissionRequest` to deduce the kind.
-3. **Conversion attempt** – When the resource belongs to the legacy
-   `comcast.github.io/v1` group, `convertLegacy` constructs a
-   `kuberhealthy.github.io/v2` `HealthCheck` by:
-   - Copying the object into the v2 struct and updating `apiVersion`, `kind`,
-     and `GroupVersionKind` metadata.
-   - Translating the legacy pod layout so embedded `podAnnotations` and
+3. **Conversion attempt** – When the resource belongs to a legacy group,
+   `convertLegacy` constructs a `kuberhealthy.github.io/v2` `HealthCheck` by:
+   - Updating `apiVersion`, `kind`, and `GroupVersionKind` metadata so legacy
+     objects target the v2 schema.
+   - Translating the legacy check pod layout so embedded `podAnnotations` and
      `podLabels` become the modern `CheckPodMetadata`, and the legacy `podSpec`
      fills the v2 `CheckPodSpec` when the new fields are empty.
+   - Translating legacy `KuberhealthyJob` pod templates into `CheckPodSpec`
+     structures and forcing `spec.singleRunOnly` to `true` so one-shot jobs keep
+     their execution semantics under the modern API.
    - Returning a human-readable warning that surfaces in the final
      `AdmissionResponse`.
 
@@ -66,8 +69,8 @@ once the v2 object exists.
 ## Compatibility Notes
 
 - The webhook recognizes several aliases (`khcheck`, `khchecks`,
-  `kuberhealthycheck`, etc.) so manifests using old resource names still
-  convert correctly.
+  `kuberhealthycheck`, `khjob`, `khjobs`, etc.) so manifests using old resource
+  names still convert correctly.
 - Pods launched by existing controllers continue to be cleaned up because the
   webhook records the conversion in structured logs and schedules removal of the
   original v1 object after the modern copy exists.
@@ -80,9 +83,9 @@ once the v2 object exists.
   `deploy/base/scripts/generateWebhookcert.sh` when needed so the API server
   maintains trust in the webhook service.
 - The `kuberhealthy-manager` cluster role must allow deleting
-  `khchecks.comcast.github.io` resources; otherwise the cleanup loop logs
-  forbidden errors and the legacy objects linger alongside the converted
-  `HealthCheck`.
+  `khchecks.comcast.github.io` and `khjobs.kuberhealthy.comcast.io` resources;
+  otherwise the cleanup loop logs forbidden errors and the legacy objects linger
+  alongside the converted `HealthCheck`.
 
 This behavior ensures upgrades from the legacy `comcast.github.io` API group to
 `kuberhealthy.github.io/v2` remain seamless while giving cluster operators

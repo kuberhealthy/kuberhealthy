@@ -47,6 +47,19 @@ func loadLegacyDeploymentCheck(t *testing.T) []byte {
 	return jsonBytes
 }
 
+// loadLegacyJob reads the legacy job manifest so tests can convert the canonical example.
+func loadLegacyJob(t *testing.T) []byte {
+	t.Helper()
+
+	path := filepath.Join("..", "..", "tests", "khjob-test-v1-test.yaml")
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+
+	jsonBytes, err := yaml.YAMLToJSON(data)
+	require.NoError(t, err)
+	return jsonBytes
+}
+
 // TestConvert upgrades a v1 check to the current API version via the conversion webhook.
 func TestConvert(t *testing.T) {
 	if testing.Short() {
@@ -545,6 +558,86 @@ func TestLegacyDeleteBypass(t *testing.T) {
 	require.Nil(t, converted.Response.Patch)
 
 	require.False(t, created, "delete admission should not trigger creation")
+}
+
+// TestConvertLegacyJob ensures legacy KuberhealthyJob manifests convert to modern single-run health checks.
+func TestConvertLegacyJob(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping legacy job conversion test in short mode")
+	}
+
+	var created []*khapi.HealthCheck
+	var deleted []client.ObjectKey
+	restore := SetLegacyHandlers(
+		func(ctx context.Context, check *khapi.HealthCheck) error {
+			created = append(created, check.DeepCopy())
+			return nil
+		},
+		func(ctx context.Context, namespace, name string) error {
+			deleted = append(deleted, client.ObjectKey{Namespace: namespace, Name: name})
+			return nil
+		},
+		func(namespace, name string, deleter legacyDeleterFunc) {
+			if deleter == nil {
+				return
+			}
+			_ = deleter(context.Background(), namespace, name)
+		},
+	)
+	defer restore()
+
+	jobJSON := loadLegacyJob(t)
+
+	// rewrite the manifest to target the kuberhealthy.comcast.io group used by the legacy khjob CRD
+	doc := map[string]any{}
+	err := json.Unmarshal(jobJSON, &doc)
+	require.NoError(t, err)
+	doc["apiVersion"] = "kuberhealthy.comcast.io/v1"
+	doc["kind"] = "KuberhealthyJob"
+	jobJSON, err = json.Marshal(doc)
+	require.NoError(t, err)
+
+	review := admissionv1.AdmissionReview{
+		Request: &admissionv1.AdmissionRequest{
+			UID:      "legacy-job-convert",
+			Resource: metav1.GroupVersionResource{Group: "kuberhealthy.comcast.io", Version: "v1", Resource: "khjobs"},
+			Object:   runtimeRawExtension(jobJSON),
+		},
+	}
+	body, err := json.Marshal(review)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("POST", "/api/convert", bytes.NewReader(body))
+	resp := httptest.NewRecorder()
+	Convert(resp, req)
+
+	result := resp.Result()
+	defer result.Body.Close()
+	require.Equal(t, http.StatusOK, result.StatusCode)
+
+	converted := admissionv1.AdmissionReview{}
+	err = json.NewDecoder(result.Body).Decode(&converted)
+	require.NoError(t, err)
+	require.NotNil(t, converted.Response)
+	require.True(t, converted.Response.Allowed)
+	require.Len(t, converted.Response.Warnings, 1)
+	require.Nil(t, converted.Response.Patch)
+
+	require.Len(t, created, 1)
+	jobCheck := created[0]
+	require.Equal(t, "kuberhealthy.github.io/v2", jobCheck.APIVersion)
+	require.Equal(t, "HealthCheck", jobCheck.Kind)
+	require.True(t, jobCheck.Spec.SingleRun)
+	require.Nil(t, jobCheck.Spec.RunInterval)
+	require.NotNil(t, jobCheck.Spec.Timeout)
+	require.Equal(t, 2*time.Minute, jobCheck.Spec.Timeout.Duration)
+	require.Len(t, jobCheck.Spec.PodSpec.Spec.Containers, 1)
+	container := jobCheck.Spec.PodSpec.Spec.Containers[0]
+	require.Equal(t, "main", container.Name)
+	require.Equal(t, "quay.io/comcast/test-check:latest", container.Image)
+
+	require.Len(t, deleted, 1)
+	require.Equal(t, client.ObjectKey{Namespace: "kuberhealthy", Name: "kh-test-job"}, deleted[0])
 }
 
 // TestConvertLegacyResourceNames verifies the webhook upgrades every legacy resource alias to the modern API group.

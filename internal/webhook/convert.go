@@ -245,7 +245,7 @@ func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admiss
 	f["apiVersion"] = meta.APIVersion
 	f["kind"] = meta.Kind
 
-	legacyGroup := meta.APIVersion == "comcast.github.io/v1" || ar.Request.Resource.Group == "comcast.github.io"
+	legacyGroup := isLegacyGroup(meta.APIVersion, ar.Request.Resource.Group)
 	if !legacyGroup {
 		log.WithFields(f).Info("legacy webhook passthrough")
 		return &admissionv1.AdmissionResponse{Allowed: true}
@@ -287,7 +287,7 @@ func convertReview(ctx context.Context, ar *admissionv1.AdmissionReview) *admiss
 }
 
 // convertLegacy upgrades a legacy Kuberhealthy object into a modern v2 check when supported.
-func convertLegacy(raw []byte, kind string) (*khapi.HealthCheck, *legacyCheck, string, error) {
+func convertLegacy(raw []byte, kind string) (*khapi.HealthCheck, *metav1.ObjectMeta, string, error) {
 	switch strings.ToLower(kind) {
 	case "kuberhealthycheck":
 		// decode the legacy object and rewrite the API version to the current value
@@ -308,7 +308,34 @@ func convertLegacy(raw []byte, kind string) (*khapi.HealthCheck, *legacyCheck, s
 		}
 		upgradeLegacyPodSpec(&out.Spec.PodSpec, legacy.Spec)
 
-		return &out, &legacy, "converted legacy comcast.github.io/v1 KuberhealthyCheck to kuberhealthy.github.io/v2 HealthCheck", nil
+		return &out, legacy.ObjectMeta.DeepCopy(), "converted legacy comcast.github.io/v1 KuberhealthyCheck to kuberhealthy.github.io/v2 HealthCheck", nil
+	case "kuberhealthyjob":
+		// decode the legacy job specification so the webhook can rebuild the v2 check
+		job := legacyJob{}
+		err := json.Unmarshal(raw, &job)
+		if err != nil {
+			return nil, nil, "", fmt.Errorf("parse legacy job: %w", err)
+		}
+
+		// create a modern health check that always runs a single execution for legacy jobs
+		check := khapi.HealthCheck{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "kuberhealthy.github.io/v2",
+				Kind:       "HealthCheck",
+			},
+			ObjectMeta: job.ObjectMeta,
+			Spec: khapi.HealthCheckSpec{
+				SingleRun:        true,
+				RunInterval:      job.Spec.RunInterval,
+				Timeout:          job.Spec.Timeout,
+				ExtraAnnotations: job.Spec.ExtraAnnotations,
+				ExtraLabels:      job.Spec.ExtraLabels,
+				PodSpec:          convertLegacyJobPodSpec(job.Spec.PodSpec),
+			},
+		}
+		check.SetGroupVersionKind(khapi.GroupVersion.WithKind("HealthCheck"))
+
+		return &check, job.ObjectMeta.DeepCopy(), "converted legacy kuberhealthy.comcast.io/v1 KuberhealthyJob to kuberhealthy.github.io/v2 HealthCheck", nil
 	default:
 		return nil, nil, "", nil
 	}
@@ -319,8 +346,32 @@ func legacyKindFromResource(resource string) string {
 	switch resource {
 	case "khc", "khcheck", "khchecks", "kuberhealthycheck", "kuberhealthychecks":
 		return "KuberhealthyCheck"
+	case "khjob", "khjobs", "kuberhealthyjob", "kuberhealthyjobs":
+		return "KuberhealthyJob"
 	default:
 		return ""
+	}
+}
+
+// isLegacyGroup reports whether the admission request references a legacy API group.
+func isLegacyGroup(apiVersion string, requestGroup string) bool {
+	if apiVersion != "" {
+		lower := strings.ToLower(apiVersion)
+		if strings.HasPrefix(lower, "comcast.github.io/") {
+			return true
+		}
+		if strings.HasPrefix(lower, "kuberhealthy.comcast.io/") {
+			return true
+		}
+	}
+	if requestGroup == "" {
+		return false
+	}
+	switch strings.ToLower(requestGroup) {
+	case "comcast.github.io", "kuberhealthy.comcast.io":
+		return true
+	default:
+		return false
 	}
 }
 
@@ -340,6 +391,22 @@ type legacyCheckSpec struct {
 	PodSpec          corev1.PodSpec    `json:"podSpec,omitempty"`
 	PodAnnotations   map[string]string `json:"podAnnotations,omitempty"`
 	PodLabels        map[string]string `json:"podLabels,omitempty"`
+}
+
+// legacyJob captures the legacy khjob layout so the webhook can convert it.
+type legacyJob struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              legacyJobSpec `json:"spec,omitempty"`
+}
+
+// legacyJobSpec mirrors the spec for the legacy KuberhealthyJob resource.
+type legacyJobSpec struct {
+	RunInterval      *metav1.Duration       `json:"runInterval,omitempty"`
+	Timeout          *metav1.Duration       `json:"timeout,omitempty"`
+	ExtraAnnotations map[string]string      `json:"extraAnnotations,omitempty"`
+	ExtraLabels      map[string]string      `json:"extraLabels,omitempty"`
+	PodSpec          corev1.PodTemplateSpec `json:"podSpec,omitempty"`
 }
 
 // upgradeLegacyPodSpec copies pod configuration from the legacy layout when required.
@@ -366,6 +433,27 @@ func upgradeLegacyPodSpec(out *khapi.CheckPodSpec, legacy legacyCheckSpec) {
 		metadata.Labels = legacy.PodLabels
 	}
 	out.Metadata = metadata
+}
+
+// convertLegacyJobPodSpec normalizes the legacy job pod template into a modern CheckPodSpec.
+func convertLegacyJobPodSpec(template corev1.PodTemplateSpec) khapi.CheckPodSpec {
+	podSpec := khapi.CheckPodSpec{Spec: template.Spec}
+
+	// avoid creating empty metadata to keep the resulting HealthCheck clean
+	if template.ObjectMeta.Labels == nil && template.ObjectMeta.Annotations == nil {
+		return podSpec
+	}
+
+	// rebuild the limited metadata structure expected by the v2 API
+	metadata := &khapi.CheckPodMetadata{}
+	if len(template.ObjectMeta.Labels) > 0 {
+		metadata.Labels = template.ObjectMeta.Labels
+	}
+	if len(template.ObjectMeta.Annotations) > 0 {
+		metadata.Annotations = template.ObjectMeta.Annotations
+	}
+	podSpec.Metadata = metadata
+	return podSpec
 }
 
 // toError creates an AdmissionResponse describing the supplied error in a standard format.

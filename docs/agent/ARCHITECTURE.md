@@ -24,6 +24,7 @@ observability interfaces.
                                   +---------------------+
                                   | internal/webhook    |
                                   |  - legacy CRD conv. |
+                                  |  - khjob->v2 map    |
                                   +---------------------+
 ```
 
@@ -40,8 +41,10 @@ Key components:
   controller and web server share consistent defaults.
 - **`internal/metrics`** publishes Prometheus metrics and reuses the stored
   status for gauge generation.
-- **`internal/webhook`** upgrades legacy `comcast.github.io/v1` checks to the
-  v2 CRD schema via a Kubernetes admission webhook.
+- **`internal/webhook`** upgrades legacy `comcast.github.io/v1` checks and
+  `kuberhealthy.comcast.io/v1` jobs to the v2 CRD schema via a Kubernetes
+  admission webhook, forcing converted jobs to run as single-execution health
+  checks.
 - **`pkg/api`** defines the custom resource types for the Kubernetes API server
   and includes helpers for CRUD operations.
 
