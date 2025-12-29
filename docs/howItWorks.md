@@ -49,7 +49,7 @@ The wide view shows the current phase and last run time, while the describe outp
 Once a check has reported in, explore the results in three ways:
 
 1. **Check the resource:** `kubectl -n kuberhealthy describe healthcheck deployment` displays the `status.ok` flag and any reported errors.
-2. **Inspect the status page:** port-forward the service with `kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80` and then visit `http://localhost:8080/status` in your browser or call it with `curl -fsS localhost:8080/status`.
+2. **Inspect the status page:** port-forward the service with `kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080` and then visit `http://localhost:8080/status` in your browser or call it with `curl -fsS localhost:8080/status`.
 3. **View the metrics:** with the same port-forward session, run `curl -fsS localhost:8080/metrics | grep kuberhealthy_check` to see the Prometheus series that includes the deployment check.
 
 ## Using the JSON Status Page
@@ -84,7 +84,7 @@ Kuberhealthy exposes the state of every `healthcheck` through two interfaces: th
 }
 ```
 
-Use `kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80` if the service is only reachable inside the cluster. The document shows global health via the top-level `OK` flag, while the `CheckDetails` section lists run-level diagnostics for every check.
+Use `kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080` if the service is only reachable inside the cluster. The document shows global health via the top-level `OK` flag, while the `CheckDetails` section lists run-level diagnostics for every check.
 
 Each `healthcheck` resource records the same information in its `status` block. View it with:
 

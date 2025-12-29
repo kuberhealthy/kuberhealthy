@@ -4,10 +4,9 @@ resources:
   - namespace.yaml
   - deployment.yaml
   - service.yaml
-  - healthcheckCrd.yaml
-  - legacyKhcheckCrd.yaml
+  - healthcheck.yaml
+  - khcheck.yaml
+  - khjob.yaml
   - clusterrole.yaml
   - serviceaccount.yaml
   - healthcheckExample.yaml
-  - mutatingwebhook.yaml
-  - webhook-tls-secret.yaml

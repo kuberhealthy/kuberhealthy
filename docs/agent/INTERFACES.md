@@ -14,20 +14,18 @@ configuration.
   `HealthCheck`)
   - Inputs: same core fields as the modern check along with legacy `podAnnotations`
     and `podLabels` blocks that are preserved during conversion.
-  - Outputs: legacy checks persist status in the same format so the admission
-    webhook can upgrade them to the v2 `HealthCheck` schema before the controller
-    consumes them. Because the mutating configuration uses `failurePolicy: Fail`,
-    requests fail fast if the conversion endpoint cannot respond, preventing
-    unconverted legacy objects from being persisted.
+  - Outputs: legacy checks persist status in the same format, but the packaged
+    manifests no longer deploy an admission webhook to convert them. Operators
+    maintaining legacy objects must migrate them manually to the v2
+    `HealthCheck` schema before the controller can manage them.
 - **Legacy `KuberhealthyJob` CRD** (`comcast.github.io/v1`, with support for the
   historical `kuberhealthy.comcast.io/v1` alias, converted to
   `HealthCheck`)
   - Inputs: one-shot job definitions that embed a `PodTemplateSpec`, optional
     labels, and annotations.
-  - Outputs: the mutating webhook converts the job into a
-    `HealthCheck` with `spec.singleRunOnly` forced to `true`, ensuring the
-    controller treats the legacy job as a single execution check and removing
-    the original job resource after the modern copy is stored.
+  - Outputs: packaged manifests no longer include a webhook to convert these
+    jobs. Migrate legacy job resources to the modern `HealthCheck` type by hand
+    if they remain in the cluster.
 - **Pods**
   - Created by the controller for each check run using the embedded `PodSpec`.
   - Annotated with labels defined in `internal/kuberhealthy` to link the pod to
@@ -52,11 +50,10 @@ The HTTP server configured in `cmd/kuberhealthy/webserver.go` exposes:
 - `GET /api/logs` and `GET /api/logs/stream` – Fetches or streams pod logs for a
   particular check run.
 - `GET /openapi.yaml` and `GET /openapi.json` – Serves the OpenAPI schema.
-- `POST /api/convert` – Admission webhook handled by `internal/webhook` for
-  converting both legacy checks and legacy jobs to v2 `HealthCheck` resources,
-  coercing legacy jobs into single-run checks.
-- `POST /api/khjobconvert` – Admission webhook for converting legacy job-based
-  checks handled by `internal/jobwebhook` into `HealthCheck` resources.
+The admission webhook endpoints (`/api/convert` and `/api/khjobconvert`) are not
+exposed by the packaged manifests because the webhook configuration has been
+removed. Clusters that still require conversion must provision their own
+webhook deployment and configuration.
 
 Static assets for the status UI are served from `/static/` and the root path `/`
 returns the HTML interface unless a POST report is received.
@@ -74,7 +71,7 @@ variables that tune runtime behavior. Notable entries include:
   checks when their manifests omit values.
 - `KH_MAX_*` variables – Retention policies for job objects and pods.
 - `KH_PROM_*` variables – Feature flags for Prometheus metrics labeling.
-- `KH_TLS_CERT_FILE` and `KH_TLS_KEY_FILE` – Enable TLS serving when both are
-  present.
+TLS-specific environment variables are omitted from the base manifests because
+no webhook is deployed by default.
 
 Pods also rely on `POD_NAME` and `POD_NAMESPACE` for self-identification.

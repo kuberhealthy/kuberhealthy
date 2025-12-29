@@ -16,6 +16,6 @@ If Kuberhealthy checks are failing:
   ```
 - Confirm the status page and metrics endpoint are reachable:
   ```sh
-  kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80
+  kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
   curl -f localhost:8080/metrics
   ```
