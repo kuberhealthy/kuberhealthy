@@ -6,7 +6,7 @@ Kuberhealthy is configured via environment variables and does not accept command
 
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
-| `KH_LISTEN_ADDRESS` | Address for the web server | `:80` |
+| `KH_LISTEN_ADDRESS` | Address for the web server | `:8080` |
 | `KH_LOG_LEVEL` | Log level (trace, debug, info, warn, error, fatal, panic) | `info` |
 | `KH_MAX_JOB_AGE` | Maximum age for check jobs before cleanup | unset |
 | `KH_MAX_CHECK_POD_AGE` | Maximum age for check pods before cleanup | unset |
@@ -22,5 +22,3 @@ Kuberhealthy is configured via environment variables and does not accept command
 | `KH_TERMINATION_GRACE_PERIOD` | Shutdown grace period | `5m` |
 | `KH_DEFAULT_CHECK_TIMEOUT` | Default timeout for checks | `30s` |
 | `KH_DEFAULT_NAMESPACE` | Fallback namespace if detection fails | `kuberhealthy` |
-| `KH_TLS_CERT_FILE` | Path to TLS certificate for the webhook listener | unset |
-| `KH_TLS_KEY_FILE` | Path to TLS key for the webhook listener | unset |
