@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -740,64 +739,6 @@ func TestConvertLegacyResourceNames(t *testing.T) {
 			require.Equal(t, "kuberhealthy.github.io/v2", created[0].APIVersion)
 			require.Equal(t, "HealthCheck", created[0].Kind)
 		})
-	}
-}
-
-// TestLegacyWebhookResourceCoverage ensures the mutating webhook watches every legacy resource alias so legacy manifests are always converted.
-func TestLegacyWebhookResourceCoverage(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping webhook manifest coverage test in short mode")
-	}
-
-	manifestPath := filepath.Join("..", "..", "deploy", "base", "mutatingwebhook.yaml")
-	data, err := os.ReadFile(manifestPath)
-	require.NoError(t, err)
-
-	var cfg struct {
-		Webhooks []struct {
-			Rules []struct {
-				Operations []string `yaml:"operations"`
-				Resources  []string `yaml:"resources"`
-			} `yaml:"rules"`
-		} `yaml:"webhooks"`
-	}
-	err = yaml.Unmarshal(data, &cfg)
-	require.NoError(t, err)
-	require.NotEmpty(t, cfg.Webhooks)
-	require.NotEmpty(t, cfg.Webhooks[0].Rules)
-
-	needed := map[string]bool{
-		"khc":                false,
-		"khcheck":            false,
-		"kuberhealthycheck":  false,
-		"khchecks":           false,
-		"kuberhealthychecks": false,
-	}
-	var wildcard bool
-
-	for _, rule := range cfg.Webhooks[0].Rules {
-		ops := map[string]bool{}
-		for _, op := range rule.Operations {
-			ops[strings.ToUpper(op)] = true
-		}
-		require.True(t, ops["CREATE"], "legacy webhook missing CREATE operation")
-		require.True(t, ops["UPDATE"], "legacy webhook missing UPDATE operation")
-
-		for _, res := range rule.Resources {
-			if res == "*" {
-				wildcard = true
-				continue
-			}
-			if _, ok := needed[res]; ok {
-				needed[res] = true
-			}
-		}
-	}
-
-	if !wildcard {
-		for name, found := range needed {
-			require.Truef(t, found, "legacy resource %s missing from mutating webhook", name)
-		}
 	}
 }
 

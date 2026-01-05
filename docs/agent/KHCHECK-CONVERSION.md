@@ -12,6 +12,12 @@ payload can be rewritten into the modern `kuberhealthy.github.io/v2`
 > targets the modern API group, it simply approves the request without
 > modification.
 
+Clusters that still host legacy resources must provide their own webhook
+deployment, serving certificate, and `MutatingWebhookConfiguration`. The base
+manifests in this repository no longer install the webhook or ship TLS helpers
+because the modern `kuberhealthy.github.io/v2` API handles new resources
+directly.
+
 ## Request Flow
 
 1. **AdmissionReview intake** – The API server POSTs a JSON `AdmissionReview`
@@ -77,11 +83,11 @@ once the v2 object exists.
 - Errors from conversion are translated to `AdmissionResponse.Result.Message`
   values, helping cluster operators diagnose invalid manifests without digging
   through controller logs.
-- The `MutatingWebhookConfiguration` now uses `failurePolicy: Fail`, which means
-  legacy manifests are rejected outright if the conversion endpoint or its TLS
-  assets are unavailable. Rotate the serving certificate with
-  `deploy/kustomize/base/scripts/generateWebhookcert.sh` when needed so the API server
-  maintains trust in the webhook service.
+- Configure the `MutatingWebhookConfiguration` with a `failurePolicy` that
+  matches the cluster's tolerance (for example `Fail` to block unconverted
+  resources) and ensure the webhook's TLS assets are delivered by your custom
+  deployment; certificate generation helpers no longer ship with the base
+  manifests.
 - The `kuberhealthy-manager` cluster role must allow deleting
   `khchecks.comcast.github.io` and `khjobs.comcast.github.io` resources;
   otherwise the cleanup loop logs forbidden errors and the legacy objects linger

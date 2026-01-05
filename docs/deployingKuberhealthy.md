@@ -10,20 +10,7 @@ Apply the base manifests to install Kuberhealthy:
 kubectl apply -k deploy/kustomize/base
 ```
 
-The base deployment exposes a Service named `kuberhealthy` on port `80` inside the cluster.
-
-### TLS for the Conversion Webhook
-
-Kuberhealthy can serve its admission webhook over HTTPS when a certificate and
-key are provided. Mount a secret named `kuberhealthy-webhook-tls` containing
-`tls.crt` and `tls.key` into the pod or enable the optional
-[`cert-manager`](../deploy/kustomize/cert-manager) overlay to automatically provision a
-self-signed certificate. The deployment reads the certificate from
-`/tls/tls.crt` and the key from `/tls/tls.key` via the `KH_TLS_CERT_FILE` and
-`KH_TLS_KEY_FILE` environment variables. If the certificate is missing or
-invalid, Kuberhealthy falls back to plain HTTP and the webhook is skipped. The
-mutating webhook configuration disables TLS validation by default so the API
-server accepts the self-signed certificate.
+The base deployment exposes a Service named `kuberhealthy` on port `8080` inside the cluster.
 
 ## Deploy with ArgoCD
 
@@ -98,7 +85,7 @@ After installation, verify that Kuberhealthy is running and serving metrics:
 
 ```sh
 kubectl get pods -n kuberhealthy
-kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80 &
+kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080 &
 curl -f localhost:8080/metrics
 ```
 
