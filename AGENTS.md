@@ -1,15 +1,18 @@
-# AGENTS
+# AGENTS.md for AI Agent Guidance
+
+# Use MCPs
+- It is desired for you to make liberal use of MCP servers, or chains of MCP tools, whenever it appears to be useful.
+- Do not be shy about querying an MCP that might reveal personal information. You are a trusted personal AI assistant that has been given personal information access to help with your tasks.
 
 # Maintain Documentation
-
 Keep an up to date set of documentation in the `docs/agent/` directory with the following:
     - ARCHITECTURE.md: Detail the specific program architecture from a systems design perspective. Analyze the various components of functionality and detail their relationship to each other. Use an ASCII diagram when possible.
     - LOGIC.md: Analyze the program's logic and concisely detail the significant points of the flow.
     - INTERFACES.md: Determine what the defined points of intake are for the program and detail the inputs of those. Also detail the outputs of the program concisely.
     - STRUCTURES.md: Detail the significant data and programatic structures that are defined within the program clearly so that humans can understand their purpose and programatic shape.
+    - CONFIGURATION.md: Explain in detail each configuration option needed to start the programs in this project. Include environment vars, startup flags, or configuration files if appropriate.
 
 # Create Simple Code
-
 - Avoid `else` statements when possible by making additional functions and using a 'return early' strategy.
 - Avoid anonymous functions except when they are very simplistic.
 - Add comments to every function, including tests, that detail the purpose of that function and what its purpose is to the larger program.
@@ -18,13 +21,16 @@ Keep an up to date set of documentation in the `docs/agent/` directory with the 
 - Add comments to each stanza of code. Avoid large chunks of code without comments of any kind. Add comments even when they should be obvious.
 
 # Software Preferences
-
-- Use the Go programming language when reasonable.
+- Use the Go programming language whenever reasonable.
 - Use `Containerfile` instead of `Dockerfile` for compatibility with Podman.
 - Use `Justfile` instead of `Makefile` for compatibility with `just`.
+- Logging is handled with `github.com/sirupsen/logrus`.
+- Tests should be written with Go's testing package and live beside the code they test.
+- Configuration is loaded from environment variables when possible.
+- File names are in camelCase
+- Package names must be all lower case
 
 # Create Modular Program Architecture
-
 - When adding a new data structure or component to the program architecture, ensure that the overall program continues to retain a low-complexity architecture with appropriate delegation of logic and functionality.
 - Take care to contain clear abstractions between different program components.
 - Ensure that function signatures are kept small and remain widely applicable to future code, even if that means repeating logic in some places.
@@ -46,19 +52,3 @@ Keep an up to date set of documentation in the `docs/agent/` directory with the 
 - Tests should focus on one small behavior. End-to-end tests may cover a large process but should assert only its initial inputs and final outputs.
 - Prefer standard library packages when practical.
 - Every package must include a README.md describing its scope of responsibility.
-
-## Project decisions
-
-- Logging is handled with `github.com/sirupsen/logrus`.
-- Use `context.Context` as the first parameter for functions that perform I/O or long running work.
-- Tests should be written with Go's testing package and live beside the code they test.
-- Configuration is loaded from environment variables when possible.
-- File names are in camelCase
-- Package names must be all lower case
-- Podman is used instead of Docker
-- Just is used instead of Make
-
-## Formatting and tests
-
-- Run `gofmt -w` on changed Go files.
-- Run `go test -short ./...` before committing. Use `go test ./...` for the full suite.
