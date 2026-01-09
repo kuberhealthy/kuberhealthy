@@ -17,6 +17,9 @@ stateMetadata: {}
 prometheus:
   enabled: false
   name: "prometheus"
+  promMetricsConfig:
+    suppressErrorLabel: false
+    errorLabelMaxLength: 0
 
   grafanaDashboard:
     enabled: false
