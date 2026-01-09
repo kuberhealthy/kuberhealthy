@@ -22,3 +22,7 @@ data:
       {{- range $key, $value := $.Values.stateMetadata }}
       {{ $key }}: {{ $value }}
       {{- end }}  
+    promMetricsConfig:
+      {{- range $key, $value := $.Values.prometheus.promMetricsConfig }}
+      {{ $key }}: {{ $value }}
+      {{- end }}
