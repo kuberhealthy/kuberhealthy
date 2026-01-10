@@ -1,0 +1,157 @@
+{{- if .Values.check.podRestarts.enabled }}
+---
+apiVersion: comcast.github.io/v1
+kind: KuberhealthyCheck
+metadata:
+  name: pod-restarts
+spec:
+  runInterval: {{ .Values.check.podRestarts.runInterval }}
+  timeout: {{ .Values.check.podRestarts.timeout }}
+  {{- include "kuberhealthy.extraAnnotations" .Values.check.podRestarts.extraAnnotations | nindent 2 }}
+  {{- include "kuberhealthy.extraLabels" .Values.check.podRestarts.extraLabels | nindent 2 }}
+  podSpec:
+    {{- if .Values.securityContext.enabled }}
+    securityContext:
+      runAsUser: {{ .Values.securityContext.runAsUser }}
+      fsGroup: {{ .Values.securityContext.fsGroup }}
+      {{- if .Values.securityContext.seccompProfile }}
+      seccompProfile:
+        {{- toYaml .Values.securityContext.seccompProfile | nindent 8 }}
+      {{- end }}
+    {{- end}}
+    {{- if .Values.imagePullSecrets }}
+    imagePullSecrets:
+      {{ toYaml .Values.imagePullSecrets | indent 2 }}
+    {{- end }}
+    containers:
+      - env:
+          {{- if not .Values.check.podRestarts.allNamespaces }}
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          {{- end }}
+{{- range $key, $value := .Values.check.podRestarts.extraEnvs }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+{{- end }}
+        {{- if .Values.imageRegistry }}
+        image: "{{ .Values.imageRegistry }}/{{ .Values.check.podRestarts.image.repository }}:{{ .Values.check.podRestarts.image.tag }}"
+        {{- else if .Values.check.podRestarts.image.registry }}
+        image: "{{ .Values.check.podRestarts.image.registry }}/{{ .Values.check.podRestarts.image.repository }}:{{ .Values.check.podRestarts.image.tag }}"
+        {{- end }}
+        imagePullPolicy: IfNotPresent
+        name: main
+        resources:
+          requests:
+            cpu: {{ .Values.check.podRestarts.resources.requests.cpu }}
+            memory: {{ .Values.check.podRestarts.resources.requests.memory }}
+          {{- if .Values.check.podRestarts.resources.limits }}
+          limits:
+            {{- if .Values.check.podRestarts.resources.limits.cpu }}
+            cpu: {{ .Values.check.podRestarts.resources.limits.cpu }}
+            {{- end }}
+            {{- if .Values.check.podRestarts.resources.limits.memory }}
+            memory: {{ .Values.check.podRestarts.resources.limits.memory }}
+            {{- end }}
+          {{- end }}
+        {{- if .Values.securityContext.enabled }}
+        securityContext:
+          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+        {{- end }}
+    {{- if .Values.check.podRestarts.nodeSelector }}
+    nodeSelector:
+{{- toYaml .Values.check.podRestarts.nodeSelector | nindent 6 }}
+    {{- end }}
+    {{- if .Values.check.podRestarts.tolerations }}
+    tolerations:
+{{- toYaml .Values.check.podRestarts.tolerations | nindent 6 }}
+    {{- end }}
+    restartPolicy: Never
+    serviceAccountName: pod-restart-sa
+---
+{{- if .Values.check.podRestarts.allNamespaces }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pod-restart-rb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pod-restart-role
+subjects:
+  - kind: ServiceAccount
+    name: pod-restart-sa
+    namespace: kuberhealthy
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-restart-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - list
+{{ else }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pod-restart-rb
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pod-restart-role
+subjects:
+  - kind: ServiceAccount
+    name: pod-restart-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-restart-role
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - list
+{{- end }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pod-restart-sa
+{{- if .Values.check.podRestarts.allNamespaces }}
+  namespace: kuberhealthy
+{{- else }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+{{- end}}
+{{- end }}

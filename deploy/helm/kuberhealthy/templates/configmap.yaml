@@ -1,0 +1,24 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kuberhealthy
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+data:
+  kuberhealthy.yaml: |-
+    listenAddress: ":8080" # The port for kuberhealthy to listen on for web requests
+    enableForceMaster: false # Set to true to enable local testing, forced master mode
+    logLevel: {{ .Values.checkReaper.logLevel }} # Log level to be used (default: debug)
+    influxUsername: "" # Username for the InfluxDB instance
+    influxPassword: "" # Password for the InfluxDB instance
+    influxURL: "" # Address for the InfluxDB instance
+    influxDB: "http://localhost:8086" # Name of the InfluxDB database
+    enableInflux: false # Set to true to enable metric forwarding to Infux DB
+    maxKHJobAge: {{ .Values.checkReaper.maxKHJobAge }}
+    maxCheckPodAge: {{ .Values.checkReaper.maxCheckPodAge }}
+    maxCompletedPodCount: {{ .Values.checkReaper.maxCompletedPodCount }}
+    maxErrorPodCount: {{ .Values.checkReaper.maxErrorPodCount }}
+    stateMetadata:
+      {{- range $key, $value := $.Values.stateMetadata }}
+      {{ $key }}: {{ $value }}
+      {{- end }}  

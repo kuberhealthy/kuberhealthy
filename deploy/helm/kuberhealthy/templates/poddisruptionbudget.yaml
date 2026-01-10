@@ -1,0 +1,19 @@
+---
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name:  {{ template "kuberhealthy.name" . }}-pdb
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+spec:
+
+  {{- if .Values.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ template "kuberhealthy.name" . }}
+
+{{- end }}

@@ -1,0 +1,56 @@
+{{- if .Values.prometheus.enabled }}
+{{- /*
+  Also check for .Values.prometheus.enableAlerting to support backwards compatibility since version 69+
+*/}}
+{{- if or .Values.prometheus.prometheusRule.enabled .Values.prometheus.enableAlerting }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: {{ .Values.prometheus.name }}
+    release: {{ .Values.prometheus.prometheusRule.release }}
+    role: alert-rules
+    {{- if .Values.prometheus.prometheusRule.additionalLabels }}
+    {{- toYaml .Values.prometheus.prometheusRule.additionalLabels | nindent 4 }}
+    {{- end }}
+  name: {{ template "kuberhealthy.name" . }}
+  namespace: {{ .Values.prometheus.prometheusRule.namespace }}
+spec:
+  groups:
+    - name: ./kuberhealthy.rules
+      rules:
+        - alert: KuberhealthyError
+          expr: kuberhealthy_running < 1
+          for: 5m
+          labels:
+            {{- if .Values.prometheus.prometheusRule.rules }}
+            {{- if .Values.prometheus.prometheusRule.rules.additionalLabels }}
+            {{- toYaml .Values.prometheus.prometheusRule.rules.additionalLabels | nindent 12 }}
+            {{- end }}
+            {{- end }}
+          annotations:
+            description: Kuberhealthy is not healthy
+            {{- if .Values.prometheus.prometheusRule.rules }}
+            {{- if .Values.prometheus.prometheusRule.rules.additionalAnnotations }}
+            {{- toYaml .Values.prometheus.prometheusRule.rules.additionalAnnotations | nindent 12 }}
+            {{- end }}
+            {{- end }}
+        - alert: ClusterUnhealthy
+          expr: kuberhealthy_cluster_state < 1
+          for: 5m
+          labels:
+            {{- if .Values.prometheus.prometheusRule.rules }}
+            {{- if .Values.prometheus.prometheusRule.rules.additionalLabels }}
+            {{- toYaml .Values.prometheus.prometheusRule.rules.additionalLabels | nindent 12 }}
+            {{- end }}
+            {{- end }}
+          annotations:
+            description: Kuberhealthy shows that the cluster is not healthy
+            {{- if .Values.prometheus.prometheusRule.rules }}
+            {{- if .Values.prometheus.prometheusRule.rules.additionalAnnotations }}
+            {{- toYaml .Values.prometheus.prometheusRule.rules.additionalAnnotations | nindent 12 }}
+            {{- end }}
+            {{- end }}
+{{- end }}
+{{- end }}

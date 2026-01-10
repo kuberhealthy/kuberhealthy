@@ -1,0 +1,43 @@
+{{- if .Values.prometheus.enabled -}}
+{{- if .Values.prometheus.serviceMonitor.enabled -}}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: {{ template "kuberhealthy.name" . }}
+    prometheus: {{ .Values.prometheus.name }}
+    release: {{ .Values.prometheus.serviceMonitor.release }}
+    {{- if .Values.prometheus.serviceMonitor.additionalLabels}}
+    {{- toYaml .Values.prometheus.serviceMonitor.additionalLabels | nindent 4 }}
+    {{- end }}
+  name: {{ template "kuberhealthy.name" . }}
+  namespace: {{ .Values.prometheus.serviceMonitor.namespace }}
+spec:
+  jobLabel: component
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.namespace | default .Release.Namespace }}
+  endpoints:
+  - port: http
+    interval: {{ .Values.prometheus.serviceMonitor.endpoints.interval }}
+    {{- if .Values.prometheus.serviceMonitor.endpoints.bearerTokenFile }}
+    bearerTokenFile: {{ .Values.prometheus.serviceMonitor.endpoints.bearerTokenFile }}
+    {{- end }}
+    {{- with .Values.prometheus.serviceMonitor.endpoints.relabelings }}
+    relabelings:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.prometheus.serviceMonitor.endpoints.metricRelabelings }}
+    metricRelabelings:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
+  {{- with .Values.prometheus.serviceMonitor.targetLabels }}
+  targetLabels:
+    {{- toYaml . | nindent 8 }}
+  {{- end }}
+{{- end -}}
+{{- end -}}

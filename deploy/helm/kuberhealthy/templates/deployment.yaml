@@ -1,0 +1,162 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "kuberhealthy.name" . }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    app: {{ template "kuberhealthy.name" . }}
+    {{- with .Values.deployment.customLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: {{ template "kuberhealthy.name" . }}
+  strategy:
+    rollingUpdate:
+      maxSurge: {{ .Values.deployment.maxSurge }}
+      maxUnavailable: {{ .Values.deployment.maxUnavailable }}
+    type: RollingUpdate
+  template:
+    metadata:
+      {{- if .Values.deployment.podAnnotations }}
+      annotations:
+      {{- range $key, $value := .Values.deployment.podAnnotations }}
+        {{ $key }}: {{ $value | quote }}
+      {{- end }}
+      {{- end }}
+      labels:
+        app: {{ template "kuberhealthy.name" . }}
+        {{- with .Values.pod.customLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      volumes:
+        - name: config-volume
+          configMap:
+            # Provide the name of the ConfigMap containing the files you want
+            # to add to the container
+            name: kuberhealthy
+      serviceAccountName: kuberhealthy
+      automountServiceAccountToken: true
+      {{- if .Values.deployment.priorityClassName }}
+      priorityClassName: {{ .Values.deployment.priorityClassName }}
+      {{- end}}
+{{- if or .Values.deployment.affinity  .Values.deployment.podAntiAffinity }}
+      affinity:
+{{- if .Values.deployment.affinity }}
+{{ toYaml .Values.deployment.affinity | indent 8 }}
+{{- end }}
+{{- if eq .Values.deployment.podAntiAffinity "hard"}}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - {{ template "kuberhealthy.name" . }}
+            topologyKey: "kubernetes.io/hostname"
+{{else if eq .Values.deployment.podAntiAffinity "soft"}}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ template "kuberhealthy.name" . }}
+              topologyKey: "kubernetes.io/hostname"
+{{- end }}
+{{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{ toYaml .Values.imagePullSecrets | indent 2 }}
+      {{- end }}
+      containers:
+      {{- if .Values.imageURL }}
+      - image: "{{ .Values.imageURL }}"
+      {{- else if .Values.imageRegistry }}
+      - image: "{{ .Values.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}"
+      {{- else if .Values.image.registry }}
+      - image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}"
+      {{- end }}
+        command: {{ .Values.deployment.command }}
+        {{- if .Values.deployment.args }}
+        args:
+{{ toYaml .Values.deployment.args | nindent 8 }}
+        {{- end }}
+        ports:
+        - containerPort: 8080
+          name: http
+        securityContext:
+          runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+          runAsUser: {{ .Values.securityContext.runAsUser }}
+          allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+          {{- if .Values.securityContext.seccompProfile }}
+          seccompProfile:
+            {{- toYaml .Values.securityContext.seccompProfile | nindent 12 }}
+          {{- end }}
+        imagePullPolicy: {{ .Values.deployment.imagePullPolicy }}
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 2
+          periodSeconds: 4
+          successThreshold: 1
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+        name: {{ template "kuberhealthy.name" . }}
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/config/
+        env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          {{- range $key, $value := .Values.deployment.env }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+          {{- end }}
+        readinessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 2
+          periodSeconds: 4
+          successThreshold: 1
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: {{ .Values.resources.requests.cpu }}
+            memory: {{ .Values.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
+      {{- if .Values.deployment.nodeSelector }}
+      nodeSelector:
+{{- toYaml .Values.deployment.nodeSelector | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+{{- if or .Values.tolerations.master .Values.deployment.tolerations }}
+      tolerations:
+{{- end }}
+{{- if .Values.tolerations.master }}
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+{{- end }}
+{{- if .Values.deployment.tolerations }}
+      {{- toYaml .Values.deployment.tolerations | nindent 6 }}
+{{- end }}
