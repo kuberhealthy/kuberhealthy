@@ -15,9 +15,7 @@ import (
 	yaml "github.com/ghodss/yaml"
 	"github.com/google/uuid"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/health"
-	"github.com/kuberhealthy/kuberhealthy/v3/internal/jobwebhook"
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
-	"github.com/kuberhealthy/kuberhealthy/v3/internal/webhook"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
@@ -120,22 +118,14 @@ func requestLogger(next http.Handler) http.Handler {
 	})
 }
 
-// healthCheckParam returns the requested healthcheck name from accepted query parameters.
-// It prefers the new `healthcheck` parameter but continues to support the legacy `khcheck` name.
+// healthCheckParam returns the requested healthcheck name from the query string.
 func healthCheckParam(r *http.Request) string {
 	value := strings.TrimSpace(r.URL.Query().Get("healthcheck"))
-	if value != "" {
-		return value
-	}
-	legacy := strings.TrimSpace(r.URL.Query().Get("khcheck"))
-	if legacy != "" {
-		return legacy
-	}
-	return ""
+	return value
 }
 
 // podBelongsToHealthCheck reports whether the supplied pod is labeled for the provided healthcheck name.
-// It accepts both the modern `healthcheck` label and the legacy `khcheck` label for compatibility.
+// It accepts the `healthcheck` label that Kuberhealthy applies to checker pods.
 func podBelongsToHealthCheck(pod *v1.Pod, healthCheck string) bool {
 	if pod == nil {
 		return false
@@ -146,10 +136,7 @@ func podBelongsToHealthCheck(pod *v1.Pod, healthCheck string) bool {
 	if pod.Labels == nil {
 		return false
 	}
-	if pod.Labels["healthcheck"] == healthCheck {
-		return true
-	}
-	return pod.Labels["khcheck"] == healthCheck
+	return pod.Labels["healthcheck"] == healthCheck
 }
 
 // newServeMux configures and returns a mux with all web handlers mounted.
@@ -231,10 +218,6 @@ func newServeMux() *http.ServeMux {
 		}
 	})
 
-	// Kubernetes webhook endpoints for converting old kuberhealthy v2 checks and jobs to v3 checks
-	mux.HandleFunc("/api/convert", webhook.Convert)
-	mux.HandleFunc("/api/khjobconvert", jobwebhook.Convert)
-
 	// this is where healthcheck pods report back with their check status
 	mux.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
 		err := checkReportHandler(w, r)
@@ -243,21 +226,15 @@ func newServeMux() *http.ServeMux {
 		}
 	})
 
-	// This is the main handler that serves the web interface or handles healthcheck reports depending on
-	// on the http request type. This is partially for backwards compatibility with other older versions
-	// of Kuberhealthy.
+	// This is the main handler that serves the web interface.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-
-		// if we get a post, handle it as a checker pod reporting in
-		if r.Method == http.MethodPost {
-			err := checkReportHandler(w, r)
-			if err != nil {
-				log.Errorln("checkStatus endpoint error:", err)
-			}
+		// only accept GET for the UI to keep report handling on /check
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 
-		// all other request types just cause the UI to be served
+		// serve the UI for GET requests
 		err := statusPageHandler(w, r)
 		if err != nil {
 			log.Errorln(err)

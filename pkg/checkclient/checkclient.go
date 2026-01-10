@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -170,6 +171,15 @@ func getKuberhealthyURL() (string, error) {
 	if len(reportingURL) < 1 {
 		writeLog("ERROR: kuberhealthy reporting URL from environment variable", envs.KHReportingURL, "was blank")
 		return "", fmt.Errorf("fetched %s environment variable but it was blank", envs.KHReportingURL)
+	}
+
+	// ensure the reporting URL points at the /check handler
+	parsedURL, err := url.Parse(reportingURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse %s: %w", envs.KHReportingURL, err)
+	}
+	if parsedURL.Path != "/check" {
+		return "", fmt.Errorf("%s must point to the /check endpoint, got %q", envs.KHReportingURL, parsedURL.Path)
 	}
 
 	return reportingURL, nil

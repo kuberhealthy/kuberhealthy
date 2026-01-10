@@ -17,8 +17,8 @@ Kuberhealthy provides example applications and importable clients for multiple l
 
 ## Table of Contents
 
-- 🚀 [Deploying Kuberhealthy](deployingKuberhealthy.md): Install with Kustomize or ArgoCD and expose the `/status` page with load balancers or an ingress.
-- 📊 [Viewing Kuberhealthy Check Status](howItWorks.md#using-the-json-status-page): Reach the `/status` endpoint and inspect `healthcheck` status fields.
+- 🚀 [Deploying Kuberhealthy](deployingKuberhealthy.md): Install with Kustomize or ArgoCD and expose the `/json` status endpoint with load balancers or an ingress.
+- 📊 [Viewing Kuberhealthy Check Status](howItWorks.md#using-the-json-status-page): Reach the `/json` endpoint and inspect `healthcheck` status fields.
 - 🧠 [How Kuberhealthy Works](howItWorks.md): Illustration of the check lifecycle and controller interaction.
 - 🕒 [Run Once Checks](runOnceChecks.md): Launch a `healthcheck` for a single validation run and wait for the result.
 - 🛠️ [Creating Your Own `healthcheck`](CHECK_CREATION.md): Build custom checks and craft `healthcheck` resources.

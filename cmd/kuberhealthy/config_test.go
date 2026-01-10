@@ -112,22 +112,17 @@ func TestReportingURLDefaultsFromNamespace(t *testing.T) {
 	}
 }
 
-// TestReportingURLTrimsLegacySuffix ensures legacy values with /check are sanitized.
-func TestReportingURLTrimsLegacySuffix(t *testing.T) {
+// TestReportingURLRejectsCheckSuffix ensures /check is rejected in the base URL.
+func TestReportingURLRejectsCheckSuffix(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping reporting URL suffix trim test in short mode")
+		t.Skip("skipping reporting URL suffix test in short mode")
 	}
 
 	cfg := New()
 	t.Setenv("KH_CHECK_REPORT_URL", "https://example.com/check")
 	err := cfg.LoadFromEnv()
-	if err != nil {
-		t.Fatalf("LoadFromEnv returned error: %v", err)
-	}
-
-	expected := "https://example.com/check"
-	if cfg.ReportingURL() != expected {
-		t.Errorf("expected sanitized reporting URL %s, got %s", expected, cfg.ReportingURL())
+	if err == nil {
+		t.Fatalf("expected error when /check is included in KH_CHECK_REPORT_URL")
 	}
 }
 

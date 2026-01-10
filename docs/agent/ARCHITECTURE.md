@@ -18,20 +18,14 @@ observability interfaces.
 +-------------------+        +-----------------------+        +---------------------+
 | Check Pods        | -----> | cmd/kuberhealthy      | -----> | cmd/kuberhealthy    |
 |  - custom logic   |  POST  |  - web handlers       |  serve |  - status + report  |
-+-------------------+  /report|  - report ingestion  |  HTTP  +---------------------+
++-------------------+  /check |  - report ingestion  |  HTTP  +---------------------+
                                \-------------------------------/
-                                             |
-                                  +---------------------+
-                                  | internal/webhook    |
-                                  |  - legacy CRD conv. |
-                                  |  - khjob->v2 map    |
-                                  +---------------------+
 ```
 
 Key components:
 
 - **`cmd/kuberhealthy`** wires together configuration, the core controller, and
-  the HTTP server. It exposes `/status`, `/metrics`, `/report`, the OpenAPI
+  the HTTP server. It exposes `/json`, `/metrics`, `/check`, the OpenAPI
   specification, and helper endpoints for running checks and inspecting pod
   output.
 - **`internal/kuberhealthy`** implements the scheduling engine. It watches for
@@ -41,10 +35,6 @@ Key components:
   controller and web server share consistent defaults.
 - **`internal/metrics`** publishes Prometheus metrics and reuses the stored
   status for gauge generation.
-- **`internal/webhook`** upgrades legacy `comcast.github.io/v1` checks to the v2
-  CRD schema via a Kubernetes admission webhook. The default deployment omits
-  this webhook, so operators who still host legacy resources must supply their
-  own webhook manifests to activate it.
 - **`pkg/api`** defines the custom resource types for the Kubernetes API server
   and includes helpers for CRUD operations.
 

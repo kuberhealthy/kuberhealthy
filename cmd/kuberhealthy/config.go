@@ -190,9 +190,7 @@ func (c *Config) LoadFromEnv() error {
 		trimmed := strings.TrimSpace(checkReportURL)
 		trimmed = strings.TrimRight(trimmed, "/")
 		if strings.HasSuffix(trimmed, "/check") {
-			trimmed = strings.TrimSuffix(trimmed, "/check")
-			trimmed = strings.TrimRight(trimmed, "/")
-			log.Warnln("KH_CHECK_REPORT_URL should not include '/check'. Trimming suffix for compatibility.")
+			return fmt.Errorf("invalid KH_CHECK_REPORT_URL: do not include '/check' in %q", checkReportURL)
 		}
 		if trimmed == "" {
 			return fmt.Errorf("invalid KH_CHECK_REPORT_URL: %q", checkReportURL)

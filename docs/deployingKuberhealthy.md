@@ -35,7 +35,7 @@ This registers Kuberhealthy with ArgoCD and lets the controller reconcile its ma
 
 ## Exposing the Status Page
 
-Kuberhealthy serves a JSON status page at `/status`. The following sections show how to expose that page with a cloud provider load balancer or an ingress.
+Kuberhealthy serves a JSON status page at `/json`. The following sections show how to expose that page with a cloud provider load balancer or an ingress.
 
 ### Amazon EKS
 

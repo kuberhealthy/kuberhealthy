@@ -58,7 +58,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Name of the healthcheck to inspect. The legacy `khcheck` query key remains accepted for backward compatibility.
+          description: Name of the healthcheck to inspect.
       responses:
         '200':
           description: Event list
@@ -84,7 +84,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Name of the healthcheck to inspect. The legacy `khcheck` query key remains accepted for backward compatibility.
+          description: Name of the healthcheck to inspect.
         - in: query
           name: pod
           required: true
@@ -121,7 +121,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Name of the healthcheck to inspect. The legacy `khcheck` query key remains accepted for backward compatibility.
+          description: Name of the healthcheck to inspect.
         - in: query
           name: pod
           required: true
@@ -172,7 +172,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Name of the healthcheck to run (legacy `khcheck` alias also accepted).
+          description: Name of the healthcheck to run.
       responses:
         '202':
           description: Run started
@@ -182,38 +182,6 @@ paths:
           description: Check not found
         '409':
           description: Check already running
-  /api/convert:
-    post:
-      summary: Convert legacy v1 KuberhealthyCheck resources to v2 healthcheck objects
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdmissionReview'
-      responses:
-        '200':
-          description: AdmissionReview with conversion patch
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdmissionReview'
-  /api/khjobconvert:
-    post:
-      summary: Convert legacy KuberhealthyJob resources to v2 healthcheck objects
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ConversionReview'
-      responses:
-        '200':
-          description: ConversionReview with converted checks
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ConversionReview'
   /check:
     post:
       summary: Report an external check result
@@ -238,19 +206,6 @@ paths:
             text/html:
               schema:
                 type: string
-    post:
-      summary: Report an external check result (legacy)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Report'
-      responses:
-        '200':
-          description: Report accepted
-        '400':
-          description: Invalid report
 components:
   schemas:
     State:

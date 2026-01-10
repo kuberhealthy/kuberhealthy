@@ -49,21 +49,6 @@ is propagated across packages.
     counters describing run health.
   - Depends on the shared `Globals.kh` instance to query state.
 
-## `internal/webhook`
-
-- **Conversion helpers** (`convert.go`)
-  - `Convert` handles HTTP requests from the Kubernetes API server.
-  - `convertReview` and `convertLegacy` transform legacy v1 payloads into v2
-    checks, persist them through injected handlers, and return admission
-    responses that warn callers while allowing the legacy request to store
-    unchanged.
-  - `legacyJob` mirrors the legacy `KuberhealthyJob` spec and
-    `convertLegacyJobPodSpec` maps its pod template into the modern
-    `CheckPodSpec` while forcing `singleRunOnly` on the resulting check.
-  - The handler is optional; base manifests no longer register a webhook or ship
-    TLS assets, so clusters that still host legacy resources must deploy their
-    own admission configuration to exercise this code.
-
 These structures communicate primarily through the Kubernetes API server and the
 shared `Globals` clients, enabling the controller to orchestrate checks while the
 HTTP layer provides observability and reporting interfaces.

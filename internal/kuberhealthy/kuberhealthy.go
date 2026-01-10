@@ -38,9 +38,7 @@ const (
 	minimumScheduleInterval = time.Second
 	// primaryCheckLabel is the canonical label key applied to checker pods so other components can find them quickly.
 	primaryCheckLabel = "healthcheck"
-	// legacyCheckLabel is retained temporarily so upgrades from older releases continue to reconcile existing pods.
-	legacyCheckLabel = "khcheck"
-	runUUIDLabel     = "kh-run-uuid"
+	runUUIDLabel      = "kh-run-uuid"
 	// timeoutGracePeriod adds a tiny buffer before flagging a run as failed so pods can finish cleanly at the
 	// deadline without tripping a race.
 	timeoutGracePeriod = 2 * time.Second
@@ -762,8 +760,6 @@ func (kh *Kuberhealthy) CheckPodSpec(healthCheck *khapi.HealthCheck) *corev1.Pod
 
 	// add required labels
 	podSpec.Labels[primaryCheckLabel] = healthCheck.Name
-	// keep the deprecated label key during the transition so existing watchers still observe older pods.
-	podSpec.Labels[legacyCheckLabel] = healthCheck.Name
 	podSpec.Labels[runUUIDLabel] = uuid
 
 	envVars := []corev1.EnvVar{{Name: envs.KHReportingURL, Value: kh.ReportingURL}, {Name: envs.KHRunUUID, Value: uuid}}
@@ -962,9 +958,6 @@ func (kh *Kuberhealthy) cleanupPodsForCheck(check *khapi.HealthCheck) error {
 	for pod := range podList.Items {
 		podRef := &podList.Items[pod]
 		labelMatch := podRef.Labels[primaryCheckLabel] == check.Name
-		if !labelMatch {
-			labelMatch = podRef.Labels[legacyCheckLabel] == check.Name
-		}
 		if !labelMatch {
 			// a stale pod from another check slipped through the label selector
 			continue

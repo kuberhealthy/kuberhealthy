@@ -47,7 +47,7 @@ kubectl -n kuberhealthy wait \
 
 Replace `mycheck` with the name of your resource—`upgrade-smoke` in this example.
 
-When the command returns, the pod has either reported success or delivered an error payload back to the controller. Inspect the detailed result with `kubectl -n kuberhealthy describe healthcheck upgrade-smoke` or by port-forwarding to the `/status` page like any other check.
+When the command returns, the pod has either reported success or delivered an error payload back to the controller. Inspect the detailed result with `kubectl -n kuberhealthy describe healthcheck upgrade-smoke` or by port-forwarding to the `/json` endpoint like any other check.
 
 ## Clean Up After the Run
 
