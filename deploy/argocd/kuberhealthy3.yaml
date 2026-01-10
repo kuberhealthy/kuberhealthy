@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kuberhealthy3
+  namespace: argocd
+  annotations:
+    deployed-by: eg-ai-agent
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/kuberhealthy/kuberhealthy.git
+    targetRevision: main
+    path: deploy/helm/kuberhealthy3
+    helm:
+      parameters:
+        - name: service.annotations.deployed-by
+          value: eg-ai-agent
+        - name: deployment.podAnnotations.deployed-by
+          value: eg-ai-agent
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kuberhealthy
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
