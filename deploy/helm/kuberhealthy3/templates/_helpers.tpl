@@ -2,7 +2,7 @@
 {{/*
 Setup a chart name
 */}}
-{{- define "kuberhealthy.name" -}}
+{{- define "kuberhealthy3.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
@@ -16,17 +16,3 @@ Return the appropriate apiVersion for RBAC APIs.
 "rbac.authorization.k8s.io/v1beta1"
 {{- end -}}
 {{- end -}}
-
-{{- define "kuberhealthy.extraLabels" }}
-  {{- if . -}}
-  extraLabels:
-    {{- toYaml . | nindent 2 }}
-  {{- end -}}
-{{ end -}}
-
-{{- define "kuberhealthy.extraAnnotations" }}
-  {{- if . -}}
-  extraAnnotations:
-    {{- toYaml . | nindent 2 }}
-  {{- end -}}
-{{ end -}}

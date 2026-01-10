@@ -1,0 +1,96 @@
+# Default values for kuberhealthy3.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# can be used to globally override the namespace where to deploy all components. By default .Release.Namespace is used.
+#namespace: ""
+
+# Global imagePullSecrets setting for all images.
+# imagePullSecrets:
+# - name: my-secret-name
+
+# imageURL allows you to override all other settings and specify the full image URL to pull.
+#imageURL: registry.ericgreer.info/garage/kuberhealthy:v3.0.0-rc1
+
+image:
+  registry: registry.ericgreer.info
+  repository: garage/kuberhealthy
+  # Leave empty to use .Chart.AppVersion
+  tag: v3.0.0-rc1
+
+resources:
+  requests:
+    cpu: 400m
+    memory: 300Mi
+  limits:
+    cpu: 2
+    memory: 1Gi
+
+## Only minAvailable or maxUnavailable can be set at the same time.
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  maxUnavailable:
+
+deployment:
+  replicas: 1
+  maxSurge: 0
+  maxUnavailable: 1
+  imagePullPolicy: IfNotPresent
+  nodeSelector: {}
+  podAnnotations: {}
+  # tolerations:
+  # - key: "key"
+  #   operator: "Equal"
+  #   value: "value"
+  #   effect: "NoSchedule"
+  env:
+    KH_LISTEN_ADDRESS: ":8080"
+    KH_LOG_LEVEL: "info"
+    KH_MAX_JOB_AGE: ""
+    KH_MAX_CHECK_POD_AGE: ""
+    KH_MAX_COMPLETED_POD_COUNT: "0"
+    KH_MAX_ERROR_POD_COUNT: "5"
+    KH_ERROR_POD_RETENTION_DAYS: "4"
+    KH_PROM_SUPPRESS_ERROR_LABEL: "false"
+    KH_PROM_ERROR_LABEL_MAX_LENGTH: "0"
+    KH_DEFAULT_RUN_INTERVAL: "10m"
+    KH_TERMINATION_GRACE_PERIOD: "5m"
+    KH_DEFAULT_CHECK_TIMEOUT: "30s"
+    KH_TARGET_NAMESPACE: ""
+  command:
+    - /app/kuberhealthy
+  # args:
+  # priorityClassName:
+  affinity: {}
+  ## Acceptable values for podAntiAffinity:
+  ## soft: specifies preferences that the scheduler will try to enforce but will not guarantee (Default)
+  ## hard: specifies rules that must be met for a pod to be scheduled onto a node
+  podAntiAffinity: "soft"
+  customLabels: {}
+
+pod:
+  customLabels: {}
+
+# When enabled equals to true, runAsUser and fsGroup will be
+# included to all healthchecks as specified below.
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 999
+  fsGroup: 999
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  #seccompProfile:
+  #  type: RuntimeDefault
+
+# When enabled kuberhealthy will create a PodSecurityPolicy, Role and Binding to match the specified securityContext
+podSecurityPolicy:
+  enabled: false
+
+service:
+  externalPort: 8080
+  type: LoadBalancer
+  annotations: {}
+  loadBalancer:
+    provider: ""

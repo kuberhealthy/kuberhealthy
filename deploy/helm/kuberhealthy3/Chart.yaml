@@ -1,0 +1,22 @@
+apiVersion: v2
+name: kuberhealthy3
+appVersion: v3.0.0-rc1
+version: 1
+home: https://kuberhealthy.github.io/kuberhealthy/
+description: "Kuberhealthy v3 operator chart (minimal install)."
+type: application
+maintainers:
+  - name: integrii
+    email: ericgreer@gmail.com
+keywords:
+  - kuberhealthy
+  - kubernetes
+  - operator
+  - monitoring
+  - synthetic
+  - testing
+  - health
+sources:
+  - https://github.com/kuberhealthy/kuberhealthy
+  - https://github.com/kuberhealthy/kuberhealthy/tree/main/deploy/helm/kuberhealthy3
+icon: https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/images/logo-square.png

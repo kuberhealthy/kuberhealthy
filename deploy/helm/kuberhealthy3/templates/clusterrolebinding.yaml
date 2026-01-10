@@ -1,0 +1,13 @@
+---
+apiVersion: {{ template "rbac.apiVersion" . }}
+kind: ClusterRoleBinding
+metadata:
+  name: {{ template "kuberhealthy3.name" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "kuberhealthy3.name" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ template "kuberhealthy3.name" . }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}

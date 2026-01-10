@@ -2,10 +2,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "kuberhealthy.name" . }}
+  name: {{ template "kuberhealthy3.name" . }}
   namespace: {{ .Values.namespace | default .Release.Namespace }}
   labels:
-    app: {{ template "kuberhealthy.name" . }}
+    app: {{ template "kuberhealthy3.name" . }}
     {{- with .Values.deployment.customLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -13,7 +13,7 @@ spec:
   replicas: {{ .Values.deployment.replicas }}
   selector:
     matchLabels:
-      app: {{ template "kuberhealthy.name" . }}
+      app: {{ template "kuberhealthy3.name" . }}
   strategy:
     rollingUpdate:
       maxSurge: {{ .Values.deployment.maxSurge }}
@@ -28,18 +28,12 @@ spec:
       {{- end }}
       {{- end }}
       labels:
-        app: {{ template "kuberhealthy.name" . }}
+        app: {{ template "kuberhealthy3.name" . }}
         {{- with .Values.pod.customLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      volumes:
-        - name: config-volume
-          configMap:
-            # Provide the name of the ConfigMap containing the files you want
-            # to add to the container
-            name: kuberhealthy
-      serviceAccountName: kuberhealthy
+      serviceAccountName: {{ template "kuberhealthy3.name" . }}
       automountServiceAccountToken: true
       {{- if .Values.deployment.priorityClassName }}
       priorityClassName: {{ .Values.deployment.priorityClassName }}
@@ -57,7 +51,7 @@ spec:
               - key: app
                 operator: In
                 values:
-                - {{ template "kuberhealthy.name" . }}
+                - {{ template "kuberhealthy3.name" . }}
             topologyKey: "kubernetes.io/hostname"
 {{else if eq .Values.deployment.podAntiAffinity "soft"}}
         podAntiAffinity:
@@ -69,7 +63,7 @@ spec:
                 - key: app
                   operator: In
                   values:
-                  - {{ template "kuberhealthy.name" . }}
+                  - {{ template "kuberhealthy3.name" . }}
               topologyKey: "kubernetes.io/hostname"
 {{- end }}
 {{- end }}
@@ -80,8 +74,6 @@ spec:
       containers:
       {{- if .Values.imageURL }}
       - image: "{{ .Values.imageURL }}"
-      {{- else if .Values.imageRegistry }}
-      - image: "{{ .Values.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}"
       {{- else if .Values.image.registry }}
       - image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}"
       {{- end }}
@@ -104,17 +96,12 @@ spec:
           {{- end }}
         imagePullPolicy: {{ .Values.deployment.imagePullPolicy }}
         livenessProbe:
-          failureThreshold: 3
-          initialDelaySeconds: 2
-          periodSeconds: 4
-          successThreshold: 1
-          tcpSocket:
+          httpGet:
+            path: /healthz
             port: 8080
-          timeoutSeconds: 1
-        name: {{ template "kuberhealthy.name" . }}
-        volumeMounts:
-          - name: config-volume
-            mountPath: /etc/config/
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        name: {{ template "kuberhealthy3.name" . }}
         env:
           - name: POD_NAME
             valueFrom:
@@ -128,14 +115,20 @@ spec:
           - name: {{ $key }}
             value: {{ $value | quote }}
           {{- end }}
+          {{- if not (hasKey .Values.deployment.env "KH_CHECK_REPORT_URL") }}
+          - name: KH_CHECK_REPORT_URL
+            value: "http://{{ template "kuberhealthy3.name" . }}.{{ .Values.namespace | default .Release.Namespace }}.svc.cluster.local:8080"
+          {{- end }}
+          {{- if not (hasKey .Values.deployment.env "KH_DEFAULT_NAMESPACE") }}
+          - name: KH_DEFAULT_NAMESPACE
+            value: {{ (.Values.namespace | default .Release.Namespace) | quote }}
+          {{- end }}
         readinessProbe:
-          failureThreshold: 3
-          initialDelaySeconds: 2
-          periodSeconds: 4
-          successThreshold: 1
-          tcpSocket:
+          httpGet:
+            path: /healthz
             port: 8080
-          timeoutSeconds: 1
+          initialDelaySeconds: 5
+          periodSeconds: 10
         resources:
           requests:
             cpu: {{ .Values.resources.requests.cpu }}
@@ -149,14 +142,3 @@ spec:
       {{- end }}
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
-{{- if or .Values.tolerations.master .Values.deployment.tolerations }}
-      tolerations:
-{{- end }}
-{{- if .Values.tolerations.master }}
-      - effect: NoSchedule
-        key: node-role.kubernetes.io/master
-        operator: Exists
-{{- end }}
-{{- if .Values.deployment.tolerations }}
-      {{- toYaml .Values.deployment.tolerations | nindent 6 }}
-{{- end }}
