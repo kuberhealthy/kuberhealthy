@@ -21,16 +21,27 @@ Here is a step by step illustration of Kuberhealthy running the included deploym
 
 ## TLDR Installation Instructions
 
-1. Install Kuberhealthy into your cluster:
+1. Install Kuberhealthy into your cluster (choose one):
 
    ```sh
-   kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize
+   # Kustomize
+   kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base
+
+   # Helm (from this repo)
+   helm install kuberhealthy3 deploy/helm/kuberhealthy3 -n kuberhealthy --create-namespace
+
+   # ArgoCD (pre-made application)
+   kubectl apply -f deploy/argocd/kuberhealthy3.yaml
    ```
 
 2. Forward the Kuberhealthy service to your local machine:
 
    ```sh
+   # Kustomize
    kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
+
+   # Helm
+   kubectl -n kuberhealthy port-forward svc/kuberhealthy3 8080:8080
    ```
 
 3. Visit [http://localhost:8080](http://localhost:8080) to view the status page.

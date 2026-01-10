@@ -12,12 +12,22 @@ kubectl apply -k deploy/kustomize/base
 
 The base deployment exposes a Service named `kuberhealthy` on port `8080` inside the cluster.
 
-## Deploy with ArgoCD
+## Deploy with Helm (v3 chart)
 
-Create an ArgoCD Application to manage Kuberhealthy:
+Install the v3 Helm chart from this repository:
 
 ```sh
-kubectl apply -k deploy/kustomize/argocd
+helm install kuberhealthy3 deploy/helm/kuberhealthy3 -n kuberhealthy --create-namespace
+```
+
+The Helm chart exposes a Service named `kuberhealthy3` on port `8080`.
+
+## Deploy with ArgoCD
+
+Apply the pre-made ArgoCD Application (uses the Helm chart from this repo):
+
+```sh
+kubectl apply -f deploy/argocd/kuberhealthy3.yaml
 ```
 
 This registers Kuberhealthy with ArgoCD and lets the controller reconcile its manifests.
