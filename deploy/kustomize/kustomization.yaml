@@ -5,7 +5,5 @@ resources:
   - base/deployment.yaml
   - base/service.yaml
   - base/healthcheck.yaml
-  - base/khcheck.yaml
-  - base/khjob.yaml
   - base/clusterrole.yaml
   - base/serviceaccount.yaml
