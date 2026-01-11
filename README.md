@@ -9,6 +9,8 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/kuberhealthy.svg?style=social)](https://twitter.com/kuberhealthy)  
 [![Join Slack](https://img.shields.io/badge/slack-kubernetes/kuberhealthy-teal.svg?logo=slack)](https://kubernetes.slack.com/messages/CB9G7HWTE)
 
+Kuberhealthy v3 is a full rewrite with a new API surface and a new `HealthCheck` CRD. If you are upgrading from v2, plan for a clean reinstall and recreate your checks using the v3 schema.
+
 Kuberhealthy is a [Kubernetes operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_monitoring) and [continuous process verification](https://en.wikipedia.org/wiki/Software_verification_and_validation). You can [write your own test containers](docs/CHECK_CREATION.md) in any language or [deploy one of the included ones](docs/CHECKS_REGISTRY.md) and Kuberhealthy will run them and produce metrics for [Prometheus](https://prometheus.io). Includes a simple JSON status page for custom integrations. Kuberhealthy is a **[CNCF Sandbox Project](https://www.cncf.io/sandbox-projects/)**.
 
 

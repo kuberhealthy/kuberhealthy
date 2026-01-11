@@ -54,4 +54,5 @@ Kuberhealthy's runtime revolves around four primary flows that start in
 ## Legacy Conversion
 
 Kuberhealthy v3 does not ship conversion webhooks or backward compatibility
-paths. Legacy resources must be removed and recreated as `HealthCheck` objects.
+paths. Legacy `KuberhealthyCheck`, `KuberhealthyJob`, and `KuberhealthyState`
+resources must be removed and recreated as `HealthCheck` objects.
