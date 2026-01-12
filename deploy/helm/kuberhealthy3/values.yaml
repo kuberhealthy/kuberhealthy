@@ -33,9 +33,9 @@ podDisruptionBudget:
   maxUnavailable:
 
 deployment:
-  replicas: 1
-  maxSurge: 0
-  maxUnavailable: 1
+  replicas: 2
+  maxSurge: 1
+  maxUnavailable: 0
   imagePullPolicy: IfNotPresent
   nodeSelector: {}
   podAnnotations: {}
@@ -66,7 +66,7 @@ deployment:
   ## Acceptable values for podAntiAffinity:
   ## soft: specifies preferences that the scheduler will try to enforce but will not guarantee (Default)
   ## hard: specifies rules that must be met for a pod to be scheduled onto a node
-  podAntiAffinity: "soft"
+  podAntiAffinity: "hard"
   customLabels: {}
 
 pod:

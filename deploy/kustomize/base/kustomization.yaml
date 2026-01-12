@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - deployment.yaml
+  - podDisruptionBudget.yaml
   - service.yaml
   - healthcheck.yaml
   - clusterrole.yaml
