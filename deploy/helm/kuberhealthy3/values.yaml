@@ -39,6 +39,7 @@ deployment:
   imagePullPolicy: IfNotPresent
   nodeSelector: {}
   podAnnotations: {}
+  tolerations: []
   # tolerations:
   # - key: "key"
   #   operator: "Equal"
