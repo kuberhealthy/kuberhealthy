@@ -1,9 +1,9 @@
-name: Build and Push Multi-Arch Podman Image
+name: Build and Push Multi-Arch Images
 
 on:
   push:
     tags:
-      - 'v*.*.*'  # Triggers automatically on tag creation
+      - 'v[3-9]*.*.*'  # Trigger on v3+ tags
 
 jobs:
   build-and-push:
@@ -22,13 +22,20 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           sed -i -E "s|(github.com/kuberhealthy/kuberhealthy/deploy)(@[^ \n]+)?|\1@${TAG}|g" README.md
-          sed -i -E "s|(image: docker.io/kuberhealthy/kuberhealthy:).*|\1${TAG}|" deploy/kustomize/base/deployment.yaml
+          sed -i -E "s|(image: ghcr.io/kuberhealthy/kuberhealthy:).*|\1${TAG}|" deploy/kustomize/base/deployment.yaml
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git diff --quiet || (git commit -am "docs: update install tag to ${TAG}" && git push origin HEAD:main)
 
       - name: Install QEMU
         run: sudo apt-get update && sudo apt-get install -y qemu-user-static
+
+      - name: Login to GHCR
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to Docker Hub
         uses: redhat-actions/podman-login@v1
@@ -37,7 +44,23 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Build image
+      - name: Build image for GHCR
+        uses: redhat-actions/buildah-build@v2
+        with:
+          context: .
+          containerfiles: cmd/kuberhealthy/Podfile
+          image: ghcr.io/${{ github.repository }}
+          tags: ${{ github.ref_name }}
+          platforms: linux/amd64,linux/arm64
+
+      - name: Push image to GHCR
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ghcr.io/${{ github.repository }}
+          tags: ${{ github.ref_name }}
+          registry: ghcr.io
+
+      - name: Build image for Docker Hub
         uses: redhat-actions/buildah-build@v2
         with:
           context: .
@@ -46,7 +69,7 @@ jobs:
           tags: ${{ github.ref_name }}
           platforms: linux/amd64,linux/arm64
 
-      - name: Push image
+      - name: Push image to Docker Hub
         uses: redhat-actions/push-to-registry@v2
         with:
           image: kuberhealthy/kuberhealthy

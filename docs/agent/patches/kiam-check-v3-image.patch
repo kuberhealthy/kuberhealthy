@@ -1,0 +1,49 @@
+diff --git a/.github/workflows/publish.yaml b/.github/workflows/publish.yaml
+index 3ab4d44..23b4dfb 100644
+--- a/.github/workflows/publish.yaml
++++ b/.github/workflows/publish.yaml
+@@ -33,7 +33,7 @@ jobs:
+         id: meta
+         uses: docker/metadata-action@v5
+         with:
+-          images: kuberhealthy/kiam-check
++          images: kuberhealthy/kiam-check-v3
+           tags: |
+             type=sha,format=short,event=branch
+             type=ref,event=tag
+diff --git a/Justfile b/Justfile
+index 54f4dff..ec77030 100644
+--- a/Justfile
++++ b/Justfile
+@@ -1,4 +1,4 @@
+-IMAGE := "kuberhealthy/kiam-check"
++IMAGE := "kuberhealthy/kiam-check-v3"
+ TAG := "latest"
+ 
+ # Build the KIAM check container locally.
+diff --git a/README.md b/README.md
+index 077010a..19f5889 100644
+--- a/README.md
++++ b/README.md
+@@ -37,7 +37,7 @@ spec:
+     spec:
+       containers:
+         - name: kiam
+-          image: kuberhealthy/kiam-check:sha-<short-sha>
++          image: kuberhealthy/kiam-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: AWS_REGION
+diff --git a/healthcheck.yaml b/healthcheck.yaml
+index f2ef5a1..4754944 100644
+--- a/healthcheck.yaml
++++ b/healthcheck.yaml
+@@ -13,7 +13,7 @@ spec:
+     spec:
+       containers:
+         - name: kiam
+-          image: kuberhealthy/kiam-check:sha-<short-sha>
++          image: kuberhealthy/kiam-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: AWS_REGION

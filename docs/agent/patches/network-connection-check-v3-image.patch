@@ -1,0 +1,58 @@
+diff --git a/.github/workflows/publish.yaml b/.github/workflows/publish.yaml
+index ad72e8b..463a462 100644
+--- a/.github/workflows/publish.yaml
++++ b/.github/workflows/publish.yaml
+@@ -33,7 +33,7 @@ jobs:
+         id: meta
+         uses: docker/metadata-action@v5
+         with:
+-          images: kuberhealthy/network-connection-check
++          images: kuberhealthy/network-connection-check-v3
+           tags: |
+             type=sha,format=short,event=branch
+             type=ref,event=tag
+diff --git a/Justfile b/Justfile
+index daae7f6..59c9386 100644
+--- a/Justfile
++++ b/Justfile
+@@ -1,4 +1,4 @@
+-IMAGE := "kuberhealthy/network-connection-check"
++IMAGE := "kuberhealthy/network-connection-check-v3"
+ TAG := "latest"
+ 
+ # Build the network connection check container locally.
+diff --git a/README.md b/README.md
+index 9ef2ca8..b15ffff 100644
+--- a/README.md
++++ b/README.md
+@@ -35,7 +35,7 @@ spec:
+     spec:
+       containers:
+         - name: kuberhealthy-github-reachable
+-          image: kuberhealthy/network-connection-check:sha-<short-sha>
++          image: kuberhealthy/network-connection-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: CONNECTION_TARGET
+diff --git a/healthcheck.yaml b/healthcheck.yaml
+index 12ab703..90ae979 100644
+--- a/healthcheck.yaml
++++ b/healthcheck.yaml
+@@ -11,7 +11,7 @@ spec:
+     spec:
+       containers:
+         - name: kuberhealthy-github-reachable
+-          image: kuberhealthy/network-connection-check:sha-<short-sha>
++          image: kuberhealthy/network-connection-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: CONNECTION_TARGET
+@@ -30,7 +30,7 @@ spec:
+     spec:
+       containers:
+         - name: kuberhealthy-metadata-unreachable
+-          image: kuberhealthy/network-connection-check:sha-<short-sha>
++          image: kuberhealthy/network-connection-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: CONNECTION_TARGET

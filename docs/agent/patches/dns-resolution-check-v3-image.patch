@@ -1,0 +1,58 @@
+diff --git a/.github/workflows/publish.yaml b/.github/workflows/publish.yaml
+index 86634e3..58d5ade 100644
+--- a/.github/workflows/publish.yaml
++++ b/.github/workflows/publish.yaml
+@@ -33,7 +33,7 @@ jobs:
+         id: meta
+         uses: docker/metadata-action@v5
+         with:
+-          images: kuberhealthy/dns-resolution-check
++          images: kuberhealthy/dns-resolution-check-v3
+           tags: |
+             type=sha,format=short,event=branch
+             type=ref,event=tag
+diff --git a/Justfile b/Justfile
+index 3421e94..ab90fc5 100644
+--- a/Justfile
++++ b/Justfile
+@@ -1,4 +1,4 @@
+-IMAGE := "kuberhealthy/dns-resolution-check"
++IMAGE := "kuberhealthy/dns-resolution-check-v3"
+ TAG := "latest"
+ 
+ # Build the DNS resolution check container locally.
+diff --git a/README.md b/README.md
+index 9f991e7..bb7a390 100644
+--- a/README.md
++++ b/README.md
+@@ -47,7 +47,7 @@ spec:
+     spec:
+       containers:
+         - name: dns-resolution-check
+-          image: kuberhealthy/dns-resolution-check:sha-<short-sha>
++          image: kuberhealthy/dns-resolution-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: HOSTNAME
+@@ -78,7 +78,7 @@ spec:
+     spec:
+       containers:
+         - name: dns-resolution-check
+-          image: kuberhealthy/dns-resolution-check:sha-<short-sha>
++          image: kuberhealthy/dns-resolution-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: HOSTNAME
+diff --git a/healthcheck.yaml b/healthcheck.yaml
+index 7e473b1..01b3956 100644
+--- a/healthcheck.yaml
++++ b/healthcheck.yaml
+@@ -42,7 +42,7 @@ spec:
+       serviceAccountName: dns-resolution-check
+       containers:
+         - name: dns-resolution-check
+-          image: kuberhealthy/dns-resolution-check:sha-<short-sha>
++          image: kuberhealthy/dns-resolution-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: HOSTNAME

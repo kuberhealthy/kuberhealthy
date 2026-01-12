@@ -1,0 +1,36 @@
+diff --git a/.github/workflows/publish.yaml b/.github/workflows/publish.yaml
+index f486328..c714fb6 100644
+--- a/.github/workflows/publish.yaml
++++ b/.github/workflows/publish.yaml
+@@ -33,7 +33,7 @@ jobs:
+         id: meta
+         uses: docker/metadata-action@v5
+         with:
+-          images: kuberhealthy/test-check
++          images: kuberhealthy/test-check-v3
+           tags: |
+             type=sha,format=short,event=branch
+             type=ref,event=tag
+diff --git a/Justfile b/Justfile
+index fd0fdc6..13b2e2c 100644
+--- a/Justfile
++++ b/Justfile
+@@ -1,4 +1,4 @@
+-IMAGE := "kuberhealthy/test-check"
++IMAGE := "kuberhealthy/test-check-v3"
+ TAG := "latest"
+ 
+ # Build the test check container locally.
+diff --git a/healthcheck.yaml b/healthcheck.yaml
+index 4690748..2ab0050 100644
+--- a/healthcheck.yaml
++++ b/healthcheck.yaml
+@@ -11,7 +11,7 @@ spec:
+     spec:
+       containers:
+         - name: test-check
+-          image: kuberhealthy/test-check:sha-<short-sha>
++          image: kuberhealthy/test-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: REPORT_FAILURE

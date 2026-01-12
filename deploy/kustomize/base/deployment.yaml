@@ -32,7 +32,7 @@ spec:
             topologyKey: kubernetes.io/hostname
       containers:
       - name: kuberhealthy
-        image: docker.io/kuberhealthy/kuberhealthy:localdev
+        image: ghcr.io/kuberhealthy/kuberhealthy:main
         imagePullPolicy: IfNotPresent
         env:
         - name: KH_LISTEN_ADDRESS

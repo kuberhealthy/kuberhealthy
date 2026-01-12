@@ -10,13 +10,13 @@
 # - name: my-secret-name
 
 # imageURL allows you to override all other settings and specify the full image URL to pull.
-#imageURL: registry.ericgreer.info/garage/kuberhealthy:v3.0.0-rc1
+#imageURL: ghcr.io/kuberhealthy/kuberhealthy:main
 
 image:
-  registry: registry.ericgreer.info
-  repository: garage/kuberhealthy
+  registry: ghcr.io
+  repository: kuberhealthy/kuberhealthy
   # Leave empty to use .Chart.AppVersion
-  tag: v3.0.0-rc1
+  tag: ""
 
 resources:
   requests:

@@ -1,0 +1,49 @@
+diff --git a/.github/workflows/publish.yaml b/.github/workflows/publish.yaml
+index e06de2a..b4d7c37 100644
+--- a/.github/workflows/publish.yaml
++++ b/.github/workflows/publish.yaml
+@@ -33,7 +33,7 @@ jobs:
+         id: meta
+         uses: docker/metadata-action@v5
+         with:
+-          images: kuberhealthy/pod-restarts-check
++          images: kuberhealthy/pod-restarts-check-v3
+           tags: |
+             type=sha,format=short,event=branch
+             type=ref,event=tag
+diff --git a/Justfile b/Justfile
+index 22b5d74..6b2b14e 100644
+--- a/Justfile
++++ b/Justfile
+@@ -1,4 +1,4 @@
+-IMAGE := "kuberhealthy/pod-restarts-check"
++IMAGE := "kuberhealthy/pod-restarts-check-v3"
+ TAG := "latest"
+ 
+ # Build the pod restarts check container locally.
+diff --git a/README.md b/README.md
+index 837a852..6a9bfc6 100644
+--- a/README.md
++++ b/README.md
+@@ -66,7 +66,7 @@ spec:
+       serviceAccountName: pod-restarts-check
+       containers:
+         - name: pod-restarts
+-          image: kuberhealthy/pod-restarts-check:sha-<short-sha>
++          image: kuberhealthy/pod-restarts-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: POD_NAMESPACE
+diff --git a/healthcheck.yaml b/healthcheck.yaml
+index 662c2f3..85611d6 100644
+--- a/healthcheck.yaml
++++ b/healthcheck.yaml
+@@ -42,7 +42,7 @@ spec:
+       serviceAccountName: pod-restarts-check
+       containers:
+         - name: pod-restarts
+-          image: kuberhealthy/pod-restarts-check:sha-<short-sha>
++          image: kuberhealthy/pod-restarts-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: POD_NAMESPACE

@@ -1,0 +1,49 @@
+diff --git a/.github/workflows/publish.yaml b/.github/workflows/publish.yaml
+index 1330fff..bf0eb9f 100644
+--- a/.github/workflows/publish.yaml
++++ b/.github/workflows/publish.yaml
+@@ -33,7 +33,7 @@ jobs:
+         id: meta
+         uses: docker/metadata-action@v5
+         with:
+-          images: kuberhealthy/resource-quota-check
++          images: kuberhealthy/resource-quota-check-v3
+           tags: |
+             type=sha,format=short,event=branch
+             type=ref,event=tag
+diff --git a/Justfile b/Justfile
+index 99c335d..1259333 100644
+--- a/Justfile
++++ b/Justfile
+@@ -1,4 +1,4 @@
+-IMAGE := "kuberhealthy/resource-quota-check"
++IMAGE := "kuberhealthy/resource-quota-check-v3"
+ TAG := "latest"
+ 
+ # Build the resource quota check container locally.
+diff --git a/README.md b/README.md
+index 771956a..f7c1133 100644
+--- a/README.md
++++ b/README.md
+@@ -69,7 +69,7 @@ spec:
+       serviceAccountName: resource-quota-check
+       containers:
+         - name: resource-quota-check
+-          image: kuberhealthy/resource-quota-check:sha-<short-sha>
++          image: kuberhealthy/resource-quota-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: THRESHOLD
+diff --git a/healthcheck.yaml b/healthcheck.yaml
+index ee60222..fc10cab 100644
+--- a/healthcheck.yaml
++++ b/healthcheck.yaml
+@@ -43,7 +43,7 @@ spec:
+       serviceAccountName: resource-quota-check
+       containers:
+         - name: resource-quota-check
+-          image: kuberhealthy/resource-quota-check:sha-<short-sha>
++          image: kuberhealthy/resource-quota-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: THRESHOLD

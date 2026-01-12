@@ -1,0 +1,58 @@
+diff --git a/.github/workflows/publish.yaml b/.github/workflows/publish.yaml
+index 5fa1d1e..c5f3775 100644
+--- a/.github/workflows/publish.yaml
++++ b/.github/workflows/publish.yaml
+@@ -33,7 +33,7 @@ jobs:
+         id: meta
+         uses: docker/metadata-action@v5
+         with:
+-          images: kuberhealthy/ssl-expiry-check
++          images: kuberhealthy/ssl-expiry-check-v3
+           tags: |
+             type=sha,format=short,event=branch
+             type=ref,event=tag
+diff --git a/Justfile b/Justfile
+index 84013a9..f12b5af 100644
+--- a/Justfile
++++ b/Justfile
+@@ -1,4 +1,4 @@
+-IMAGE := "kuberhealthy/ssl-expiry-check"
++IMAGE := "kuberhealthy/ssl-expiry-check-v3"
+ TAG := "latest"
+ 
+ # Build the SSL expiry check container locally.
+diff --git a/README.md b/README.md
+index 664f134..ec894c4 100644
+--- a/README.md
++++ b/README.md
+@@ -34,7 +34,7 @@ spec:
+     spec:
+       containers:
+         - name: ssl-expiry
+-          image: kuberhealthy/ssl-expiry-check:sha-<short-sha>
++          image: kuberhealthy/ssl-expiry-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: DOMAIN_NAME
+diff --git a/healthcheck.yaml b/healthcheck.yaml
+index a6481a0..f91a3d8 100644
+--- a/healthcheck.yaml
++++ b/healthcheck.yaml
+@@ -11,7 +11,7 @@ spec:
+     spec:
+       containers:
+         - name: ssl-expiry
+-          image: kuberhealthy/ssl-expiry-check:sha-<short-sha>
++          image: kuberhealthy/ssl-expiry-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: DOMAIN_NAME
+@@ -36,7 +36,7 @@ spec:
+     spec:
+       containers:
+         - name: ssl-expiry-selfsigned
+-          image: kuberhealthy/ssl-expiry-check:sha-<short-sha>
++          image: kuberhealthy/ssl-expiry-check-v3:sha-<short-sha>
+           imagePullPolicy: IfNotPresent
+           env:
+             - name: DOMAIN_NAME
