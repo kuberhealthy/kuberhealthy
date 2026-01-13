@@ -48,7 +48,7 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           context: .
-          containerfiles: cmd/kuberhealthy/Podfile
+          containerfiles: cmd/kuberhealthy/Containerfile
           image: ghcr.io/${{ github.repository }}
           tags: ${{ github.ref_name }}
           platforms: linux/amd64,linux/arm64
@@ -64,7 +64,7 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           context: .
-          containerfiles: cmd/kuberhealthy/Podfile
+          containerfiles: cmd/kuberhealthy/Containerfile
           image: kuberhealthy/kuberhealthy
           tags: ${{ github.ref_name }}
           platforms: linux/amd64,linux/arm64

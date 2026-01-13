@@ -67,7 +67,7 @@ set -euo pipefail
 [ "${DEBUG:-}" = "1" ] && set -x
 IMAGE="${IMAGE:-docker.io/kuberhealthy/kuberhealthy:localdev}"
 BUILD_DIR="${BUILD_DIR:-/tmp/kuberhealthy-build}"
-PODFILE="${PODFILE:-$BUILD_DIR/cmd/kuberhealthy/Podfile}"
+PODFILE="${PODFILE:-$BUILD_DIR/cmd/kuberhealthy/Containerfile}"
 
 echo "IMAGE: $IMAGE"
 echo "BUILD_DIR: $BUILD_DIR"
@@ -122,7 +122,7 @@ fi
 REMOTE_SCRIPT_EOF'
 
 bold "Running remote root build script"
-ssh -tt "$REMOTE" sudo env DEBUG="${DEBUG:-}" IMAGE="$IMAGE" BUILD_DIR="$REMOTE_BUILD_DIR" PODFILE="$REMOTE_BUILD_DIR/cmd/kuberhealthy/Podfile" bash "$REMOTE_SCRIPT"
+ssh -tt "$REMOTE" sudo env DEBUG="${DEBUG:-}" IMAGE="$IMAGE" BUILD_DIR="$REMOTE_BUILD_DIR" PODFILE="$REMOTE_BUILD_DIR/cmd/kuberhealthy/Containerfile" bash "$REMOTE_SCRIPT"
 
 bold "Ensuring namespace '${NAMESPACE}' exists"
 kubectl get ns "$NAMESPACE" >/dev/null 2>&1 || kubectl create ns "$NAMESPACE"

@@ -15,25 +15,23 @@ on:
 
 jobs:
   build-image:
-    env:
-      ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
-      KIND_EXPERIMENTAL_PROVIDER: podman
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.build.outputs.image }}
     steps:
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.21.5'
-      - uses: actions/checkout@v2
-      - name: build container
+      - uses: actions/checkout@v4
+      - name: Build container
         id: build
         run: |
-          IMAGE="docker.io/kuberhealthy/kuberhealthy:${GITHUB_RUN_ID}"
-          podman build --file cmd/kuberhealthy/Podfile --tag "$IMAGE" .
+          IMAGE="kuberhealthy-e2e:${GITHUB_RUN_ID}"
+          echo "IMAGE=$IMAGE"
+          docker build --file cmd/kuberhealthy/Containerfile --tag "$IMAGE" .
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
-      - name: export image
-        run: podman save ${{ steps.build.outputs.image }} -o kuberhealthy.tar
+      - name: Export image
+        run: docker save ${{ steps.build.outputs.image }} -o kuberhealthy.tar
       - uses: actions/upload-artifact@v4
         with:
           name: kh-image
@@ -41,24 +39,21 @@ jobs:
 
   e2e:
     needs: build-image
-    env:
-      ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
-      KIND_EXPERIMENTAL_PROVIDER: podman
-      IMAGE_URL: ${{ needs.build-image.outputs.image }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.21.5'
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: engineerd/setup-kind@v0.5.0
         with:
           version: "v0.20.0"
       - uses: actions/download-artifact@v4
         with:
           name: kh-image
-      - name: load image into kind
+      - name: Load image into kind
         run: kind load image-archive kuberhealthy.tar
-      - name: run end to end test
+      - name: Run end to end test
+        env:
+          IMAGE_URL: ${{ needs.build-image.outputs.image }}
         run: ./tests/.ci/e2e.sh "${IMAGE_URL}"
-

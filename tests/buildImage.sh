@@ -5,6 +5,6 @@ IMAGE="${IMAGE:-kuberhealthy}"
 TAG="${TAG:-localdev}"
 
 echo "📦 Building Podman image: ${IMAGE}:${TAG}"
-#podman build -f cmd/kuberhealthy/Podfile -t "${IMAGE}:${TAG}" .
+#podman build -f cmd/kuberhealthy/Containerfile -t "${IMAGE}:${TAG}" .
 
-podman build -f cmd/kuberhealthy/Podfile -t "docker.io/integrii/kuberhealthy:${TAG}" .
+podman build -f cmd/kuberhealthy/Containerfile -t "docker.io/integrii/kuberhealthy:${TAG}" .

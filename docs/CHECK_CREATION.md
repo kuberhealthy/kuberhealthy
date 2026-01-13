@@ -39,7 +39,7 @@ func main() {
 
 ```
 
-Examples of existing checks and their `Podfile` definitions can be found in the [`cmd`](../cmd) directory of this repository (for instance the [deployment check](https://github.com/kuberhealthy/kuberhealthy/tree/master/cmd/deployment-check)). Kuberhealthy uses a `Podfile` for container builds.
+Examples of existing checks and their `Containerfile` definitions can be found in the [`cmd`](../cmd) directory of this repository (for instance the [deployment check](https://github.com/kuberhealthy/kuberhealthy/tree/master/cmd/deployment-check)). Kuberhealthy uses a `Containerfile` for container builds.
 
 ### Using JavaScript
 

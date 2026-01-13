@@ -42,7 +42,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: cmd/kuberhealthy/Podfile
+          file: cmd/kuberhealthy/Containerfile
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ env.IMAGE_TAGS }}
           build-args: |

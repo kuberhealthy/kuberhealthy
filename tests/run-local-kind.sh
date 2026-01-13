@@ -43,7 +43,7 @@ ensure_cluster() {
 
 build_and_load() {
   echo "📦 Building Podman image: $IMAGE"
-  podman build -f cmd/kuberhealthy/Podfile -t "$IMAGE" .
+  podman build -f cmd/kuberhealthy/Containerfile -t "$IMAGE" .
 
   echo "📤 Loading image into kind"
   TMP_IMG_TAR="/tmp/kuberhealthy-image.tar"
