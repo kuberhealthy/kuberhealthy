@@ -47,6 +47,7 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	lastRun := time.Now().Add(-time.Hour)
+	now := time.Now()
 
 	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
@@ -63,9 +64,10 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "timeout-pod",
-			Namespace: "default",
-			Labels:    map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: check.CurrentUUID()},
+			Name:              "timeout-pod",
+			Namespace:         "default",
+			Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: check.CurrentUUID()},
+			CreationTimestamp: metav1.NewTime(now.Add(-time.Hour)),
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodRunning},
 	}
@@ -76,6 +78,8 @@ func TestReaperTimesOutRunningPod(t *testing.T) {
 		Build()
 
 	kh := New(context.Background(), cl)
+	// Ensure completed pods are pruned immediately for this test.
+	kh.ConfigureReaper(0, defaultMaxFailedPods, 0, 0)
 	kh.Recorder = record.NewFakeRecorder(10)
 
 	require.NoError(t, kh.reapOnce())
@@ -102,6 +106,7 @@ func TestReaperKeepsRunningPodsForFiveMinutes(t *testing.T) {
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	lastRun := time.Now().Add(-2 * time.Minute)
+	now := time.Now()
 
 	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
@@ -118,9 +123,10 @@ func TestReaperKeepsRunningPodsForFiveMinutes(t *testing.T) {
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "recent-running-pod",
-			Namespace: "default",
-			Labels:    map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: check.CurrentUUID()},
+			Name:              "recent-running-pod",
+			Namespace:         "default",
+			Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: check.CurrentUUID()},
+			CreationTimestamp: metav1.NewTime(now.Add(-2 * time.Minute)),
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodRunning},
 	}
@@ -131,6 +137,8 @@ func TestReaperKeepsRunningPodsForFiveMinutes(t *testing.T) {
 		Build()
 
 	kh := New(context.Background(), cl)
+	// Keep the default failed pod limit while allowing running pods to age.
+	kh.ConfigureReaper(0, defaultMaxFailedPods, 0, 0)
 	kh.Recorder = record.NewFakeRecorder(10)
 
 	require.NoError(t, kh.reapOnce())
@@ -162,6 +170,7 @@ func TestReaperRemovesCompletedPods(t *testing.T) {
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	lastRun := time.Now().Add(-defaultRunInterval*10 - time.Minute)
+	now := time.Now()
 
 	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
@@ -176,9 +185,10 @@ func TestReaperRemovesCompletedPods(t *testing.T) {
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "complete-pod",
-			Namespace: "default",
-			Labels:    map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-1"},
+			Name:              "complete-pod",
+			Namespace:         "default",
+			Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-1"},
+			CreationTimestamp: metav1.NewTime(now.Add(-time.Hour)),
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodSucceeded},
 	}
@@ -189,6 +199,8 @@ func TestReaperRemovesCompletedPods(t *testing.T) {
 		Build()
 
 	kh := New(context.Background(), cl)
+	// Configure immediate cleanup for completed pods.
+	kh.ConfigureReaper(0, defaultMaxFailedPods, 0, 0)
 
 	require.NoError(t, kh.reapOnce())
 
@@ -207,6 +219,7 @@ func TestReaperKeepsRecentCompletedPods(t *testing.T) {
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	lastRun := time.Now().Add(-defaultRunInterval * 2)
+	now := time.Now()
 
 	check := &khapi.HealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
@@ -221,9 +234,10 @@ func TestReaperKeepsRecentCompletedPods(t *testing.T) {
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "recent-pod",
-			Namespace: "default",
-			Labels:    map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-2"},
+			Name:              "recent-pod",
+			Namespace:         "default",
+			Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "run-2"},
+			CreationTimestamp: metav1.NewTime(now.Add(-time.Minute)),
 		},
 		Status: corev1.PodStatus{Phase: corev1.PodSucceeded},
 	}
@@ -234,6 +248,8 @@ func TestReaperKeepsRecentCompletedPods(t *testing.T) {
 		Build()
 
 	kh := New(context.Background(), cl)
+	// Retain one completed pod so the recent run stays present.
+	kh.ConfigureReaper(1, defaultMaxFailedPods, 0, 0)
 
 	require.NoError(t, kh.reapOnce())
 
@@ -320,6 +336,8 @@ func TestReaperPrunesFailedPods(t *testing.T) {
 
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objs...).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
+	// Limit failed pods to three to exercise pruning behavior.
+	kh.ConfigureReaper(0, 3, 0, 0)
 
 	require.NoError(t, kh.reapOnce())
 
@@ -395,6 +413,8 @@ func TestReaperRetainsFailedPodsWithinLimit(t *testing.T) {
 
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objs...).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
+	// Keep failed pods when they are within the configured limit.
+	kh.ConfigureReaper(0, 3, 0, 0)
 
 	require.NoError(t, kh.reapOnce())
 
@@ -478,6 +498,8 @@ func TestReaperTreatsUnknownPhaseAsFailed(t *testing.T) {
 
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objs...).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
+	// Treat unknown phases as failures and apply the same retention limit.
+	kh.ConfigureReaper(0, 3, 0, 0)
 
 	require.NoError(t, kh.reapOnce())
 
@@ -495,4 +517,72 @@ func TestReaperTreatsUnknownPhaseAsFailed(t *testing.T) {
 		names = append(names, ours[i].Name)
 	}
 	require.ElementsMatch(t, []string{"mystery-2", "mystery-3", "mystery-4"}, names)
+}
+
+// TestReaperDropsFailedPodsByAge ensures retention windows remove old failed pods.
+func TestReaperDropsFailedPodsByAge(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping failed pod age test in short mode")
+	}
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	check := &khapi.HealthCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "failed-age-check",
+			Namespace:       "default",
+			ResourceVersion: "1",
+		},
+		Status: khapi.HealthCheckStatus{
+			LastRunUnix: time.Now().Unix(),
+		},
+	}
+
+	now := time.Now()
+	pods := []corev1.Pod{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "failed-old",
+				Namespace:         "default",
+				Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "old"},
+				CreationTimestamp: metav1.NewTime(now.Add(-48 * time.Hour)),
+			},
+			Status: corev1.PodStatus{Phase: corev1.PodFailed},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "failed-new",
+				Namespace:         "default",
+				Labels:            map[string]string{primaryCheckLabel: check.Name, runUUIDLabel: "new"},
+				CreationTimestamp: metav1.NewTime(now.Add(-12 * time.Hour)),
+			},
+			Status: corev1.PodStatus{Phase: corev1.PodFailed},
+		},
+	}
+
+	objs := []runtime.Object{check}
+	for i := range pods {
+		p := pods[i]
+		objs = append(objs, &p)
+	}
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objs...).WithStatusSubresource(check).Build()
+	kh := New(context.Background(), cl)
+	// Drop failed pods older than one day, even when under the count limit.
+	kh.ConfigureReaper(0, 3, 1, 0)
+
+	require.NoError(t, kh.reapOnce())
+
+	var remaining corev1.PodList
+	require.NoError(t, cl.List(context.Background(), &remaining, client.InNamespace("default"), client.HasLabels{runUUIDLabel}))
+	var ours []corev1.Pod
+	for i := range remaining.Items {
+		if remaining.Items[i].Labels[primaryCheckLabel] == check.Name {
+			ours = append(ours, remaining.Items[i])
+		}
+	}
+	require.Len(t, ours, 1)
+	require.Equal(t, "failed-new", ours[0].Name)
 }
