@@ -29,13 +29,9 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_PAT }}
       - name: Set image tag
         run: |
-          BRANCH_NAME="${GITHUB_REF_NAME//\//-}"
           SHORT_SHA=$(git rev-parse --short HEAD)
-          IMAGE_TAGS="${BRANCH_NAME}-${SHORT_SHA}"
-          if [ "${GITHUB_REF_NAME}" = "main" ]; then
-            IMAGE_TAGS="${IMAGE_TAGS},main"
-          fi
-          echo "IMAGE_TAGS=${IMAGE_TAGS}" >> $GITHUB_ENV
+          IMAGE_TAG="main-${SHORT_SHA}"
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
           echo "GIT_REV=${SHORT_SHA}" >> $GITHUB_ENV
       - name: Build and push (multi-arch)
         uses: docker/build-push-action@v6
@@ -43,7 +39,17 @@ jobs:
           context: .
           file: cmd/kuberhealthy/Containerfile
           push: true
-          tags: docker.io/kuberhealthy/kuberhealthy:${{ env.IMAGE_TAGS }}
+          tags: |
+            docker.io/kuberhealthy/kuberhealthy:${{ env.IMAGE_TAG }}
+            docker.io/kuberhealthy/kuberhealthy:main
           build-args: |
             GIT_REV=${{ env.GIT_REV }}
           platforms: linux/amd64,linux/arm64
+      - name: Summarize image
+        run: |
+          {
+            echo "## Image"
+            echo ""
+            echo "- docker.io/kuberhealthy/kuberhealthy:${IMAGE_TAG}"
+            echo "- docker.io/kuberhealthy/kuberhealthy:main"
+          } >> "$GITHUB_STEP_SUMMARY"

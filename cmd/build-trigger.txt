@@ -1,1 +1,0 @@
-Trigger Docker Hub build for main images.
