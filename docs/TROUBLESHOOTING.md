@@ -1,21 +1,19 @@
 # Troubleshooting
 
-If Kuberhealthy checks are failing:
+## Metrics missing
 
-- Ensure the operator pod is running:
-  ```sh
-  kubectl get pods -n kuberhealthy
-  ```
-- Inspect logs for errors:
-  ```sh
-  kubectl logs -n kuberhealthy deployment/kuberhealthy
-  ```
-- Review `healthcheck` resources for detailed error messages:
-  ```sh
-  kubectl get healthcheck -n kuberhealthy -o yaml
-  ```
-- Confirm the status page and metrics endpoint are reachable:
-  ```sh
-  kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
-  curl -f localhost:8080/metrics
-  ```
+- Confirm the service is reachable: `curl -fsS localhost:8080/metrics`.
+- Ensure the pod is running: `kubectl -n kuberhealthy get pods`.
+
+## Checks stuck or failing
+
+- Inspect the `HealthCheck` status: `kubectl -n kuberhealthy describe healthcheck <name>`.
+- Review checker pod logs for the last run.
+- Confirm the check reports to `KH_REPORTING_URL` before `KH_CHECK_RUN_DEADLINE`.
+
+## JSON status page not reachable
+
+- Port-forward the service: `kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080`.
+- If using Helm, the service name is `kuberhealthy3`.
+
+If you are blocked, please open an issue with the output of the commands above.

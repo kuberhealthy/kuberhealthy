@@ -3,15 +3,10 @@ name: End to End Kuberhealthy Test
 on:
   pull_request:
     branches:
-      - master
       - main
-      - v3
   push:
     branches:
-      - master
       - main
-      - release/*
-      - actions # for testing this build spec
 
 jobs:
   build-image:

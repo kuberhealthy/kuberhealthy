@@ -1,24 +1,24 @@
-Available configuration options for use in Kuberhealthy.
+# Configuration
 
-Kuberhealthy is configured via environment variables and does not accept command-line flags.
+Kuberhealthy uses environment variables only. It does not accept command-line flags.
 
-# Environment Variables
+## Environment Variables
 
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
 | `KH_LISTEN_ADDRESS` | Address for the web server | `:8080` |
-| `KH_LOG_LEVEL` | Log level (trace, debug, info, warn, error, fatal, panic) | `info` |
+| `KH_LOG_LEVEL` | Log level (`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`) | `info` |
 | `KH_MAX_JOB_AGE` | Maximum age for check jobs before cleanup | unset |
 | `KH_MAX_CHECK_POD_AGE` | Maximum age for check pods before cleanup | unset |
 | `KH_MAX_COMPLETED_POD_COUNT` | Number of completed pods to retain | `0` |
-| `KH_MAX_ERROR_POD_COUNT` | Number of errored pods to always retain for debugging purposes | `5` |
+| `KH_MAX_ERROR_POD_COUNT` | Number of errored pods to retain for debugging | `5` |
 | `KH_ERROR_POD_RETENTION_DAYS` | Days to retain failed pods | `4` |
-| `POD_NAMESPACE` | Namespace Kuberhealthy runs in | <pod namespace> |
+| `POD_NAMESPACE` | Namespace Kuberhealthy runs in | `<pod namespace>` |
 | `KH_PROM_SUPPRESS_ERROR_LABEL` | Omit error label in Prometheus metrics | `false` |
 | `KH_PROM_ERROR_LABEL_MAX_LENGTH` | Maximum length for Prometheus error label | `0` |
 | `KH_TARGET_NAMESPACE` | Namespace Kuberhealthy operates in (blank for all) | `` |
 | `KH_DEFAULT_RUN_INTERVAL` | Default check run interval | `10m` |
-| `KH_CHECK_REPORT_URL` | Base URL (protocol and optional port) used for check reports; `/check` is appended automatically and including `/check` will fail validation | `http://kuberhealthy.<namespace>.svc.cluster.local:8080` |
+| `KH_CHECK_REPORT_URL` | Base URL used for check reports; `/check` is appended automatically | `http://kuberhealthy.<namespace>.svc.cluster.local:8080` |
 | `KH_TERMINATION_GRACE_PERIOD` | Shutdown grace period | `5m` |
 | `KH_DEFAULT_CHECK_TIMEOUT` | Default timeout for checks | `30s` |
 | `KH_DEFAULT_NAMESPACE` | Fallback namespace if detection fails | `kuberhealthy` |

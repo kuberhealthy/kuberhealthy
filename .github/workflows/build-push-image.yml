@@ -22,12 +22,11 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Log in to GHCR
-        uses: redhat-actions/podman-login@v1
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKER_HUB_USER }}
+          password: ${{ secrets.DOCKER_HUB_PAT }}
       - name: Set image tag
         run: |
           BRANCH_NAME="${GITHUB_REF_NAME//\//-}"
@@ -44,7 +43,7 @@ jobs:
           context: .
           file: cmd/kuberhealthy/Containerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ env.IMAGE_TAGS }}
+          tags: docker.io/kuberhealthy/kuberhealthy:${{ env.IMAGE_TAGS }}
           build-args: |
             GIT_REV=${{ env.GIT_REV }}
           platforms: linux/amd64,linux/arm64

@@ -3,9 +3,7 @@ name: Run Tests
 on:
   pull_request:
     branches:
-      - master
       - main
-      - v3
 
 jobs:
   test:

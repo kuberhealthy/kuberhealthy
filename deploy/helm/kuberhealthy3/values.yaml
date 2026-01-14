@@ -10,10 +10,10 @@
 # - name: my-secret-name
 
 # imageURL allows you to override all other settings and specify the full image URL to pull.
-#imageURL: ghcr.io/kuberhealthy/kuberhealthy:main
+#imageURL: docker.io/kuberhealthy/kuberhealthy:main
 
 image:
-  registry: ghcr.io
+  registry: docker.io
   repository: kuberhealthy/kuberhealthy
   # Leave empty to use .Chart.AppVersion
   tag: ""

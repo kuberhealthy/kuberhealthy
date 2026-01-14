@@ -1,10 +1,8 @@
 # Run Once Checks
 
-Sometimes you only need a single proof that things still work, like after a risky cluster upgrade or before rolling out a new admission policy. Run once checks let you use the familiar `HealthCheck` resource to launch a pod exactly one time and capture the result without additional runs.
+Run once checks are single-execution `HealthCheck` resources. They are ideal for upgrades, migrations, and one-time smoke tests.
 
-## Craft a Single-Run `HealthCheck`
-
-Start with the same manifest structure as a recurring check and add `singleRunOnly: true` to the spec. The following example runs a smoke test pod once and exits:
+## Create a single-run `HealthCheck`
 
 ```yaml
 apiVersion: kuberhealthy.github.io/v2
@@ -19,42 +17,30 @@ spec:
     spec:
       containers:
         - name: main
-          image: curlimages/curl:8.5.0
+          image: docker.io/kuberhealthy/kuberhealthy:main
           command:
             - sh
             - -c
             - |
               set -euo pipefail
               curl -fsS https://kubernetes.default.svc/version
-              curl -fsS -H "Content-Type: application/json" \
-                -H "kh-run-uuid: $KH_RUN_UUID" \
-                -d '{"OK":true,"Errors":[]}' "$KH_REPORTING_URL"
+              curl -fsS -H "Content-Type: application/json"                 -H "kh-run-uuid: $KH_RUN_UUID"                 -d '{"OK":true,"Errors":[]}' "$KH_REPORTING_URL"
       restartPolicy: Never
 ```
 
-Apply the manifest with the usual `kubectl apply -f upgrade-smoke.yaml`. Because the resource type is identical, the Kuberhealthy controller handles the pod lifecycle the same way it would for any scheduled check—it just stops once the run completes.
+Apply the manifest with `kubectl apply -f upgrade-smoke.yaml`.
+Replace the image with your own check image before running in production.
 
-## Wait for the First Result
-
-You can make `kubectl` block until the first status update arrives by waiting for `status.lastRunUnix` to become non-zero:
+## Wait for the result
 
 ```sh
-kubectl -n kuberhealthy wait \
-  --for=jsonpath='{.status.lastRunUnix}'!=0 \
-  --timeout=10m \
-  healthcheck/mycheck
+kubectl -n kuberhealthy wait   --for=jsonpath='{.status.lastRunUnix}'!=0   --timeout=10m   healthcheck/upgrade-smoke
 ```
 
-Replace `mycheck` with the name of your resource—`upgrade-smoke` in this example.
+Inspect the result via `kubectl -n kuberhealthy describe healthcheck upgrade-smoke` or the `/json` status page.
 
-When the command returns, the pod has either reported success or delivered an error payload back to the controller. Inspect the detailed result with `kubectl -n kuberhealthy describe healthcheck upgrade-smoke` or by port-forwarding to the `/json` endpoint like any other check.
-
-## Clean Up After the Run
-
-Single-run checks stay in the cluster so you can review their status later, but they will not schedule again. Delete the resource once you have captured the outcome:
+## Clean up
 
 ```sh
 kubectl -n kuberhealthy delete healthcheck upgrade-smoke
 ```
-
-This pattern gives you the confidence of a full `HealthCheck` lifecycle with the simplicity of a one-time job—perfect for upgrade smoke tests, feature flags, or ephemeral diagnostics.

@@ -1,10 +1,8 @@
 # Kuberhealthy Documentation
 
-Welcome to the Kuberhealthy documentation directory. These guides cover installing, using, and contributing to Kuberhealthy.
+These guides cover installing, operating, and extending Kuberhealthy. If you are trying it early, we would love feedback and check contributions.
 
 ## Client Libraries and Examples
-
-Kuberhealthy provides example applications and importable clients for multiple languages:
 
 - [Rust](https://github.com/kuberhealthy/rust)
 - [TypeScript](https://github.com/kuberhealthy/typescript)
@@ -15,18 +13,17 @@ Kuberhealthy provides example applications and importable clients for multiple l
 - [Java](https://github.com/kuberhealthy/java)
 - [Bash](https://github.com/kuberhealthy/bash)
 
-## Table of Contents
+## Guides
 
-- 🚀 [Deploying Kuberhealthy](deployingKuberhealthy.md): Install with Kustomize or ArgoCD and expose the `/json` status endpoint with load balancers or an ingress.
-- 📊 [Viewing Kuberhealthy Check Status](howItWorks.md#using-the-json-status-page): Reach the `/json` endpoint and inspect `healthcheck` status fields.
-- 🧠 [How Kuberhealthy Works](howItWorks.md): Illustration of the check lifecycle and controller interaction.
-- 🕒 [Run Once Checks](runOnceChecks.md): Launch a `healthcheck` for a single validation run and wait for the result.
-- 🛠️ [Creating Your Own `healthcheck`](CHECK_CREATION.md): Build custom checks and craft `healthcheck` resources.
-- 🗂️ [`healthcheck` Registry](CHECKS_REGISTRY.md): Discover ready-made checks contributed by the community.
-- 🚩 [Flags](FLAGS.md): Reference of command-line flags supported by Kuberhealthy.
-- 🐞 [Troubleshooting](TROUBLESHOOTING.md): Solutions to common issues.
-- 🏗️ [Build and Release Process](buildAndRelease.md): Automated image builds and cutting new releases.
-- 🤝 [Contributing](CONTRIBUTING.md): Guidelines for contributing to the project.
-- 📜 [Code of Conduct](CODE_OF_CONDUCT.md): Expected community behavior.
-- 👥 [Contributors](CONTRIBUTORS.md): Individuals who have contributed to Kuberhealthy.
-- 🏢 [Adopters](ADOPTERS.md): Organizations using Kuberhealthy in production.
+- [Deploying Kuberhealthy](deployingKuberhealthy.md)
+- [How Kuberhealthy Works](howItWorks.md)
+- [Run Once Checks](runOnceChecks.md)
+- [Creating Your Own `HealthCheck`](CHECK_CREATION.md)
+- [`HealthCheck` Registry](CHECKS_REGISTRY.md)
+- [Flags](FLAGS.md)
+- [Troubleshooting](TROUBLESHOOTING.md)
+- [Build and Release](buildAndRelease.md)
+- [Contributing](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Contributors](CONTRIBUTORS.md)
+- [Adopters](ADOPTERS.md)

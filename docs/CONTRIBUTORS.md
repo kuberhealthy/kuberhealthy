@@ -1,3 +1,5 @@
+# Contributors
+
 - [Eric Greer](https://ericgreer.info) - project creator/maintainer
 - [Adrian Aneci](mailto:aneci.adrian@gmail.com)
 - [Babak Ghadiri](mailto:bbkghadiri6@gmail.com)
@@ -14,13 +16,13 @@
 - [jsvk](https://github.com/jsvk)
 - [Justin Downie](https://github.com/jdowni000)
 - [Mario Constanti](https://github.com/bavarianbidi)
-- [Michael Kurashima](mailto:Michael.Kurashima@comcast.com)
+- Michael Kurashima
 - [Mike Tougeron](https://twitter.com/mtougeron)
-- [Kimberly Messimer](mailto:kimberly_messimer@cable.comcast.com)
+- Kimberly Messimer
 - [Krista Khare](https://github.com/kristakhare)
 - [Shilla Saebi](https://twitter.com/ShillaSaebi)
 - [Yashvardhan Kukreja](https://twitter.com/yashkukreja98)
-- [Zachary Hanson](mailto:Zachary_Hanson@comcast.com)
+- Zachary Hanson
 - [Zhicheng Li](https://github.com/Hungrylion2019)
 - [Engin Diri](https://twitter.com/_ediri)
 - [Joel Kulesa](https://github.com/jkulesa)

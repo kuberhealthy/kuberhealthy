@@ -1,40 +1,38 @@
+# Contributing
+
+Thanks for helping Kuberhealthy. We welcome early adopters and focused PRs.
+
 ## Legal
 
-- If you would like to contribute code to this project you can do so through GitHub by forking the repository and sending a pull request.
-- Your commits [must be signed](https://probot.github.io/apps/dco/) so that the DCO bot will accept them.  This means using `git commit -s` when comitting.
+- Fork the repo and open a PR.
+- Sign commits with DCO (`git commit -s`).
 
-## Developer Contribution Workflow
+## Workflow
 
-- If you are making a large change, you should submit a proposal issue first so that you don't risk your feature being denied
-- Fork the Kuberhealthy/Kuberhealthy repository on github 
-- Clone your fork to your machine
-- Create a branch describing your change
-- Develop your feature and push changes to a branch in your fork
-- Add your name to the `CONTRIBUTORS.md` file
-- Add your company to the `ADOPTERS.md` file (optional)
-- Open a pull request from your branch branch in your fork to the master branch on github.com/kuberhealthy/kuberhealthy
-- Wait for a project maintainer to address your change and merge your code.  Keep an eye on your open PR.
-- Celebrate! 🎉
+1. Open an issue for larger changes.
+2. Create a branch for your work.
+3. Keep changes scoped and add tests when behavior changes.
+4. Update docs if user-facing behavior changes.
+5. Add yourself to `CONTRIBUTORS.md`.
+6. Optionally add your org to `ADOPTERS.md`.
+7. Open a PR against `main`.
 
-## General Requirements
+## Requirements
 
-- The code must be formatted with `go fmt`
-- The change must include tests for new functionality created
-- The code must pass all Github CI tests
+- Format Go code with `go fmt`.
+- Ensure tests pass.
 
 ## Tooling
 
-- Kuberhealthy uses `just` instead of `make`
-- Kuberhealthy uses `podman` instead of `docker`
+- `just` is used for common tasks.
+- `podman` is the container engine used in scripts.
 
-## Just Commands
+## Just commands
 
-The repository includes a `Justfile` for common local development tasks. Install `just` and ensure required CLIs (`podman`, `kubectl`, `kustomize`, and `kind` where noted) are available in your PATH.
-
-- `just build`: Build the Kuberhealthy container image using Podman.
-- `just kind`: Create a local KIND cluster and deploy Kuberhealthy for development. Requires `kind`, `kubectl`, `kustomize`, and `podman`. After the initial deployment, press **Enter** to rebuild the image and redeploy it to the cluster. Press **Ctrl-C** to cancel and tear down the cluster.
-- `just kind-clean`: Delete the local KIND cluster. Use this if you want a fresh cluster or to clean up when `just kind` is not running.
-- `just test`: Run unit tests for `internal/...` and `cmd/...` packages.
-- `just run`: Build and run Kuberhealthy locally with useful defaults (`KH_LOG_LEVEL=debug`, `KH_EXTERNAL_REPORTING_URL=localhost:80`, `POD_NAMESPACE=kuberhealthy`, `POD_NAME=kuberhealthy-test`).
-- `just kustomize`: Apply the Kubernetes manifests in `deploy/kustomize/` using `kustomize build | kubectl apply -f -`.
-- `just browse`: Port-forward the `kuberhealthy` service in namespace `kuberhealthy` to `localhost:8080` and open a browser. Press Ctrl-C to stop the port-forward. Override port with `PORT=9090 just browse`.
+- `just build`: Build the Kuberhealthy image with Podman.
+- `just kind`: Create a KIND cluster and deploy Kuberhealthy.
+- `just kind-clean`: Delete the KIND cluster.
+- `just test`: Run unit tests for `internal/...` and `cmd/...`.
+- `just run`: Build and run locally with dev defaults.
+- `just kustomize`: Apply manifests from `deploy/kustomize/`.
+- `just browse`: Port-forward the service and open a browser.
