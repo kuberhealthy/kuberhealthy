@@ -22,6 +22,9 @@ kubectl create namespace "$NS"
 # Install kuberhealthy using kustomize
 kubectl apply -k "$REPO_ROOT/deploy/kustomize"
 
+# Scale to one replica for single-node kind clusters.
+kubectl -n "$NS" scale deployment/kuberhealthy --replicas=1
+
 # Update the deployment to use the built image
 kubectl -n "$NS" set image deployment/kuberhealthy kuberhealthy="$IMAGE_URL"
 
