@@ -25,6 +25,9 @@ kubectl apply -k "$REPO_ROOT/deploy/kustomize"
 # Scale to one replica for single-node kind clusters.
 kubectl -n "$NS" scale deployment/kuberhealthy --replicas=1
 
+# Avoid maxSurge on a single node where anti-affinity blocks a second pod.
+kubectl -n "$NS" patch deployment/kuberhealthy --type merge -p '{"spec":{"strategy":{"rollingUpdate":{"maxSurge":0,"maxUnavailable":1}}}}'
+
 # Update the deployment to use the built image
 kubectl -n "$NS" set image deployment/kuberhealthy kuberhealthy="$IMAGE_URL"
 
