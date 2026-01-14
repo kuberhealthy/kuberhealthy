@@ -10,7 +10,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 # Namespace and deployment name
 NS=kuberhealthy
-NAME=kuberhealthy3
+NAME=kuberhealthy
 
 # Image built in CI
 IMAGE_URL="$1"
@@ -23,13 +23,13 @@ kubectl create namespace "$NS"
 kubectl apply -k "$REPO_ROOT/deploy/kustomize"
 
 # Update the deployment to use the built image
-kubectl -n "$NS" set image deployment/kuberhealthy3 kuberhealthy3="$IMAGE_URL"
+kubectl -n "$NS" set image deployment/kuberhealthy kuberhealthy="$IMAGE_URL"
 
 # Wait for the CRD to be established before creating checks
 kubectl wait --for=condition=Established --timeout=60s crd/healthchecks.kuberhealthy.github.io
 
 # Wait for kuberhealthy to be ready
-kubectl -n "$NS" rollout status deployment/kuberhealthy3
+kubectl -n "$NS" rollout status deployment/kuberhealthy
 
 # Create a sample check for testing
 kubectl apply -f "$REPO_ROOT/tests/healthcheck-test.yaml"
@@ -57,7 +57,7 @@ for i in {1..20}; do
         echo "ALL KUBERHEALTHY HEALTHCHECKS PASSED!!"
         print_block "Pod List" kubectl -n "$NS" get pods
         print_block "HealthCheck List" kubectl -n "$NS" get healthchecks.kuberhealthy.github.io
-        print_block "Kuberhealthy Pod Logs" kubectl -n "$NS" logs deployment/kuberhealthy3
+        print_block "Kuberhealthy Pod Logs" kubectl -n "$NS" logs deployment/kuberhealthy
         print_check_pod_logs
         exit 0 # successful testing
     else
@@ -66,7 +66,7 @@ for i in {1..20}; do
         echo "Completed check pods: $completedPods"
         print_block "Pod List" kubectl -n "$NS" get pods
         print_block "HealthCheck List" kubectl -n "$NS" get healthchecks.kuberhealthy.github.io
-        print_block "Kuberhealthy Pod Logs" kubectl -n "$NS" logs deployment/kuberhealthy3
+        print_block "Kuberhealthy Pod Logs" kubectl -n "$NS" logs deployment/kuberhealthy
         print_check_pod_logs
         sleep 10
     fi
