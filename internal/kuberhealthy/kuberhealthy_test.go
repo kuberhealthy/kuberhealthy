@@ -3,6 +3,7 @@ package kuberhealthy
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -31,6 +32,9 @@ func TestCheckPodSpec(t *testing.T) {
 			Name:      "example-check",
 			Namespace: "example-ns",
 			UID:       types.UID("abc123"),
+		},
+		Status: khapi.HealthCheckStatus{
+			LastRunUnix: time.Date(2026, 1, 14, 5, 0, 0, 0, time.UTC).Unix(),
 		},
 		Spec: khapi.HealthCheckSpec{
 			ExtraLabels:      map[string]string{"extra": "label"},
@@ -67,6 +71,7 @@ func TestCheckPodSpec(t *testing.T) {
 	require.Equal(t, check.Spec.PodSpec.Spec.Containers[0].Image, c.Image)
 	requireEnvVar(t, c.Env, envs.KHReportingURL, kh.ReportingURL)
 	requireEnvVar(t, c.Env, envs.KHRunUUID, uuid)
+	requireEnvVar(t, c.Env, envs.KHDeadline, strconv.FormatInt(check.Status.LastRunUnix+int64(defaultRunTimeout.Seconds()), 10))
 
 	require.Equal(t, "kuberhealthy", pod.Annotations["createdBy"])
 	require.Equal(t, uuid, pod.Annotations[runUUIDLabel])

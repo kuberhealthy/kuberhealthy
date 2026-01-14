@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -763,6 +764,11 @@ func (kh *Kuberhealthy) CheckPodSpec(healthCheck *khapi.HealthCheck) *corev1.Pod
 	podSpec.Labels[runUUIDLabel] = uuid
 
 	envVars := []corev1.EnvVar{{Name: envs.KHReportingURL, Value: kh.ReportingURL}, {Name: envs.KHRunUUID, Value: uuid}}
+	// Inject a run deadline so checks can self-timeout before the controller does.
+	deadline, hasDeadline := kh.checkRunDeadlineUnix(healthCheck)
+	if hasDeadline {
+		envVars = append(envVars, corev1.EnvVar{Name: envs.KHDeadline, Value: deadline})
+	}
 	for i := range podSpec.Spec.Containers {
 		c := &podSpec.Spec.Containers[i]
 		for _, v := range envVars {
@@ -777,6 +783,26 @@ func (kh *Kuberhealthy) CheckPodSpec(healthCheck *khapi.HealthCheck) *corev1.Pod
 	}
 
 	return podSpec
+}
+
+// checkRunDeadlineUnix returns the run deadline as a unix timestamp string when available.
+func (kh *Kuberhealthy) checkRunDeadlineUnix(check *khapi.HealthCheck) (string, bool) {
+	if check == nil {
+		return "", false
+	}
+
+	startedAt := time.Unix(check.Status.LastRunUnix, 0)
+	if startedAt.IsZero() {
+		return "", false
+	}
+
+	timeout := kh.checkTimeoutDuration(check)
+	if timeout <= 0 {
+		return "", false
+	}
+
+	deadline := startedAt.Add(timeout).Unix()
+	return strconv.FormatInt(deadline, 10), true
 }
 
 // setEnvVar ensures the provided environment variable is present, replacing existing entries.
