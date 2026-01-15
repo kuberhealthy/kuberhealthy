@@ -13,7 +13,7 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("KH_MAX_CHECK_POD_AGE", "15m")
 	t.Setenv("KH_MAX_COMPLETED_POD_COUNT", "5")
 	t.Setenv("KH_MAX_ERROR_POD_COUNT", "2")
-	t.Setenv("KH_ERROR_POD_RETENTION_DAYS", "3")
+	t.Setenv("KH_ERROR_POD_RETENTION_TIME", "36h")
 	t.Setenv("KH_PROM_SUPPRESS_ERROR_LABEL", "true")
 	t.Setenv("KH_PROM_ERROR_LABEL_MAX_LENGTH", "20")
 	t.Setenv("KH_TARGET_NAMESPACE", "testing")
@@ -48,8 +48,8 @@ func TestLoadFromEnv(t *testing.T) {
 	if cfg.MaxErrorPodCount != 2 {
 		t.Errorf("MaxErrorPodCount parsed incorrectly: %d", cfg.MaxErrorPodCount)
 	}
-	if cfg.ErrorPodRetentionDays != 3 {
-		t.Errorf("ErrorPodRetentionDays parsed incorrectly: %d", cfg.ErrorPodRetentionDays)
+	if cfg.ErrorPodRetentionTime != 36*time.Hour {
+		t.Errorf("ErrorPodRetentionTime parsed incorrectly: %v", cfg.ErrorPodRetentionTime)
 	}
 	if !cfg.PromMetricsConfig.SuppressErrorLabel {
 		t.Errorf("PromMetricsConfig.SuppressErrorLabel parsed incorrectly")

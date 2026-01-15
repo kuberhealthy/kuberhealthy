@@ -10,9 +10,9 @@ Kuberhealthy uses environment variables only. It does not accept command-line fl
 | `KH_LOG_LEVEL` | Log level (`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`) | `info` |
 | `KH_MAX_JOB_AGE` | Maximum age for check jobs before cleanup | unset |
 | `KH_MAX_CHECK_POD_AGE` | Maximum age for check pods before cleanup | unset |
-| `KH_MAX_COMPLETED_POD_COUNT` | Number of completed pods to retain (`0` deletes all completed pods) | `0` |
-| `KH_MAX_ERROR_POD_COUNT` | Number of errored pods to retain for debugging | `5` |
-| `KH_ERROR_POD_RETENTION_DAYS` | Days to retain failed pods | `4` |
+| `KH_MAX_COMPLETED_POD_COUNT` | Number of completed pods to retain (`0` deletes all completed pods) | `1` |
+| `KH_MAX_ERROR_POD_COUNT` | Number of errored pods to retain for debugging | `2` |
+| `KH_ERROR_POD_RETENTION_TIME` | Duration to retain failed pods (Go duration syntax) | `36h` |
 | `POD_NAMESPACE` | Namespace Kuberhealthy runs in | `<pod namespace>` |
 | `KH_PROM_SUPPRESS_ERROR_LABEL` | Omit error label in Prometheus metrics | `false` |
 | `KH_PROM_ERROR_LABEL_MAX_LENGTH` | Maximum length for Prometheus error label | `0` |

@@ -48,7 +48,7 @@ Kuberhealthy's runtime revolves around four primary flows that start in
 3. Completed pods are trimmed by `KH_MAX_COMPLETED_POD_COUNT`, with `0`
    deleting all completed pods on the next sweep.
 4. Failed pods are trimmed by `KH_MAX_ERROR_POD_COUNT` and by
-   `KH_ERROR_POD_RETENTION_DAYS` when configured.
+   `KH_ERROR_POD_RETENTION_TIME` when configured.
 5. `KH_MAX_CHECK_POD_AGE` deletes any checker pod that exceeds the configured
    age regardless of phase.
 

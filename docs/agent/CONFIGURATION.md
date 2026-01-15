@@ -9,9 +9,9 @@ Kuberhealthy is configured via environment variables. There are no command-line 
 - `KH_LOG_LEVEL`: Log level (`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`). Default `info`.
 - `KH_MAX_JOB_AGE`: Maximum age for check jobs before cleanup. Empty disables age-based cleanup. Uses Go duration syntax (for example `30m`).
 - `KH_MAX_CHECK_POD_AGE`: Maximum age for check pods before cleanup, regardless of phase. Empty disables age-based cleanup. Uses Go duration syntax.
-- `KH_MAX_COMPLETED_POD_COUNT`: Maximum number of completed check pods to retain. Default `0` (delete immediately).
-- `KH_MAX_ERROR_POD_COUNT`: Number of failed check pods to retain for debugging. Default `5`.
-- `KH_ERROR_POD_RETENTION_DAYS`: Days to retain failed check pods when count-based retention is not reached. Default `4`.
+- `KH_MAX_COMPLETED_POD_COUNT`: Maximum number of completed check pods to retain. Default `1`.
+- `KH_MAX_ERROR_POD_COUNT`: Number of failed check pods to retain for debugging. Default `2`.
+- `KH_ERROR_POD_RETENTION_TIME`: Duration to retain failed check pods when count-based retention is not reached. Default `36h`.
 - `KH_PROM_SUPPRESS_ERROR_LABEL`: When `true`, omit the error label on Prometheus metrics. Default `false`.
 - `KH_PROM_ERROR_LABEL_MAX_LENGTH`: Maximum length of the Prometheus error label; `0` disables truncation. Default `0`.
 - `KH_TARGET_NAMESPACE`: Namespace to watch for `HealthCheck` resources; empty means all namespaces.

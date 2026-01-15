@@ -83,7 +83,7 @@ func main() {
 	// Provide reaper settings so completed and failed checker pods are trimmed.
 	Globals.kh.SetReportingURL(GlobalConfig.ReportingURL())
 	// Apply reaper limits after the reporting URL is known.
-	Globals.kh.ConfigureReaper(GlobalConfig.MaxCompletedPodCount, GlobalConfig.MaxErrorPodCount, GlobalConfig.ErrorPodRetentionDays, GlobalConfig.MaxCheckPodAge)
+	Globals.kh.ConfigureReaper(GlobalConfig.MaxCompletedPodCount, GlobalConfig.MaxErrorPodCount, GlobalConfig.ErrorPodRetentionTime, GlobalConfig.MaxCheckPodAge)
 	err = Globals.kh.Start(ctx, Globals.kubeConfig)
 	if err != nil {
 		log.Errorln("startup: failed to start kuberhealthy:", err)

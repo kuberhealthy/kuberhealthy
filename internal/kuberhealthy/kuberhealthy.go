@@ -44,7 +44,7 @@ const (
 	// deadline without tripping a race.
 	timeoutGracePeriod = 2 * time.Second
 	// defaultMaxFailedPods is the maximum number of failed pods to retain for a check.
-	defaultMaxFailedPods = 3
+	defaultMaxFailedPods = 2
 )
 
 var (
@@ -67,7 +67,7 @@ type Kuberhealthy struct {
 
 	MaxCompletedPodCount  int           // completed checker pods to retain per check
 	MaxFailedPodCount     int           // failed checker pods to retain per check
-	ErrorPodRetentionDays int           // days to retain failed checker pods before pruning
+	ErrorPodRetentionTime time.Duration // time to retain failed checker pods before pruning
 	MaxCheckPodAge        time.Duration // age threshold for pruning stale checker pods
 
 	loopMu      sync.Mutex
@@ -94,15 +94,15 @@ func New(ctx context.Context, checkClient client.Client, doneChan ...chan struct
 		CheckClient:           checkClient,
 		Recorder:              recorder,
 		doneChan:              ch,
-		MaxCompletedPodCount:  0,
+		MaxCompletedPodCount:  1,
 		MaxFailedPodCount:     defaultMaxFailedPods,
-		ErrorPodRetentionDays: 0,
+		ErrorPodRetentionTime: 36 * time.Hour,
 		MaxCheckPodAge:        0,
 	}
 }
 
 // ConfigureReaper sets pod retention limits for the background reaper.
-func (kh *Kuberhealthy) ConfigureReaper(maxCompletedPodCount int, maxFailedPodCount int, errorPodRetentionDays int, maxCheckPodAge time.Duration) {
+func (kh *Kuberhealthy) ConfigureReaper(maxCompletedPodCount int, maxFailedPodCount int, errorPodRetentionTime time.Duration, maxCheckPodAge time.Duration) {
 	// Keep defaults when the caller supplies invalid values.
 	if maxCompletedPodCount < 0 {
 		return
@@ -110,7 +110,7 @@ func (kh *Kuberhealthy) ConfigureReaper(maxCompletedPodCount int, maxFailedPodCo
 	if maxFailedPodCount < 0 {
 		return
 	}
-	if errorPodRetentionDays < 0 {
+	if errorPodRetentionTime < 0 {
 		return
 	}
 	if maxCheckPodAge < 0 {
@@ -120,7 +120,7 @@ func (kh *Kuberhealthy) ConfigureReaper(maxCompletedPodCount int, maxFailedPodCo
 	// Store the configured limits for use during reaper sweeps.
 	kh.MaxCompletedPodCount = maxCompletedPodCount
 	kh.MaxFailedPodCount = maxFailedPodCount
-	kh.ErrorPodRetentionDays = errorPodRetentionDays
+	kh.ErrorPodRetentionTime = errorPodRetentionTime
 	kh.MaxCheckPodAge = maxCheckPodAge
 }
 
@@ -1079,7 +1079,7 @@ func (kh *Kuberhealthy) cleanupPodsForCheck(check *khapi.HealthCheck) error {
 	kh.reapCompletedPodsByCount(check, completedPods, kh.MaxCompletedPodCount)
 
 	// Drop failed pods that exceed the retention window before applying count-based pruning.
-	failedPods = kh.reapFailedPodsByAge(check, failedPods, kh.ErrorPodRetentionDays)
+	failedPods = kh.reapFailedPodsByAge(check, failedPods, kh.ErrorPodRetentionTime)
 
 	// Trim failed pods once the retention window is enforced.
 	kh.reapFailedPodsByCount(check, failedPods, kh.MaxFailedPodCount)
@@ -1119,14 +1119,14 @@ func (kh *Kuberhealthy) reapCompletedPodsByCount(check *khapi.HealthCheck, pods 
 }
 
 // reapFailedPodsByAge deletes failed pods older than the retention window and returns the remaining pods.
-func (kh *Kuberhealthy) reapFailedPodsByAge(check *khapi.HealthCheck, pods []corev1.Pod, retentionDays int) []corev1.Pod {
+func (kh *Kuberhealthy) reapFailedPodsByAge(check *khapi.HealthCheck, pods []corev1.Pod, retentionTime time.Duration) []corev1.Pod {
 	// Skip age-based trimming when no retention window is configured.
-	if retentionDays <= 0 {
+	if retentionTime <= 0 {
 		return pods
 	}
 
-	// Convert the day limit into a duration for pod age comparisons.
-	retentionWindow := time.Duration(retentionDays) * 24 * time.Hour
+	// Convert the retention duration into an age threshold for pod cleanup.
+	retentionWindow := retentionTime
 	now := time.Now()
 	var retained []corev1.Pod
 

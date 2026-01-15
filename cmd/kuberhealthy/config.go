@@ -21,7 +21,7 @@ type Config struct {
 	MaxCheckPodAge         time.Duration
 	MaxCompletedPodCount   int
 	MaxErrorPodCount       int
-	ErrorPodRetentionDays  int
+	ErrorPodRetentionTime  time.Duration
 	PromMetricsConfig      metrics.PromMetricsConfig
 	TargetNamespace        string
 	DefaultRunInterval     time.Duration
@@ -51,8 +51,9 @@ func New() *Config {
 		TerminationGracePeriod: time.Minute * 5,
 		DefaultCheckTimeout:    30 * time.Second,
 		Namespace:              ns,
-		MaxErrorPodCount:       5,
-		ErrorPodRetentionDays:  4,
+		MaxCompletedPodCount:   1,
+		MaxErrorPodCount:       2,
+		ErrorPodRetentionTime:  36 * time.Hour,
 	}
 }
 
@@ -123,16 +124,16 @@ func (c *Config) LoadFromEnv() error {
 	}
 
 	// parse the error pod retention window override
-	errorPodRetentionDays := os.Getenv("KH_ERROR_POD_RETENTION_DAYS")
-	if errorPodRetentionDays != "" {
-		parsedDays, err := strconv.Atoi(errorPodRetentionDays)
+	errorPodRetentionTime := os.Getenv("KH_ERROR_POD_RETENTION_TIME")
+	if errorPodRetentionTime != "" {
+		parsedDuration, err := time.ParseDuration(errorPodRetentionTime)
 		if err != nil {
-			return fmt.Errorf("invalid KH_ERROR_POD_RETENTION_DAYS: %w", err)
+			return fmt.Errorf("invalid KH_ERROR_POD_RETENTION_TIME: %w", err)
 		}
-		if parsedDays < 0 {
-			return fmt.Errorf("invalid KH_ERROR_POD_RETENTION_DAYS: value must be non-negative")
+		if parsedDuration < 0 {
+			return fmt.Errorf("invalid KH_ERROR_POD_RETENTION_TIME: value must be non-negative")
 		}
-		c.ErrorPodRetentionDays = parsedDays
+		c.ErrorPodRetentionTime = parsedDuration
 	}
 
 	// parse the metrics error suppression toggle

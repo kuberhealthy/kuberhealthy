@@ -44,11 +44,11 @@ spec:
         - name: KH_MAX_CHECK_POD_AGE
           value: ""
         - name: KH_MAX_COMPLETED_POD_COUNT
-          value: "0"
+          value: "1"
         - name: KH_MAX_ERROR_POD_COUNT
-          value: "5"
-        - name: KH_ERROR_POD_RETENTION_DAYS
-          value: "4"
+          value: "2"
+        - name: KH_ERROR_POD_RETENTION_TIME
+          value: "36h"
         - name: KH_PROM_SUPPRESS_ERROR_LABEL
           value: "false"
         - name: KH_PROM_ERROR_LABEL_MAX_LENGTH
