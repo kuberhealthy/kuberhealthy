@@ -22,8 +22,8 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: {{ template "kuberhealthy3.name" . }}
-  name: {{ template "kuberhealthy3.name" . }}
+    app: {{ template "kuberhealthy.name" . }}
+  name: {{ template "kuberhealthy.name" . }}
   namespace: {{ .Values.namespace | default .Release.Namespace }}
   {{- if $annotations }}
   annotations:
@@ -38,4 +38,4 @@ spec:
     name: http
     targetPort: http
   selector:
-    app: {{ template "kuberhealthy3.name" . }}
+    app: {{ template "kuberhealthy.name" . }}

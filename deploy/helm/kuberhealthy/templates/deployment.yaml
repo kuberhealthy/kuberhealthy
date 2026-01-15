@@ -2,10 +2,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "kuberhealthy3.name" . }}
+  name: {{ template "kuberhealthy.name" . }}
   namespace: {{ .Values.namespace | default .Release.Namespace }}
   labels:
-    app: {{ template "kuberhealthy3.name" . }}
+    app: {{ template "kuberhealthy.name" . }}
     {{- with .Values.deployment.customLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -13,7 +13,7 @@ spec:
   replicas: {{ .Values.deployment.replicas }}
   selector:
     matchLabels:
-      app: {{ template "kuberhealthy3.name" . }}
+      app: {{ template "kuberhealthy.name" . }}
   strategy:
     rollingUpdate:
       maxSurge: {{ .Values.deployment.maxSurge }}
@@ -28,12 +28,12 @@ spec:
       {{- end }}
       {{- end }}
       labels:
-        app: {{ template "kuberhealthy3.name" . }}
+        app: {{ template "kuberhealthy.name" . }}
         {{- with .Values.pod.customLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      serviceAccountName: {{ template "kuberhealthy3.name" . }}
+      serviceAccountName: {{ template "kuberhealthy.name" . }}
       automountServiceAccountToken: true
       {{- if .Values.deployment.priorityClassName }}
       priorityClassName: {{ .Values.deployment.priorityClassName }}
@@ -51,7 +51,7 @@ spec:
               - key: app
                 operator: In
                 values:
-                - {{ template "kuberhealthy3.name" . }}
+                - {{ template "kuberhealthy.name" . }}
             topologyKey: "kubernetes.io/hostname"
 {{else if eq .Values.deployment.podAntiAffinity "soft"}}
         podAntiAffinity:
@@ -63,7 +63,7 @@ spec:
                 - key: app
                   operator: In
                   values:
-                  - {{ template "kuberhealthy3.name" . }}
+                  - {{ template "kuberhealthy.name" . }}
               topologyKey: "kubernetes.io/hostname"
 {{- end }}
 {{- end }}
@@ -105,7 +105,7 @@ spec:
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 10
-        name: {{ template "kuberhealthy3.name" . }}
+        name: {{ template "kuberhealthy.name" . }}
         env:
           - name: POD_NAME
             valueFrom:
@@ -121,7 +121,7 @@ spec:
           {{- end }}
           {{- if not (hasKey .Values.deployment.env "KH_CHECK_REPORT_URL") }}
           - name: KH_CHECK_REPORT_URL
-            value: "http://{{ template "kuberhealthy3.name" . }}.{{ .Values.namespace | default .Release.Namespace }}.svc.cluster.local:8080"
+            value: "http://{{ template "kuberhealthy.name" . }}.{{ .Values.namespace | default .Release.Namespace }}.svc.cluster.local:8080"
           {{- end }}
           {{- if not (hasKey .Values.deployment.env "KH_DEFAULT_NAMESPACE") }}
           - name: KH_DEFAULT_NAMESPACE

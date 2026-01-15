@@ -13,10 +13,10 @@ Kuberhealthy runs synthetic checks inside your Kubernetes cluster and exports st
    kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base
 
    # Helm (from this repo)
-   helm install kuberhealthy3 deploy/helm/kuberhealthy3 -n kuberhealthy --create-namespace
+   helm install kuberhealthy deploy/helm/kuberhealthy -n kuberhealthy --create-namespace
 
    # ArgoCD (pre-made application)
-   kubectl apply -f deploy/argocd/kuberhealthy3.yaml
+   kubectl apply -f deploy/argocd/kuberhealthy.yaml
    ```
 
 2. Port-forward the service:
@@ -26,7 +26,7 @@ Kuberhealthy runs synthetic checks inside your Kubernetes cluster and exports st
    kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
 
    # Helm
-   kubectl -n kuberhealthy port-forward svc/kuberhealthy3 8080:8080
+   kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
    ```
 
 3. Open `http://localhost:8080` and apply a [HealthCheck](docs/CHECKS_REGISTRY.md).

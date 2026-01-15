@@ -1,5 +1,5 @@
 apiVersion: v2
-name: kuberhealthy3
+name: kuberhealthy
 appVersion: main
 version: 1
 home: https://kuberhealthy.github.io/kuberhealthy/
@@ -18,5 +18,5 @@ keywords:
   - health
 sources:
   - https://github.com/kuberhealthy/kuberhealthy
-  - https://github.com/kuberhealthy/kuberhealthy/tree/main/deploy/helm/kuberhealthy3
+  - https://github.com/kuberhealthy/kuberhealthy/tree/main/deploy/helm/kuberhealthy
 icon: https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/images/logo-square.png

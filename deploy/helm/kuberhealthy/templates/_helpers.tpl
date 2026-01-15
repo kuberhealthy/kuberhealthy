@@ -2,7 +2,7 @@
 {{/*
 Setup a chart name
 */}}
-{{- define "kuberhealthy3.name" -}}
+{{- define "kuberhealthy.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 

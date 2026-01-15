@@ -2,7 +2,7 @@
 apiVersion: {{ template "rbac.apiVersion" . }}
 kind: ClusterRole
 metadata:
-  name: {{ template "kuberhealthy3.name" . }}
+  name: {{ template "kuberhealthy.name" . }}
 rules:
   - apiGroups: ["kuberhealthy.github.io"]
     resources:
@@ -20,7 +20,7 @@ rules:
   - apiGroups:
       - extensions
     resourceNames:
-      - {{ template "kuberhealthy3.name" . }}-psp
+      - {{ template "kuberhealthy.name" . }}-psp
     resources:
       - podsecuritypolicies
     verbs:

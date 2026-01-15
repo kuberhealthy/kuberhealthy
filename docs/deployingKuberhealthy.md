@@ -1,6 +1,6 @@
 # Deploying Kuberhealthy
 
-Kuberhealthy ships Kustomize manifests in `deploy/kustomize` and a Helm chart in `deploy/helm/kuberhealthy3`.
+Kuberhealthy ships Kustomize manifests in `deploy/kustomize` and a Helm chart in `deploy/helm/kuberhealthy`.
 
 ## Kustomize
 
@@ -13,15 +13,15 @@ The base Service is `kuberhealthy` on port `8080`.
 ## Helm (v3 chart)
 
 ```sh
-helm install kuberhealthy3 deploy/helm/kuberhealthy3 -n kuberhealthy --create-namespace
+helm install kuberhealthy deploy/helm/kuberhealthy -n kuberhealthy --create-namespace
 ```
 
-The Service is `kuberhealthy3` on port `8080`.
+The Service is `kuberhealthy` on port `8080`.
 
 ## ArgoCD
 
 ```sh
-kubectl apply -f deploy/argocd/kuberhealthy3.yaml
+kubectl apply -f deploy/argocd/kuberhealthy.yaml
 ```
 
 ## Expose the status page
