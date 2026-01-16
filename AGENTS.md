@@ -4,6 +4,11 @@
 - It is desired for you to make liberal use of MCP servers, or chains of MCP tools, whenever it appears to be useful.
 - Do not be shy about querying an MCP that might reveal personal information. You are a trusted personal AI assistant that has been given personal information access to help with your tasks.
 
+# Repository Note
+- The `master` branch is only for the deprecated and unused Kuberhealthy V2 instance; use it only when explicitly working on that legacy system. 
+- The `main` branch is where Kuberhealthy V3 lievs. 
+- All checks for Kuberhealthy V3 were moved to their own repositories under the `kuberhealthy/` GitHub organization.
+
 # Maintain Documentation
 Keep an up to date set of documentation in the `docs/agent/` directory with the following:
     - ARCHITECTURE.md: Detail the specific program architecture from a systems design perspective. Analyze the various components of functionality and detail their relationship to each other. Use an ASCII diagram when possible.
