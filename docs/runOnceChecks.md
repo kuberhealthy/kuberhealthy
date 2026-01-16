@@ -17,14 +17,17 @@ spec:
     spec:
       containers:
         - name: main
-          image: docker.io/kuberhealthy/kuberhealthy:main
+          image: docker.io/curlimages/curl:8.5.0
           command:
             - sh
             - -c
             - |
               set -euo pipefail
               curl -fsS https://kubernetes.default.svc/version
-              curl -fsS -H "Content-Type: application/json"                 -H "kh-run-uuid: $KH_RUN_UUID"                 -d '{"OK":true,"Errors":[]}' "$KH_REPORTING_URL"
+              curl -fsS \
+                -H "Content-Type: application/json" \
+                -H "kh-run-uuid: $KH_RUN_UUID" \
+                -d '{"OK":true,"Errors":[]}' "$KH_REPORTING_URL"
       restartPolicy: Never
 ```
 

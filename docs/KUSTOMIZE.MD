@@ -5,7 +5,7 @@ This guide covers deploying Kuberhealthy with the kustomize manifests in `deploy
 ## Apply the base
 
 ```sh
-kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base
+kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base?ref=main
 ```
 
 ## Use a local clone

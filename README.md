@@ -19,7 +19,7 @@ __Kuberhealthy provides a `HealthCheck` custom resource definition to make the r
 
    Kustomize
    ```sh
-   kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base
+   kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base?ref=main
    ```
 
    Helm (from this repo)

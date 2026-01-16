@@ -20,7 +20,7 @@ Use the Go check client for report wiring:
 ```go
 package main
 
-import "github.com/kuberhealthy/kuberhealthy/v4/pkg/checks/external/checkclient"
+import "github.com/kuberhealthy/kuberhealthy/v3/pkg/checkclient"
 
 func main() {
   ok := doCheckStuff()
@@ -73,7 +73,7 @@ spec:
     - env:
         - name: MY_OPTION_ENV_VAR
           value: "option_setting_here"
-      image: docker.io/kuberhealthy/kuberhealthy:main
+      image: docker.io/curlimages/curl:8.5.0
       imagePullPolicy: Always
       name: main
 ```

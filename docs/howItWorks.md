@@ -13,7 +13,7 @@ Kuberhealthy watches `HealthCheck` resources, schedules checker pods, and record
 Use a built-in example to see the lifecycle:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/main/cmd/deployment-check/deployment-check.yaml
+kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/deployment-check/main/healthcheck.yaml
 ```
 
 ## View status
