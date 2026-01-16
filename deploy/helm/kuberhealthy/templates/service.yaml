@@ -14,6 +14,11 @@
     {{- $_ := set $annotations "service.beta.kubernetes.io/azure-load-balancer-internal" "false" -}}
   {{- end -}}
 {{- end -}}
+{{- if .Values.service.prometheusScrape.enabled -}}
+  {{- $_ := set $annotations "prometheus.io/scrape" "true" -}}
+  {{- $_ := set $annotations "prometheus.io/port" (.Values.service.prometheusScrape.port | toString) -}}
+  {{- $_ := set $annotations "prometheus.io/path" (.Values.service.prometheusScrape.path | toString) -}}
+{{- end -}}
 {{- range $key, $value := .Values.service.annotations }}
 {{- $_ := set $annotations $key $value -}}
 {{- end }}

@@ -39,6 +39,10 @@ deployment:
   imagePullPolicy: IfNotPresent
   nodeSelector: {}
   podAnnotations: {}
+  prometheusScrape:
+    enabled: true
+    path: /metrics
+    port: "8080"
   tolerations: []
   # tolerations:
   # - key: "key"
@@ -93,5 +97,9 @@ service:
   externalPort: 8080
   type: LoadBalancer
   annotations: {}
+  prometheusScrape:
+    enabled: true
+    path: /metrics
+    port: "8080"
   loadBalancer:
     provider: ""

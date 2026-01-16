@@ -1,4 +1,13 @@
 ---
+{{- $podAnnotations := dict -}}
+{{- if .Values.deployment.prometheusScrape.enabled -}}
+{{- $_ := set $podAnnotations "prometheus.io/scrape" "true" -}}
+{{- $_ := set $podAnnotations "prometheus.io/port" (.Values.deployment.prometheusScrape.port | toString) -}}
+{{- $_ := set $podAnnotations "prometheus.io/path" (.Values.deployment.prometheusScrape.path | toString) -}}
+{{- end -}}
+{{- range $key, $value := .Values.deployment.podAnnotations }}
+{{- $_ := set $podAnnotations $key $value -}}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,9 +30,9 @@ spec:
     type: RollingUpdate
   template:
     metadata:
-      {{- if .Values.deployment.podAnnotations }}
+      {{- if $podAnnotations }}
       annotations:
-      {{- range $key, $value := .Values.deployment.podAnnotations }}
+      {{- range $key, $value := $podAnnotations }}
         {{ $key }}: {{ $value | quote }}
       {{- end }}
       {{- end }}
