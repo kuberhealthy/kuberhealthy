@@ -1,0 +1,55 @@
+# HELP kuberhealthy_cluster_state Shows the status of the cluster
+# TYPE kuberhealthy_cluster_state gauge
+kuberhealthy_cluster_state 0
+# HELP kuberhealthy_controller_leader Shows whether this controller instance is the elected leader
+# TYPE kuberhealthy_controller_leader gauge
+kuberhealthy_controller_leader 1
+# HELP kuberhealthy_scheduler_loop_duration_seconds Shows the duration of the last scheduling loop
+# TYPE kuberhealthy_scheduler_loop_duration_seconds gauge
+kuberhealthy_scheduler_loop_duration_seconds 1.250000
+# HELP kuberhealthy_scheduler_due_checks Shows the number of checks that were due in the last scheduling loop
+# TYPE kuberhealthy_scheduler_due_checks gauge
+kuberhealthy_scheduler_due_checks 2
+# HELP kuberhealthy_reaper_last_sweep_duration_seconds Shows the duration of the last reaper sweep
+# TYPE kuberhealthy_reaper_last_sweep_duration_seconds gauge
+kuberhealthy_reaper_last_sweep_duration_seconds 0.750000
+# HELP kuberhealthy_reaper_deleted_pods_total Shows the total pods deleted by the reaper
+# TYPE kuberhealthy_reaper_deleted_pods_total counter
+kuberhealthy_reaper_deleted_pods_total{reason="failed"} 2
+kuberhealthy_reaper_deleted_pods_total{reason="timeout"} 1
+# HELP kuberhealthy_check Shows the status of a Kuberhealthy check
+# TYPE kuberhealthy_check gauge
+kuberhealthy_check{category="kube-inf",check="daemonset",error="",namespace="kuberhealthy",run_uuid="run-1",severity="critical",status="1"} 1
+kuberhealthy_check{category="workload",check="deployment",error="error one|error two",namespace="kuberhealthy",severity="warning",status="0"} 0
+# HELP kuberhealthy_check_duration_seconds Shows the check run duration of a Kuberhealthy check
+# TYPE kuberhealthy_check_duration_seconds gauge
+kuberhealthy_check_duration_seconds{category="kube-inf",check="daemonset",namespace="kuberhealthy",run_uuid="run-1",severity="critical"} 4.000000
+kuberhealthy_check_duration_seconds{category="workload",check="deployment",namespace="kuberhealthy",severity="warning"} 12.000000
+# HELP kuberhealthy_check_consecutive_failures Shows the number of consecutive failures for a Kuberhealthy check
+# TYPE kuberhealthy_check_consecutive_failures gauge
+kuberhealthy_check_consecutive_failures{category="kube-inf",check="daemonset",namespace="kuberhealthy",run_uuid="run-1",severity="critical"} 0
+kuberhealthy_check_consecutive_failures{category="workload",check="deployment",namespace="kuberhealthy",severity="warning"} 2
+# HELP kuberhealthy_check_success_total Shows the total number of successful runs for a check
+# TYPE kuberhealthy_check_success_total counter
+kuberhealthy_check_success_total{category="kube-inf",check="daemonset",namespace="kuberhealthy",run_uuid="run-1",severity="critical"} 3
+kuberhealthy_check_success_total{category="workload",check="deployment",namespace="kuberhealthy",severity="warning"} 1
+# HELP kuberhealthy_check_failure_total Shows the total number of failed runs for a check
+# TYPE kuberhealthy_check_failure_total counter
+kuberhealthy_check_failure_total{category="kube-inf",check="daemonset",namespace="kuberhealthy",run_uuid="run-1",severity="critical"} 1
+kuberhealthy_check_failure_total{category="workload",check="deployment",namespace="kuberhealthy",severity="warning"} 4
+# HELP kuberhealthy_check_seconds_since_success Shows time since the last OK report for a check
+# TYPE kuberhealthy_check_seconds_since_success gauge
+kuberhealthy_check_seconds_since_success{category="kube-inf",check="daemonset",namespace="kuberhealthy",run_uuid="run-1",severity="critical"} 600.000000
+kuberhealthy_check_seconds_since_success{category="workload",check="deployment",namespace="kuberhealthy",severity="warning"} -1.000000
+# HELP kuberhealthy_check_run_duration_seconds Bucketed distribution of check run durations
+# TYPE kuberhealthy_check_run_duration_seconds histogram
+kuberhealthy_check_run_duration_seconds_bucket{le="1"} 0
+kuberhealthy_check_run_duration_seconds_bucket{le="5"} 1
+kuberhealthy_check_run_duration_seconds_bucket{le="10"} 1
+kuberhealthy_check_run_duration_seconds_bucket{le="30"} 2
+kuberhealthy_check_run_duration_seconds_bucket{le="60"} 2
+kuberhealthy_check_run_duration_seconds_bucket{le="120"} 2
+kuberhealthy_check_run_duration_seconds_bucket{le="300"} 2
+kuberhealthy_check_run_duration_seconds_bucket{le="+Inf"} 2
+kuberhealthy_check_run_duration_seconds_sum 16.000000
+kuberhealthy_check_run_duration_seconds_count 2

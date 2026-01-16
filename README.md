@@ -46,5 +46,7 @@ __Kuberhealthy provides a `HealthCheck` custom resource definition to make the r
 | --- | --- | --- |
 | 🚀 | [Deploying Kuberhealthy](docs/deployingKuberhealthy.md) | Installation patterns and rollout guidance. |
 | ✅ | [HealthCheck Registry](docs/CHECKS_REGISTRY.md) | Ready-to-apply checks for common cluster signals. |
+| 📈 | [Metrics Catalog](docs/metricsCatalog.md) | Prometheus metrics and labels for alerting. |
+| 🧭 | [Prometheus Examples](docs/prometheus) | Rules and scrape examples for Prometheus and Prometheus Operator. |
 | 🧰 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Debugging steps for failed checks and controller issues. |
 | 🗒️ | [Release Notes](docs/releaseNotes.md) | Upgrade notes and version-specific changes. |

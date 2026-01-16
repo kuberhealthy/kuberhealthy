@@ -15,10 +15,11 @@ import (
 // last run time is unknown.
 type CheckDetail struct {
 	khapi.HealthCheckStatus
-	NextRunUnix        int64  `json:"nextRunUnix,omitempty"`
-	PodName            string `json:"podName,omitempty"`
-	TimeoutSeconds     int64  `json:"timeoutSeconds,omitempty"`
-	RunIntervalSeconds int64  `json:"runIntervalSeconds,omitempty"`
+	NextRunUnix        int64             `json:"nextRunUnix,omitempty"`
+	PodName            string            `json:"podName,omitempty"`
+	TimeoutSeconds     int64             `json:"timeoutSeconds,omitempty"`
+	RunIntervalSeconds int64             `json:"runIntervalSeconds,omitempty"`
+	Labels             map[string]string `json:"-"`
 }
 
 // State represents the results of all checks being managed along with a
@@ -30,6 +31,23 @@ type State struct {
 	CheckDetails  map[string]CheckDetail // map of job names to last run timestamp
 	CurrentMaster string
 	Metadata      map[string]string
+	Controller    ControllerMetrics `json:"-"`
+}
+
+// ControllerMetrics captures controller-level statistics for metrics emission.
+type ControllerMetrics struct {
+	IsLeader                       bool
+	SchedulerLoopDurationSeconds   float64
+	SchedulerDueChecks             int
+	ReaperLastSweepDurationSeconds float64
+	ReaperDeletedPodsTotalByReason map[string]int64
+}
+
+// NewControllerMetrics builds a ControllerMetrics struct with initialized maps.
+func NewControllerMetrics() ControllerMetrics {
+	return ControllerMetrics{
+		ReaperDeletedPodsTotalByReason: map[string]int64{},
+	}
 }
 
 // AddError adds new errors to State
@@ -74,5 +92,6 @@ func NewState() State {
 	s.Errors = []string{}
 	s.CheckDetails = make(map[string]CheckDetail)
 	s.Metadata = map[string]string{}
+	s.Controller = NewControllerMetrics()
 	return s
 }

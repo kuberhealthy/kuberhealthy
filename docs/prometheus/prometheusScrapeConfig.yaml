@@ -1,0 +1,15 @@
+# Example scrape config for vanilla Prometheus.
+- job_name: kuberhealthy
+  metrics_path: /metrics
+  kubernetes_sd_configs:
+    - role: endpoints
+  relabel_configs:
+    - source_labels: [__meta_kubernetes_service_label_app]
+      action: keep
+      regex: kuberhealthy
+    - source_labels: [__meta_kubernetes_namespace]
+      action: keep
+      regex: kuberhealthy
+    - source_labels: [__meta_kubernetes_endpoint_port_name]
+      action: keep
+      regex: http

@@ -16,6 +16,9 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("KH_ERROR_POD_RETENTION_TIME", "36h")
 	t.Setenv("KH_PROM_SUPPRESS_ERROR_LABEL", "true")
 	t.Setenv("KH_PROM_ERROR_LABEL_MAX_LENGTH", "20")
+	t.Setenv("KH_PROM_LABEL_ALLOWLIST", "severity,category,run_uuid")
+	t.Setenv("KH_PROM_LABEL_DENYLIST", "category")
+	t.Setenv("KH_PROM_LABEL_VALUE_MAX_LENGTH", "64")
 	t.Setenv("KH_TARGET_NAMESPACE", "testing")
 	t.Setenv("KH_DEFAULT_RUN_INTERVAL", "3m")
 	t.Setenv("KH_CHECK_REPORT_URL", "http://example.com:9000")
@@ -56,6 +59,15 @@ func TestLoadFromEnv(t *testing.T) {
 	}
 	if cfg.PromMetricsConfig.ErrorLabelMaxLength != 20 {
 		t.Errorf("PromMetricsConfig.ErrorLabelMaxLength parsed incorrectly: %d", cfg.PromMetricsConfig.ErrorLabelMaxLength)
+	}
+	if len(cfg.PromMetricsConfig.LabelAllowlist) != 3 {
+		t.Errorf("PromMetricsConfig.LabelAllowlist parsed incorrectly: %v", cfg.PromMetricsConfig.LabelAllowlist)
+	}
+	if len(cfg.PromMetricsConfig.LabelDenylist) != 1 {
+		t.Errorf("PromMetricsConfig.LabelDenylist parsed incorrectly: %v", cfg.PromMetricsConfig.LabelDenylist)
+	}
+	if cfg.PromMetricsConfig.LabelValueMaxLength != 64 {
+		t.Errorf("PromMetricsConfig.LabelValueMaxLength parsed incorrectly: %d", cfg.PromMetricsConfig.LabelValueMaxLength)
 	}
 	if cfg.TargetNamespace != "testing" {
 		t.Errorf("TargetNamespace parsed incorrectly: %s", cfg.TargetNamespace)

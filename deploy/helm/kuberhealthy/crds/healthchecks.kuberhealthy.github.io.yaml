@@ -3629,7 +3629,15 @@ spec:
                   items:
                     type: string
                   type: array
+                failureCount:
+                  type: integer
                 lastRunUnix:
+                  format: int64
+                  type: integer
+                lastFailureUnix:
+                  format: int64
+                  type: integer
+                lastOKUnix:
                   format: int64
                   type: integer
                 namespace:
@@ -3638,6 +3646,8 @@ spec:
                   type: boolean
                 runDuration:
                   format: int64
+                  type: integer
+                successCount:
                   type: integer
               type: object
           type: object

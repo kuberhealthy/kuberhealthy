@@ -886,6 +886,8 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 		check.EnsureCreationTimestamp()
 
 		status := health.CheckDetail{HealthCheckStatus: check.Status}
+		// Store labels for metrics derivation without exposing them in the JSON status output.
+		status.Labels = check.Labels
 		status.RunIntervalSeconds = int64(runInterval.Seconds())
 		if timeout > 0 {
 			status.TimeoutSeconds = int64(timeout.Seconds())
@@ -911,6 +913,11 @@ func getCurrentStatusForNamespaces(namespaces []string) health.State {
 			state.OK = false
 			state.AddError(status.Errors...)
 		}
+	}
+
+	// Attach controller metrics when the controller is available.
+	if Globals.kh != nil {
+		state.Controller = Globals.kh.MetricsSnapshot()
 	}
 
 	return state
@@ -1059,6 +1066,9 @@ func setCheckStatus(c client.Client, checkName string, checkNamespace string, in
 	// derived fields like lastRunUnix and runDuration. Only update fields
 	// that the reporting pod controls.
 	if incoming != nil {
+		// Capture the report time for counters and timestamps.
+		nowUnix := time.Now().Unix()
+
 		// core health fields
 		khCheck.Status.OK = incoming.OK
 		khCheck.Status.Errors = incoming.Errors
@@ -1077,8 +1087,13 @@ func setCheckStatus(c client.Client, checkName string, checkNamespace string, in
 		// track consecutive failures similarly to internal controller helpers
 		if incoming.OK {
 			khCheck.Status.ConsecutiveFailures = 0
-		} else if len(incoming.Errors) > 0 {
+			khCheck.Status.SuccessCount++
+			khCheck.Status.LastOKUnix = nowUnix
+		}
+		if !incoming.OK {
 			khCheck.Status.ConsecutiveFailures++
+			khCheck.Status.FailureCount++
+			khCheck.Status.LastFailureUnix = nowUnix
 		}
 	} else {
 		if khCheck.Status.Namespace == "" {

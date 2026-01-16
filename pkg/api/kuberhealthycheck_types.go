@@ -82,6 +82,14 @@ type HealthCheckStatus struct {
 	CurrentUUID string `json:"currentUUID"`
 	// LastRunUnix is the last time that this check was scheduled to run.
 	LastRunUnix int64 `json:"lastRunUnix,omitempty"`
+	// SuccessCount tracks the total number of successful runs.
+	SuccessCount int `json:"successCount,omitempty"`
+	// FailureCount tracks the total number of failed runs.
+	FailureCount int `json:"failureCount,omitempty"`
+	// LastOKUnix is the last time this check reported OK.
+	LastOKUnix int64 `json:"lastOKUnix,omitempty"`
+	// LastFailureUnix is the last time this check reported a failure.
+	LastFailureUnix int64 `json:"lastFailureUnix,omitempty"`
 	// AdditionalMetadata is used to store additional metadata bout this check that appears in the JSON status.
 	AdditionalMetadata string `json:"additionalMetadata,omitempty"`
 	// Additional derived timing fields like next run and current runtime are

@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: kuberhealthy
+  namespace: kuberhealthy
+spec:
+  selector:
+    matchLabels:
+      app: kuberhealthy
+  namespaceSelector:
+    matchNames:
+      - kuberhealthy
+  podMetricsEndpoints:
+    - port: http
+      path: /metrics
+      interval: 30s

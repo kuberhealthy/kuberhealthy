@@ -52,14 +52,18 @@ func New() *Config {
 		ListenAddressTLS: ":443",
 		LogLevel:         "info",
 		// Default to the in-cluster service URL
-		checkReportBaseURL:          fmt.Sprintf("http://kuberhealthy.%s.svc.cluster.local:8080", ns),
-		DefaultRunInterval:          time.Minute * 10,
-		TerminationGracePeriod:      time.Minute * 5,
-		DefaultCheckTimeout:         30 * time.Second,
-		Namespace:                   ns,
-		MaxCompletedPodCount:        1,
-		MaxErrorPodCount:            2,
-		ErrorPodRetentionTime:       36 * time.Hour,
+		checkReportBaseURL:     fmt.Sprintf("http://kuberhealthy.%s.svc.cluster.local:8080", ns),
+		DefaultRunInterval:     time.Minute * 10,
+		TerminationGracePeriod: time.Minute * 5,
+		DefaultCheckTimeout:    30 * time.Second,
+		Namespace:              ns,
+		MaxCompletedPodCount:   1,
+		MaxErrorPodCount:       2,
+		ErrorPodRetentionTime:  36 * time.Hour,
+		PromMetricsConfig: metrics.PromMetricsConfig{
+			LabelAllowlist:      []string{"severity", "category"},
+			LabelValueMaxLength: 256,
+		},
 		LeaderElectionEnabled:       false,
 		LeaderElectionNamespace:     ns,
 		LeaderElectionName:          "kuberhealthy-controller",
@@ -67,6 +71,36 @@ func New() *Config {
 		LeaderElectionRenewDeadline: time.Second * 10,
 		LeaderElectionRetryPeriod:   time.Second * 2,
 	}
+}
+
+// parseLabelList splits comma-separated values into a de-duplicated list.
+func parseLabelList(rawValue string) []string {
+	// Trim whitespace to avoid accidental blank entries.
+	trimmed := strings.TrimSpace(rawValue)
+	if trimmed == "" {
+		return nil
+	}
+
+	// Split into fields and normalize whitespace.
+	parts := strings.Split(trimmed, ",")
+	seen := make(map[string]struct{})
+	labels := make([]string, 0, len(parts))
+
+	// Collect unique label keys.
+	for _, part := range parts {
+		value := strings.TrimSpace(part)
+		if value == "" {
+			continue
+		}
+		_, exists := seen[value]
+		if exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		labels = append(labels, value)
+	}
+
+	return labels
 }
 
 // LoadFromEnv populates the config from environment variables.
@@ -169,6 +203,31 @@ func (c *Config) LoadFromEnv() error {
 			return fmt.Errorf("invalid KH_PROM_ERROR_LABEL_MAX_LENGTH: value must be non-negative")
 		}
 		c.PromMetricsConfig.ErrorLabelMaxLength = parsedLength
+	}
+
+	// parse the metrics label allowlist override
+	labelAllowlist := os.Getenv("KH_PROM_LABEL_ALLOWLIST")
+	if labelAllowlist != "" {
+		c.PromMetricsConfig.LabelAllowlist = parseLabelList(labelAllowlist)
+	}
+
+	// parse the metrics label denylist override
+	labelDenylist := os.Getenv("KH_PROM_LABEL_DENYLIST")
+	if labelDenylist != "" {
+		c.PromMetricsConfig.LabelDenylist = parseLabelList(labelDenylist)
+	}
+
+	// parse the metrics label value truncation override
+	labelValueMaxLength := os.Getenv("KH_PROM_LABEL_VALUE_MAX_LENGTH")
+	if labelValueMaxLength != "" {
+		parsedLength, err := strconv.Atoi(labelValueMaxLength)
+		if err != nil {
+			return fmt.Errorf("invalid KH_PROM_LABEL_VALUE_MAX_LENGTH: %w", err)
+		}
+		if parsedLength < 0 {
+			return fmt.Errorf("invalid KH_PROM_LABEL_VALUE_MAX_LENGTH: value must be non-negative")
+		}
+		c.PromMetricsConfig.LabelValueMaxLength = parsedLength
 	}
 
 	// update the target namespace for checks when provided

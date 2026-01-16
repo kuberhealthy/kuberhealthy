@@ -16,6 +16,9 @@ Kuberhealthy uses environment variables only. It does not accept command-line fl
 | `POD_NAMESPACE` | Namespace Kuberhealthy runs in | `<pod namespace>` |
 | `KH_PROM_SUPPRESS_ERROR_LABEL` | Omit error label in Prometheus metrics | `false` |
 | `KH_PROM_ERROR_LABEL_MAX_LENGTH` | Maximum length for Prometheus error label | `0` |
+| `KH_PROM_LABEL_ALLOWLIST` | Comma-separated list of extra label keys to include (for example `severity,category`) | `severity,category` |
+| `KH_PROM_LABEL_DENYLIST` | Comma-separated list of extra label keys to exclude | unset |
+| `KH_PROM_LABEL_VALUE_MAX_LENGTH` | Maximum length for extra label values | `256` |
 | `KH_TARGET_NAMESPACE` | Namespace Kuberhealthy operates in (blank for all) | `` |
 | `KH_DEFAULT_RUN_INTERVAL` | Default check run interval | `10m` |
 | `KH_CHECK_REPORT_URL` | Base URL used for check reports; `/check` is appended automatically | `http://kuberhealthy.<namespace>.svc.cluster.local:8080` |

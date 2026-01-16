@@ -25,6 +25,8 @@ is propagated across packages.
   - Stores the process context, cancellation function, Kubernetes client, event
     recorder, reporting URL, leader state, and coordination primitives such as
     `loopMu`.
+  - Captures controller metrics snapshots (scheduler loop timing, due checks,
+    reaper sweep timing, and deletion counts) for Prometheus export.
   - Exposes methods for starting and stopping the scheduler, beginning specific
     runs, tracking timeouts, and validating report UUIDs.
 - **`checkRun` / `activeCheck` helpers**
@@ -38,6 +40,8 @@ is propagated across packages.
   - Custom resource definition representing a synthetic check.
   - `Spec` embeds a `CheckPodSpec` that includes Kubernetes pod metadata and the
     exact `PodSpec` to run, while `Status` captures runtime results.
+  - `Status` now includes success/failure counters and timestamps for the last
+    OK or failed run, enabling SLO-focused metrics.
 - **`CheckPodSpec` and `CheckPodMetadata`**
   - Define the pod template executed for each run, plus optional labels and
     annotations applied by the controller.

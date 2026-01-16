@@ -79,6 +79,8 @@ type Kuberhealthy struct {
 	loopRunning bool
 	doneChan    chan struct{} // signaled when shutdown completes
 
+	metricsMu       sync.Mutex
+	metricsSnapshot controllerMetricsSnapshot
 }
 
 // New creates a new Kuberhealthy instance, event recorder, and optional shutdown notifier.
@@ -103,6 +105,7 @@ func New(ctx context.Context, checkClient client.Client, doneChan ...chan struct
 		MaxFailedPodCount:     defaultMaxFailedPods,
 		ErrorPodRetentionTime: 36 * time.Hour,
 		MaxCheckPodAge:        0,
+		metricsSnapshot:       newControllerMetricsSnapshot(),
 	}
 }
 
@@ -355,18 +358,25 @@ func (kh *Kuberhealthy) startScheduleLoop(ctx context.Context) {
 
 // scheduleChecks iterates through all HealthChecks, starts any that are due to run, and returns the shortest delay before the next evaluation should occur.
 func (kh *Kuberhealthy) scheduleChecks(ctx context.Context) time.Duration {
+	// Track the scheduler loop duration for metrics.
+	startTime := time.Now()
+
 	uList := &unstructured.UnstructuredList{}
 	uList.SetGroupVersionKind(khapi.GroupVersion.WithKind("HealthCheckList"))
 	err := kh.CheckClient.List(ctx, uList)
 	if err != nil {
 		log.Errorln("failed to list healthchecks:", err)
+		// Record scheduler metrics even when listing fails.
+		kh.recordSchedulerMetrics(time.Since(startTime), 0)
 		return minimumScheduleInterval
 	}
 
 	nextDelay := time.Duration(0)
 	started := false
 	now := time.Now()
+	dueChecks := 0
 	for _, healthCheckItem := range uList.Items {
+		// Calculate the effective run interval for the check.
 		runInterval := kh.runIntervalForCheck(&healthCheckItem)
 
 		var check khapi.HealthCheck
@@ -395,6 +405,9 @@ func (kh *Kuberhealthy) scheduleChecks(ctx context.Context) time.Duration {
 			continue
 		}
 
+		// Count checks that are due for scheduling.
+		dueChecks++
+
 		err = kh.StartCheck(&check)
 		if err != nil {
 			log.Errorf("failed to start check %s/%s: %v", check.Namespace, check.Name, err)
@@ -403,6 +416,9 @@ func (kh *Kuberhealthy) scheduleChecks(ctx context.Context) time.Duration {
 		started = true
 		nextDelay = minPositiveDuration(nextDelay, runInterval)
 	}
+
+	// Record scheduler metrics after evaluating the checks.
+	kh.recordSchedulerMetrics(time.Since(startTime), dueChecks)
 
 	if started {
 		return minimumScheduleInterval
@@ -708,6 +724,8 @@ func (kh *Kuberhealthy) failRunIfOverdue(checkName types.NamespacedName, uuid st
 	// persist the timeout result on the check status so the web UI immediately reflects the failure
 	check.SetCheckExecutionError([]string{statusMessage})
 	check.SetNotOK()
+	check.Status.FailureCount++
+	check.Status.LastFailureUnix = time.Now().Unix()
 
 	err = khapi.UpdateCheck(ctx, kh.CheckClient, check)
 	if err != nil {
@@ -744,6 +762,8 @@ func (kh *Kuberhealthy) recordPodCreationFailure(checkName types.NamespacedName,
 	}
 	check.SetCheckExecutionError([]string{message})
 	check.SetNotOK()
+	check.Status.FailureCount++
+	check.Status.LastFailureUnix = time.Now().Unix()
 
 	// store the failure back to the API server
 	return khapi.UpdateCheck(ctx, kh.CheckClient, check)
@@ -1067,12 +1087,17 @@ func (kh *Kuberhealthy) runReaper(ctx context.Context, interval time.Duration) {
 
 // reapOnce performs a single scan of HealthChecks and applies cleanup logic. It is primarily exposed for unit testing.
 func (kh *Kuberhealthy) reapOnce() error {
+	// Track the duration of each reaper sweep for metrics.
+	startTime := time.Now()
+
 	ctx := kh.controllerContext()
 
 	// gather every HealthCheck so we can inspect their pod history
 	var checkList khapi.HealthCheckList
 	err := kh.CheckClient.List(ctx, &checkList)
 	if err != nil {
+		// Record sweep duration even when listing fails.
+		kh.recordReaperMetrics(time.Since(startTime))
 		return err
 	}
 	for i := range checkList.Items {
@@ -1087,6 +1112,9 @@ func (kh *Kuberhealthy) reapOnce() error {
 			log.Errorf("reaper: cleanup pods for %s/%s: %v", check.Namespace, check.Name, cleanupErr)
 		}
 	}
+
+	// Record the sweep duration for metrics after cleanup completes.
+	kh.recordReaperMetrics(time.Since(startTime))
 
 	return nil
 }
@@ -1318,11 +1346,34 @@ func (kh *Kuberhealthy) deletePod(check *khapi.HealthCheck, pod *corev1.Pod, eve
 		"pod":       pod.Name,
 	}).Info("deleted checker pod")
 
+	// Track reaper deletions by reason for metrics.
+	metricReason := reaperReasonFromEvent(reason)
+	if metricReason != "" {
+		kh.incrementReaperDelete(metricReason)
+	}
+
 	if kh.Recorder != nil {
 		kh.Recorder.Eventf(check, eventType, reason, message)
 	}
 
 	return nil
+}
+
+// reaperReasonFromEvent maps event reasons to metrics labels.
+func reaperReasonFromEvent(reason string) string {
+	if reason == "CheckRunTimeout" {
+		return "timeout"
+	}
+	if reason == "CheckPodReaped" {
+		return "completed"
+	}
+	if reason == "CheckFailedPodReaped" {
+		return "failed"
+	}
+	if reason == "CheckPodExpired" {
+		return "expired"
+	}
+	return ""
 }
 
 // readCheck fetches a check from the cluster.
@@ -1345,6 +1396,8 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName types.NamespacedName, ch
 	khCheck.Status.Errors = checkErrors
 	if len(checkErrors) > 0 {
 		khCheck.Status.ConsecutiveFailures++
+		khCheck.Status.FailureCount++
+		khCheck.Status.LastFailureUnix = time.Now().Unix()
 	}
 
 	// update the HealthCheck resource
@@ -1430,6 +1483,8 @@ func (k *Kuberhealthy) setOK(checkName types.NamespacedName, ok bool) error {
 	khCheck.Status.OK = ok
 	if ok {
 		khCheck.Status.ConsecutiveFailures = 0
+		khCheck.Status.SuccessCount++
+		khCheck.Status.LastOKUnix = time.Now().Unix()
 	}
 
 	err = k.CheckClient.Status().Update(ctx, khCheck)

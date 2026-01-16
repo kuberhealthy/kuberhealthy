@@ -1,0 +1,33 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kuberhealthy-rules
+  namespace: kuberhealthy
+spec:
+  groups:
+    - name: kuberhealthy.rules
+      rules:
+        - alert: KuberhealthyCheckFailed
+          expr: kuberhealthy_check{status="0"} == 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Kuberhealthy check failing"
+            description: "Check {{ $labels.check }} in {{ $labels.namespace }} is failing."
+        - alert: KuberhealthyCheckStale
+          expr: kuberhealthy_check_seconds_since_success > 1800
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Kuberhealthy check stale"
+            description: "Check {{ $labels.check }} has not reported OK within the expected window."
+        - alert: KuberhealthyNoLeader
+          expr: max(kuberhealthy_controller_leader) < 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Kuberhealthy leader missing"
+            description: "No leader elected for Kuberhealthy; check controller health."
