@@ -7,7 +7,7 @@ Kuberhealthy is configured via environment variables. There are no command-line 
 - `KH_LISTEN_ADDRESS`: HTTP listen address for the main web server. Default `:8080`.
 - `KH_LISTEN_ADDRESS_TLS`: HTTPS listen address when TLS is enabled. Default `:443`.
 - `KH_LOG_LEVEL`: Log level (`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`). Default `info`.
-- `KH_MAX_JOB_AGE`: Maximum age for check jobs before cleanup. Empty disables age-based cleanup. Uses Go duration syntax (for example `30m`).
+- `KH_MAX_JOB_AGE`: Legacy setting for job cleanup (unused in v3). Uses Go duration syntax (for example `30m`).
 - `KH_MAX_CHECK_POD_AGE`: Maximum age for check pods before cleanup, regardless of phase. Empty disables age-based cleanup. Uses Go duration syntax.
 - `KH_MAX_COMPLETED_POD_COUNT`: Maximum number of completed check pods to retain. Default `1`.
 - `KH_MAX_ERROR_POD_COUNT`: Number of failed check pods to retain for debugging. Default `2`.

@@ -11,6 +11,6 @@ spec:
     matchNames:
       - kuberhealthy
   podMetricsEndpoints:
-    - port: http
+    - targetPort: 8080
       path: /metrics
       interval: 30s

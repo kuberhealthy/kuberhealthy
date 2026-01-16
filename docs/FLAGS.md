@@ -8,7 +8,7 @@ Kuberhealthy uses environment variables only. It does not accept command-line fl
 | -------- | ----------- | ------- |
 | `KH_LISTEN_ADDRESS` | Address for the web server | `:8080` |
 | `KH_LOG_LEVEL` | Log level (`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`) | `info` |
-| `KH_MAX_JOB_AGE` | Maximum age for check jobs before cleanup | unset |
+| `KH_MAX_JOB_AGE` | Legacy setting for job cleanup (unused in v3) | unset |
 | `KH_MAX_CHECK_POD_AGE` | Maximum age for check pods before cleanup | unset |
 | `KH_MAX_COMPLETED_POD_COUNT` | Number of completed pods to retain (`0` deletes all completed pods) | `1` |
 | `KH_MAX_ERROR_POD_COUNT` | Number of errored pods to retain for debugging | `2` |

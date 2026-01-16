@@ -4,7 +4,7 @@ This guide covers deploying Kuberhealthy using the prebuilt ArgoCD Application m
 
 ## What you get
 
-- An ArgoCD Application that syncs the Kuberhealthy kustomize base.
+- An ArgoCD Application that syncs the Kuberhealthy Helm chart in this repo.
 - Opinionated defaults for namespace, sync policy, and target revision.
 
 ## Apply the application
