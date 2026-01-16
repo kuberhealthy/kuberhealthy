@@ -12,11 +12,14 @@ Kuberhealthy's runtime revolves around four primary flows that start in
    pods, events, and other cluster state.
 3. `kuberhealthy.New` creates the controller instance, wiring in the context and
    optional shutdown notifier channel used later during graceful termination.
-4. `Globals.kh.Start` launches goroutines for scheduling, timeout recovery, and
-   CRD watches. Any startup error is logged so the process continues to expose
-   diagnostics.
+4. `Globals.kh.StartBase` initializes controller state without starting leader-only
+   loops.
 5. `StartWebServer` builds the HTTP multiplexer and starts HTTP/TLS listeners
-   for status pages, reporting, metrics, and helper endpoints.
+   for status pages, reporting, metrics, and helper endpoints on every replica.
+6. When leader election is enabled, each replica attempts to acquire the Lease.
+   The leader runs `StartLeaderTasks` to launch scheduling, timeout recovery,
+   and CRD watches. Non-leaders continue to serve HTTP only.
+7. When leader election is disabled, `StartLeaderTasks` is invoked directly.
 
 ## Scheduling and Running Checks
 

@@ -14,24 +14,30 @@ import (
 // Config holds all configurable options
 // Values are primarily sourced from environment variables.
 type Config struct {
-	ListenAddressTLS       string
-	ListenAddress          string
-	LogLevel               string
-	MaxKHJobAge            time.Duration
-	MaxCheckPodAge         time.Duration
-	MaxCompletedPodCount   int
-	MaxErrorPodCount       int
-	ErrorPodRetentionTime  time.Duration
-	PromMetricsConfig      metrics.PromMetricsConfig
-	TargetNamespace        string
-	DefaultRunInterval     time.Duration
-	checkReportBaseURL     string // base URL checks will report to (protocol, host, port; no path)
-	TerminationGracePeriod time.Duration
-	DefaultCheckTimeout    time.Duration
-	DefaultNamespace       string
-	Namespace              string // the namespace kh is running in
-	TLSCertFile            string
-	TLSKeyFile             string
+	ListenAddressTLS            string
+	ListenAddress               string
+	LogLevel                    string
+	MaxKHJobAge                 time.Duration
+	MaxCheckPodAge              time.Duration
+	MaxCompletedPodCount        int
+	MaxErrorPodCount            int
+	ErrorPodRetentionTime       time.Duration
+	PromMetricsConfig           metrics.PromMetricsConfig
+	TargetNamespace             string
+	DefaultRunInterval          time.Duration
+	checkReportBaseURL          string // base URL checks will report to (protocol, host, port; no path)
+	TerminationGracePeriod      time.Duration
+	DefaultCheckTimeout         time.Duration
+	DefaultNamespace            string
+	Namespace                   string // the namespace kh is running in
+	TLSCertFile                 string
+	TLSKeyFile                  string
+	LeaderElectionEnabled       bool
+	LeaderElectionNamespace     string
+	LeaderElectionName          string
+	LeaderElectionLeaseDuration time.Duration
+	LeaderElectionRenewDeadline time.Duration
+	LeaderElectionRetryPeriod   time.Duration
 }
 
 // New creates a Config populated with sane defaults.
@@ -46,14 +52,20 @@ func New() *Config {
 		ListenAddressTLS: ":443",
 		LogLevel:         "info",
 		// Default to the in-cluster service URL
-		checkReportBaseURL:     fmt.Sprintf("http://kuberhealthy.%s.svc.cluster.local:8080", ns),
-		DefaultRunInterval:     time.Minute * 10,
-		TerminationGracePeriod: time.Minute * 5,
-		DefaultCheckTimeout:    30 * time.Second,
-		Namespace:              ns,
-		MaxCompletedPodCount:   1,
-		MaxErrorPodCount:       2,
-		ErrorPodRetentionTime:  36 * time.Hour,
+		checkReportBaseURL:          fmt.Sprintf("http://kuberhealthy.%s.svc.cluster.local:8080", ns),
+		DefaultRunInterval:          time.Minute * 10,
+		TerminationGracePeriod:      time.Minute * 5,
+		DefaultCheckTimeout:         30 * time.Second,
+		Namespace:                   ns,
+		MaxCompletedPodCount:        1,
+		MaxErrorPodCount:            2,
+		ErrorPodRetentionTime:       36 * time.Hour,
+		LeaderElectionEnabled:       false,
+		LeaderElectionNamespace:     ns,
+		LeaderElectionName:          "kuberhealthy-controller",
+		LeaderElectionLeaseDuration: time.Second * 15,
+		LeaderElectionRenewDeadline: time.Second * 10,
+		LeaderElectionRetryPeriod:   time.Second * 2,
 	}
 }
 
@@ -236,6 +248,87 @@ func (c *Config) LoadFromEnv() error {
 		c.TLSKeyFile = tlsKeyFile
 	}
 
+	// parse leader election toggle
+	leaderElectionEnabled := os.Getenv("KH_LEADER_ELECTION_ENABLED")
+	if leaderElectionEnabled != "" {
+		parsedBool, err := strconv.ParseBool(leaderElectionEnabled)
+		if err != nil {
+			return fmt.Errorf("invalid KH_LEADER_ELECTION_ENABLED: %w", err)
+		}
+		c.LeaderElectionEnabled = parsedBool
+	}
+
+	// parse leader election lease name override
+	leaderElectionName := os.Getenv("KH_LEADER_ELECTION_NAME")
+	if leaderElectionName != "" {
+		c.LeaderElectionName = leaderElectionName
+	}
+
+	// parse leader election namespace override
+	leaderElectionNamespace := os.Getenv("KH_LEADER_ELECTION_NAMESPACE")
+	if leaderElectionNamespace != "" {
+		c.LeaderElectionNamespace = leaderElectionNamespace
+	}
+	if leaderElectionNamespace == "" {
+		c.LeaderElectionNamespace = c.Namespace
+	}
+
+	// parse leader election lease duration override
+	leaderElectionLeaseDuration := os.Getenv("KH_LEADER_ELECTION_LEASE_DURATION")
+	if leaderElectionLeaseDuration != "" {
+		parsedDuration, err := time.ParseDuration(leaderElectionLeaseDuration)
+		if err != nil {
+			return fmt.Errorf("invalid KH_LEADER_ELECTION_LEASE_DURATION: %w", err)
+		}
+		c.LeaderElectionLeaseDuration = parsedDuration
+	}
+
+	// parse leader election renew deadline override
+	leaderElectionRenewDeadline := os.Getenv("KH_LEADER_ELECTION_RENEW_DEADLINE")
+	if leaderElectionRenewDeadline != "" {
+		parsedDuration, err := time.ParseDuration(leaderElectionRenewDeadline)
+		if err != nil {
+			return fmt.Errorf("invalid KH_LEADER_ELECTION_RENEW_DEADLINE: %w", err)
+		}
+		c.LeaderElectionRenewDeadline = parsedDuration
+	}
+
+	// parse leader election retry period override
+	leaderElectionRetryPeriod := os.Getenv("KH_LEADER_ELECTION_RETRY_PERIOD")
+	if leaderElectionRetryPeriod != "" {
+		parsedDuration, err := time.ParseDuration(leaderElectionRetryPeriod)
+		if err != nil {
+			return fmt.Errorf("invalid KH_LEADER_ELECTION_RETRY_PERIOD: %w", err)
+		}
+		c.LeaderElectionRetryPeriod = parsedDuration
+	}
+
+	// validate leader election timing constraints
+	err := c.validateLeaderElectionConfig()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateLeaderElectionConfig enforces timing relationships for leader election durations.
+func (c *Config) validateLeaderElectionConfig() error {
+	if c.LeaderElectionLeaseDuration <= 0 {
+		return fmt.Errorf("invalid leader election lease duration: %s", c.LeaderElectionLeaseDuration)
+	}
+	if c.LeaderElectionRenewDeadline <= 0 {
+		return fmt.Errorf("invalid leader election renew deadline: %s", c.LeaderElectionRenewDeadline)
+	}
+	if c.LeaderElectionRetryPeriod <= 0 {
+		return fmt.Errorf("invalid leader election retry period: %s", c.LeaderElectionRetryPeriod)
+	}
+	if c.LeaderElectionRenewDeadline >= c.LeaderElectionLeaseDuration {
+		return fmt.Errorf("invalid leader election renew deadline: must be less than lease duration")
+	}
+	if c.LeaderElectionRetryPeriod >= c.LeaderElectionRenewDeadline {
+		return fmt.Errorf("invalid leader election retry period: must be less than renew deadline")
+	}
 	return nil
 }
 

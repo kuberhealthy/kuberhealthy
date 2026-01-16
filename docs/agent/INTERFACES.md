@@ -28,7 +28,8 @@ The HTTP server configured in `cmd/kuberhealthy/webserver.go` exposes:
 - `POST /check` – Reporting endpoint for check pods. Payload must include the
   run UUID and status information defined in `pkg/api`.
 - `POST /api/run` – Triggers an immediate run of a specific check using
-  the `HealthCheck` name plus a `namespace` query parameter.
+  the `HealthCheck` name plus a `namespace` query parameter. Only the leader
+  accepts this action when leader election is enabled.
 - `GET /api/events` – Lists Kubernetes events for a `HealthCheck`.
 - `GET /api/logs` and `GET /api/logs/stream` – Fetches or streams pod logs for a
   particular check run.
@@ -50,5 +51,7 @@ variables that tune runtime behavior. Notable entries include:
   checks when their manifests omit values.
 - `KH_MAX_*` variables – Retention policies for job objects and pods.
 - `KH_PROM_*` variables – Feature flags for Prometheus metrics labeling.
+- `KH_LEADER_ELECTION_*` variables – Configure Lease-based leader election for
+  running scheduling and reaping tasks.
 
 Pods also rely on `POD_NAME` and `POD_NAMESPACE` for self-identification.

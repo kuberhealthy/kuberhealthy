@@ -9,6 +9,8 @@ is propagated across packages.
   - Holds all runtime settings loaded from environment variables.
   - Fields cover listen addresses, default scheduling intervals, retention
     limits, and TLS options.
+  - Leader election fields (enablement, lease name/namespace, and timing
+    durations) control Lease-based failover behavior.
   - `ReportingURL()` derives the absolute `/check` endpoint advertised to pods.
 - **`Globals`** (`main.go`)
   - Struct literal containing the Kubernetes REST config, Kubernetes clientset,
@@ -21,7 +23,8 @@ is propagated across packages.
 - **`Kuberhealthy`** (`kuberhealthy.go`)
   - Encapsulates the scheduling logic for `HealthCheck` resources.
   - Stores the process context, cancellation function, Kubernetes client, event
-    recorder, reporting URL, and coordination primitives such as `loopMu`.
+    recorder, reporting URL, leader state, and coordination primitives such as
+    `loopMu`.
   - Exposes methods for starting and stopping the scheduler, beginning specific
     runs, tracking timeouts, and validating report UUIDs.
 - **`checkRun` / `activeCheck` helpers**

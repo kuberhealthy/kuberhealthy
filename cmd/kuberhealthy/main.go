@@ -84,7 +84,7 @@ func main() {
 	Globals.kh.SetReportingURL(GlobalConfig.ReportingURL())
 	// Apply reaper limits after the reporting URL is known.
 	Globals.kh.ConfigureReaper(GlobalConfig.MaxCompletedPodCount, GlobalConfig.MaxErrorPodCount, GlobalConfig.ErrorPodRetentionTime, GlobalConfig.MaxCheckPodAge)
-	err = Globals.kh.Start(ctx, Globals.kubeConfig)
+	err = Globals.kh.StartBase(ctx, Globals.kubeConfig)
 	if err != nil {
 		log.Errorln("startup: failed to start kuberhealthy:", err)
 	}
@@ -93,6 +93,19 @@ func main() {
 	err = StartWebServer()
 	if err != nil {
 		log.Errorln("web server startup error:", err)
+	}
+
+	if GlobalConfig.LeaderElectionEnabled {
+		err = startLeaderElection(ctx, GlobalConfig, Globals.kubeClient, Globals.kh)
+		if err != nil {
+			log.Fatalln("startup: leader election failed:", err)
+		}
+	}
+	if !GlobalConfig.LeaderElectionEnabled {
+		err = Globals.kh.StartLeaderTasks(ctx)
+		if err != nil {
+			log.Errorln("startup: failed to start leader tasks:", err)
+		}
 	}
 
 	// we must know when a shutdown signal is trapped or the main context has been canceled

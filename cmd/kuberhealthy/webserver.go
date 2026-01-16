@@ -347,6 +347,10 @@ func runCheckHandler(w http.ResponseWriter, r *http.Request) error {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return fmt.Errorf("kuberhealthy not initialized")
 	}
+	if !Globals.kh.IsLeader() {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return fmt.Errorf("kuberhealthy instance is not leader")
+	}
 	nn := types.NamespacedName{Namespace: namespace, Name: healthCheck}
 	check, err := khapi.GetCheck(r.Context(), Globals.khClient, nn)
 	if err != nil {

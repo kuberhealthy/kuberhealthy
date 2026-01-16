@@ -1,6 +1,8 @@
 # Architecture
 
-Kuberhealthy runs as a single controller process inside a Kubernetes cluster.
+Kuberhealthy runs as a controller process inside a Kubernetes cluster.
+Multiple replicas may serve the status and admin HTTP surfaces, while a single
+leader (selected via a Kubernetes Lease) runs scheduling, watches, and reaping.
 The binary defined in `cmd/kuberhealthy` composes several internal packages to
 watch custom resources, orchestrate synthetic check pods, and publish
 observability interfaces.
@@ -10,24 +12,24 @@ observability interfaces.
 | Kubernetes API    |<------>| internal/kuberhealthy |<------>| internal/envs   |
 |  - healthchecks   |  CRUD  |  - scheduling loop    |  env   |  - runtime cfg  |
 |  - pods/events    |        |  - timeout tracking   |        +-----------------+
-+-------------------+        |  - status updates     |                  |
-         ^                   +-----------------------+                  v
-         |                             |                      +---------------------+
+|  - leases         |        |  - status updates     |                  |
++-------------------+        +-----------------------+                  v
+         ^                             |                      +---------------------+
          | reports via HTTP            | spawns               | internal/metrics    |
          |                             v                      |  - Prometheus exp.  |
 +-------------------+        +-----------------------+        +---------------------+
 | Check Pods        | -----> | cmd/kuberhealthy      | -----> | cmd/kuberhealthy    |
 |  - custom logic   |  POST  |  - web handlers       |  serve |  - status + report  |
-+-------------------+  /check |  - report ingestion  |  HTTP  +---------------------+
++-------------------+  /check |  - leader election   |  HTTP  +---------------------+
                                \-------------------------------/
 ```
 
 Key components:
 
-- **`cmd/kuberhealthy`** wires together configuration, the core controller, and
-  the HTTP server. It exposes `/json`, `/metrics`, `/check`, the OpenAPI
-  specification, and helper endpoints for running checks and inspecting pod
-  output.
+- **`cmd/kuberhealthy`** wires together configuration, leader election, the
+  core controller, and the HTTP server. All replicas serve `/json`, `/metrics`,
+  `/check`, the OpenAPI specification, and helper endpoints. Only the elected
+  leader runs the scheduler, watch, and reaper loops.
 - **`internal/kuberhealthy`** implements the scheduling engine. It watches for
   `HealthCheck` resources, starts checker pods, tracks run lifecycles, and
   writes results back to the Kubernetes API.
