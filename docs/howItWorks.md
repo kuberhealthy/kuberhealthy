@@ -36,4 +36,4 @@ The JSON document aggregates every check and mirrors the same fields stored in `
 
 ## Run once checks
 
-See [runOnceChecks.md](runOnceChecks.md) for one-shot validation runs.
+See [RUNONCECHECKS.MD](RUNONCECHECKS.MD) for one-shot validation runs.

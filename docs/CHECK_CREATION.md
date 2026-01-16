@@ -82,4 +82,4 @@ Replace the image with your own check image when you are ready. Once applied, Ku
 
 ## Share your check
 
-Add your check to the [registry](CHECKS_REGISTRY.md) in a small PR.
+Add your check to the [registry](CHECKS_REGISTRY.MD) in a small PR.

@@ -13,8 +13,8 @@ Thanks for helping Kuberhealthy. We welcome early adopters and focused PRs.
 2. Create a branch for your work.
 3. Keep changes scoped and add tests when behavior changes.
 4. Update docs if user-facing behavior changes.
-5. Add yourself to `CONTRIBUTORS.md`.
-6. Optionally add your org to `ADOPTERS.md`.
+5. Add yourself to `CONTRIBUTORS.MD`.
+6. Optionally add your org to `ADOPTERS.MD`.
 7. Open a PR against `main`.
 
 ## Requirements

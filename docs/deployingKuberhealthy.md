@@ -51,7 +51,7 @@ kubectl apply -k deploy/kustomize/ingress
 
 ## Configure
 
-All configuration is via environment variables in the deployment. See [FLAGS.md](FLAGS.md).
+All configuration is via environment variables in the deployment. See [FLAGS.MD](FLAGS.MD).
 
 ## Verify
 

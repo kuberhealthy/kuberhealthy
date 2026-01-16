@@ -16,6 +16,7 @@ Keep an up to date set of documentation in the `docs/agent/` directory with the 
     - INTERFACES.md: Determine what the defined points of intake are for the program and detail the inputs of those. Also detail the outputs of the program concisely.
     - STRUCTURES.md: Detail the significant data and programatic structures that are defined within the program clearly so that humans can understand their purpose and programatic shape.
     - CONFIGURATION.md: Explain in detail each configuration option needed to start the programs in this project. Include environment vars, startup flags, or configuration files if appropriate.
+    - All Markdown files in `docs/` use ALL-CAPS file names (for example, `docs/README.MD`).
 
 # Create Simple Code
 - Avoid `else` statements when possible by making additional functions and using a 'return early' strategy.

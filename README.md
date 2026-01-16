@@ -38,15 +38,34 @@ __Kuberhealthy provides a `HealthCheck` custom resource definition to make the r
    kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
    ```
 
-3. Open `http://localhost:8080` and apply a [HealthCheck](docs/CHECKS_REGISTRY.md).
+3. Open `http://localhost:8080` and apply a [HealthCheck](docs/CHECKS_REGISTRY.MD).
 
-## Next docs to read
+## Docs table of contents
 
-| 📌 | Doc | Why it matters |
+| 📌 | Doc | Purpose |
 | --- | --- | --- |
-| 🚀 | [Deploying Kuberhealthy](docs/deployingKuberhealthy.md) | Installation patterns and rollout guidance. |
-| ✅ | [HealthCheck Registry](docs/CHECKS_REGISTRY.md) | Ready-to-apply checks for common cluster signals. |
-| 📈 | [Metrics Catalog](docs/metricsCatalog.md) | Prometheus metrics and labels for alerting. |
-| 🧭 | [Prometheus Examples](docs/prometheus) | Rules and scrape examples for Prometheus and Prometheus Operator. |
-| 🧰 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Debugging steps for failed checks and controller issues. |
-| 🗒️ | [Release Notes](docs/releaseNotes.md) | Upgrade notes and version-specific changes. |
+| 📘 | [Docs Index](docs/README.MD) | Full documentation entrypoint. |
+| 🚀 | [Deploying Kuberhealthy](docs/DEPLOYINGKUBERHEALTHY.MD) | Deployment overview and rollout tips. |
+| ⛵ | [Helm Chart](docs/HELM.MD) | Helm install, upgrade, and scrape settings. |
+| 🌐 | [ArgoCD Application](docs/ARGOCD.MD) | ArgoCD application manifest usage. |
+| 🧱 | [Kustomize Manifests](docs/KUSTOMIZE.MD) | Base and overlay kustomize deployment. |
+| 🧠 | [How Kuberhealthy Works](docs/HOWITWORKS.MD) | Operator internals and flow. |
+| 🧪 | [Run Once Checks](docs/RUNONCECHECKS.MD) | One-shot validation runs. |
+| 🧩 | [HealthCheck Creation](docs/CHECK_CREATION.MD) | Building custom checks. |
+| ✅ | [HealthCheck Registry](docs/CHECKS_REGISTRY.MD) | Ready-to-apply check catalog. |
+| 🎛️ | [Flags](docs/FLAGS.MD) | Environment configuration flags. |
+| 📈 | [Metrics Catalog](docs/METRICSCATALOG.MD) | Prometheus metrics and labels. |
+| 🧲 | [ServiceMonitor](docs/prometheus/SERVICEMONITOR.MD) | Prometheus Operator ServiceMonitor guide. |
+| 🧯 | [Troubleshooting](docs/TROUBLESHOOTING.MD) | Debugging steps and recovery. |
+| 🏗️ | [Build and Release](docs/BUILDANDRELEASE.MD) | Build, tag, and release workflow. |
+| 🗒️ | [Release Notes](docs/RELEASENOTES.MD) | Version changes and upgrades. |
+| 🧭 | [Migrate to HealthCheck](docs/MIGRATINGTOHEALTHCHECK.MD) | Migration guidance. |
+| 🤝 | [Contributing](docs/CONTRIBUTING.MD) | Contribution workflow. |
+| 🧑‍💻 | [Contributors](docs/CONTRIBUTORS.MD) | People and acknowledgements. |
+| 🏢 | [Adopters](docs/ADOPTERS.MD) | Organizations using Kuberhealthy. |
+| 📜 | [Code of Conduct](docs/CODE_OF_CONDUCT.MD) | Community standards. |
+| 🏛️ | [Architecture](docs/agent/ARCHITECTURE.MD) | System design view. |
+| 🔁 | [Logic Flow](docs/agent/LOGIC.MD) | Runtime flow and control points. |
+| 🔌 | [Interfaces](docs/agent/INTERFACES.MD) | Inputs, outputs, and APIs. |
+| 🧱 | [Structures](docs/agent/STRUCTURES.MD) | Key data structures. |
+| ⚙️ | [Configuration](docs/agent/CONFIGURATION.MD) | Configuration details and defaults. |
