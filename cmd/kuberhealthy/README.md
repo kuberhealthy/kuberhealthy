@@ -12,7 +12,7 @@
 
 # Environment Variables
 ```
-KH_LISTEN_ADDRESS=":80" # web server listen address
+KH_LISTEN_ADDRESS=":8080" # web server listen address
 KH_LOG_LEVEL="info" # log verbosity
 KH_MAX_JOB_AGE="" # max age for check jobs
 KH_MAX_CHECK_POD_AGE="" # max age for check pods
@@ -26,7 +26,7 @@ KH_PROM_LABEL_DENYLIST="" # extra metric labels to exclude
 KH_PROM_LABEL_VALUE_MAX_LENGTH="256" # max length for extra label values
 KH_TARGET_NAMESPACE="" # namespace to watch for checks; leave empty for all
 POD_NAMESPACE="kuberhealthy" # namespace Kuberhealthy runs in
-KH_CHECK_REPORT_URL="http://kuberhealthy.kuberhealthy.svc.cluster.local:8080" # base URL used for reports (no path)
+KH_CHECK_REPORT_URL="http://kuberhealthy.kuberhealthy.svc.cluster.local" # base URL used for reports (no path)
 KH_DEFAULT_RUN_INTERVAL="10m" # default check run interval
 KH_TERMINATION_GRACE_PERIOD="5m" # shutdown grace period
 KH_DEFAULT_CHECK_TIMEOUT="30s" # default check timeout

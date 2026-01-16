@@ -35,7 +35,7 @@ __Kuberhealthy provides a `HealthCheck` custom resource definition to make the r
 2. Port-forward the service:
 
    ```sh
-   kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
+   kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80
    ```
 
 3. Open `http://localhost:8080` and apply a [HealthCheck](docs/CHECKS_REGISTRY.MD).

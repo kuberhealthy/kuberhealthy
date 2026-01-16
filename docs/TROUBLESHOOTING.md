@@ -13,7 +13,7 @@
 
 ## JSON status page not reachable
 
-- Port-forward the service: `kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080`.
+- Port-forward the service: `kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80`.
 - If using Helm, the service name is `kuberhealthy`.
 
 If you are blocked, please open an issue with the output of the commands above.

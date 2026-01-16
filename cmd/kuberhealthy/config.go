@@ -52,7 +52,7 @@ func New() *Config {
 		ListenAddressTLS: ":443",
 		LogLevel:         "info",
 		// Default to the in-cluster service URL
-		checkReportBaseURL:     fmt.Sprintf("http://kuberhealthy.%s.svc.cluster.local:8080", ns),
+		checkReportBaseURL:     fmt.Sprintf("http://kuberhealthy.%s.svc.cluster.local", ns),
 		DefaultRunInterval:     time.Minute * 10,
 		TerminationGracePeriod: time.Minute * 5,
 		DefaultCheckTimeout:    30 * time.Second,
@@ -255,7 +255,7 @@ func (c *Config) LoadFromEnv() error {
 	// parse and normalize the check report endpoint override
 	checkReportURL := os.Getenv("KH_CHECK_REPORT_URL")
 	if checkReportURL == "" {
-		c.checkReportBaseURL = fmt.Sprintf("http://kuberhealthy.%s.svc.cluster.local:8080", c.Namespace)
+		c.checkReportBaseURL = fmt.Sprintf("http://kuberhealthy.%s.svc.cluster.local", c.Namespace)
 		log.Warnln("KH_CHECK_REPORT_URL environment variable not set. Using", c.checkReportBaseURL)
 	}
 	if checkReportURL != "" {

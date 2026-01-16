@@ -62,7 +62,7 @@ spec:
             fieldRef:
               fieldPath: metadata.name
         - name: KH_CHECK_REPORT_URL
-          value: "http://kuberhealthy.kuberhealthy.svc.cluster.local:8080"
+          value: "http://kuberhealthy.kuberhealthy.svc.cluster.local"
         - name: KH_DEFAULT_RUN_INTERVAL
           value: "10m"
         - name: KH_TERMINATION_GRACE_PERIOD

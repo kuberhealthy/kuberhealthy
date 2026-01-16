@@ -130,7 +130,7 @@ spec:
           {{- end }}
           {{- if not (hasKey .Values.deployment.env "KH_CHECK_REPORT_URL") }}
           - name: KH_CHECK_REPORT_URL
-            value: "http://{{ template "kuberhealthy.name" . }}.{{ .Values.namespace | default .Release.Namespace }}.svc.cluster.local:8080"
+            value: "http://{{ template "kuberhealthy.name" . }}.{{ .Values.namespace | default .Release.Namespace }}.svc.cluster.local"
           {{- end }}
           {{- if not (hasKey .Values.deployment.env "KH_DEFAULT_NAMESPACE") }}
           - name: KH_DEFAULT_NAMESPACE

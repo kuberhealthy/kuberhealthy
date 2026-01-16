@@ -7,12 +7,12 @@ metadata:
     app: kuberhealthy
   annotations:
     prometheus.io/scrape: "true"
-    prometheus.io/port: "8080"
+    prometheus.io/port: "80"
     prometheus.io/path: /metrics
 spec:
   selector:
     app: kuberhealthy
   ports:
   - name: http
-    port: 8080
+    port: 80
     targetPort: 8080

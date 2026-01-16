@@ -94,12 +94,12 @@ podSecurityPolicy:
   enabled: false
 
 service:
-  externalPort: 8080
+  externalPort: 80
   type: LoadBalancer
   annotations: {}
   prometheusScrape:
     enabled: true
     path: /metrics
-    port: "8080"
+    port: "80"
   loadBalancer:
     provider: ""

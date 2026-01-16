@@ -118,7 +118,7 @@ func TestReportingURLDefaultsFromNamespace(t *testing.T) {
 		t.Fatalf("LoadFromEnv returned error: %v", err)
 	}
 
-	expected := "http://kuberhealthy.ns1.svc.cluster.local:8080/check"
+	expected := "http://kuberhealthy.ns1.svc.cluster.local/check"
 	if cfg.ReportingURL() != expected {
 		t.Errorf("ReportingURL parsed incorrectly: %s", cfg.ReportingURL())
 	}

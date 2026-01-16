@@ -8,7 +8,7 @@ Kuberhealthy ships Kustomize manifests in `deploy/kustomize` and a Helm chart in
 kubectl apply -k deploy/kustomize/base
 ```
 
-The base Service is `kuberhealthy` on port `8080`.
+The base Service is `kuberhealthy` on port `80` (forwarded to the pod on `8080`).
 
 ## Helm (v3 chart)
 
@@ -16,7 +16,7 @@ The base Service is `kuberhealthy` on port `8080`.
 helm install kuberhealthy deploy/helm/kuberhealthy -n kuberhealthy --create-namespace
 ```
 
-The Service is `kuberhealthy` on port `8080`.
+The Service is `kuberhealthy` on port `80` (forwarded to the pod on `8080`).
 
 ## ArgoCD
 
@@ -57,6 +57,6 @@ All configuration is via environment variables in the deployment. See [FLAGS.MD]
 
 ```sh
 kubectl -n kuberhealthy get pods
-kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080 &
+kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80 &
 curl -fsS localhost:8080/metrics
 ```

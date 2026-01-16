@@ -21,7 +21,7 @@ Kuberhealthy uses environment variables only. It does not accept command-line fl
 | `KH_PROM_LABEL_VALUE_MAX_LENGTH` | Maximum length for extra label values | `256` |
 | `KH_TARGET_NAMESPACE` | Namespace Kuberhealthy operates in (blank for all) | `` |
 | `KH_DEFAULT_RUN_INTERVAL` | Default check run interval | `10m` |
-| `KH_CHECK_REPORT_URL` | Base URL used for check reports; `/check` is appended automatically | `http://kuberhealthy.<namespace>.svc.cluster.local:8080` |
+| `KH_CHECK_REPORT_URL` | Base URL used for check reports; `/check` is appended automatically | `http://kuberhealthy.<namespace>.svc.cluster.local` |
 | `KH_TERMINATION_GRACE_PERIOD` | Shutdown grace period | `5m` |
 | `KH_DEFAULT_CHECK_TIMEOUT` | Default timeout for checks | `30s` |
 | `KH_DEFAULT_NAMESPACE` | Fallback namespace if detection fails | `kuberhealthy` |

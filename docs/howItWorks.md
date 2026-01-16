@@ -24,7 +24,7 @@ kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/mai
   ```
 - JSON status page:
   ```sh
-  kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
+  kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80
   curl -fsS localhost:8080/json
   ```
 - Metrics:
