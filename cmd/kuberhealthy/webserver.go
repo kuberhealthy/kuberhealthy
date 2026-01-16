@@ -331,52 +331,109 @@ func openapiJSONHandler(w http.ResponseWriter, _ *http.Request) error {
 	return renderOpenAPISpec(w)
 }
 
+// updateCheckLastRunUnix retries updating LastRunUnix to avoid conflicts with concurrent status writes.
+func updateCheckLastRunUnix(ctx context.Context, khClient client.Client, nn types.NamespacedName, lastRunUnix int64, maxAttempts int) error {
+	// Guard against invalid retry requests.
+	if maxAttempts < 1 {
+		return fmt.Errorf("invalid retry count: %d", maxAttempts)
+	}
+
+	// Track the last error so it can be reported if all retries fail.
+	var lastErr error
+
+	// Retry conflicts by reloading the latest resource version.
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		// Fetch the latest check state to avoid stale updates.
+		check, err := khapi.GetCheck(ctx, khClient, nn)
+		if err != nil {
+			return fmt.Errorf("failed to fetch check for last run update: %w", err)
+		}
+
+		// Persist the requested last-run timestamp.
+		check.Status.LastRunUnix = lastRunUnix
+
+		// Update the status and retry only on conflicts.
+		err = khapi.UpdateCheck(ctx, khClient, check)
+		if err == nil {
+			return nil
+		}
+
+		// Track the error to surface if retries are exhausted.
+		lastErr = err
+
+		// Retry only when another writer updated the resource.
+		if apierrors.IsConflict(err) {
+			continue
+		}
+
+		return fmt.Errorf("failed to update last run time: %w", err)
+	}
+
+	return fmt.Errorf("failed to update last run time after %d attempts: %w", maxAttempts, lastErr)
+}
+
 // runCheckHandler triggers an immediate run of a check.
 func runCheckHandler(w http.ResponseWriter, r *http.Request) error {
+	// Only accept POST requests to trigger a run.
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return nil
 	}
+
+	// Read the healthcheck name and namespace from the query string.
 	healthCheck := healthCheckParam(r)
 	namespace := strings.TrimSpace(r.URL.Query().Get("namespace"))
 	if healthCheck == "" || namespace == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return fmt.Errorf("missing parameters")
 	}
+
+	// Ensure the controller is ready to start checks.
 	if Globals.khClient == nil || Globals.kh == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return fmt.Errorf("kuberhealthy not initialized")
 	}
+
+	// Require leadership so only one replica can launch checks.
 	if !Globals.kh.IsLeader() {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return fmt.Errorf("kuberhealthy instance is not leader")
 	}
+
+	// Fetch the requested check resource.
 	nn := types.NamespacedName{Namespace: namespace, Name: healthCheck}
 	check, err := khapi.GetCheck(r.Context(), Globals.khClient, nn)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			w.WriteHeader(http.StatusNotFound)
-		} else {
+		}
+		if !apierrors.IsNotFound(err) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 		return err
 	}
+
+	// Avoid overlapping runs for the same check.
 	if check.CurrentUUID() != "" {
 		w.WriteHeader(http.StatusConflict)
 		return fmt.Errorf("check already running")
 	}
+
+	// Launch the check via the controller logic.
 	err = Globals.kh.StartCheck(check)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
-	// reset the check ticker so the next automatic run starts from now
-	check.Status.LastRunUnix = time.Now().Unix()
-	err = khapi.UpdateCheck(r.Context(), Globals.khClient, check)
+
+	// Reset the run ticker so automatic scheduling starts from now.
+	lastRunUnix := time.Now().Unix()
+	err = updateCheckLastRunUnix(r.Context(), Globals.khClient, nn, lastRunUnix, 3)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		return fmt.Errorf("failed to update last run time: %w", err)
+		return err
 	}
+
 	w.WriteHeader(http.StatusAccepted)
 	return nil
 }

@@ -1,51 +1,50 @@
-![Kuberhealthy Logo](assets/kuberhealthy.png)
+<p align="center">
+  <img src="assets/kuberhealthy.png" alt="Kuberhealthy">
+</p>
 
 # Kuberhealthy
 
-Kuberhealthy runs synthetic checks inside your Kubernetes cluster and exports status plus Prometheus metrics. v3 is a rewrite with a new `HealthCheck` CRD. If you are upgrading from v2, plan a clean reinstall and recreate your checks using the v3 schema.
+**Kuberhealthy is an operator for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_monitoring) and [continuous validaton](https://en.wikipedia.org/wiki/Software_verification_and_validation). It ships metrics to Prometheus and enables you to package your monitoring as Kubernetes manfiests.**
 
-## Quick start
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kuberhealthy/kuberhealthy)](https://goreportcard.com/report/github.com/kuberhealthy/kuberhealthy)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2822/badge)](https://bestpractices.coreinfrastructure.org/projects/2822)
+[![Join Slack](https://img.shields.io/badge/slack-kubernetes/kuberhealthy-teal.svg?logo=slack)](https://kubernetes.slack.com/messages/CB9G7HWTE)
 
-1. Install Kuberhealthy:
+__Kuberhealthy provides a `HealthCheck` custom resource definition to make the running of your own custom check containers easy.__
 
+## Getting started
+
+1. Install Kuberhealthy to your cluster:
+
+   Kustomize
    ```sh
-   # Kustomize
    kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base
+   ```
 
-   # Helm (from this repo)
+   Helm (from this repo)
+   ```sh
    helm install kuberhealthy deploy/helm/kuberhealthy -n kuberhealthy --create-namespace
+   ```
 
-   # ArgoCD (pre-made application)
+   ArgoCD (pre-made application resource)
+   ```sh
    kubectl apply -f deploy/argocd/kuberhealthy.yaml
    ```
 
 2. Port-forward the service:
 
    ```sh
-   # Kustomize
-   kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
-
-   # Helm
    kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:8080
    ```
 
 3. Open `http://localhost:8080` and apply a [HealthCheck](docs/CHECKS_REGISTRY.md).
 
-## Docs
+## Next docs to read
 
-- [Deploying Kuberhealthy](docs/deployingKuberhealthy.md)
-- [How Kuberhealthy Works](docs/howItWorks.md)
-- [Creating a HealthCheck](docs/CHECK_CREATION.md)
-- [HealthCheck Registry](docs/CHECKS_REGISTRY.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
-
-## Community
-
-- Slack: `#kuberhealthy` in Kubernetes Slack
-- Monthly meeting: 24th day of each month at 04:30 PM Pacific
-  - [Join](https://zoom.us/j/96855374061)
-  - [Calendar invite](https://zoom.us/meeting/tJIlcuyrqT8qHNWDSx3ZozYamoq2f0ruwfB0/ics?icsToken=98tyKuCupj4vGdORsB-GRowAGo_4Z-nwtilfgo1quCz9UBpceDr3O-1TYLQvAs3H)
-
-## Contributing
-
-We welcome early adopters and focused PRs. Start with the [contributing guide](docs/CONTRIBUTING.md) and feel free to add your org to [ADOPTERS](docs/ADOPTERS.md).
+| 📌 | Doc | Why it matters |
+| --- | --- | --- |
+| 🚀 | [Deploying Kuberhealthy](docs/deployingKuberhealthy.md) | Installation patterns and rollout guidance. |
+| ✅ | [HealthCheck Registry](docs/CHECKS_REGISTRY.md) | Ready-to-apply checks for common cluster signals. |
+| 🧰 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Debugging steps for failed checks and controller issues. |
+| 🗒️ | [Release Notes](docs/releaseNotes.md) | Upgrade notes and version-specific changes. |

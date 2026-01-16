@@ -22,3 +22,11 @@ Kuberhealthy uses environment variables only. It does not accept command-line fl
 | `KH_TERMINATION_GRACE_PERIOD` | Shutdown grace period | `5m` |
 | `KH_DEFAULT_CHECK_TIMEOUT` | Default timeout for checks | `30s` |
 | `KH_DEFAULT_NAMESPACE` | Fallback namespace if detection fails | `kuberhealthy` |
+| `KH_LEADER_ELECTION_ENABLED` | Enable Lease-based leader election for check scheduling | `false` |
+| `KH_LEADER_ELECTION_NAME` | Lease name used for leader election | `kuberhealthy-controller` |
+| `KH_LEADER_ELECTION_NAMESPACE` | Namespace that stores the Lease | `<pod namespace>` |
+| `KH_LEADER_ELECTION_LEASE_DURATION` | Lease duration for leader election | `15s` |
+| `KH_LEADER_ELECTION_RENEW_DEADLINE` | Renewal deadline for leader election | `10s` |
+| `KH_LEADER_ELECTION_RETRY_PERIOD` | Retry period for leader election | `2s` |
+
+Leader election requires the controller service account to have `get`, `list`, `watch`, `create`, `update`, and `patch` access to `coordination.k8s.io` `leases` in the Lease namespace.

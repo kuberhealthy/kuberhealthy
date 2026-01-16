@@ -24,6 +24,13 @@ The Service is `kuberhealthy` on port `8080`.
 kubectl apply -f deploy/argocd/kuberhealthy.yaml
 ```
 
+## Scaling and leader election
+
+Kuberhealthy can run multiple controller replicas with leader election enabled. Only the leader runs checks and reaps pods, while all replicas serve the UI and APIs.
+
+- Set `KH_LEADER_ELECTION_ENABLED=true` and ensure the controller service account can read/write `coordination.k8s.io` `leases`.
+- If you run more than one replica, verify your affinity/tolerations allow scheduling on available nodes. The Helm chart uses pod anti-affinity to spread replicas, which can block scheduling in single-node clusters unless overridden.
+
 ## Expose the status page
 
 The `/json` endpoint is served from the Service. Use a cloud-specific overlay or an ingress:
