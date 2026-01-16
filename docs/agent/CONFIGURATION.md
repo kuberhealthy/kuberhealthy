@@ -30,6 +30,7 @@ Kuberhealthy is configured via environment variables. There are no command-line 
 - `KH_LEADER_ELECTION_LEASE_DURATION`: Lease duration for leader election. Default `15s`.
 - `KH_LEADER_ELECTION_RENEW_DEADLINE`: Renewal deadline for leader election. Default `10s`.
 - `KH_LEADER_ELECTION_RETRY_PERIOD`: Retry period for leader election. Default `2s`.
+- Leader election requires the controller service account to have `get`, `list`, `watch`, `create`, `update`, and `patch` access to `coordination.k8s.io` `leases` in the configured lease namespace.
 
 ## Checker Pod Environment Variables
 
