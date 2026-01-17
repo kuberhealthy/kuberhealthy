@@ -7,7 +7,7 @@ Kuberhealthy watches `HealthCheck` resources, schedules checker pods, and record
 1. You apply a `HealthCheck` resource.
 2. The controller schedules checker pods on the configured interval.
 3. The pod runs your test logic.
-4. The pod reports `OK`/`Errors` to `KH_REPORTING_URL`.
+4. The pod reports `OK`/`Errors` to `KH_REPORTING_URL` (the full `/check` endpoint injected into check pods).
 5. Kuberhealthy stores the result and exports metrics on `/metrics`.
 
 Use a built-in example to see the lifecycle:

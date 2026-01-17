@@ -17,6 +17,8 @@ Keep an up to date set of documentation in the `docs/agent/` directory with the 
     - STRUCTURES.md: Detail the significant data and programatic structures that are defined within the program clearly so that humans can understand their purpose and programatic shape.
     - CONFIGURATION.md: Explain in detail each configuration option needed to start the programs in this project. Include environment vars, startup flags, or configuration files if appropriate.
     - All Markdown files in `docs/` use ALL-CAPS file names (for example, `docs/README.MD`).
+    - Ensure user-facing docs in `docs/README.MD` and `docs/HTTP_API.MD` exist and stay synchronized with current endpoints, examples, and configuration. Create them if missing.
+    - Re-run local documentation checks (internal link validation and doc grep for config/env consistency) after updates and report findings.
 
 # Create Simple Code
 - Avoid `else` statements when possible by making additional functions and using a 'return early' strategy.

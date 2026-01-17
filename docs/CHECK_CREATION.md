@@ -57,6 +57,7 @@ Every checker pod receives:
 - `KH_CHECK_RUN_DEADLINE`
 - `KH_RUN_UUID` (send as header `kh-run-uuid`)
 - `KH_POD_NAMESPACE`
+- `KH_REPORTING_URL` is injected by the controller and already includes `/check`.
 
 ## Create the `HealthCheck` resource
 
@@ -69,13 +70,15 @@ spec:
   runInterval: 30s
   timeout: 2m
   podSpec:
-    containers:
-    - env:
-        - name: MY_OPTION_ENV_VAR
-          value: "option_setting_here"
-      image: docker.io/curlimages/curl:8.5.0
-      imagePullPolicy: Always
-      name: main
+    spec:
+      containers:
+        - name: main
+          image: docker.io/curlimages/curl:8.5.0
+          imagePullPolicy: Always
+          env:
+            - name: MY_OPTION_ENV_VAR
+              value: "option_setting_here"
+      restartPolicy: Never
 ```
 
 Replace the image with your own check image when you are ready. Once applied, Kuberhealthy schedules and reports this check like any other.

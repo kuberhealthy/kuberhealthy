@@ -7,6 +7,7 @@ Kuberhealthy uses environment variables only. It does not accept command-line fl
 | Variable | Description | Default |
 | -------- | ----------- | ------- |
 | `KH_LISTEN_ADDRESS` | Address for the web server | `:8080` |
+| `KH_LISTEN_ADDRESS_TLS` | Address for the HTTPS listener when TLS is enabled | `:443` |
 | `KH_LOG_LEVEL` | Log level (`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`) | `info` |
 | `KH_MAX_JOB_AGE` | Legacy setting for job cleanup (unused in v3) | unset |
 | `KH_MAX_CHECK_POD_AGE` | Maximum age for check pods before cleanup | unset |
@@ -20,6 +21,7 @@ Kuberhealthy uses environment variables only. It does not accept command-line fl
 | `KH_PROM_LABEL_DENYLIST` | Comma-separated list of extra label keys to exclude | unset |
 | `KH_PROM_LABEL_VALUE_MAX_LENGTH` | Maximum length for extra label values | `256` |
 | `KH_TARGET_NAMESPACE` | Namespace Kuberhealthy operates in (blank for all) | `` |
+| `POD_NAMESPACE` | Namespace of the running controller pod | `<pod namespace>` |
 | `KH_DEFAULT_RUN_INTERVAL` | Default check run interval | `10m` |
 | `KH_CHECK_REPORT_URL` | Base URL used for check reports; `/check` is appended automatically | `http://kuberhealthy.<namespace>.svc.cluster.local` |
 | `KH_TERMINATION_GRACE_PERIOD` | Shutdown grace period | `5m` |
@@ -31,5 +33,8 @@ Kuberhealthy uses environment variables only. It does not accept command-line fl
 | `KH_LEADER_ELECTION_LEASE_DURATION` | Lease duration for leader election | `15s` |
 | `KH_LEADER_ELECTION_RENEW_DEADLINE` | Renewal deadline for leader election | `10s` |
 | `KH_LEADER_ELECTION_RETRY_PERIOD` | Retry period for leader election | `2s` |
+| `POD_NAME` | Name of the running controller pod | `<pod name>` |
+| `KH_TLS_CERT_FILE` | TLS certificate path for HTTPS listener | unset |
+| `KH_TLS_KEY_FILE` | TLS private key path for HTTPS listener | unset |
 
 Leader election requires the controller service account to have `get`, `list`, `watch`, `create`, `update`, and `patch` access to `coordination.k8s.io` `leases` in the Lease namespace.

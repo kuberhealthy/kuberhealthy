@@ -21,7 +21,7 @@ kubectl apply -f deploy/argocd/kuberhealthy.yaml
 
 ## Prometheus scraping
 
-The kustomize base includes Prometheus scrape annotations by default. If you use Prometheus Operator, apply the ServiceMonitor manifest:
+The Helm chart includes Prometheus scrape annotations by default. If you use Prometheus Operator, apply the ServiceMonitor manifest:
 
 ```sh
 kubectl apply -f deploy/serviceMonitor.yaml

@@ -20,6 +20,7 @@ Kuberhealthy is configured via environment variables. There are no command-line 
 - `KH_TARGET_NAMESPACE`: Namespace to watch for `HealthCheck` resources; empty means all namespaces.
 - `KH_DEFAULT_RUN_INTERVAL`: Default run interval for checks that omit `spec.runInterval`. Default `10m`.
 - `KH_CHECK_REPORT_URL`: Base URL used by checker pods to report results; `/check` is appended automatically and including `/check` will fail validation. Default `http://kuberhealthy.<namespace>.svc.cluster.local`.
+  Checker pods receive the full `KH_REPORTING_URL` (including `/check`).
 - `KH_TERMINATION_GRACE_PERIOD`: Time to wait for clean shutdown before forced exit. Default `5m`.
 - `KH_DEFAULT_CHECK_TIMEOUT`: Default timeout for checks that omit `spec.timeout`. Default `30s`.
 - `KH_DEFAULT_NAMESPACE`: Fallback namespace when a check does not specify one. Default `kuberhealthy`.
