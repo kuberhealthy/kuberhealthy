@@ -6,7 +6,7 @@ service and the reporting endpoint used by check pods.
 ## Status UI and JSON summary
 
 - `GET /` serves the HTML status UI.
-- `GET /json` returns the JSON summary of all HealthChecks.
+- `GET /json` returns the JSON summary of all HealthChecks. Use `?namespace=<ns1,ns2>` to filter.
 
 ## Metrics and health probes
 
@@ -34,15 +34,16 @@ The request must be a JSON payload with `OK` and `Errors` fields, for example:
 
 ## Manual run and log access
 
-- `POST /api/run?namespace=<namespace>&name=<healthcheck>` triggers an immediate
+- `POST /api/run?namespace=<namespace>&healthcheck=<healthcheck>` triggers an immediate
   run of a HealthCheck.
-- `GET /api/events?namespace=<namespace>&name=<healthcheck>` returns Kubernetes
+- `GET /api/events?namespace=<namespace>&healthcheck=<healthcheck>` returns Kubernetes
   events for a HealthCheck.
-- `GET /api/logs?namespace=<namespace>&name=<healthcheck>` fetches pod logs for a
-  check run.
-- `GET /api/logs/stream?namespace=<namespace>&name=<healthcheck>` streams logs.
+- `GET /api/logs?namespace=<namespace>&healthcheck=<healthcheck>&pod=<pod>&format=text`
+  fetches pod logs for a check run.
+- `GET /api/logs/stream?namespace=<namespace>&healthcheck=<healthcheck>&pod=<pod>`
+  streams logs.
 
 ## OpenAPI schema
 
-- `GET /openapi.yaml` serves the OpenAPI schema in YAML format.
+- `GET /openapi.yaml` serves the OpenAPI schema in JSON format.
 - `GET /openapi.json` serves the OpenAPI schema in JSON format.

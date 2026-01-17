@@ -933,7 +933,19 @@ func (kh *Kuberhealthy) CheckPodSpec(healthCheck *khapi.HealthCheck) *corev1.Pod
 	podSpec.Labels[primaryCheckLabel] = healthCheck.Name
 	podSpec.Labels[runUUIDLabel] = uuid
 
-	envVars := []corev1.EnvVar{{Name: envs.KHReportingURL, Value: kh.ReportingURL}, {Name: envs.KHRunUUID, Value: uuid}}
+	// Inject controller-managed metadata needed by checker pods.
+	envVars := []corev1.EnvVar{
+		{Name: envs.KHReportingURL, Value: kh.ReportingURL},
+		{Name: envs.KHRunUUID, Value: uuid},
+		{
+			Name: envs.KHPodNamespace,
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+	}
 	// Inject a run deadline so checks can self-timeout before the controller does.
 	deadline, hasDeadline := kh.checkRunDeadlineUnix(healthCheck)
 	if hasDeadline {

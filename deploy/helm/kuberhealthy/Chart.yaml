@@ -19,4 +19,4 @@ keywords:
 sources:
   - https://github.com/kuberhealthy/kuberhealthy
   - https://github.com/kuberhealthy/kuberhealthy/tree/main/deploy/helm/kuberhealthy
-icon: https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/master/images/logo-square.png
+icon: https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/main/assets/logo-square.png

@@ -72,6 +72,7 @@ func TestCheckPodSpec(t *testing.T) {
 	requireEnvVar(t, c.Env, envs.KHReportingURL, kh.ReportingURL)
 	requireEnvVar(t, c.Env, envs.KHRunUUID, uuid)
 	requireEnvVar(t, c.Env, envs.KHDeadline, strconv.FormatInt(check.Status.LastRunUnix+int64(defaultRunTimeout.Seconds()), 10))
+	requireEnvVarFieldRef(t, c.Env, envs.KHPodNamespace, "metadata.namespace")
 
 	require.Equal(t, "kuberhealthy", pod.Annotations["createdBy"])
 	require.Equal(t, uuid, pod.Annotations[runUUIDLabel])
@@ -106,6 +107,23 @@ func requireEnvVar(t *testing.T, env []corev1.EnvVar, name, val string) {
 			return
 		}
 	}
+	t.Fatalf("env var %s not set", name)
+}
+
+// requireEnvVarFieldRef asserts the provided env var exists with the expected field reference.
+func requireEnvVarFieldRef(t *testing.T, env []corev1.EnvVar, name, fieldPath string) {
+	t.Helper()
+	// Scan for the expected environment variable by name.
+	for i := range env {
+		if env[i].Name == name {
+			// Ensure the env var uses a field reference with the expected path.
+			require.NotNil(t, env[i].ValueFrom)
+			require.NotNil(t, env[i].ValueFrom.FieldRef)
+			require.Equal(t, fieldPath, env[i].ValueFrom.FieldRef.FieldPath)
+			return
+		}
+	}
+	// Fail the test if the expected env var was not injected.
 	t.Fatalf("env var %s not set", name)
 }
 

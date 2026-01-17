@@ -10,9 +10,9 @@ const KHRunUUID = "KH_RUN_UUID"
 // KHDeadline is the environment variable name for when checks must finish their runs by in unixtime
 const KHDeadline = "KH_CHECK_RUN_DEADLINE"
 
-// // KHPodNamespace is the namespace variable used to tell external checks their namespace to perform
-// // checks in.
-// const KHPodNamespace = "KH_POD_NAMESPACE"
+// KHPodNamespace is the namespace variable used to tell external checks their namespace to perform
+// checks in.
+const KHPodNamespace = "KH_POD_NAMESPACE"
 
 // // DefaultKuberhealthyReportingURL is the default location that external checks
 // // are expected to report into.

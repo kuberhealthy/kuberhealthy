@@ -43,4 +43,4 @@ These are injected into every checker pod and are required by the check clients:
 - `KH_REPORTING_URL`: Full URL for reporting check results.
 - `KH_CHECK_RUN_DEADLINE`: Unix timestamp deadline derived from the check timeout.
 - `KH_RUN_UUID`: Unique run identifier that must be sent as `kh-run-uuid` header.
-- `KH_POD_NAMESPACE`: Namespace the checker pod is running in.
+- `KH_POD_NAMESPACE`: Namespace the checker pod is running in (`metadata.namespace`).

@@ -56,7 +56,7 @@ Every checker pod receives:
 - `KH_REPORTING_URL`
 - `KH_CHECK_RUN_DEADLINE`
 - `KH_RUN_UUID` (send as header `kh-run-uuid`)
-- `KH_POD_NAMESPACE`
+- `KH_POD_NAMESPACE` (from `metadata.namespace`)
 - `KH_REPORTING_URL` is injected by the controller and already includes `/check`.
 
 ## Create the `HealthCheck` resource

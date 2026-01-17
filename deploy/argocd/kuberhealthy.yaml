@@ -3,20 +3,12 @@ kind: Application
 metadata:
   name: kuberhealthy
   namespace: argocd
-  annotations:
-    deployed-by: eg-ai-agent
 spec:
   project: default
   source:
     repoURL: https://github.com/kuberhealthy/kuberhealthy.git
     targetRevision: main
     path: deploy/helm/kuberhealthy
-    helm:
-      parameters:
-        - name: service.annotations.deployed-by
-          value: eg-ai-agent
-        - name: deployment.podAnnotations.deployed-by
-          value: eg-ai-agent
   destination:
     server: https://kubernetes.default.svc
     namespace: kuberhealthy
