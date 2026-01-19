@@ -40,7 +40,7 @@ Leader election requires the controller service account to have `get`, `list`, `
 
 ## TLS and HTTPS
 
-Set `KH_TLS_CERT_FILE` and `KH_TLS_KEY_FILE` to enable the HTTPS listener. The HTTP listener remains active. You must also expose port `443` on the Service or ingress, and mount the certificate/key into the pod. See [DEPLOYINGKUBERHEALTHY.MD](DEPLOYINGKUBERHEALTHY.MD) for an example patch.
+Set `KH_TLS_CERT_FILE` and `KH_TLS_KEY_FILE` to enable the HTTPS listener. The HTTP listener remains active. You must also expose port `443` on the Service or ingress, and mount the certificate/key into the pod. See [DEPLOYING_KUBERHEALTHY.MD](DEPLOYING_KUBERHEALTHY.MD) for an example patch.
 
 ## Checker pod environment variables
 

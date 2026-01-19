@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuberhealthy
+  namespace: kuberhealthy
+spec:
+  template:
+    spec:
+      containers:
+        - name: kuberhealthy
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: https
+              containerPort: 443
+          env:
+            - name: KH_TLS_CERT_FILE
+              value: /etc/kuberhealthy/tls/tls.crt
+            - name: KH_TLS_KEY_FILE
+              value: /etc/kuberhealthy/tls/tls.key
+          volumeMounts:
+            - name: kuberhealthy-tls
+              mountPath: /etc/kuberhealthy/tls
+              readOnly: true
+      volumes:
+        - name: kuberhealthy-tls
+          secret:
+            secretName: kuberhealthy-tls

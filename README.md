@@ -48,22 +48,22 @@ __Kuberhealthy provides a `HealthCheck` custom resource definition to make the r
 | --- | --- | --- |
 | 📘 | [Docs Index](docs/README.MD) | Full documentation entrypoint. |
 | ⚡ | [Quickstart](docs/QUICKSTART.MD) | Install, deploy a check, and verify. |
-| 🚀 | [Deploying Kuberhealthy](docs/DEPLOYINGKUBERHEALTHY.MD) | Deployment overview and rollout tips. |
+| 🚀 | [Deploying Kuberhealthy](docs/DEPLOYING_KUBERHEALTHY.MD) | Deployment overview and rollout tips. |
 | ⛵ | [Helm Chart](docs/HELM.MD) | Helm install, upgrade, and scrape settings. |
 | 🌐 | [ArgoCD Application](docs/ARGOCD.MD) | ArgoCD application manifest usage. |
 | 🧱 | [Kustomize Manifests](docs/KUSTOMIZE.MD) | Base and overlay kustomize deployment. |
-| 🧠 | [How Kuberhealthy Works](docs/HOWITWORKS.MD) | Operator internals and flow. |
+| 🧠 | [How Kuberhealthy Works](docs/HOW_IT_WORKS.MD) | Operator internals and flow. |
 | 🔗 | [HTTP API](docs/HTTP_API.MD) | Endpoints for UI, checks, and automation. |
-| 🧪 | [Run Once Checks](docs/RUNONCECHECKS.MD) | One-shot validation runs. |
+| 🧪 | [Run Once Checks](docs/RUN_ONCE_CHECKS.MD) | One-shot validation runs. |
 | 🧩 | [HealthCheck Creation](docs/CHECK_CREATION.MD) | Building custom checks. |
 | ✅ | [HealthCheck Registry](docs/CHECKS_REGISTRY.MD) | Ready-to-apply check catalog. |
 | 🎛️ | [Flags](docs/FLAGS.MD) | Environment configuration flags. |
-| 📈 | [Metrics Catalog](docs/METRICSCATALOG.MD) | Prometheus metrics and labels. |
-| 🧲 | [ServiceMonitor](docs/prometheus/SERVICEMONITOR.MD) | Prometheus Operator ServiceMonitor guide. |
+| 📈 | [Metrics Catalog](docs/METRICS_CATALOG.MD) | Prometheus metrics and labels. |
+| 🧲 | [ServiceMonitor](docs/prometheus/SERVICE_MONITOR.MD) | Prometheus Operator ServiceMonitor guide. |
 | 🧯 | [Troubleshooting](docs/TROUBLESHOOTING.MD) | Debugging steps and recovery. |
-| 🏗️ | [Build and Release](docs/BUILDANDRELEASE.MD) | Build, tag, and release workflow. |
-| 🗒️ | [Release Notes](docs/RELEASENOTES.MD) | Version changes and upgrades. |
-| 🧭 | [Migrate to HealthCheck](docs/MIGRATINGTOHEALTHCHECK.MD) | Migration guidance. |
+| 🏗️ | [Build and Release](docs/BUILD_AND_RELEASE.MD) | Build, tag, and release workflow. |
+| 🗒️ | [Release Notes](docs/RELEASE_NOTES.MD) | Version changes and upgrades. |
+| 🧭 | [Migrate to HealthCheck](docs/MIGRATING_TO_HEALTHCHECK.MD) | Migration guidance. |
 | 🤝 | [Contributing](docs/CONTRIBUTING.MD) | Contribution workflow. |
 | 🧑‍💻 | [Contributors](docs/CONTRIBUTORS.MD) | People and acknowledgements. |
 | 🏢 | [Adopters](docs/ADOPTERS.MD) | Organizations using Kuberhealthy. |

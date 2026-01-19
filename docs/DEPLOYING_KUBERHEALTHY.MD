@@ -15,6 +15,14 @@ kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base?ref=
 
 The base Service is `kuberhealthy` on port `80` (forwarded to the pod on `8080`).
 
+Kustomize overlays are a good fit when you want to keep the base manifest unchanged. Common overlay ideas:
+
+- TLS termination in the controller (see `deploy/kustomize/overlays/tls`).
+- Namespace-scoped RBAC if you only run checks in a single namespace.
+- Service type overrides (for example `ClusterIP` for internal-only access).
+- Ingress or load balancer customization.
+- Resource tuning and scheduling constraints for the controller deployment.
+
 ## Helm (v3 chart)
 
 ```sh
@@ -75,6 +83,8 @@ At minimum you must:
 - Mount a TLS secret into the controller pod.
 - Set `KH_TLS_CERT_FILE` and `KH_TLS_KEY_FILE` to the mounted paths.
 - Expose or route to port `443` on the pod (Service/Ingress update).
+
+The overlay at `deploy/kustomize/overlays/tls` applies the deployment and service patches described below.
 
 If you are using Kustomize, create an overlay that patches the deployment and Service. Example patch snippets:
 

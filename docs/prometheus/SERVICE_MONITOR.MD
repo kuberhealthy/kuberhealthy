@@ -7,7 +7,7 @@ A ServiceMonitor is a Prometheus Operator custom resource that tells Prometheus 
 - You already run Prometheus Operator or kube-prometheus-stack.
 - You want Prometheus to discover Kuberhealthy via Service labels instead of static scrape configs.
 
-If you run vanilla Prometheus without the Operator, use the scrape config example instead: `docs/prometheus/prometheusScrapeConfig.yaml`.
+If you run vanilla Prometheus without the Operator, use the scrape config example instead: `docs/prometheus/PROMETHEUS_SCRAPE_CONFIG.yaml`.
 
 ## Where it lives
 
