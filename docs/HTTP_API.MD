@@ -23,12 +23,12 @@ environment variables into every check pod:
 - `KH_CHECK_RUN_DEADLINE`: Unix timestamp deadline for reporting.
 - `KH_POD_NAMESPACE`: Namespace the checker pod is running in.
 
-The request must be a JSON payload with `OK` and `Errors` fields, for example:
+The request must be a JSON payload with `ok` and `errors` fields (case-insensitive), for example:
 
 ```json
 {
-  "OK": true,
-  "Errors": []
+  "ok": true,
+  "errors": []
 }
 ```
 
@@ -45,5 +45,5 @@ The request must be a JSON payload with `OK` and `Errors` fields, for example:
 
 ## OpenAPI schema
 
-- `GET /openapi.yaml` serves the OpenAPI schema in JSON format.
+- `GET /openapi.yaml` serves the OpenAPI schema in YAML format.
 - `GET /openapi.json` serves the OpenAPI schema in JSON format.

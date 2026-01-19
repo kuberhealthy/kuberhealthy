@@ -37,17 +37,17 @@ func main() {
 Your checker must:
 
 - Read `KH_REPORTING_URL`.
-- POST JSON to that URL with `OK` and `Errors`.
+- POST JSON to that URL with `ok` and `errors` (case-insensitive).
 - Report before `KH_CHECK_RUN_DEADLINE`.
 
 ```json
 {
-  "Errors": ["Error 1 here"],
-  "OK": false
+  "errors": ["Error 1 here"],
+  "ok": false
 }
 ```
 
-Do not send `OK: true` with a non-empty `Errors` array.
+Do not send `ok: true` with a non-empty `errors` array.
 
 ### Injected environment variables
 

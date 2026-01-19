@@ -33,7 +33,8 @@ The HTTP server configured in `cmd/kuberhealthy/webserver.go` exposes:
 - `GET /api/events` – Lists Kubernetes events for a `HealthCheck`.
 - `GET /api/logs` and `GET /api/logs/stream` – Fetches or streams pod logs for a
   particular check run.
-- `GET /openapi.yaml` and `GET /openapi.json` – Serves the OpenAPI schema.
+- `GET /openapi.yaml` and `GET /openapi.json` – Serves the OpenAPI schema in
+  YAML and JSON respectively.
 
 Static assets for the status UI are served from `/static/` and the root path `/`
 returns the HTML interface for GET requests.

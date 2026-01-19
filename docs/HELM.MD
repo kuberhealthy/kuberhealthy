@@ -12,6 +12,7 @@ This guide covers installing and operating Kuberhealthy with the Helm chart in t
 ```sh
 helm install kuberhealthy deploy/helm/kuberhealthy -n kuberhealthy --create-namespace
 ```
+Pin to a release tag when chart packages are available.
 
 ## Common settings
 

@@ -303,32 +303,51 @@ func StartWebServer() error {
 	return nil
 }
 
-// renderOpenAPISpec writes the OpenAPI spec as JSON.
-func renderOpenAPISpec(w http.ResponseWriter) error {
+// renderOpenAPIYAML writes the OpenAPI spec as YAML.
+func renderOpenAPIYAML(w http.ResponseWriter) error {
+	// Load the on-disk OpenAPI YAML file.
 	data, err := os.ReadFile("./openapi.yaml")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
 
+	// Return the YAML content with a YAML content type.
+	w.Header().Set("Content-Type", "application/yaml; charset=utf-8")
+	_, err = w.Write(data)
+	return err
+}
+
+// renderOpenAPIJSON writes the OpenAPI spec as JSON.
+func renderOpenAPIJSON(w http.ResponseWriter) error {
+	// Load the on-disk OpenAPI YAML file.
+	data, err := os.ReadFile("./openapi.yaml")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+
+	// Convert YAML to JSON so JSON clients can consume it.
 	jsonData, err := yaml.YAMLToJSON(data)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
+
+	// Return the JSON content with a JSON content type.
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	_, err = w.Write(jsonData)
 	return err
 }
 
-// openapiYAMLHandler serves the OpenAPI spec at /openapi.yaml as JSON.
+// openapiYAMLHandler serves the OpenAPI spec at /openapi.yaml as YAML.
 func openapiYAMLHandler(w http.ResponseWriter, _ *http.Request) error {
-	return renderOpenAPISpec(w)
+	return renderOpenAPIYAML(w)
 }
 
 // openapiJSONHandler serves the OpenAPI spec at /openapi.json as JSON.
 func openapiJSONHandler(w http.ResponseWriter, _ *http.Request) error {
-	return renderOpenAPISpec(w)
+	return renderOpenAPIJSON(w)
 }
 
 // updateCheckLastRunUnix retries updating LastRunUnix to avoid conflicts with concurrent status writes.

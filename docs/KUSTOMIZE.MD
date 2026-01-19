@@ -7,6 +7,7 @@ This guide covers deploying Kuberhealthy with the kustomize manifests in `deploy
 ```sh
 kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base?ref=main
 ```
+Replace `ref=main` with a release tag once tags are published.
 
 ## Use a local clone
 

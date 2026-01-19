@@ -14,7 +14,7 @@
 - [Jonathan Phan](https://github.com/jonnydawg)
 - [Joshulyne Park](https://github.com/joshulyne)
 - [jsvk](https://github.com/jsvk)
-- [Justin Downie](https://github.com/jdowni000)
+- Justin Downie
 - [Mario Constanti](https://github.com/bavarianbidi)
 - Michael Kurashima
 - [Mike Tougeron](https://twitter.com/mtougeron)

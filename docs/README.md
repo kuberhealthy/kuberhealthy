@@ -15,12 +15,14 @@ These guides cover installing, operating, and extending Kuberhealthy. If you are
 
 ## Guides
 
+- [Quickstart](QUICKSTART.MD)
 - [Deploying Kuberhealthy](DEPLOYINGKUBERHEALTHY.MD)
 - [Helm Chart](HELM.MD)
 - [ArgoCD Application](ARGOCD.MD)
 - [Kustomize Manifests](KUSTOMIZE.MD)
 - [How Kuberhealthy Works](HOWITWORKS.MD)
 - [HTTP API and Endpoints](HTTP_API.MD)
+- [OpenAPI Schema](../openapi.yaml)
 - [Run Once Checks](RUNONCECHECKS.MD)
 - [Creating Your Own `HealthCheck`](CHECK_CREATION.MD)
 - [`HealthCheck` Registry](CHECKS_REGISTRY.MD)
@@ -33,9 +35,18 @@ These guides cover installing, operating, and extending Kuberhealthy. If you are
 - [Prometheus Scrape Example](prometheus/prometheusScrapeConfig.yaml)
 - [Troubleshooting](TROUBLESHOOTING.MD)
 - [Build and Release](BUILDANDRELEASE.MD)
+- [Compatibility](COMPATIBILITY.MD)
 - [Release Notes](RELEASENOTES.MD)
 - [Migration to HealthCheck](MIGRATINGTOHEALTHCHECK.MD)
 - [Contributing](CONTRIBUTING.MD)
 - [Code of Conduct](CODE_OF_CONDUCT.MD)
 - [Contributors](CONTRIBUTORS.MD)
 - [Adopters](ADOPTERS.MD)
+
+## Internals
+
+- [Architecture](agent/ARCHITECTURE.MD)
+- [Logic Flow](agent/LOGIC.MD)
+- [Interfaces](agent/INTERFACES.MD)
+- [Structures](agent/STRUCTURES.MD)
+- [Configuration](agent/CONFIGURATION.MD)

@@ -21,11 +21,13 @@ __Kuberhealthy provides a `HealthCheck` custom resource definition to make the r
    ```sh
    kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base?ref=main
    ```
+   Replace `ref=main` with a release tag once tags are published.
 
    Helm (from this repo)
    ```sh
    helm install kuberhealthy deploy/helm/kuberhealthy -n kuberhealthy --create-namespace
    ```
+   Pin to a release tag when chart packages are available.
 
    ArgoCD (pre-made application resource)
    ```sh
@@ -45,11 +47,13 @@ __Kuberhealthy provides a `HealthCheck` custom resource definition to make the r
 | 📌 | Doc | Purpose |
 | --- | --- | --- |
 | 📘 | [Docs Index](docs/README.MD) | Full documentation entrypoint. |
+| ⚡ | [Quickstart](docs/QUICKSTART.MD) | Install, deploy a check, and verify. |
 | 🚀 | [Deploying Kuberhealthy](docs/DEPLOYINGKUBERHEALTHY.MD) | Deployment overview and rollout tips. |
 | ⛵ | [Helm Chart](docs/HELM.MD) | Helm install, upgrade, and scrape settings. |
 | 🌐 | [ArgoCD Application](docs/ARGOCD.MD) | ArgoCD application manifest usage. |
 | 🧱 | [Kustomize Manifests](docs/KUSTOMIZE.MD) | Base and overlay kustomize deployment. |
 | 🧠 | [How Kuberhealthy Works](docs/HOWITWORKS.MD) | Operator internals and flow. |
+| 🔗 | [HTTP API](docs/HTTP_API.MD) | Endpoints for UI, checks, and automation. |
 | 🧪 | [Run Once Checks](docs/RUNONCECHECKS.MD) | One-shot validation runs. |
 | 🧩 | [HealthCheck Creation](docs/CHECK_CREATION.MD) | Building custom checks. |
 | ✅ | [HealthCheck Registry](docs/CHECKS_REGISTRY.MD) | Ready-to-apply check catalog. |

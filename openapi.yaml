@@ -143,11 +143,11 @@ paths:
       summary: Get OpenAPI specification
       responses:
         '200':
-          description: OpenAPI specification in JSON
+          description: OpenAPI specification in YAML
           content:
-            application/json:
+            application/yaml:
               schema:
-                type: object
+                type: string
   /openapi.json:
     get:
       summary: Get OpenAPI specification
@@ -185,6 +185,13 @@ paths:
   /check:
     post:
       summary: Report an external check result
+      parameters:
+        - in: header
+          name: kh-run-uuid
+          required: true
+          schema:
+            type: string
+          description: Run identifier injected into the check pod.
       requestBody:
         required: true
         content:
@@ -211,25 +218,27 @@ components:
     State:
       type: object
       properties:
-        ok:
+        OK:
           type: boolean
-        errors:
+        Errors:
           type: array
           items:
             type: string
-        checkDetails:
+        CheckDetails:
           type: object
           additionalProperties:
-            $ref: '#/components/schemas/CheckStatus'
-        metadata:
+            $ref: '#/components/schemas/CheckDetail'
+        CurrentMaster:
+          type: string
+        Metadata:
           type: object
           additionalProperties:
             type: string
       required:
-        - ok
-        - errors
-        - checkDetails
-    CheckStatus:
+        - OK
+        - Errors
+        - CheckDetails
+    CheckDetail:
       type: object
       properties:
         ok:
@@ -238,20 +247,42 @@ components:
           type: array
           items:
             type: string
+        consecutiveFailures:
+          type: integer
         runDuration:
-          type: string
-          description: Execution time of the last run
+          type: integer
+          format: int64
+          description: Execution time of the last run in nanoseconds
         namespace:
-          type: string
-        podName:
           type: string
         currentUUID:
           type: string
         lastRunUnix:
           type: integer
           format: int64
+        successCount:
+          type: integer
+        failureCount:
+          type: integer
+        lastOKUnix:
+          type: integer
+          format: int64
+        lastFailureUnix:
+          type: integer
+          format: int64
         additionalMetadata:
           type: string
+        nextRunUnix:
+          type: integer
+          format: int64
+        podName:
+          type: string
+        timeoutSeconds:
+          type: integer
+          format: int64
+        runIntervalSeconds:
+          type: integer
+          format: int64
       required:
         - ok
     Report:
@@ -265,6 +296,22 @@ components:
           type: boolean
       required:
         - ok
+    EventSummary:
+      type: object
+      properties:
+        message:
+          type: string
+        reason:
+          type: string
+        type:
+          type: string
+        lastTimestamp:
+          type: integer
+          format: int64
+      required:
+        - message
+        - reason
+        - type
     AdmissionReview:
       type: object
       properties:
@@ -287,19 +334,3 @@ components:
           type: object
         response:
           type: object
-    EventSummary:
-      type: object
-      properties:
-        message:
-          type: string
-        reason:
-          type: string
-        type:
-          type: string
-        lastTimestamp:
-          type: integer
-          format: int64
-      required:
-        - message
-        - reason
-        - type

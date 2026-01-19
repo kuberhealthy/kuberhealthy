@@ -7,6 +7,11 @@ Kuberhealthy ships Kustomize manifests in `deploy/kustomize` and a Helm chart in
 ```sh
 kubectl apply -k deploy/kustomize/base
 ```
+If you apply directly from GitHub, replace `ref=main` with a release tag once tags are published:
+
+```sh
+kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base?ref=main
+```
 
 The base Service is `kuberhealthy` on port `80` (forwarded to the pod on `8080`).
 
@@ -15,6 +20,7 @@ The base Service is `kuberhealthy` on port `80` (forwarded to the pod on `8080`)
 ```sh
 helm install kuberhealthy deploy/helm/kuberhealthy -n kuberhealthy --create-namespace
 ```
+Pin to a release tag when chart packages are available.
 
 The Service is `kuberhealthy` on port `80` (forwarded to the pod on `8080`).
 
