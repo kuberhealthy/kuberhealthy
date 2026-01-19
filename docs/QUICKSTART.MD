@@ -36,7 +36,16 @@ spec:
         - name: check
           image: docker.io/curlimages/curl:8.5.0
           imagePullPolicy: IfNotPresent
-          command: ["sh", "-c", "echo ok"]
+          command:
+            - sh
+            - -c
+            - |
+              set -euo pipefail
+              echo "Reporting to $KH_REPORTING_URL"
+              curl -fsS \
+                -H "Content-Type: application/json" \
+                -H "kh-run-uuid: $KH_RUN_UUID" \
+                -d '{"ok":true,"errors":[]}' "$KH_REPORTING_URL"
       restartPolicy: Never
 YAML
 ```

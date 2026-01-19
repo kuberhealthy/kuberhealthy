@@ -7,8 +7,8 @@ spec:
   project: default
   source:
     repoURL: https://github.com/kuberhealthy/kuberhealthy.git
-    path: deploy
-    targetRevision: master
+    path: deploy/kustomize/base
+    targetRevision: main
   destination:
     server: https://kubernetes.default.svc
     namespace: kuberhealthy

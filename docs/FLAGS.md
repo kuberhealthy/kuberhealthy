@@ -21,7 +21,6 @@ Kuberhealthy uses environment variables only. It does not accept command-line fl
 | `KH_PROM_LABEL_DENYLIST` | Comma-separated list of extra label keys to exclude | unset |
 | `KH_PROM_LABEL_VALUE_MAX_LENGTH` | Maximum length for extra label values | `256` |
 | `KH_TARGET_NAMESPACE` | Namespace Kuberhealthy operates in (blank for all) | `` |
-| `POD_NAMESPACE` | Namespace of the running controller pod | `<pod namespace>` |
 | `KH_DEFAULT_RUN_INTERVAL` | Default check run interval | `10m` |
 | `KH_CHECK_REPORT_URL` | Base URL used for check reports; `/check` is appended automatically | `http://kuberhealthy.<namespace>.svc.cluster.local` |
 | `KH_TERMINATION_GRACE_PERIOD` | Shutdown grace period | `5m` |
@@ -34,6 +33,7 @@ Kuberhealthy uses environment variables only. It does not accept command-line fl
 | `KH_LEADER_ELECTION_RENEW_DEADLINE` | Renewal deadline for leader election | `10s` |
 | `KH_LEADER_ELECTION_RETRY_PERIOD` | Retry period for leader election | `2s` |
 | `POD_NAME` | Name of the running controller pod | `<pod name>` |
+| `POD_NAMESPACE` | Namespace of the running controller pod | `<pod namespace>` |
 | `KH_TLS_CERT_FILE` | TLS certificate path for HTTPS listener | unset |
 | `KH_TLS_KEY_FILE` | TLS private key path for HTTPS listener | unset |
 

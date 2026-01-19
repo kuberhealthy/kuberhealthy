@@ -31,6 +31,7 @@ The request must be a JSON payload with `ok` and `errors` fields (case-insensiti
   "errors": []
 }
 ```
+Set `Content-Type: application/json`.
 
 ## Manual run and log access
 
