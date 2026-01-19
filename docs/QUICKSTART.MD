@@ -20,6 +20,8 @@ Pin to a release tag when chart packages are available.
 
 ## Apply a sample HealthCheck
 
+If you installed Kuberhealthy in a different namespace, update the `metadata.namespace` value below.
+
 ```sh
 kubectl apply -f - <<'YAML'
 apiVersion: kuberhealthy.github.io/v2

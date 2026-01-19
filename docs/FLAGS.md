@@ -33,7 +33,6 @@ Kuberhealthy uses environment variables only. It does not accept command-line fl
 | `KH_LEADER_ELECTION_RENEW_DEADLINE` | Renewal deadline for leader election | `10s` |
 | `KH_LEADER_ELECTION_RETRY_PERIOD` | Retry period for leader election | `2s` |
 | `POD_NAME` | Name of the running controller pod | `<pod name>` |
-| `POD_NAMESPACE` | Namespace of the running controller pod | `<pod namespace>` |
 | `KH_TLS_CERT_FILE` | TLS certificate path for HTTPS listener | unset |
 | `KH_TLS_KEY_FILE` | TLS private key path for HTTPS listener | unset |
 

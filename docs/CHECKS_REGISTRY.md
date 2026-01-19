@@ -1,6 +1,7 @@
 # `HealthCheck` Registry
 
 This list points to `HealthCheck` resources you can apply once Kuberhealthy is installed. If you have a check to share, open a PR and add it here. We love early contributions.
+Most examples assume the `kuberhealthy` namespace; update the namespace fields if you installed elsewhere.
 
 | Check Name | Description | healthcheck Resource | Contributor |
 | --- | --- | --- | --- |

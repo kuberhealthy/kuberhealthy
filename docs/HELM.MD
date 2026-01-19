@@ -19,6 +19,13 @@ Pin to a release tag when chart packages are available.
 - Set the namespace with `--namespace` or `--create-namespace` as shown above.
 - Configure environment variables in `deployment.env`.
 - Adjust replicas and rollout strategy in `deployment`.
+- The chart defaults `service.type` to `LoadBalancer`. Use `ClusterIP` for clusters without a cloud load balancer.
+
+```sh
+helm upgrade kuberhealthy deploy/helm/kuberhealthy \
+  -n kuberhealthy \
+  --set service.type=ClusterIP
+```
 
 ## Prometheus scraping
 
