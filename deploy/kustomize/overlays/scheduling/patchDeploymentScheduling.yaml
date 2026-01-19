@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuberhealthy
+  namespace: kuberhealthy
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kuberhealthy.io/schedule: "true"
+      tolerations:
+        - key: "kuberhealthy.io/dedicated"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: kuberhealthy
+                topologyKey: kubernetes.io/hostname

@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kuberhealthy
+  namespace: kuberhealthy
+spec:
+  tls:
+    - hosts:
+        - kuberhealthy.example.com
+      secretName: kuberhealthy-tls
+  rules:
+    - host: kuberhealthy.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kuberhealthy
+                port:
+                  number: 80

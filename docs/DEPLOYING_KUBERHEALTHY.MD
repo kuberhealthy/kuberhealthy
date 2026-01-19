@@ -19,9 +19,16 @@ Kustomize overlays are a good fit when you want to keep the base manifest unchan
 
 - TLS termination in the controller (see `deploy/kustomize/overlays/tls`).
 - Namespace-scoped RBAC if you only run checks in a single namespace.
-- Service type overrides (for example `ClusterIP` for internal-only access).
-- Ingress or load balancer customization.
-- Resource tuning and scheduling constraints for the controller deployment.
+- Service type overrides (see `deploy/kustomize/overlays/serviceType`).
+- Ingress or load balancer customization (see `deploy/kustomize/overlays/ingressConfig`).
+- Resource tuning and scheduling constraints (see `deploy/kustomize/overlays/scheduling`).
+- Prometheus Operator ServiceMonitor (see `deploy/kustomize/overlays/prometheusOperator`).
+
+To use an overlay, apply the overlay directory instead of the base:
+
+```sh
+kubectl apply -k deploy/kustomize/overlays/tls
+```
 
 ## Helm (v3 chart)
 
