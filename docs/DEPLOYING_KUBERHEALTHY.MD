@@ -30,6 +30,8 @@ To use an overlay, apply the overlay directory instead of the base:
 kubectl apply -k deploy/kustomize/overlays/tls
 ```
 
+If you want multiple overlay behaviors, create a new overlay that composes the patches you need. Kustomize does not stack overlays automatically, so your composite overlay should reference the base and include the patches/resources you want.
+
 ## Helm (v3 chart)
 
 ```sh
