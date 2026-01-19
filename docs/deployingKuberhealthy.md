@@ -7,7 +7,7 @@ Kuberhealthy ships Kustomize manifests in `deploy/kustomize` and a Helm chart in
 ```sh
 kubectl apply -k deploy/kustomize/base
 ```
-If you apply directly from GitHub, replace `ref=main` with a release tag once tags are published:
+If you apply directly from GitHub, track the latest `main` commit until release tags are published:
 
 ```sh
 kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base?ref=main

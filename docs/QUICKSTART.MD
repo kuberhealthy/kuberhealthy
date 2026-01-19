@@ -9,7 +9,7 @@ Kustomize:
 ```sh
 kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base?ref=main
 ```
-Replace `ref=main` with a release tag once tags are published.
+Tracks the latest `main` commit. Update to a release tag once tags are published.
 
 Helm:
 
