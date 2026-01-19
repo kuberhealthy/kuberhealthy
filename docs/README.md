@@ -25,6 +25,7 @@ These guides cover installing, operating, and extending Kuberhealthy. If you are
 - [OpenAPI Schema](../openapi.yaml)
 - [Run Once Checks](RUNONCECHECKS.MD)
 - [Creating Your Own `HealthCheck`](CHECK_CREATION.MD)
+- [`HealthCheck` CRD Reference](CRD_REFERENCE.MD)
 - [`HealthCheck` Registry](CHECKS_REGISTRY.MD)
 - [Flags](FLAGS.MD)
 - [Metrics Catalog](METRICSCATALOG.MD)

@@ -37,3 +37,18 @@ Kuberhealthy uses environment variables only. It does not accept command-line fl
 | `KH_TLS_KEY_FILE` | TLS private key path for HTTPS listener | unset |
 
 Leader election requires the controller service account to have `get`, `list`, `watch`, `create`, `update`, and `patch` access to `coordination.k8s.io` `leases` in the Lease namespace.
+
+## TLS and HTTPS
+
+Set `KH_TLS_CERT_FILE` and `KH_TLS_KEY_FILE` to enable the HTTPS listener. The HTTP listener remains active. You must also expose port `443` on the Service or ingress, and mount the certificate/key into the pod. See [DEPLOYINGKUBERHEALTHY.MD](DEPLOYINGKUBERHEALTHY.MD) for an example patch.
+
+## Checker pod environment variables
+
+Checker pods receive additional variables injected by the controller. These are not configured on the controller deployment:
+
+- `KH_REPORTING_URL`
+- `KH_CHECK_RUN_DEADLINE`
+- `KH_RUN_UUID`
+- `KH_POD_NAMESPACE`
+
+See [CHECK_CREATION.MD](CHECK_CREATION.MD) for how to use them.

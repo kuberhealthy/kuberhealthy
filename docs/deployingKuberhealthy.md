@@ -31,6 +31,16 @@ The chart defaults `service.type` to `LoadBalancer`; set `service.type=ClusterIP
 kubectl apply -f deploy/argocd/kuberhealthy.yaml
 ```
 
+## RBAC requirements
+
+Kuberhealthy installs a ClusterRole and ClusterRoleBinding for the controller ServiceAccount. The default permissions are defined in `deploy/kustomize/base/clusterrole.yaml` and include:
+
+- `kuberhealthy.github.io` `healthchecks` resources (full CRUD + status/finalizers).
+- Core `pods`, `pods/log`, and `events`.
+- `coordination.k8s.io` `leases` (needed for leader election).
+
+If you need to scope to a namespace, create a dedicated Role/RoleBinding and confirm the controller can still create and read checker pods in the target namespaces.
+
 ## Scaling and leader election
 
 Kuberhealthy can run multiple controller replicas with leader election enabled. Only the leader runs checks and reaps pods, while all replicas serve the UI and APIs.
@@ -54,6 +64,55 @@ kubectl apply -k deploy/kustomize/azure-lb-controller
 
 # Ingress (on-prem or controller-managed)
 kubectl apply -k deploy/kustomize/ingress
+```
+
+## TLS and HTTPS
+
+Kuberhealthy can serve HTTPS when both `KH_TLS_CERT_FILE` and `KH_TLS_KEY_FILE` are set. The HTTPS listener uses `KH_LISTEN_ADDRESS_TLS` (default `:443`) while the HTTP listener continues to use `KH_LISTEN_ADDRESS`.
+
+At minimum you must:
+
+- Mount a TLS secret into the controller pod.
+- Set `KH_TLS_CERT_FILE` and `KH_TLS_KEY_FILE` to the mounted paths.
+- Expose or route to port `443` on the pod (Service/Ingress update).
+
+If you are using Kustomize, create an overlay that patches the deployment and Service. Example patch snippets:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuberhealthy
+spec:
+  template:
+    spec:
+      containers:
+        - name: kuberhealthy
+          env:
+            - name: KH_TLS_CERT_FILE
+              value: /etc/kuberhealthy/tls/tls.crt
+            - name: KH_TLS_KEY_FILE
+              value: /etc/kuberhealthy/tls/tls.key
+          volumeMounts:
+            - name: kuberhealthy-tls
+              mountPath: /etc/kuberhealthy/tls
+              readOnly: true
+      volumes:
+        - name: kuberhealthy-tls
+          secret:
+            secretName: kuberhealthy-tls
+```
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuberhealthy
+spec:
+  ports:
+    - name: https
+      port: 443
+      targetPort: 443
 ```
 
 ## Configure

@@ -36,6 +36,14 @@ Kuberhealthy is configured via environment variables. There are no command-line 
 - `KH_LEADER_ELECTION_RETRY_PERIOD`: Retry period for leader election. Default `2s`.
 - Leader election requires the controller service account to have `get`, `list`, `watch`, `create`, `update`, and `patch` access to `coordination.k8s.io` `leases` in the configured lease namespace.
 
+## RBAC requirements
+
+The controller ServiceAccount needs the ClusterRole permissions defined in `deploy/kustomize/base/clusterrole.yaml`:
+
+- `kuberhealthy.github.io` `healthchecks` (including status and finalizers).
+- Core `pods`, `pods/log`, and `events`.
+- `coordination.k8s.io` `leases` for leader election.
+
 ## Checker Pod Environment Variables
 
 These are injected into every checker pod and are required by the check clients:
