@@ -1,6 +1,6 @@
 # How Kuberhealthy Works
 
-Kuberhealthy watches `HealthCheck` resources, schedules checker pods, and records results. Those results appear in the `status` block and as Prometheus metrics.
+Kuberhealthy watches `HealthCheck` resources, schedules checker pods, and records results. Those results appear in the `status` block and as Prometheus metrics. Your check logic can be anything you need, from quick probes to synthetic workflow simulations that validate full user journeys in any language.
 
 ## Flow
 
@@ -18,6 +18,11 @@ kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/deployment-check
 
 ## View status
 
+- Web status UI:
+  ```sh
+  kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80
+  ```
+  Visit `http://localhost:8080`.
 - Resource status:
   ```sh
   kubectl -n kuberhealthy describe healthcheck deployment

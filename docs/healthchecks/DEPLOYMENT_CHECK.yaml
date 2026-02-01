@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
         - name: deployment
-          image: kuberhealthy/deployment-check:latest
+          image: kuberhealthy/deployment-check:v0.1.0
           imagePullPolicy: IfNotPresent
           env:
             - name: CHECK_DEPLOYMENT_REPLICAS

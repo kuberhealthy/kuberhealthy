@@ -7,22 +7,22 @@ spec:
   groups:
     - name: kuberhealthy.rules
       rules:
-        - alert: KuberhealthyCheckFailed
+        - alert: HealthCheckFailed
           expr: kuberhealthy_check{status="0"} == 1
           for: 5m
           labels:
             severity: warning
           annotations:
-            summary: "Kuberhealthy check failing"
-            description: "Check {{ $labels.check }} in {{ $labels.namespace }} is failing."
-        - alert: KuberhealthyCheckStale
+            summary: "HealthCheck failing"
+            description: "HealthCheck {{ $labels.check }} in {{ $labels.namespace }} is failing."
+        - alert: HealthCheckStale
           expr: kuberhealthy_check_seconds_since_success > 1800
           for: 5m
           labels:
             severity: warning
           annotations:
-            summary: "Kuberhealthy check stale"
-            description: "Check {{ $labels.check }} has not reported OK within the expected window."
+            summary: "HealthCheck stale"
+            description: "HealthCheck {{ $labels.check }} has not reported OK within the expected window."
         - alert: KuberhealthyNoLeader
           expr: max(kuberhealthy_controller_leader) < 1
           for: 5m

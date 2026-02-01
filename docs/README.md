@@ -1,6 +1,8 @@
 # Kuberhealthy Documentation
 
-These guides cover installing, operating, and extending Kuberhealthy. If you are trying it early, we would love feedback and check contributions.
+These guides cover installing, operating, and extending Kuberhealthy. You can write your own HealthChecks in any language to validate anything, including synthetic workflow simulation (end-to-end user flows). Start with [CHECK_CREATION.MD](CHECK_CREATION.MD) and the client libraries below.
+
+The web interface at `/` shows HealthCheck status at a glance, `/json` provides a machine-readable summary, and `/metrics` is ready for Prometheus.
 
 ## Client Libraries and Examples
 
@@ -13,41 +15,44 @@ These guides cover installing, operating, and extending Kuberhealthy. If you are
 - [Java](https://github.com/kuberhealthy/java)
 - [Bash](https://github.com/kuberhealthy/bash)
 
-## Guides
+## Documentation Index
 
-- [Quickstart](QUICKSTART.MD)
-- [Deploying Kuberhealthy](DEPLOYING_KUBERHEALTHY.MD)
-- [Helm Chart](HELM.MD)
-- [ArgoCD Application](ARGOCD.MD)
-- [Kustomize Manifests](KUSTOMIZE.MD)
-- [How Kuberhealthy Works](HOW_IT_WORKS.MD)
-- [HTTP API and Endpoints](HTTP_API.MD)
+| 📌 | Doc | Purpose |
+| --- | --- | --- |
+| 📘 | [Docs Index (this page)](README.MD) | Full documentation entrypoint. |
+| ⚡ | [Quickstart](QUICKSTART.MD) | Install, deploy a check, and verify. |
+| 🚀 | [Deploying Kuberhealthy](DEPLOYING_KUBERHEALTHY.MD) | Deployment overview and rollout tips. |
+| ⛵ | [Helm Chart](HELM.MD) | Helm install, upgrade, and scrape settings. |
+| 🌐 | [ArgoCD Application](ARGOCD.MD) | ArgoCD application manifest usage. |
+| 🧱 | [Kustomize Manifests](KUSTOMIZE.MD) | Base and overlay kustomize deployment. |
+| 🧠 | [How Kuberhealthy Works](HOW_IT_WORKS.MD) | Operator internals and flow. |
+| 🔗 | [HTTP API](HTTP_API.MD) | Endpoints for UI, checks, and automation. |
+| 🧪 | [Run Once Checks](RUN_ONCE_CHECKS.MD) | One-shot validation runs. |
+| 🧩 | [HealthCheck Creation](CHECK_CREATION.MD) | Building custom checks. |
+| ✅ | [HealthCheck Registry](CHECKS_REGISTRY.MD) | Ready-to-apply check catalog. |
+| 🎛️ | [Flags](FLAGS.MD) | Environment configuration flags. |
+| 📈 | [Metrics Catalog](METRICS_CATALOG.MD) | Prometheus metrics and labels. |
+| 🧲 | [ServiceMonitor](prometheus/SERVICE_MONITOR.MD) | Prometheus Operator ServiceMonitor guide. |
+| 🧯 | [Troubleshooting](TROUBLESHOOTING.MD) | Debugging steps and recovery. |
+| 🏗️ | [Build and Release](BUILD_AND_RELEASE.MD) | Build, tag, and release workflow. |
+| 🗒️ | [Release Notes](RELEASE_NOTES.MD) | Version changes and upgrades. |
+| 🧭 | [Migrate to HealthCheck](MIGRATING_TO_HEALTHCHECK.MD) | Migration guidance. |
+| 🤝 | [Contributing](CONTRIBUTING.MD) | Contribution workflow. |
+| 🧑‍💻 | [Contributors](CONTRIBUTORS.MD) | People and acknowledgements. |
+| 🏢 | [Adopters](ADOPTERS.MD) | Organizations using Kuberhealthy. |
+| 📜 | [Code of Conduct](CODE_OF_CONDUCT.MD) | Community standards. |
+| 🏛️ | [Architecture](agent/ARCHITECTURE.MD) | System design view. |
+| 🔁 | [Logic Flow](agent/LOGIC.MD) | Runtime flow and control points. |
+| 🔌 | [Interfaces](agent/INTERFACES.MD) | Inputs, outputs, and APIs. |
+| 🧱 | [Structures](agent/STRUCTURES.MD) | Key data structures. |
+| ⚙️ | [Configuration](agent/CONFIGURATION.MD) | Configuration details and defaults. |
+
+## Additional References
+
 - [OpenAPI Schema](../openapi.yaml)
-- [Run Once Checks](RUN_ONCE_CHECKS.MD)
-- [Creating Your Own `HealthCheck`](CHECK_CREATION.MD)
 - [`HealthCheck` CRD Reference](CRD_REFERENCE.MD)
-- [`HealthCheck` Registry](CHECKS_REGISTRY.MD)
-- [Flags](FLAGS.MD)
-- [Metrics Catalog](METRICS_CATALOG.MD)
 - [Prometheus Rules](prometheus/PROMETHEUS_RULES.yaml)
-- [ServiceMonitor (Prometheus Operator)](prometheus/SERVICE_MONITOR.MD)
 - [ServiceMonitor Manifest](../deploy/serviceMonitor.yaml)
 - [PodMonitor Example](prometheus/POD_MONITOR.yaml)
 - [Prometheus Scrape Example](prometheus/PROMETHEUS_SCRAPE_CONFIG.yaml)
-- [Troubleshooting](TROUBLESHOOTING.MD)
-- [Build and Release](BUILD_AND_RELEASE.MD)
 - [Compatibility](COMPATIBILITY.MD)
-- [Release Notes](RELEASE_NOTES.MD)
-- [Migration to HealthCheck](MIGRATING_TO_HEALTHCHECK.MD)
-- [Contributing](CONTRIBUTING.MD)
-- [Code of Conduct](CODE_OF_CONDUCT.MD)
-- [Contributors](CONTRIBUTORS.MD)
-- [Adopters](ADOPTERS.MD)
-
-## Internals
-
-- [Architecture](agent/ARCHITECTURE.MD)
-- [Logic Flow](agent/LOGIC.MD)
-- [Interfaces](agent/INTERFACES.MD)
-- [Structures](agent/STRUCTURES.MD)
-- [Configuration](agent/CONFIGURATION.MD)

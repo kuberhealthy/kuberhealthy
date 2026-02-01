@@ -1,6 +1,8 @@
 # Creating Your Own `HealthCheck`
 
-This guide walks you through building a custom check container and wiring it into Kuberhealthy.
+This guide walks you through building a custom check container and wiring it into Kuberhealthy. You can validate anything, including synthetic workflow simulation (multi-step user flows across services), and you can write checks in any language.
+
+Start here if you are turning a runbook into an automated HealthCheck or need a synthetic test that mirrors real user behavior.
 
 ## Client libraries
 

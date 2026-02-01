@@ -11,7 +11,8 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2822/badge)](https://bestpractices.coreinfrastructure.org/projects/2822)
 [![Join Slack](https://img.shields.io/badge/slack-kubernetes/kuberhealthy-teal.svg?logo=slack)](https://kubernetes.slack.com/messages/CB9G7HWTE)
 
-__Kuberhealthy provides a `HealthCheck` custom resource definition to make the running of your own custom check containers easy.__
+__Kuberhealthy provides the `HealthCheck` custom resource definition (try `kubectl get healthcheck`) to make running your own check containers easy.__
+The built-in web status UI (`/`) gives an at-a-glance view of HealthCheck state, with JSON summaries (`/json`) and Prometheus metrics (`/metrics`) for automation.
 
 ## Getting started
 
@@ -40,36 +41,58 @@ __Kuberhealthy provides a `HealthCheck` custom resource definition to make the r
    kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80
    ```
 
-3. Open `http://localhost:8080` and apply a [HealthCheck](docs/CHECKS_REGISTRY.MD).
+3. Open `http://localhost:8080` to see the status UI, then apply a [HealthCheck](docs/CHECKS_REGISTRY.MD) or build your own (see [CHECK_CREATION.MD](docs/CHECK_CREATION.MD)).
 
-## Docs table of contents
+## Documentation
 
-| 📌 | Doc | Purpose |
-| --- | --- | --- |
-| 📘 | [Docs Index](docs/README.MD) | Full documentation entrypoint. |
-| ⚡ | [Quickstart](docs/QUICKSTART.MD) | Install, deploy a check, and verify. |
-| 🚀 | [Deploying Kuberhealthy](docs/DEPLOYING_KUBERHEALTHY.MD) | Deployment overview and rollout tips. |
-| ⛵ | [Helm Chart](docs/HELM.MD) | Helm install, upgrade, and scrape settings. |
-| 🌐 | [ArgoCD Application](docs/ARGOCD.MD) | ArgoCD application manifest usage. |
-| 🧱 | [Kustomize Manifests](docs/KUSTOMIZE.MD) | Base and overlay kustomize deployment. |
-| 🧠 | [How Kuberhealthy Works](docs/HOW_IT_WORKS.MD) | Operator internals and flow. |
-| 🔗 | [HTTP API](docs/HTTP_API.MD) | Endpoints for UI, checks, and automation. |
-| 🧪 | [Run Once Checks](docs/RUN_ONCE_CHECKS.MD) | One-shot validation runs. |
-| 🧩 | [HealthCheck Creation](docs/CHECK_CREATION.MD) | Building custom checks. |
-| ✅ | [HealthCheck Registry](docs/CHECKS_REGISTRY.MD) | Ready-to-apply check catalog. |
-| 🎛️ | [Flags](docs/FLAGS.MD) | Environment configuration flags. |
-| 📈 | [Metrics Catalog](docs/METRICS_CATALOG.MD) | Prometheus metrics and labels. |
-| 🧲 | [ServiceMonitor](docs/prometheus/SERVICE_MONITOR.MD) | Prometheus Operator ServiceMonitor guide. |
-| 🧯 | [Troubleshooting](docs/TROUBLESHOOTING.MD) | Debugging steps and recovery. |
-| 🏗️ | [Build and Release](docs/BUILD_AND_RELEASE.MD) | Build, tag, and release workflow. |
-| 🗒️ | [Release Notes](docs/RELEASE_NOTES.MD) | Version changes and upgrades. |
-| 🧭 | [Migrate to HealthCheck](docs/MIGRATING_TO_HEALTHCHECK.MD) | Migration guidance. |
-| 🤝 | [Contributing](docs/CONTRIBUTING.MD) | Contribution workflow. |
-| 🧑‍💻 | [Contributors](docs/CONTRIBUTORS.MD) | People and acknowledgements. |
-| 🏢 | [Adopters](docs/ADOPTERS.MD) | Organizations using Kuberhealthy. |
-| 📜 | [Code of Conduct](docs/CODE_OF_CONDUCT.MD) | Community standards. |
-| 🏛️ | [Architecture](docs/agent/ARCHITECTURE.MD) | System design view. |
-| 🔁 | [Logic Flow](docs/agent/LOGIC.MD) | Runtime flow and control points. |
-| 🔌 | [Interfaces](docs/agent/INTERFACES.MD) | Inputs, outputs, and APIs. |
-| 🧱 | [Structures](docs/agent/STRUCTURES.MD) | Key data structures. |
-| ⚙️ | [Configuration](docs/agent/CONFIGURATION.MD) | Configuration details and defaults. |
+See the full documentation index in [docs/README.MD](docs/README.MD).
+
+## Create Synthetic Checks for Your APIs
+
+Custom HealthChecks let you validate real workflows end-to-end, catch regressions before users do, and turn runbooks into always-on synthetic verification. Checks can test anything (including multi-step synthetic workflow simulation) and can be written in any language.
+
+Get started with [CHECK_CREATION.MD](docs/CHECK_CREATION.MD) and the [HealthCheck registry](docs/CHECKS_REGISTRY.MD), then pick a check client for your language:
+
+- [Go](https://github.com/kuberhealthy/go)
+- [Rust](https://github.com/kuberhealthy/rust)
+- [Bash](https://github.com/kuberhealthy/bash)
+- [Python](https://github.com/kuberhealthy/python)
+- [Ruby](https://github.com/kuberhealthy/ruby)
+- [JavaScript](https://github.com/kuberhealthy/javascript)
+- [TypeScript](https://github.com/kuberhealthy/typescript)
+- [Java](https://github.com/kuberhealthy/java)
+
+Here is a full check example written in Go. Implement `doCheckStuff` and you are off:
+
+```go
+package main
+
+import "github.com/kuberhealthy/kuberhealthy/v3/pkg/checkclient"
+
+func main() {
+  ok := doCheckStuff()
+  if !ok {
+    checkclient.ReportFailure([]string{"Test has failed!"})
+    return
+  }
+  checkclient.ReportSuccess()
+}
+```
+
+You can read more about [how checks are configured](docs/CHECK_CREATION.MD#create-the-healthcheck-resource) and [learn how to create your own check container](docs/CHECK_CREATION.MD). Checks can be written in any language and helpful clients are listed above.
+
+## Contributing
+
+If you are interested in contributing to this project:
+
+- Check out the [Contributing Guide](docs/CONTRIBUTING.MD).
+- If you use Kuberhealthy in production, add yourself to the list of [Kuberhealthy adopters](docs/ADOPTERS.MD).
+- Check out [open issues](https://github.com/kuberhealthy/kuberhealthy/issues). If you are new to the project, look for the `good first issue` tag.
+- We are always looking for check contributions and feedback from folks running Kuberhealthy locally or in production.
+
+## Monthly Community Meeting
+
+If you would like to talk directly to the core maintainers to discuss ideas, code reviews, or other complex issues, we have a monthly Zoom meeting on the **24th day** of every month at **04:30 PM Pacific Time**.
+
+- [Click here to download the invite file](https://zoom.us/meeting/tJIlcuyrqT8qHNWDSx3ZozYamoq2f0ruwfB0/ics?icsToken=98tyKuCupj4vGdORsB-GRowAGo_4Z-nwtilfgo1quCz9UBpceDr3O-1TYLQvAs3H)
+- [Click here to join the zoom meeting right now (968 5537 4061)](https://zoom.us/j/96855374061)

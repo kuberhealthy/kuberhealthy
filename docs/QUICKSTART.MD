@@ -62,6 +62,10 @@ curl -fsS http://localhost:8080/json
 
 Open `http://localhost:8080` to view the status UI.
 
+## Next steps
+
+Write your own HealthCheck to validate real workflows (including multi-step synthetic simulations) in any language. Start with [CHECK_CREATION.MD](CHECK_CREATION.MD) and the client libraries listed in [README.MD](README.MD).
+
 ## Uninstall
 
 Kustomize:
