@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -40,9 +41,7 @@ func makeRequestToDeploymentCheckService(ctx context.Context, hostname string) c
 		}
 
 		// Prepend the hostname with a HTTP protocol.
-		if !strings.HasPrefix(hostname, "http://") {
-			hostname = "http://" + hostname
-		}
+		hostname = formatURL(hostname)
 
 		// Try to make requests to the hostname endpoint and wait for a result.
 		select {
@@ -167,4 +166,17 @@ func getRequestBackoff(hostname string) chan RequestResult {
 	}()
 
 	return requestResultChan
+}
+
+// formatURL prepends the hostname with an HTTP scheme. IPv6 addresses are
+// wrapped in brackets per RFC 3986 §3.2.2 so that Go's net/url can parse
+// them correctly.
+func formatURL(hostname string) string {
+	if strings.HasPrefix(hostname, "http://") {
+		return hostname
+	}
+	if ip := net.ParseIP(hostname); ip != nil && ip.To4() == nil {
+		return "http://[" + hostname + "]"
+	}
+	return "http://" + hostname
 }
