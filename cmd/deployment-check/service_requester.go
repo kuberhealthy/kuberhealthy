@@ -71,18 +71,24 @@ func makeRequestToDeploymentCheckService(ctx context.Context, hostname string) c
 			log.Infoln("Got a result from", http.MethodGet, "request backoff:", result.Response.Status)
 			requestChan <- nil
 		case <-timeoutChan:
-			log.Errorln("Backoff loop for a 200 response took too long and timed out.")
-			err := cleanUp(ctx)
-			if err != nil {
-				err = fmt.Errorf("failed to clean up properly: %w", err)
+			err := errors.New("backoff loop for a 200 response took too long and timed out")
+			log.Errorln(err.Error())
+
+			cleanUpErr := cleanUp(ctx)
+			if cleanUpErr != nil {
+				err = fmt.Errorf("%w (cleanup: %v)", err, cleanUpErr)
 			}
+
 			requestChan <- err
 		case <-ctx.Done():
-			log.Errorln("Context expired while waiting for a", http.StatusOK, "from "+hostname+".")
-			err := cleanUp(ctx)
-			if err != nil {
-				err = fmt.Errorf("failed to clean up properly: %w", err)
+			err := fmt.Errorf("context expired while waiting for a %d from %s", http.StatusOK, hostname)
+			log.Errorln(err.Error())
+
+			cleanUpErr := cleanUp(ctx)
+			if cleanUpErr != nil {
+				err = fmt.Errorf("%w (cleanup: %v)", err, cleanUpErr)
 			}
+
 			requestChan <- err
 		}
 
@@ -144,10 +150,10 @@ func getRequestBackoff(hostname string) chan RequestResult {
 			if resp != nil {
 				log.Debugln("Got a", resp.StatusCode)
 				if resp.StatusCode == 502 {
-                                    // When running with istio we get a 502 with err being nil so retry terminates
-                                    // Handle this scenario by resetting error to not nil
-                                    err = errors.New("")
-                                }
+					// When running with istio we get a 502 with err being nil so retry terminates
+					// Handle this scenario by resetting error to not nil
+					err = errors.New("")
+				}
 				closeErr := resp.Body.Close()
 				if closeErr != nil {
 					log.Debugln("Failed to close response body:", closeErr.Error())
