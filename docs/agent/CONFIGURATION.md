@@ -28,7 +28,7 @@ Kuberhealthy is configured via environment variables. There are no command-line 
 - `POD_NAME`: Name of the running controller pod. Used for logging; if unset, the hostname is used.
 - `KH_TLS_CERT_FILE`: Path to the TLS certificate file. If set with `KH_TLS_KEY_FILE`, an HTTPS listener is started.
 - `KH_TLS_KEY_FILE`: Path to the TLS private key file. If set with `KH_TLS_CERT_FILE`, an HTTPS listener is started.
-- `KH_LEADER_ELECTION_ENABLED`: Enable Lease-based leader election for check scheduling/reaping. Default `false`.
+- `KH_LEADER_ELECTION_ENABLED`: Enable Lease-based leader election for check scheduling/reaping. Default `true`.
 - `KH_LEADER_ELECTION_NAME`: Lease name used for leader election. Default `kuberhealthy-controller`.
 - `KH_LEADER_ELECTION_NAMESPACE`: Namespace that stores the Lease object. Default matches `POD_NAMESPACE`.
 - `KH_LEADER_ELECTION_LEASE_DURATION`: Lease duration for leader election. Default `15s`.
