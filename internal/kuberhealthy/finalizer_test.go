@@ -53,7 +53,7 @@ func TestHandleUpdateRemovesFinalizer(t *testing.T) {
 	now := metav1.Now()
 	deleting := check.DeepCopy()
 	deleting.DeletionTimestamp = &now
-	kh.handleUpdate(check, deleting)
+	kh.handleUpdate(context.Background(), check, deleting)
 	fetched := &khapi.HealthCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "remove-finalizer", Namespace: "default"}, fetched))
 	require.NotContains(t, fetched.Finalizers, khCheckFinalizer)
@@ -77,7 +77,7 @@ func TestHandleDeleteRemovesFinalizer(t *testing.T) {
 	}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
-	kh.handleDelete(check.DeepCopy())
+	kh.handleDelete(context.Background(), check.DeepCopy())
 	fetched := &khapi.HealthCheck{}
 	err := cl.Get(context.Background(), types.NamespacedName{Name: "delete-finalizer", Namespace: "default"}, fetched)
 	if apierrors.IsNotFound(err) {

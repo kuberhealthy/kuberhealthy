@@ -25,6 +25,7 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("KH_TERMINATION_GRACE_PERIOD", "30s")
 	t.Setenv("KH_DEFAULT_CHECK_TIMEOUT", "1m")
 	t.Setenv("KH_DEFAULT_NAMESPACE", "fallback")
+	t.Setenv("KH_LEADER_ELECTION_ENABLED", "false")
 	t.Setenv("POD_NAMESPACE", "podns")
 
 	cfg := New()
@@ -89,6 +90,20 @@ func TestLoadFromEnv(t *testing.T) {
 	}
 	if cfg.DefaultNamespace != "fallback" {
 		t.Errorf("DefaultNamespace parsed incorrectly: %s", cfg.DefaultNamespace)
+	}
+	if cfg.LeaderElectionEnabled {
+		t.Errorf("LeaderElectionEnabled parsed incorrectly: expected false")
+	}
+}
+
+// TestNewEnablesLeaderElectionByDefault ensures multi-replica installs are safe unless explicitly overridden.
+func TestNewEnablesLeaderElectionByDefault(t *testing.T) {
+	// Create a config without any leader election override.
+	cfg := New()
+
+	// Confirm the safe default is enabled.
+	if !cfg.LeaderElectionEnabled {
+		t.Fatalf("expected LeaderElectionEnabled to default to true")
 	}
 }
 

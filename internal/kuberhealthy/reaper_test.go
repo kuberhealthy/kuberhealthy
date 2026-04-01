@@ -571,7 +571,7 @@ func TestReaperDropsFailedPodsByAge(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objs...).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
 	// Drop failed pods older than one day, even when under the count limit.
-	kh.ConfigureReaper(0, 3, 1, 0)
+		kh.ConfigureReaper(0, 3, 24*time.Hour, 0)
 
 	require.NoError(t, kh.reapOnce())
 

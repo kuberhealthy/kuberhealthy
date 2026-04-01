@@ -62,7 +62,8 @@ If you need to scope to a namespace, create a dedicated Role/RoleBinding and con
 
 Kuberhealthy can run multiple controller replicas with leader election enabled. Only the leader runs checks and reaps pods, while all replicas serve the UI and APIs.
 
-- Set `KH_LEADER_ELECTION_ENABLED=true` and ensure the controller service account can read/write `coordination.k8s.io` `leases`.
+- The shipped Kustomize base and Helm chart enable `KH_LEADER_ELECTION_ENABLED=true` by default.
+- If you override controller environment variables, keep `KH_LEADER_ELECTION_ENABLED=true` whenever you run more than one replica.
 - If you run more than one replica, verify your affinity/tolerations allow scheduling on available nodes. The Helm chart uses pod anti-affinity to spread replicas, which can block scheduling in single-node clusters unless overridden.
 
 ## Expose the status page

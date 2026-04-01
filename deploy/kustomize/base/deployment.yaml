@@ -71,6 +71,8 @@ spec:
           value: "30s"
         - name: KH_DEFAULT_NAMESPACE
           value: "kuberhealthy"
+        - name: KH_LEADER_ELECTION_ENABLED
+          value: "true"
         ports:
         - containerPort: 8080
         livenessProbe:
