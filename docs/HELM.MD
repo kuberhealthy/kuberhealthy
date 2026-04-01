@@ -19,6 +19,7 @@ Pin to a release tag when chart packages are available.
 - Set the namespace with `--namespace` or `--create-namespace` as shown above.
 - Configure environment variables in `deployment.env`.
 - Adjust replicas and rollout strategy in `deployment`.
+- The chart enables `KH_LEADER_ELECTION_ENABLED=true` by default so `deployment.replicas > 1` stays single-leader for scheduling and reaping.
 - The chart defaults `service.type` to `LoadBalancer`. Use `ClusterIP` for clusters without a cloud load balancer.
 
 ```sh

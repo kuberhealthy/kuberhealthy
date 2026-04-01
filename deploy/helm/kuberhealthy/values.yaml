@@ -63,6 +63,7 @@ deployment:
     KH_TERMINATION_GRACE_PERIOD: "5m"
     KH_DEFAULT_CHECK_TIMEOUT: "30s"
     KH_TARGET_NAMESPACE: ""
+    KH_LEADER_ELECTION_ENABLED: "true"
   command:
     - /app/kuberhealthy
   # args:

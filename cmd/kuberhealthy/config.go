@@ -64,7 +64,7 @@ func New() *Config {
 			LabelAllowlist:      []string{"severity", "category"},
 			LabelValueMaxLength: 256,
 		},
-		LeaderElectionEnabled:       false,
+			LeaderElectionEnabled:       true,
 		LeaderElectionNamespace:     ns,
 		LeaderElectionName:          "kuberhealthy-controller",
 		LeaderElectionLeaseDuration: time.Second * 15,

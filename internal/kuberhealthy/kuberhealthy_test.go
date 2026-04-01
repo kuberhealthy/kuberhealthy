@@ -127,6 +127,24 @@ func requireEnvVarFieldRef(t *testing.T, env []corev1.EnvVar, name, fieldPath st
 	t.Fatalf("env var %s not set", name)
 }
 
+// startLeaderTasksForTest transitions the controller into leader mode for tests that exercise leader-only behavior.
+func startLeaderTasksForTest(t *testing.T, kh *Kuberhealthy) {
+	t.Helper()
+
+	// Start the base controller context before enabling leader-only loops.
+	err := kh.StartBase(context.Background(), nil)
+	require.NoError(t, err)
+
+	// Start the leader-only tasks so StartCheck and scheduling are allowed.
+	err = kh.StartLeaderTasks(context.Background())
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		// Stop leader tasks so background goroutines do not leak across tests.
+		kh.Stop()
+	})
+}
+
 // TestIsStarted verifies that IsStarted reflects the running state of Kuberhealthy.
 func TestIsStarted(t *testing.T) {
 	t.Parallel()
@@ -188,6 +206,7 @@ func TestStartCheckCreatesPodInCheckNamespace(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
 	kh.SetReportingURL("http://example.com")
+	startLeaderTasksForTest(t, kh)
 
 	require.NoError(t, kh.StartCheck(check))
 
@@ -226,6 +245,7 @@ func TestStartCheckPodCreationFailureClearsRunState(t *testing.T) {
 	client := &toggleCreateClient{Client: baseClient, failCreates: true}
 	kh := New(context.Background(), client)
 	kh.SetReportingURL("http://example.com")
+	startLeaderTasksForTest(t, kh)
 
 	err := kh.StartCheck(check)
 	require.Error(t, err)
@@ -295,8 +315,9 @@ func TestScheduleStartsCheck(t *testing.T) {
 
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
+	startLeaderTasksForTest(t, kh)
 
-	delay := kh.scheduleChecks()
+	delay := kh.scheduleChecks(context.Background())
 	require.Equal(t, minimumScheduleInterval, delay)
 
 	fetched := &khapi.HealthCheck{}
@@ -338,7 +359,7 @@ func TestCheckRunTimesOutAfterDeadline(t *testing.T) {
 	kh := New(context.Background(), cl)
 	kh.Recorder = record.NewFakeRecorder(1)
 
-	kh.startTimeoutWatcher(check.DeepCopy())
+	kh.startTimeoutWatcher(context.Background(), check.DeepCopy())
 
 	time.Sleep(timeout + timeoutGracePeriod + 300*time.Millisecond)
 
@@ -386,7 +407,7 @@ func TestTimeoutWatcherSkipsCompletedRun(t *testing.T) {
 	kh := New(context.Background(), cl)
 	kh.Recorder = record.NewFakeRecorder(1)
 
-	kh.startTimeoutWatcher(check.DeepCopy())
+	kh.startTimeoutWatcher(context.Background(), check.DeepCopy())
 
 	// simulate a successful report by clearing the UUID before the timeout expires
 	completed := check.DeepCopy()
@@ -444,7 +465,7 @@ func TestScheduleSkipsWhenNotDue(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
 
-	delay := kh.scheduleChecks()
+	delay := kh.scheduleChecks(context.Background())
 
 	fetched := &khapi.HealthCheck{}
 	require.NoError(t, cl.Get(context.Background(), types.NamespacedName{Name: "skip-check", Namespace: "default"}, fetched))
@@ -494,7 +515,7 @@ func TestScheduleReturnsRemainingDelay(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
 
-	delay := kh.scheduleChecks()
+	delay := kh.scheduleChecks(context.Background())
 	require.GreaterOrEqual(t, delay, remaining-time.Second)
 	require.LessOrEqual(t, delay, remaining+time.Second)
 }
