@@ -245,7 +245,12 @@ func TestStartCheckPodCreationFailureClearsRunState(t *testing.T) {
 	client := &toggleCreateClient{Client: baseClient, failCreates: true}
 	kh := New(context.Background(), client)
 	kh.SetReportingURL("http://example.com")
-	startLeaderTasksForTest(t, kh)
+	// Set leader state directly without starting background loops to avoid
+	// the scheduler racing for tryStartCheck.
+	kh.leaderMu.Lock()
+	kh.leaderRunning = true
+	kh.leaderContext = context.Background()
+	kh.leaderMu.Unlock()
 
 	err := kh.StartCheck(check)
 	require.Error(t, err)
@@ -266,6 +271,84 @@ func TestStartCheckPodCreationFailureClearsRunState(t *testing.T) {
 	postRun, getErr := khapi.GetCheck(context.Background(), client, namespacedName)
 	require.NoError(t, getErr)
 	require.NotEmpty(t, postRun.CurrentUUID())
+}
+
+// TestConcurrentStartCheckCreatesOnlyOnePod verifies that the tryStartCheck guard prevents
+// duplicate pod creation when StartCheck is called multiple times for the same check.
+func TestConcurrentStartCheckCreatesOnlyOnePod(t *testing.T) {
+	t.Parallel()
+
+	// Verify tryStartCheck/finishStartCheck lock behavior directly.
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	check := &khapi.HealthCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "concurrent-check",
+			Namespace: "default",
+		},
+		Spec: khapi.HealthCheckSpec{
+			PodSpec: khapi.CheckPodSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  "test",
+						Image: "busybox",
+					}},
+				},
+			},
+		},
+	}
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	kh := New(context.Background(), cl)
+	kh.SetReportingURL("http://example.com")
+
+	checkName := types.NamespacedName{Name: check.Name, Namespace: check.Namespace}
+
+	// First tryStartCheck should succeed.
+	require.True(t, kh.tryStartCheck(checkName), "first tryStartCheck should succeed")
+
+	// Concurrent attempts for the same check should be rejected.
+	const goroutines = 10
+	results := make(chan bool, goroutines)
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			results <- kh.tryStartCheck(checkName)
+		}()
+	}
+	for i := 0; i < goroutines; i++ {
+		require.False(t, <-results, "concurrent tryStartCheck should be rejected")
+	}
+
+	// Release the lock.
+	kh.finishStartCheck(checkName)
+
+	// After release, tryStartCheck should succeed again.
+	require.True(t, kh.tryStartCheck(checkName), "tryStartCheck after release should succeed")
+	kh.finishStartCheck(checkName)
+
+	// Integration: start leader tasks only now so the scheduler doesn't race with our manual calls above.
+	startLeaderTasksForTest(t, kh)
+
+	// First StartCheck succeeds.
+	require.NoError(t, kh.StartCheck(check))
+
+	pods := &corev1.PodList{}
+	require.NoError(t, cl.List(context.Background(), pods))
+	require.Len(t, pods.Items, 1, "first StartCheck should create one pod")
+
+	// Second call should fail because the check is still marked as starting.
+	freshCheck, err := khapi.GetCheck(context.Background(), cl, checkName)
+	require.NoError(t, err)
+	err = kh.StartCheck(freshCheck)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "already being started")
+
+	// Still only one pod.
+	pods = &corev1.PodList{}
+	require.NoError(t, cl.List(context.Background(), pods))
+	require.Len(t, pods.Items, 1, "second StartCheck should not create another pod")
 }
 
 // toggleCreateClient wraps a controller-runtime client and injects pod creation failures when requested.
@@ -315,7 +398,13 @@ func TestScheduleStartsCheck(t *testing.T) {
 
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
-	startLeaderTasksForTest(t, kh)
+	// Set leader state directly without starting background loops, since this
+	// test calls scheduleChecks manually and the background scheduler would
+	// race for tryStartCheck.
+	kh.leaderMu.Lock()
+	kh.leaderRunning = true
+	kh.leaderContext = context.Background()
+	kh.leaderMu.Unlock()
 
 	delay := kh.scheduleChecks(context.Background())
 	require.Equal(t, minimumScheduleInterval, delay)

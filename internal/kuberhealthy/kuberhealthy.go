@@ -81,6 +81,9 @@ type Kuberhealthy struct {
 
 	metricsMu       sync.Mutex
 	metricsSnapshot controllerMetricsSnapshot
+
+	checkStartMu sync.Mutex                    // guards checkStarting map access
+	checkStarting map[types.NamespacedName]bool // tracks checks currently in StartCheck to prevent duplicate pod creation
 }
 
 // New creates a new Kuberhealthy instance, event recorder, and optional shutdown notifier.
@@ -106,6 +109,7 @@ func New(ctx context.Context, checkClient client.Client, doneChan ...chan struct
 		ErrorPodRetentionTime: 36 * time.Hour,
 		MaxCheckPodAge:        0,
 		metricsSnapshot:       newControllerMetricsSnapshot(),
+		checkStarting:         make(map[types.NamespacedName]bool),
 	}
 }
 
@@ -806,6 +810,26 @@ func (kh *Kuberhealthy) IsReportAllowed(check *khapi.HealthCheck, uuid string) b
 	return time.Since(start) < timeout
 }
 
+// tryStartCheck atomically marks a check as starting. Returns false if the
+// check is already being started by another goroutine.
+func (kh *Kuberhealthy) tryStartCheck(name types.NamespacedName) bool {
+	kh.checkStartMu.Lock()
+	defer kh.checkStartMu.Unlock()
+	if kh.checkStarting[name] {
+		return false
+	}
+	kh.checkStarting[name] = true
+	return true
+}
+
+// finishStartCheck removes the in-progress marker so the check can be started
+// again on its next scheduled run.
+func (kh *Kuberhealthy) finishStartCheck(name types.NamespacedName) {
+	kh.checkStartMu.Lock()
+	defer kh.checkStartMu.Unlock()
+	delete(kh.checkStarting, name)
+}
+
 // StartCheck begins tracking and managing a HealthCheck whenever the controller observes a new resource.
 func (kh *Kuberhealthy) StartCheck(healthCheck *khapi.HealthCheck) error {
 	log.Infoln("Starting healthcheck", healthCheck.GetNamespace(), healthCheck.GetName())
@@ -821,9 +845,16 @@ func (kh *Kuberhealthy) StartCheck(healthCheck *khapi.HealthCheck) error {
 		Name:      healthCheck.GetName(),
 	}
 
+	// prevent concurrent StartCheck calls for the same check from the
+	// informer and the scheduler loop racing at startup
+	if !kh.tryStartCheck(checkName) {
+		return fmt.Errorf("check %s is already being started", checkName)
+	}
+
 	// use CurrentUUID to signal the check is running
 	err := kh.setFreshUUID(checkName)
 	if err != nil {
+		kh.finishStartCheck(checkName)
 		return fmt.Errorf("unable to set running UUID: %w", err)
 	}
 
@@ -1443,6 +1474,7 @@ func (k *Kuberhealthy) setCheckExecutionError(checkName types.NamespacedName, ch
 // clearUUID clears the UUID assigned to the check, which indicates
 // that it is not running.
 func (k *Kuberhealthy) clearUUID(checkName types.NamespacedName) error {
+	defer k.finishStartCheck(checkName)
 	ctx := k.controllerContext()
 
 	// get the check as it is right now
