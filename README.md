@@ -24,8 +24,6 @@ Most synthetic monitoring tools can only probe HTTP endpoints. Kuberhealthy runs
 - **Use any language** — [Go](https://github.com/kuberhealthy/go), [Python](https://github.com/kuberhealthy/python), [Rust](https://github.com/kuberhealthy/rust), [bash](https://github.com/kuberhealthy/bash), or anything that fits in a container
 - **Own your checks as code** — checks are Kubernetes manifests, so ship them alongside your app!
 
-> If it runs in a container, it can be a Kuberhealthy check.
-
 ---
 
 ## How it works
@@ -81,47 +79,6 @@ Installing Kuberhealthy is easy. Just apply the kustomize, ArgoCD, or Helm manif
 
 3. Open `http://localhost:8080` to see the status UI, then apply a [HealthCheck](docs/CHECKS_REGISTRY.md) or build your own (see [CHECK_CREATION.md](docs/CHECK_CREATION.md)).
 
----
-
-## Example Healthcheck Behavior
-
-**`kubectl get healthcheck`**
-```
-NAME              NAMESPACE      LAST RUN    AGE    OK
-api-smoke-test    kuberhealthy   2m ago      2d     true
-db-connectivity   kuberhealthy   7m ago      2d     false
-```
-
-**`/json`**
-```json
-{
-  "ok": false,
-  "checks": {
-    "kuberhealthy/api-smoke-test": {
-      "ok": true,
-      "errors": [],
-      "lastRun": "2024-01-15T14:32:01Z",
-      "runDuration": "230ms"
-    },
-    "kuberhealthy/db-connectivity": {
-      "ok": false,
-      "errors": ["connection refused: postgres.default.svc.cluster.local:5432"],
-      "lastRun": "2024-01-15T14:35:01Z",
-      "runDuration": "30001ms"
-    }
-  }
-}
-```
-
-**`/metrics`** (Prometheus)
-```
-kuberhealthy_check_status{check="api-smoke-test",namespace="kuberhealthy"} 1
-kuberhealthy_check_status{check="db-connectivity",namespace="kuberhealthy"} 0
-kuberhealthy_check_duration_seconds{check="api-smoke-test",namespace="kuberhealthy"} 0.23
-kuberhealthy_check_pass_count{check="api-smoke-test",namespace="kuberhealthy"} 142
-```
-
----
 
 ## What a HealthCheck looks like
 
@@ -178,6 +135,40 @@ Kuberhealthy injects these environment variables into every check pod:
 | `KH_CHECK_RUN_DEADLINE` | RFC3339 timestamp — your check must report before this time |
 | `KH_POD_NAMESPACE` | Namespace the check pod is running in |
 
+---
+
+## Example Healthcheck Behavior
+
+**`kubectl get healthcheck`**
+```
+NAME              NAMESPACE      LAST RUN    AGE    OK
+api-smoke-test    kuberhealthy   2m ago      2d     true
+```
+
+**`/json`**
+```json
+{
+  "ok": true,
+  "checks": {
+    "kuberhealthy/api-smoke-test": {
+      "ok": true,
+      "errors": [],
+      "lastRun": "2024-01-15T14:32:01Z",
+      "runDuration": "230ms"
+    }
+  }
+}
+```
+
+**`/metrics`** (Prometheus)
+```
+kuberhealthy_check_status{check="api-smoke-test",namespace="kuberhealthy"} 1
+kuberhealthy_check_status{check="db-connectivity",namespace="kuberhealthy"} 0
+kuberhealthy_check_duration_seconds{check="api-smoke-test",namespace="kuberhealthy"} 0.23
+kuberhealthy_check_pass_count{check="api-smoke-test",namespace="kuberhealthy"} 142
+```
+
+---
 ---
 
 ## Writing checks
