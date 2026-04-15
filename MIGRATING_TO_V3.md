@@ -1,6 +1,6 @@
 # Migrating to Kuberhealthy V3
 
-👋 Welcome. If you are moving from Kuberhealthy V2 to V3, this guide covers the facts that matter during a real migration.
+This guide covers everything you need to know when moving from Kuberhealthy V2 to V3.
 
 ⚠️ This is a breaking change.
 
@@ -39,25 +39,25 @@
 
 ## What improves in v3
 
-✅ Simpler resource model
+**Simpler resource model**
 
 - One main resource, `HealthCheck`, replaces the older split model.
 - No separate `khjob` resource is needed for one-time runs.
 - No separate `khstate` resource is needed for persisted check status.
 
-✅ Better UX
+**Better UX**
 
 - A real web UI is available at `/` for quick status checks.
 - Machine-readable JSON is served at `/json` for scripts and integrations.
 - Manual run, event, and log APIs are available for day-to-day operations.
 
-✅ Cleaner install story
+**Cleaner install story**
 
 - A Kustomize base is available for manifest-first installs.
 - An in-repo Helm chart replaces the old external Helm packaging flow.
 - A clear Argo CD entrypoint is available for GitOps users.
 
-✅ Better check packaging
+**Better check packaging**
 
 - Built-in checks now live in their own repositories instead of being bundled here.
 - Checks are easier to version, release, and consume independently from the controller.
@@ -378,32 +378,25 @@ kubectl delete crd khstates.comcast.github.io
 
 ## Common mistakes
 
-❌ Expecting old CRDs to work in v3
-
-❌ Copying the old `podSpec` shape into v3
-
-❌ Forgetting that `/` is now the UI
-
-❌ Setting `KH_CHECK_REPORT_URL` to a value ending in `/check`
-
-❌ Expecting the v3 chart to install old default checks
-
-❌ Relying on the old 5 minute timeout default
-
-❌ Forgetting that v3 defaults to 2 controller replicas
-
-❌ Forgetting that Kustomize base creates an example check
+- Expecting old CRDs to work in v3
+- Copying the old `podSpec` shape into v3 (pod fields must go under `spec.podSpec.spec`)
+- Forgetting that `/` is now the UI — JSON is at `/json`
+- Setting `KH_CHECK_REPORT_URL` to a value ending in `/check`
+- Expecting the v3 chart to install old default checks
+- Relying on the old 5 minute timeout default (v3 default is `30s`)
+- Forgetting that v3 defaults to 2 controller replicas
+- Forgetting that the Kustomize base creates an `example-check` resource
 
 ## Final checklist
 
-- ✅ Back up the old resources before touching the install.
-- ✅ Use a fresh V3 install instead of trying to upgrade V2 in place.
-- ✅ Convert manifests to `HealthCheck`.
-- ✅ Recreate any built-in checks you still need.
-- ✅ Move JSON readers to `/json`.
-- ✅ Move status readers off `khstate`.
-- ✅ Review timeout and service defaults before rollout.
-- ✅ Review replica count and service exposure before rollout.
+- Back up the old resources before touching the install.
+- Use a fresh V3 install instead of trying to upgrade V2 in place.
+- Convert manifests to `HealthCheck`.
+- Recreate any built-in checks you still need.
+- Move JSON readers to `/json`.
+- Move status readers off `khstate`.
+- Review timeout and service defaults before rollout.
+- Review replica count and service exposure before rollout.
 
 ## More V3 docs
 

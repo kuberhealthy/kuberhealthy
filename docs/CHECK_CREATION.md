@@ -1,64 +1,74 @@
 # Creating Your Own `HealthCheck`
 
-This guide walks you through building a custom check container and wiring it into Kuberhealthy. You can validate anything, including synthetic workflow simulation (multi-step user flows across services), and you can write checks in any language.
+This guide walks you through building a custom check container and wiring it into Kuberhealthy. You can validate anything — from simple HTTP probes to multi-step synthetic workflows that simulate real user behavior. Checks can be written in any language.
 
-Start here if you are turning a runbook into an automated HealthCheck or need a synthetic test that mirrors real user behavior.
+## How reporting works
 
-## Client libraries
+Every check pod receives these environment variables from the controller:
 
-- [Rust](https://github.com/kuberhealthy/rust)
-- [TypeScript](https://github.com/kuberhealthy/typescript)
-- [JavaScript](https://github.com/kuberhealthy/javascript)
-- [Go](https://github.com/kuberhealthy/go)
-- [Python](https://github.com/kuberhealthy/python)
-- [Ruby](https://github.com/kuberhealthy/ruby)
-- [Java](https://github.com/kuberhealthy/java)
-- [Bash](https://github.com/kuberhealthy/bash)
+| Variable | Description |
+|---|---|
+| `KH_REPORTING_URL` | POST your result here (full URL including `/check`) |
+| `KH_RUN_UUID` | Send as the `kh-run-uuid` request header to authenticate the report |
+| `KH_CHECK_RUN_DEADLINE` | Unix timestamp — your check must report before this time |
+| `KH_POD_NAMESPACE` | Namespace the check pod is running in |
 
-## Go client
-
-Use the Go check client for report wiring:
-
-```go
-package main
-
-import "github.com/kuberhealthy/kuberhealthy/v3/pkg/checkclient"
-
-func main() {
-  ok := doCheckStuff()
-  if !ok {
-    checkclient.ReportFailure([]string{"Test has failed!"})
-    return
-  }
-  checkclient.ReportSuccess()
-}
-```
-
-## Reporting from any language
-
-Your checker must:
-
-- Read `KH_REPORTING_URL`.
-- POST JSON to that URL with `ok` and `errors` (case-insensitive).
-- Report before `KH_CHECK_RUN_DEADLINE`.
+Your check must POST a JSON payload to `KH_REPORTING_URL` before `KH_CHECK_RUN_DEADLINE`:
 
 ```json
 {
-  "errors": ["Error 1 here"],
-  "ok": false
+  "ok": true,
+  "errors": []
 }
 ```
 
 Do not send `ok: true` with a non-empty `errors` array.
 
-### Injected environment variables
+## Client libraries
 
-Every checker pod receives:
+Use a client library to handle reporting, deadline enforcement, and header wiring automatically:
 
-- `KH_REPORTING_URL` — injected by the controller; already includes `/check`. POST your result here.
-- `KH_CHECK_RUN_DEADLINE` — Unix timestamp by which you must report.
-- `KH_RUN_UUID` — send as the `kh-run-uuid` request header.
-- `KH_POD_NAMESPACE` — namespace the checker pod is running in (`metadata.namespace`).
+| Language | Client |
+|---|---|
+| [Go](https://github.com/kuberhealthy/go) | `github.com/kuberhealthy/kuberhealthy/v3/pkg/checkclient` |
+| [Python](https://github.com/kuberhealthy/python) | `kuberhealthy` |
+| [TypeScript](https://github.com/kuberhealthy/typescript) | `@kuberhealthy/kuberhealthy` |
+| [JavaScript](https://github.com/kuberhealthy/javascript) | `@kuberhealthy/kuberhealthy` |
+| [Rust](https://github.com/kuberhealthy/rust) | `kuberhealthy` |
+| [Ruby](https://github.com/kuberhealthy/ruby) | `kuberhealthy` |
+| [Java](https://github.com/kuberhealthy/java) | Maven / Gradle |
+| [Bash](https://github.com/kuberhealthy/bash) | Shell script helper |
+
+## Example: Go check that validates an internal API
+
+```go
+package main
+
+import (
+    "fmt"
+    "net/http"
+
+    "github.com/kuberhealthy/kuberhealthy/v3/pkg/checkclient"
+)
+
+func main() {
+    resp, err := http.Get("http://my-api.default.svc.cluster.local/health")
+    if err != nil {
+        checkclient.ReportFailure([]string{fmt.Sprintf("request failed: %s", err)})
+        return
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        checkclient.ReportFailure([]string{fmt.Sprintf("unexpected status %d from /health", resp.StatusCode)})
+        return
+    }
+
+    checkclient.ReportSuccess()
+}
+```
+
+The check client handles `KH_REPORTING_URL`, `KH_RUN_UUID`, and deadline enforcement automatically.
 
 ## Create the `HealthCheck` resource
 
@@ -75,7 +85,7 @@ spec:
       containers:
         - name: main
           image: docker.io/curlimages/curl:8.5.0
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           env:
             - name: MY_OPTION_ENV_VAR
               value: "option_setting_here"

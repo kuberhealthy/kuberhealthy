@@ -37,7 +37,6 @@ If you want multiple overlay behaviors, create a new overlay that composes the p
 ```sh
 helm install kuberhealthy deploy/helm/kuberhealthy -n kuberhealthy --create-namespace
 ```
-Pin to a release tag when chart packages are available.
 
 The Service is `kuberhealthy` on port `80` (forwarded to the pod on `8080`).
 The chart defaults `service.type` to `LoadBalancer`; set `service.type=ClusterIP` if you do not want an external load balancer.

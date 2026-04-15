@@ -15,13 +15,14 @@ service and the reporting endpoint used by check pods.
 
 ## Check reporting
 
-Checker pods report to the `/check` endpoint. The controller injects these
-environment variables into every check pod:
+Checker pods report to the `/check` endpoint. The controller injects these environment variables into every check pod:
 
-- `KH_REPORTING_URL`: Full URL for reporting check results (must end with `/check`).
-- `KH_RUN_UUID`: Run identifier to send as the `kh-run-uuid` header.
-- `KH_CHECK_RUN_DEADLINE`: Unix timestamp deadline for reporting.
-- `KH_POD_NAMESPACE`: Namespace the checker pod is running in.
+| Variable | Description |
+|---|---|
+| `KH_REPORTING_URL` | Full URL for reporting check results (must end with `/check`) |
+| `KH_RUN_UUID` | Run identifier — send as the `kh-run-uuid` header |
+| `KH_CHECK_RUN_DEADLINE` | Unix timestamp deadline for reporting |
+| `KH_POD_NAMESPACE` | Namespace the checker pod is running in |
 
 The request must be a JSON payload with `ok` and `errors` fields (case-insensitive), for example:
 

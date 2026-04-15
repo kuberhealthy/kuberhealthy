@@ -86,7 +86,7 @@ Installing Kuberhealthy is easy. Just apply the kustomize, ArgoCD, or Helm manif
 This is the core object Kuberhealthy manages. It tells the controller what pod to run, how often to run it, and how long to wait before considering the run failed. You can use `kubectl get healthcheck` or `kubectl get hc`.
 
 ```yaml
-apiVersion: kuberhealthy.github.io/v1
+apiVersion: kuberhealthy.github.io/v2
 kind: HealthCheck
 metadata:
   name: api-smoke-test
@@ -133,7 +133,7 @@ Kuberhealthy injects these environment variables into every check pod:
 |---|---|
 | `KH_REPORTING_URL` | POST your result here |
 | `KH_RUN_UUID` | Include in the `kh-run-uuid` header to authenticate the report |
-| `KH_CHECK_RUN_DEADLINE` | RFC3339 timestamp — your check must report before this time |
+| `KH_CHECK_RUN_DEADLINE` | Unix timestamp — your check must report before this time |
 | `KH_POD_NAMESPACE` | Namespace the check pod is running in |
 
 ---

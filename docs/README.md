@@ -6,14 +6,16 @@ The web interface at `/` shows HealthCheck status at a glance, `/json` provides 
 
 ## Client Libraries and Examples
 
-- [Rust](https://github.com/kuberhealthy/rust)
-- [TypeScript](https://github.com/kuberhealthy/typescript)
-- [JavaScript](https://github.com/kuberhealthy/javascript)
-- [Go](https://github.com/kuberhealthy/go)
-- [Python](https://github.com/kuberhealthy/python)
-- [Ruby](https://github.com/kuberhealthy/ruby)
-- [Java](https://github.com/kuberhealthy/java)
-- [Bash](https://github.com/kuberhealthy/bash)
+| Language | Client |
+|---|---|
+| [Go](https://github.com/kuberhealthy/go) | `github.com/kuberhealthy/kuberhealthy/v3/pkg/checkclient` |
+| [Python](https://github.com/kuberhealthy/python) | `kuberhealthy` |
+| [TypeScript](https://github.com/kuberhealthy/typescript) | `@kuberhealthy/kuberhealthy` |
+| [JavaScript](https://github.com/kuberhealthy/javascript) | `@kuberhealthy/kuberhealthy` |
+| [Rust](https://github.com/kuberhealthy/rust) | `kuberhealthy` |
+| [Ruby](https://github.com/kuberhealthy/ruby) | `kuberhealthy` |
+| [Java](https://github.com/kuberhealthy/java) | Maven / Gradle |
+| [Bash](https://github.com/kuberhealthy/bash) | Shell script helper |
 
 ## Documentation Index
 
