@@ -4,7 +4,7 @@
 
 # Kuberhealthy
 
-**Kuberhealthy is an operator for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_monitoring) and [continuous validation](https://en.wikipedia.org/wiki/Software_verification_and_validation). It ships metrics to Prometheus and enables you to package your monitoring as Kubernetes manifests.**
+**Kuberhealthy is an operator for [synthetic monitoring](https://en.wikipedia.org/wiki/Synthetic_monitoring) and [continuous validation](https://en.wikipedia.org/wiki/Software_verification_and_validation). It ships metrics to Prometheus and enables you to package your synthetic monitoring as Kubernetes manifests.**
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/kuberhealthy/kuberhealthy)](https://goreportcard.com/report/github.com/kuberhealthy/kuberhealthy)
@@ -36,7 +36,6 @@ flowchart LR
         controller[Kuberhealthy\nController]
         crd[(HealthCheck CRDs)]
         pod1[Check Pod\napi-smoke-test]
-        pod2[Check Pod\ndb-connectivity]
         svc[Kuberhealthy Service :80]
     end
     prom[Prometheus]
@@ -46,7 +45,6 @@ flowchart LR
     controller -- schedules --> pod1
     controller -- schedules --> pod2
     pod1 -- POST result --> svc
-    pod2 -- POST result --> svc
     svc -- /metrics --> prom
     svc -- / and /json --> ui
 ```
