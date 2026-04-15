@@ -20,10 +20,9 @@
 Most synthetic monitoring tools can only probe HTTP endpoints. Kuberhealthy runs full Kubernetes pods as checks — which means your monitoring logic can:
 
 - **Authenticate with your cluster** — use ServiceAccounts, Secrets, and internal DNS natively
-- **Hit internal services** — no ingress required, no public exposure
 - **Run multi-step workflows** — simulate a real user: log in, create a record, verify it, clean it up
 - **Use any language** — Go, Python, Rust, bash, or anything that fits in a container
-- **Own your checks as code** — checks are Kubernetes manifests, version-controlled and GitOps-friendly
+- **Own your checks as code** — checks are Kubernetes manifests, so ship them alongside your app!
 
 > If it runs in a container, it can be a Kuberhealthy check.
 
@@ -52,19 +51,13 @@ flowchart LR
     svc -- / and /json --> ui
 ```
 
-Kuberhealthy provides the `HealthCheck` custom resource definition (try `kubectl get healthcheck`). Each `HealthCheck` tells Kuberhealthy to start a short-lived pod on a schedule. The pod runs your validation logic, then reports `ok: true` or `ok: false` back to Kuberhealthy. Results flow to the built-in status UI (`/`), JSON API (`/json`), and Prometheus metrics (`/metrics`).
-
----
-
-## Prerequisites
-
-- Kubernetes 1.21+
-- `kubectl` configured with cluster access
-- Helm 3.x (for Helm install)
+Kuberhealthy provides the `HealthCheck` custom resource definition. Each `HealthCheck` tells Kuberhealthy to start a short-lived checker pod on a schedule. The pod runs your validation logic, then reports `ok: true` or `ok: false` back to Kuberhealthy. Results flow to the built-in status UI, JSON API (`/json`), and Prometheus metrics (`/metrics`).
 
 ---
 
 ## Getting started
+
+Installing Kuberhealthy is easy. Just apply the kustomize, ArgoCD, or Helm manifests and you're ready to start applying `healthcheck` resources.
 
 1. Install Kuberhealthy to your cluster:
 
@@ -93,7 +86,7 @@ Kuberhealthy provides the `HealthCheck` custom resource definition (try `kubectl
 
 ---
 
-## What you get
+## Example Healthcheck Behavior
 
 **`kubectl get healthcheck`**
 ```
@@ -135,7 +128,7 @@ kuberhealthy_check_pass_count{check="api-smoke-test",namespace="kuberhealthy"} 1
 
 ## What a HealthCheck looks like
 
-This is the core object Kuberhealthy manages. It tells the controller what pod to run, how often to run it, and how long to wait before considering the run failed.
+This is the core object Kuberhealthy manages. It tells the controller what pod to run, how often to run it, and how long to wait before considering the run failed. You can use `kubectl get healthcheck` or `kubectl get hc`.
 
 ```yaml
 apiVersion: kuberhealthy.github.io/v1
