@@ -43,7 +43,6 @@ flowchart LR
 
     controller -- watches --> crd
     controller -- schedules --> pod1
-    controller -- schedules --> pod2
     pod1 -- POST result --> svc
     svc -- /metrics --> prom
     svc -- / and /json --> ui
