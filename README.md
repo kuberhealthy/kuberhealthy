@@ -77,7 +77,7 @@ Installing Kuberhealthy is easy. Just apply the kustomize, ArgoCD, or Helm manif
    kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80
    ```
 
-3. Open `http://localhost:8080` to see the status UI, then apply a [HealthCheck](docs/CHECKS_REGISTRY.md) or build your own (see [CHECK_CREATION.md](docs/CHECK_CREATION.md)).
+3. Open `http://localhost:8080` to see the status UI, then apply a [HealthCheck](docs/CHECKS_REGISTRY.md) or build [your own](docs/CHECK_CREATION.md).
 
 ---
 
