@@ -79,6 +79,7 @@ Installing Kuberhealthy is easy. Just apply the kustomize, ArgoCD, or Helm manif
 
 3. Open `http://localhost:8080` to see the status UI, then apply a [HealthCheck](docs/CHECKS_REGISTRY.md) or build your own (see [CHECK_CREATION.md](docs/CHECK_CREATION.md)).
 
+---
 
 ## What a `healthcheck` CRD looks like
 
@@ -168,7 +169,6 @@ kuberhealthy_check_duration_seconds{check="api-smoke-test",namespace="kuberhealt
 kuberhealthy_check_pass_count{check="api-smoke-test",namespace="kuberhealthy"} 142
 ```
 
----
 ---
 
 ## Writing checks
