@@ -80,7 +80,7 @@ Installing Kuberhealthy is easy. Just apply the kustomize, ArgoCD, or Helm manif
 3. Open `http://localhost:8080` to see the status UI, then apply a [HealthCheck](docs/CHECKS_REGISTRY.md) or build your own (see [CHECK_CREATION.md](docs/CHECK_CREATION.md)).
 
 
-## What a HealthCheck looks like
+## What a `healthcheck` CRD looks like
 
 This is the core object Kuberhealthy manages. It tells the controller what pod to run, how often to run it, and how long to wait before considering the run failed. You can use `kubectl get healthcheck` or `kubectl get hc`.
 
