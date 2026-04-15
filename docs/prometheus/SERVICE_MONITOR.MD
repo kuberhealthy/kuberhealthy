@@ -1,19 +1,10 @@
 # Kuberhealthy ServiceMonitor
 
-A ServiceMonitor is a Prometheus Operator custom resource that tells Prometheus how to scrape a Kubernetes Service. Use it when you run Prometheus with the Operator (for example, kube-prometheus-stack or OpenShift monitoring).
+Use when running Prometheus Operator (kube-prometheus-stack, OpenShift monitoring, etc.). For vanilla Prometheus, use [PROMETHEUS_SCRAPE_CONFIG.yaml](PROMETHEUS_SCRAPE_CONFIG.yaml) instead.
 
-## When to use it
+Manifest: `deploy/serviceMonitor.yaml`
 
-- You already run Prometheus Operator or kube-prometheus-stack.
-- You want Prometheus to discover Kuberhealthy via Service labels instead of static scrape configs.
-
-If you run vanilla Prometheus without the Operator, use the scrape config example instead: `docs/prometheus/PROMETHEUS_SCRAPE_CONFIG.yaml`.
-
-## Where it lives
-
-- Manifest: `deploy/serviceMonitor.yaml`
-
-## How to apply
+## Apply
 
 ```bash
 kubectl apply -f deploy/serviceMonitor.yaml

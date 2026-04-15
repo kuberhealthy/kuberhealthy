@@ -1,12 +1,5 @@
 # Helm Chart Deployment
 
-This guide covers installing and operating Kuberhealthy with the Helm chart in this repo.
-
-## What you get
-
-- A Deployment, Service, RBAC, CRDs, and related Kubernetes resources.
-- Optional Prometheus scrape annotations on the Service and pod template.
-
 ## Install
 
 ```sh

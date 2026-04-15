@@ -1,7 +1,5 @@
 # Compatibility
 
-This document describes the baseline compatibility and requirements for Kuberhealthy v3.
-
 ## Kubernetes version
 
 Kuberhealthy requires Kubernetes versions that support:

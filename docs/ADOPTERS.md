@@ -9,3 +9,5 @@ Organizations using Kuberhealthy in production:
 |Meltwater|Media Intelligence|
 |Mercedes Benz|Automotive|
 |Polarpoint|Consulting|
+
+Running Kuberhealthy in production? Open a PR to add your organization.

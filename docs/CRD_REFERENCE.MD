@@ -1,16 +1,6 @@
 # HealthCheck CRD Reference
 
-This document describes the anatomy of the `HealthCheck` resource in Kuberhealthy V3.
-
-Use this doc when you need to:
-
-- understand the shape of a `HealthCheck`
-- port a V2 `KuberhealthyCheck` to V3
-- check which fields belong in `spec`
-- understand which fields Kuberhealthy writes into `status`
-
-For the generated schema, see `deploy/helm/kuberhealthy/crds/healthchecks.kuberhealthy.github.io.yaml`.
-For end-to-end check authoring, see [CHECK_CREATION.md](CHECK_CREATION.md).
+Full anatomy of the `HealthCheck` resource (`apiVersion: kuberhealthy.github.io/v2`). Generated schema: `deploy/helm/kuberhealthy/crds/healthchecks.kuberhealthy.github.io.yaml`. For end-to-end check authoring, see [CHECK_CREATION.md](CHECK_CREATION.md).
 
 ## Resource identity
 

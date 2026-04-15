@@ -1,8 +1,5 @@
 # HTTP API and Endpoints
 
-This document covers the HTTP surfaces exposed by the Kuberhealthy controller
-service and the reporting endpoint used by check pods.
-
 ## Status UI and JSON summary
 
 - `GET /` serves the HTML status UI.

@@ -1,12 +1,12 @@
 # Metrics Catalog (v3)
 
-This catalog documents the Prometheus metrics exported by Kuberhealthy v3. Metric names and labels should be treated as stable within a major version. If changes are required, update this catalog and the release notes.
+Prometheus metrics exported by Kuberhealthy v3. Metric names and labels are stable within a major version — update this catalog and the release notes when they change.
 
 ## Common labels
 
 - `check`: HealthCheck name.
 - `namespace`: HealthCheck namespace.
-- `status`: `1` for OK, `0` for failure (only on `kuberhealthy_check`).
+- `status`: label value is `1` for OK, `0` for failure (only on `kuberhealthy_check`). The metric value mirrors the status label value.
 - `error`: Serialized error string (optional; suppressed when `KH_PROM_SUPPRESS_ERROR_LABEL=true`).
 - `severity`, `category`, `run_uuid`: Optional extra labels emitted only when allowlisted via `KH_PROM_LABEL_ALLOWLIST`.
   - `severity` and `category` map from HealthCheck labels `kuberhealthy.io/severity` and `kuberhealthy.io/category`.

@@ -1,6 +1,6 @@
 # Configuration
 
-Kuberhealthy is configured via environment variables. There are no command-line flags. The defaults below match the values set in `deploy/kustomize/base/deployment.yaml` and `cmd/kuberhealthy/config.go`.
+Configured via environment variables only — no flags. Defaults match `deploy/kustomize/base/deployment.yaml` and `cmd/kuberhealthy/config.go`.
 
 ## Controller environment variables
 

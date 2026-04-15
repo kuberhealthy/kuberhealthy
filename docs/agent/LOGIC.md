@@ -1,7 +1,6 @@
 # Logic Overview
 
-Kuberhealthy's runtime revolves around four primary flows that start in
-`cmd/kuberhealthy` and fan out through the supporting packages.
+Four primary flows starting in `cmd/kuberhealthy`:
 
 ## Startup and Configuration
 

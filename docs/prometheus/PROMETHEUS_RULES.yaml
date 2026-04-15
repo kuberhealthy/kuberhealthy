@@ -8,7 +8,7 @@ spec:
     - name: kuberhealthy.rules
       rules:
         - alert: HealthCheckFailed
-          expr: kuberhealthy_check{status="0"} == 1
+          expr: kuberhealthy_check == 0
           for: 5m
           labels:
             severity: warning

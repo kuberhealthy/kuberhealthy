@@ -13,18 +13,15 @@
 [![GitHub Release](https://img.shields.io/github/v/release/kuberhealthy/kuberhealthy)](https://github.com/kuberhealthy/kuberhealthy/releases)
 [![Join Slack](https://img.shields.io/badge/slack-kubernetes/kuberhealthy-teal.svg?logo=slack)](https://kubernetes.slack.com/messages/CB9G7HWTE)
 
----
 
 ## Why Kuberhealthy?
 
-Most synthetic monitoring tools can only probe HTTP endpoints. Kuberhealthy runs full Kubernetes pods as checks — which means your monitoring logic can:
+Kuberhealthy schedules, tracks, monitors, and manages Kubernetes pods for checks — which means your monitoring logic can:
 
-- **Authenticate with your cluster** — use ServiceAccounts, Secrets, and internal DNS natively
 - **Run multi-step workflows** — simulate a real user: log in, create a record, verify it, clean it up
 - **Use any language** — [Go](https://github.com/kuberhealthy/go), [Python](https://github.com/kuberhealthy/python), [Rust](https://github.com/kuberhealthy/rust), [bash](https://github.com/kuberhealthy/bash), or anything that fits in a container
 - **Own your checks as code** — checks are Kubernetes manifests, so ship them alongside your app!
 
----
 
 ## How it works
 
@@ -51,7 +48,6 @@ graph TB
 
 Kuberhealthy provides the `HealthCheck` custom resource definition. Each `HealthCheck` tells Kuberhealthy to start a short-lived checker pod on a schedule. The pod runs your validation logic, then reports `ok: true` or `ok: false` back to Kuberhealthy. Results flow to the built-in status UI, JSON API (`/json`), and Prometheus metrics (`/metrics`).
 
----
 
 ## Getting started
 
@@ -82,72 +78,68 @@ Installing Kuberhealthy is easy. Just apply the kustomize, ArgoCD, or Helm manif
 
 3. Open `http://localhost:8080` to see the status UI, then apply a [HealthCheck](docs/CHECKS_REGISTRY.md) or build [your own](docs/CHECK_CREATION.md).
 
----
 
 ## What a `healthcheck` CRD looks like
 
-This is the core object Kuberhealthy manages. It tells the controller what pod to run, how often to run it, and how long to wait before considering the run failed. You can use `kubectl get healthcheck` or `kubectl get hc`.
+This is the core object Kuberhealthy manages. It tells the controller what checker container to run, how often to run it, and how long to wait before considering the run failed. You can use `kubectl get healthcheck` or `kubectl get hc`.
+
+This example uses the built-in [deployment check](https://github.com/kuberhealthy/deployment-check), which creates a test deployment, rolls it out, and tears it down on a schedule:
 
 ```yaml
 apiVersion: kuberhealthy.github.io/v2
 kind: HealthCheck
 metadata:
-  name: api-smoke-test
+  name: deployment
   namespace: kuberhealthy
 spec:
-  # Run this check every 5 minutes.
-  runInterval: 5m
-
-  # If the pod has not reported back within 1 minute, mark the run failed.
-  timeout: 1m
-
-  # These labels are copied onto the checker pod and can also appear in metrics.
-  extraLabels:
-    kuberhealthy.io/category: api
-    kuberhealthy.io/severity: page
-
+  runInterval: 10m
+  timeout: 5m
   podSpec:
-    metadata:
-      labels:
-        app: api-smoke-test
     spec:
-      restartPolicy: Never
       containers:
-        - name: main
-          image: curlimages/curl:8.7.1
-          command:
-            - /bin/sh
-            - -ec
-            - |
-              # Your container does the real validation work.
-              curl -fsS https://example.com/health
-
-              # Then it reports the result back to Kuberhealthy.
-              curl -fsS -X POST \
-                -H "Content-Type: application/json" \
-                -H "kh-run-uuid: $KH_RUN_UUID" \
-                -d '{"ok":true,"errors":[]}' \
-                "$KH_REPORTING_URL"
+        - name: deployment
+          image: docker.io/kuberhealthy/deployment-check:v0.1.1
+          env:
+            - name: CHECK_DEPLOYMENT_REPLICAS
+              value: "4"
+            - name: CHECK_DEPLOYMENT_ROLLING_UPDATE
+              value: "true"
+          resources:
+            requests:
+              cpu: 25m
+              memory: 15Mi
+            limits:
+              cpu: "1"
+      serviceAccountName: deployment-sa
 ```
 
-Kuberhealthy injects these environment variables into every check pod:
+See [CHECK_CREATION.md](docs/CHECK_CREATION.md) for the environment variables injected into every check pod and how to build your own.
 
-| Variable | Description |
-|---|---|
-| `KH_REPORTING_URL` | POST your result here |
-| `KH_RUN_UUID` | Include in the `kh-run-uuid` header to authenticate the report |
-| `KH_CHECK_RUN_DEADLINE` | Unix timestamp — your check must report before this time |
-| `KH_POD_NAMESPACE` | Namespace the check pod is running in |
 
----
+## Example Healthcheck Use
 
-## Example Healthcheck Behavior
+Apply your `healthcheck` check:
 
-**`kubectl get healthcheck`**
 ```
+> kubectl apply -f api-smoke-test.yaml
+healthcheck.kuberhealthy.github.io/api-smoke-test.yaml created
+
+> kubectl get healthcheck
 NAME              NAMESPACE      LAST RUN    AGE    OK
 api-smoke-test    kuberhealthy   2m ago      2d     true
 ```
+
+Consume Check Status with Prometheus:
+
+**`/metrics`** (Prometheus)
+```
+kuberhealthy_check{check="api-smoke-test",namespace="kuberhealthy",status="1"} 1
+kuberhealthy_check{check="db-connectivity",namespace="kuberhealthy",status="0"} 1
+kuberhealthy_check_duration_seconds{check="api-smoke-test",namespace="kuberhealthy"} 0.23
+kuberhealthy_check_success_total{check="api-smoke-test",namespace="kuberhealthy"} 142
+```
+
+Fetch the status by API:
 
 **`/json`**
 ```json
@@ -164,15 +156,6 @@ api-smoke-test    kuberhealthy   2m ago      2d     true
 }
 ```
 
-**`/metrics`** (Prometheus)
-```
-kuberhealthy_check_status{check="api-smoke-test",namespace="kuberhealthy"} 1
-kuberhealthy_check_status{check="db-connectivity",namespace="kuberhealthy"} 0
-kuberhealthy_check_duration_seconds{check="api-smoke-test",namespace="kuberhealthy"} 0.23
-kuberhealthy_check_pass_count{check="api-smoke-test",namespace="kuberhealthy"} 142
-```
-
----
 
 ## Writing checks
 
@@ -220,38 +203,24 @@ func main() {
 
 The check client handles `KH_REPORTING_URL`, `KH_RUN_UUID`, and deadline enforcement automatically.
 
----
 
 ## Documentation
 
 See the full documentation index in [docs/README.md](docs/README.md).
 
----
 
 ## Adopters
 
-Organizations running Kuberhealthy in production:
+See [docs/ADOPTERS.md](docs/ADOPTERS.md) for organizations running Kuberhealthy in production.
 
-| Organization | Industry |
-|---|---|
-| [Adobe](https://www.adobe.com) | Software |
-| [Jenkins X](https://jenkins-x.io) | CI/CD |
-| Meltwater | Media Intelligence |
-| Mercedes-Benz | Automotive |
-| Polarpoint | Consulting |
-
-Running Kuberhealthy in production? [Add yourself to the adopters list.](docs/ADOPTERS.MD)
-
----
 
 ## Contributing
 
-- Read the [Contributing Guide](docs/CONTRIBUTING.MD) before opening a PR.
+- Read the [Contributing Guide](docs/CONTRIBUTING.md) before opening a PR.
 - Browse [open issues](https://github.com/kuberhealthy/kuberhealthy/issues) — new contributors should look for the `good first issue` tag.
 - Check contributions are especially welcome — see the [HealthCheck registry](docs/CHECKS_REGISTRY.md) for gaps.
 - Have feedback from running Kuberhealthy in production? Open a discussion or join Slack.
 
----
 
 ## Community
 

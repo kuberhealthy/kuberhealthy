@@ -1,8 +1,6 @@
 # Interfaces
 
-Kuberhealthy interacts with three primary surfaces: the Kubernetes API, HTTP
-endpoints served from the controller pod, and environment variables used for
-configuration.
+Three primary surfaces: the Kubernetes API, HTTP endpoints served from the controller pod, and environment variables.
 
 ## Kubernetes API
 

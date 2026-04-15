@@ -1,8 +1,5 @@
 # Key Structures
 
-Understanding the main structs in the repository clarifies how controller state
-is propagated across packages.
-
 ## `cmd/kuberhealthy`
 
 - **`Config`** (`config.go`)

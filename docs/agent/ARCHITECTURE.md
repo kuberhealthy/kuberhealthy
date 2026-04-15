@@ -1,11 +1,6 @@
 # Architecture
 
-Kuberhealthy runs as a controller process inside a Kubernetes cluster.
-Multiple replicas may serve the status and admin HTTP surfaces, while a single
-leader (selected via a Kubernetes Lease) runs scheduling, watches, and reaping.
-The binary defined in `cmd/kuberhealthy` composes several internal packages to
-watch custom resources, orchestrate synthetic check pods, and publish
-observability interfaces.
+Kuberhealthy runs as a controller inside a Kubernetes cluster. Multiple replicas serve the status and admin HTTP surfaces; a single leader (via a Kubernetes Lease) runs scheduling, watches, and reaping. The `cmd/kuberhealthy` binary composes several internal packages.
 
 ```
 +-------------------+        +-----------------------+        +-----------------+

@@ -1,6 +1,6 @@
 # Configuration
 
-Kuberhealthy uses environment variables only. It does not accept command-line flags.
+Environment variables only — no command-line flags.
 
 ## Environment Variables
 

@@ -35,19 +35,19 @@ The web interface at `/` shows HealthCheck status at a glance, `/json` provides 
 | 🎛️ | [Configuration](FLAGS.md) | Environment configuration variables. |
 | 📈 | [Metrics Catalog](METRICS_CATALOG.MD) | Prometheus metrics and labels. |
 | 🧲 | [ServiceMonitor](prometheus/SERVICE_MONITOR.MD) | Prometheus Operator ServiceMonitor guide. |
-| 🧯 | [Troubleshooting](TROUBLESHOOTING.MD) | Debugging steps and recovery. |
+| 🧯 | [Troubleshooting](TROUBLESHOOTING.md) | Debugging steps and recovery. |
 | 🏗️ | [Build and Release](BUILD_AND_RELEASE.MD) | Build, tag, and release workflow. |
 | 🗒️ | [Release Notes](RELEASE_NOTES.MD) | Version changes and upgrades. |
 | 🧭 | [Migrate to V3](../MIGRATING_TO_V3.md) | V2 to V3 migration guidance. |
-| 🤝 | [Contributing](CONTRIBUTING.MD) | Contribution workflow. |
-| 🧑‍💻 | [Contributors](CONTRIBUTORS.MD) | People and acknowledgements. |
-| 🏢 | [Adopters](ADOPTERS.MD) | Organizations using Kuberhealthy. |
-| 📜 | [Code of Conduct](CODE_OF_CONDUCT.MD) | Community standards. |
-| 🏛️ | [Architecture](agent/ARCHITECTURE.MD) | System design view. |
-| 🔁 | [Logic Flow](agent/LOGIC.MD) | Runtime flow and control points. |
-| 🔌 | [Interfaces](agent/INTERFACES.MD) | Inputs, outputs, and APIs. |
-| 🧱 | [Structures](agent/STRUCTURES.MD) | Key data structures. |
-| ⚙️ | [Configuration](agent/CONFIGURATION.MD) | Configuration details and defaults. |
+| 🤝 | [Contributing](CONTRIBUTING.md) | Contribution workflow. |
+| 🧑‍💻 | [Contributors](CONTRIBUTORS.md) | People and acknowledgements. |
+| 🏢 | [Adopters](ADOPTERS.md) | Organizations using Kuberhealthy. |
+| 📜 | [Code of Conduct](CODE_OF_CONDUCT.md) | Community standards. |
+| 🏛️ | [Architecture](agent/ARCHITECTURE.md) | System design view. |
+| 🔁 | [Logic Flow](agent/LOGIC.md) | Runtime flow and control points. |
+| 🔌 | [Interfaces](agent/INTERFACES.md) | Inputs, outputs, and APIs. |
+| 🧱 | [Structures](agent/STRUCTURES.md) | Key data structures. |
+| ⚙️ | [Configuration](agent/CONFIGURATION.md) | Configuration details and defaults. |
 
 ## Additional References
 
