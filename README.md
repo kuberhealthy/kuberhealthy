@@ -35,18 +35,16 @@ graph TB
         controller["Kuberhealthy Controller"]
         pod["Check Pod\n(api-smoke-test)"]
         svc["Kuberhealthy Service :80"]
+        prometheus["Prometheus\n/metrics"]
+        browser["Browser / Alertmanager\n/json and /"]
 
         controller -->|watches| crds
         controller -->|schedules| pod
         pod -->|"POST /check"| controller
         svc --> controller
+        prometheus --> svc
+        browser --> svc
     end
-
-    prometheus["Prometheus\n/metrics"]
-    browser["Browser / Alertmanager\n/json and /"]
-
-    prometheus --> svc
-    browser --> svc
 ```
 
 Kuberhealthy provides the `HealthCheck` custom resource definition. Each `HealthCheck` tells Kuberhealthy to start a short-lived checker pod on a schedule. The pod runs your validation logic, then reports `ok: true` or `ok: false` back to Kuberhealthy. Results flow to the built-in status UI, JSON API (`/json`), and Prometheus metrics (`/metrics`).
