@@ -28,22 +28,29 @@ Most synthetic monitoring tools can only probe HTTP endpoints. Kuberhealthy runs
 
 ## How it works
 
-```mermaid
-flowchart LR
-    subgraph cluster[Kubernetes Cluster]
-        controller[Kuberhealthy\nController]
-        crd[(HealthCheck CRDs)]
-        pod1[Check Pod\napi-smoke-test]
-        svc[Kuberhealthy Service :80]
-    end
-    prom[Prometheus]
-    ui[Browser / Alertmanager]
-
-    controller -- watches --> crd
-    controller -- schedules --> pod1
-    pod1 -- POST result --> svc
-    svc -- /metrics --> prom
-    svc -- / and /json --> ui
+```
++-- Kubernetes Cluster -------------------------------------------------------+
+|                                                                              |
+|   +---------------------+   watches    +---------------------------+        |
+|   |  Kuberhealthy       |  ----------> |    HealthCheck CRDs       |        |
+|   |  Controller         |              +---------------------------+        |
+|   |                     |                                                   |
+|   |                     |  schedules   +---------------------------+        |
+|   |                     |  ----------> |        Check Pod          |        |
+|   |                     | <----------  |    (api-smoke-test)       |        |
+|   |          ^          |  POST /check +---------------------------+        |
+|   +----------+----------+                                                   |
+|              |                                                               |
+|   +----------+----------+                                                   |
+|   |  Kuberhealthy       |                                                   |
+|   |  Service  :80       |                                                   |
+|   +---------------------+                                                   |
+|         ^          ^                                                         |
++---------+----------+---------------------------------------------------------+
+          |          |
+     Prometheus    Browser /
+     /metrics      Alertmanager
+                   / and /json
 ```
 
 Kuberhealthy provides the `HealthCheck` custom resource definition. Each `HealthCheck` tells Kuberhealthy to start a short-lived checker pod on a schedule. The pod runs your validation logic, then reports `ok: true` or `ok: false` back to Kuberhealthy. Results flow to the built-in status UI, JSON API (`/json`), and Prometheus metrics (`/metrics`).
