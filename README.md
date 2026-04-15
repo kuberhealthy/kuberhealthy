@@ -30,8 +30,8 @@ Most synthetic monitoring tools can only probe HTTP endpoints. Kuberhealthy runs
 
 ```mermaid
 graph TB
-    prometheus["Prometheus\n/metrics"]
-    browser["Browser / Alertmanager\n/json and /"]
+    prometheus["Prometheus /metrics"]
+    browser["Web Interface"]
 
     subgraph cluster["Kubernetes Cluster"]
         svc["Kuberhealthy Service :80"]
