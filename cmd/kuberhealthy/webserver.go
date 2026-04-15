@@ -1125,5 +1125,9 @@ func setCheckStatus(c client.Client, checkName string, checkNamespace string, in
 		return fmt.Errorf("failed to update healthcheck status: %w", err)
 	}
 
+	if incoming != nil && incoming.CurrentUUID == "" && Globals.kh != nil {
+		Globals.kh.ReleaseCheckStart(nn)
+	}
+
 	return nil
 }

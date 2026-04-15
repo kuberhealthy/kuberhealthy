@@ -206,7 +206,10 @@ func TestStartCheckCreatesPodInCheckNamespace(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
 	kh := New(context.Background(), cl)
 	kh.SetReportingURL("http://example.com")
-	startLeaderTasksForTest(t, kh)
+	kh.leaderMu.Lock()
+	kh.leaderRunning = true
+	kh.leaderContext = context.Background()
+	kh.leaderMu.Unlock()
 
 	require.NoError(t, kh.StartCheck(check))
 
@@ -245,7 +248,10 @@ func TestStartCheckPodCreationFailureClearsRunState(t *testing.T) {
 	client := &toggleCreateClient{Client: baseClient, failCreates: true}
 	kh := New(context.Background(), client)
 	kh.SetReportingURL("http://example.com")
-	startLeaderTasksForTest(t, kh)
+	kh.leaderMu.Lock()
+	kh.leaderRunning = true
+	kh.leaderContext = context.Background()
+	kh.leaderMu.Unlock()
 
 	err := kh.StartCheck(check)
 	require.Error(t, err)
@@ -266,6 +272,59 @@ func TestStartCheckPodCreationFailureClearsRunState(t *testing.T) {
 	postRun, getErr := khapi.GetCheck(context.Background(), client, namespacedName)
 	require.NoError(t, getErr)
 	require.NotEmpty(t, postRun.CurrentUUID())
+}
+
+// TestStartCheckCanRunAgainAfterRelease verifies the start guard is released when a run completes.
+func TestStartCheckCanRunAgainAfterRelease(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	check := &khapi.HealthCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "release-check",
+			Namespace: "default",
+		},
+		Spec: khapi.HealthCheckSpec{
+			PodSpec: khapi.CheckPodSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  "test",
+						Image: "busybox",
+					}},
+				},
+			},
+		},
+	}
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	kh := New(context.Background(), cl)
+	kh.SetReportingURL("http://example.com")
+	kh.leaderMu.Lock()
+	kh.leaderRunning = true
+	kh.leaderContext = context.Background()
+	kh.leaderMu.Unlock()
+
+	namespacedName := types.NamespacedName{Namespace: check.Namespace, Name: check.Name}
+
+	require.NoError(t, kh.StartCheck(check))
+
+	reported, err := kh.readCheck(namespacedName)
+	require.NoError(t, err)
+	reported.Status.CurrentUUID = ""
+	require.NoError(t, khapi.UpdateCheck(context.Background(), cl, reported))
+
+	kh.ReleaseCheckStart(namespacedName)
+
+	refreshed, err := kh.readCheck(namespacedName)
+	require.NoError(t, err)
+	require.NoError(t, kh.StartCheck(refreshed))
+
+	pods := &corev1.PodList{}
+	require.NoError(t, cl.List(context.Background(), pods))
+	require.Len(t, pods.Items, 2)
 }
 
 // toggleCreateClient wraps a controller-runtime client and injects pod creation failures when requested.
