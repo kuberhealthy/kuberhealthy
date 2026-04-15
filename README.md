@@ -21,7 +21,7 @@ Most synthetic monitoring tools can only probe HTTP endpoints. Kuberhealthy runs
 
 - **Authenticate with your cluster** — use ServiceAccounts, Secrets, and internal DNS natively
 - **Run multi-step workflows** — simulate a real user: log in, create a record, verify it, clean it up
-- **Use any language** — Go, Python, Rust, bash, or anything that fits in a container
+- **Use any language** — [Go](https://github.com/kuberhealthy/go), [Python](https://github.com/kuberhealthy/python), [Rust](https://github.com/kuberhealthy/rust), [bash](https://github.com/kuberhealthy/bash), or anything that fits in a container
 - **Own your checks as code** — checks are Kubernetes manifests, so ship them alongside your app!
 
 > If it runs in a container, it can be a Kuberhealthy check.
