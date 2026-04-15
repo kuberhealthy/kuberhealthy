@@ -27,7 +27,7 @@ spec:
               curl -fsS \
                 -H "Content-Type: application/json" \
                 -H "kh-run-uuid: $KH_RUN_UUID" \
-                -d '{"OK":true,"Errors":[]}' "$KH_REPORTING_URL"
+                -d '{"ok":true,"errors":[]}' "$KH_REPORTING_URL"
       restartPolicy: Never
 ```
 

@@ -52,9 +52,8 @@ is propagated across packages.
 ## `internal/metrics`
 
 - **`Exporter`** (`exporter.go`)
-  - Periodically reads the stored check status and emits Prometheus gauges and
-    counters describing run health.
-  - Depends on the shared `Globals.kh` instance to query state.
+  - Reads the stored check status and emits Prometheus gauges, counters, and histograms.
+  - Renders metrics from the current in-memory and persisted check state.
 
 These structures communicate primarily through the Kubernetes API server and the
 shared `Globals` clients, enabling the controller to orchestrate checks while the

@@ -44,6 +44,8 @@ The chart defaults `service.type` to `LoadBalancer`; set `service.type=ClusterIP
 
 ## ArgoCD
 
+Requires the repo to be cloned locally:
+
 ```sh
 kubectl apply -f deploy/argocd/kuberhealthy.yaml
 ```
@@ -137,7 +139,7 @@ spec:
 
 ## Configure
 
-All configuration is via environment variables in the deployment. See [FLAGS.MD](FLAGS.MD).
+All configuration is via environment variables in the deployment. See [FLAGS.md](FLAGS.md).
 
 ## Verify
 

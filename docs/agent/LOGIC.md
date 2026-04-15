@@ -60,7 +60,7 @@ Kuberhealthy's runtime revolves around four primary flows that start in
 1. The `/json` endpoint renders a JSON document summarizing each known check
    using the data persisted in the `status` block.
 2. `internal/metrics/exporter.go` constructs Prometheus metrics from the stored
-   results, exposing `kuberhealthy_check_status` and related series via the
+   results, exposing `kuberhealthy_check` and related series via the
    `/metrics` endpoint.
 3. Optional helper endpoints allow triggering runs on-demand, streaming pod
    logs, and downloading the OpenAPI schema, all of which reuse the shared
@@ -70,5 +70,5 @@ Kuberhealthy's runtime revolves around four primary flows that start in
 
 Kuberhealthy v3 does not ship conversion webhooks or backward compatibility
 paths. Legacy v2 custom resources (including the old `KuberhealthyCheck` kind,
-`KuberhealthyJob`, and `KuberhealthyState`) must be removed and recreated as
+`KuberhealthyJob`, and `KuberhealthyState`) must be migrated to
 `HealthCheck` objects.

@@ -51,4 +51,4 @@ Checker pods receive additional variables injected by the controller. These are 
 - `KH_RUN_UUID`
 - `KH_POD_NAMESPACE`
 
-See [CHECK_CREATION.MD](CHECK_CREATION.MD) for how to use them.
+See [CHECK_CREATION.md](CHECK_CREATION.md) for how to use them.

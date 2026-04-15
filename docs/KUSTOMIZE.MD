@@ -1,28 +1,19 @@
 # Kustomize Deployment
 
-This guide covers deploying Kuberhealthy with the kustomize manifests in `deploy/kustomize`.
+For full Kustomize deployment details, overlays, and configuration options, see [DEPLOYING_KUBERHEALTHY.MD](DEPLOYING_KUBERHEALTHY.MD).
 
-## Apply the base
+## Quick reference
+
+Remote apply (no local clone needed):
 
 ```sh
 kubectl apply -k github.com/kuberhealthy/kuberhealthy/deploy/kustomize/base?ref=main
 ```
-Tracks the latest `main` commit. Update to a release tag once tags are published.
 
-## Use a local clone
+Local apply (from repo root):
 
 ```sh
 kubectl apply -k deploy/kustomize/base
 ```
 
-## Overlays
-
-If you need a load balancer or ingress, use the overlays in `deploy/kustomize` as a starting point.
-
-## Prometheus scraping
-
-The base Service and pod template include Prometheus scrape annotations by default. If you use Prometheus Operator, apply the ServiceMonitor manifest:
-
-```sh
-kubectl apply -f deploy/serviceMonitor.yaml
-```
+Overlays are in `deploy/kustomize/overlays/` and `deploy/kustomize/{aws,gcp,azure}-lb-controller/`. See [DEPLOYING_KUBERHEALTHY.MD](DEPLOYING_KUBERHEALTHY.MD) for when to use each.

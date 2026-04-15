@@ -64,7 +64,7 @@ Open `http://localhost:8080` to view the status UI.
 
 ## Next steps
 
-Write your own HealthCheck to validate real workflows (including multi-step synthetic simulations) in any language. Start with [CHECK_CREATION.MD](CHECK_CREATION.MD) and the client libraries listed in [README.MD](README.MD).
+Write your own HealthCheck to validate real workflows (including multi-step synthetic simulations) in any language. Start with [CHECK_CREATION.md](CHECK_CREATION.md) and the client libraries listed in [README.md](README.md).
 
 ## Uninstall
 

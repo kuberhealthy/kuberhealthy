@@ -55,11 +55,10 @@ Do not send `ok: true` with a non-empty `errors` array.
 
 Every checker pod receives:
 
-- `KH_REPORTING_URL`
-- `KH_CHECK_RUN_DEADLINE`
-- `KH_RUN_UUID` (send as header `kh-run-uuid`)
-- `KH_POD_NAMESPACE` (from `metadata.namespace`)
-- `KH_REPORTING_URL` is injected by the controller and already includes `/check`.
+- `KH_REPORTING_URL` — injected by the controller; already includes `/check`. POST your result here.
+- `KH_CHECK_RUN_DEADLINE` — Unix timestamp by which you must report.
+- `KH_RUN_UUID` — send as the `kh-run-uuid` request header.
+- `KH_POD_NAMESPACE` — namespace the checker pod is running in (`metadata.namespace`).
 
 ## Create the `HealthCheck` resource
 
@@ -87,4 +86,4 @@ Replace the image with your own check image when you are ready. Once applied, Ku
 
 ## Share your check
 
-Add your check to the [registry](CHECKS_REGISTRY.MD) in a small PR.
+Add your check to the [registry](CHECKS_REGISTRY.md) in a small PR.
