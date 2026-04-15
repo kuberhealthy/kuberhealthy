@@ -41,26 +41,26 @@ The built-in web status UI (`/`) gives an at-a-glance view of HealthCheck state,
    kubectl -n kuberhealthy port-forward svc/kuberhealthy 8080:80
    ```
 
-3. Open `http://localhost:8080` to see the status UI, then apply a [HealthCheck](docs/CHECKS_REGISTRY.MD) or build your own (see [CHECK_CREATION.MD](docs/CHECK_CREATION.MD)).
+3. Open `http://localhost:8080` to see the status UI, then apply a [HealthCheck](docs/CHECKS_REGISTRY.md) or build your own (see [CHECK_CREATION.md](docs/CHECK_CREATION.md)).
 
 ## Documentation
 
-See the full documentation index in [docs/README.MD](docs/README.MD).
+See the full documentation index in [docs/README.md](docs/README.md).
 
 ## Create Synthetic Checks for Your APIs
 
 Custom HealthChecks let you validate real workflows end-to-end, catch regressions before users do, and turn runbooks into always-on synthetic verification. Checks can test anything (including multi-step synthetic workflow simulation) and can be written in any language.
 
-Get started with [CHECK_CREATION.MD](docs/CHECK_CREATION.MD) and the [HealthCheck registry](docs/CHECKS_REGISTRY.MD), then pick a check client for your language:
+Get started with [CHECK_CREATION.md](docs/CHECK_CREATION.md) and the [HealthCheck registry](docs/CHECKS_REGISTRY.md), then pick a check client for your language:
 
-- [Go](https://github.com/kuberhealthy/go)
 - [Rust](https://github.com/kuberhealthy/rust)
-- [Bash](https://github.com/kuberhealthy/bash)
+- [TypeScript](https://github.com/kuberhealthy/typescript)
+- [JavaScript](https://github.com/kuberhealthy/javascript)
+- [Go](https://github.com/kuberhealthy/go)
 - [Python](https://github.com/kuberhealthy/python)
 - [Ruby](https://github.com/kuberhealthy/ruby)
-- [JavaScript](https://github.com/kuberhealthy/javascript)
-- [TypeScript](https://github.com/kuberhealthy/typescript)
 - [Java](https://github.com/kuberhealthy/java)
+- [Bash](https://github.com/kuberhealthy/bash)
 
 Here is a full check example written in Go. Implement `doCheckStuff` and you are off:
 
@@ -79,7 +79,7 @@ func main() {
 }
 ```
 
-You can read more about [how checks are configured](docs/CHECK_CREATION.MD#create-the-healthcheck-resource) and [learn how to create your own check container](docs/CHECK_CREATION.MD). Checks can be written in any language and helpful clients are listed above.
+You can read more about [how checks are configured](docs/CHECK_CREATION.md#create-the-healthcheck-resource) and [learn how to create your own check container](docs/CHECK_CREATION.md). Checks can be written in any language and helpful clients are listed above.
 
 ## Contributing
 

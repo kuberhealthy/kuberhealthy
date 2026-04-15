@@ -1,11 +1,7 @@
 # Migrating to `HealthCheck`
 
-`HealthCheck` replaces the legacy `healthcheck` schema. The v3 API uses a dedicated CRD with explicit status fields and stricter validation.
+This topic is now covered by the main V2 to V3 migration guide.
 
-## Checklist
-
-1. Install v3 (clean reinstall).
-2. Recreate checks using the v3 `HealthCheck` schema.
-3. Update any automation that parses the old status output.
-
-Use the examples in [CHECKS_REGISTRY.MD](CHECKS_REGISTRY.MD) as a starting point.
+- Read [../MIGRATING_TO_V3.md](../MIGRATING_TO_V3.md) for the full migration path.
+- Use [CRD_REFERENCE.MD](CRD_REFERENCE.MD) for the `HealthCheck` anatomy.
+- Use [CHECKS_REGISTRY.md](CHECKS_REGISTRY.md) for ready-to-apply V3 examples.

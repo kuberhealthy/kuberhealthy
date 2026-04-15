@@ -7,9 +7,8 @@ configuration.
 ## Kubernetes API
 
 - **`HealthCheck` Custom Resource** (`pkg/api`)
-  - Inputs: desired run interval, timeout, target `PodSpec`, optional metadata.
-  - Outputs: status block populated with `OK`, error strings, run durations, and
-    bookkeeping such as the authoritative pod and run UUID.
+  - Inputs: desired run interval, timeout, target `PodSpec`, optional labels, and optional annotations.
+  - Outputs: status block populated with `ok`, `errors`, run timing, counters, and run UUID state.
 - **Pods**
   - Created by the controller for each check run using the embedded `PodSpec`.
   - Annotated with labels defined in `internal/kuberhealthy` to link the pod to
@@ -50,7 +49,7 @@ variables that tune runtime behavior. Notable entries include:
   endpoint.
 - `KH_DEFAULT_RUN_INTERVAL` and `KH_DEFAULT_CHECK_TIMEOUT` – Defaults applied to
   checks when their manifests omit values.
-- `KH_MAX_*` variables – Retention policies for job objects and pods.
+- `KH_MAX_*` variables – Retention policies for checker pods.
 - `KH_PROM_*` variables – Feature flags for Prometheus metrics labeling.
 - `KH_LEADER_ELECTION_*` variables – Configure Lease-based leader election for
   running scheduling and reaping tasks.
