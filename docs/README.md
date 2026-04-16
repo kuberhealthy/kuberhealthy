@@ -58,4 +58,3 @@ The web interface at `/` shows HealthCheck status at a glance, `/json` provides 
 - [PodMonitor Example](prometheus/POD_MONITOR.yaml)
 - [Prometheus Scrape Example](prometheus/PROMETHEUS_SCRAPE_CONFIG.yaml)
 - [Compatibility](COMPATIBILITY.MD)
-- [V2 to V3 Migration Guide](../MIGRATING_TO_V3.md)

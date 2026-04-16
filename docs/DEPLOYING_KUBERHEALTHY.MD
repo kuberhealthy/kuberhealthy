@@ -18,7 +18,6 @@ The base Service is `kuberhealthy` on port `80` (forwarded to the pod on `8080`)
 Kustomize overlays are a good fit when you want to keep the base manifest unchanged. Common overlay ideas:
 
 - TLS termination in the controller (see `deploy/kustomize/overlays/tls`).
-- Namespace-scoped RBAC if you only run checks in a single namespace.
 - Service type overrides (see `deploy/kustomize/overlays/serviceType`).
 - Ingress or load balancer customization (see `deploy/kustomize/overlays/ingressConfig`).
 - Resource tuning and scheduling constraints (see `deploy/kustomize/overlays/scheduling`).

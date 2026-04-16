@@ -25,7 +25,7 @@ Environment variables only — no command-line flags.
 | `KH_CHECK_REPORT_URL` | Base URL used for check reports; `/check` is appended automatically | `http://kuberhealthy.<namespace>.svc.cluster.local` |
 | `KH_TERMINATION_GRACE_PERIOD` | Shutdown grace period | `5m` |
 | `KH_DEFAULT_CHECK_TIMEOUT` | Default timeout for checks | `30s` |
-| `KH_DEFAULT_NAMESPACE` | Fallback namespace if detection fails | `kuberhealthy` |
+| `KH_DEFAULT_NAMESPACE` | Fallback namespace if detection fails | unset |
 | `KH_LEADER_ELECTION_ENABLED` | Enable Lease-based leader election for check scheduling | `true` |
 | `KH_LEADER_ELECTION_NAME` | Lease name used for leader election | `kuberhealthy-controller` |
 | `KH_LEADER_ELECTION_NAMESPACE` | Namespace that stores the Lease | `<pod namespace>` |

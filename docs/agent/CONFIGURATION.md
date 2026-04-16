@@ -24,7 +24,7 @@ Configured via environment variables only — no flags. Defaults match `deploy/k
 | `KH_CHECK_REPORT_URL` | Base URL used by checker pods to report results; `/check` is appended automatically. Do not include `/check` | `http://kuberhealthy.<namespace>.svc.cluster.local` |
 | `KH_TERMINATION_GRACE_PERIOD` | Time to wait for clean shutdown before forced exit | `5m` |
 | `KH_DEFAULT_CHECK_TIMEOUT` | Default timeout for checks that omit `spec.timeout` | `30s` |
-| `KH_DEFAULT_NAMESPACE` | Fallback namespace when a check does not specify one | `kuberhealthy` |
+| `KH_DEFAULT_NAMESPACE` | Fallback namespace when a check does not specify one | unset |
 | `POD_NAMESPACE` | Namespace of the running controller pod. Typically injected via the Downward API | `<pod namespace>` |
 | `POD_NAME` | Name of the running controller pod. Used for logging; hostname used if unset | `<pod name>` |
 | `KH_TLS_CERT_FILE` | Path to the TLS certificate file. If set with `KH_TLS_KEY_FILE`, an HTTPS listener is started | unset |

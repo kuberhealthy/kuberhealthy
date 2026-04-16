@@ -63,7 +63,6 @@ status:
 
 - Type: `bool`
 - Purpose: run the check one time and do not schedule it again
-- Use this when replacing a V2 `KuberhealthyJob`
 
 ### `spec.runInterval`
 
