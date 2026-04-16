@@ -46,7 +46,9 @@ graph TB
     browser --> svc
 ```
 
-Kuberhealthy provides the `HealthCheck` custom resource definition. Each `HealthCheck` tells Kuberhealthy to start a short-lived checker pod on a schedule. The pod runs your validation logic, then reports `ok: true` or `ok: false` back to Kuberhealthy. Results flow to the built-in status UI, JSON API (`/json`), and Prometheus metrics (`/metrics`).
+Kuberhealthy provides the `HealthCheck` custom resource definition. Each `HealthCheck` tells Kuberhealthy to start a short-lived checker pod on a schedule. 
+
+The checker pod runs your validation logic, then reports back to Kuberhealthy. Results flow to the built-in status UI, JSON API, and Prometheus metrics endpoint.
 
 
 ## Getting started
