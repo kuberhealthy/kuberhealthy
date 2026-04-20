@@ -24,7 +24,9 @@ Your check must POST a JSON payload to `KH_REPORTING_URL` before `KH_CHECK_RUN_D
 
 Do not send `ok: true` with a non-empty `errors` array.
 
-## Client libraries
+## Step 1: Write Your Custom Healthcheck
+
+### Client libraries
 
 Use a client library to handle reporting, deadline enforcement, and header wiring automatically:
 
@@ -39,7 +41,7 @@ Use a client library to handle reporting, deadline enforcement, and header wirin
 | [Java](https://github.com/kuberhealthy/java) | Maven / Gradle |
 | [Bash](https://github.com/kuberhealthy/bash) | Shell script helper |
 
-## Example: Go check that validates an internal API
+### Example: Go check that validates an internal API
 
 ```go
 package main
@@ -70,7 +72,11 @@ func main() {
 
 The check client handles `KH_REPORTING_URL`, `KH_RUN_UUID`, and deadline enforcement automatically.
 
-## Create the `HealthCheck` resource
+## Step 2: Build and Push Your Check Image
+
+Push your check image to some container host that is available to your cluster.
+
+## Step 3: Create the `HealthCheck` resource
 
 ```yaml
 apiVersion: kuberhealthy.github.io/v2
@@ -84,7 +90,7 @@ spec:
     spec:
       containers:
         - name: main
-          image: docker.io/curlimages/curl:8.5.0
+          image: YOUR_CONTAINER_IMAGE:v1.0.0
           imagePullPolicy: IfNotPresent
           env:
             - name: MY_OPTION_ENV_VAR
@@ -92,7 +98,7 @@ spec:
       restartPolicy: Never
 ```
 
-Replace the image with your own check image when you are ready. Once applied, Kuberhealthy schedules and reports this check like any other.
+Replace `YOUR_CONTAINER_IMAGE` with your own check image when you are ready. Once applied, Kuberhealthy schedules and reports this check like any other.
 
 ## Share your check
 
