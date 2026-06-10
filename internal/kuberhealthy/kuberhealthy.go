@@ -542,7 +542,8 @@ func (kh *Kuberhealthy) handleCreate(ctx context.Context, khc *khapi.HealthCheck
 	}
 }
 
-// handleUpdate reconciles finalizers and restarts checks when their spec changes.
+// handleUpdate reconciles finalizers, restarts checks when their spec changes,
+// and clears in-memory start flags when UUID is cleared (across instances).
 func (kh *Kuberhealthy) handleUpdate(ctx context.Context, oldCheck *khapi.HealthCheck, newCheck *khapi.HealthCheck) {
 	if !newCheck.GetDeletionTimestamp().IsZero() {
 		if kh.hasFinalizer(newCheck) {
@@ -570,6 +571,21 @@ func (kh *Kuberhealthy) handleUpdate(ctx context.Context, oldCheck *khapi.Health
 		"namespace": newCheck.Namespace,
 		"name":      newCheck.Name,
 	}).Info("modified checker pod")
+
+	// If the UUID was cleared (either by this instance or another), release the in-memory start flag.
+	// This ensures the check can be restarted on the next scheduler cycle, even if the pod report
+	// was handled by a different instance (replica) and we're the leader.
+	if oldCheck.CurrentUUID() != "" && newCheck.CurrentUUID() == "" {
+		checkName := types.NamespacedName{
+			Namespace: newCheck.Namespace,
+			Name:      newCheck.Name,
+		}
+		log.WithFields(log.Fields{
+			"namespace": newCheck.Namespace,
+			"name":      newCheck.Name,
+		}).Debug("releasing the in-memory start flag")
+		kh.finishStartCheck(checkName)
+	}
 
 	err := kh.UpdateCheck(oldCheck, newCheck)
 	if err != nil {
