@@ -1107,8 +1107,8 @@ func (kh *Kuberhealthy) UpdateCheck(oldKHCheck *khapi.HealthCheck, newKHCheck *k
 		"namespace": newKHCheck.Namespace,
 		"name":      newKHCheck.Name,
 		"pod":       newKHCheck.Name,
-	}).Info("KHCheck resoruce updated")
-	// TODO - do we do anything on updates to reload the latest check? How do we prevent locking into an infinite udpate window with the controller?
+	}).Info("KHCheck resource updated")
+	// TODO - do we do anything on updates to reload the latest check? How do we prevent locking into an infinite update window with the controller?
 
 	// // stop the check
 	// err := kh.StopCheck(oldKHCheck)
