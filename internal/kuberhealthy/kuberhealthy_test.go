@@ -327,6 +327,64 @@ func TestStartCheckCanRunAgainAfterRelease(t *testing.T) {
 	require.Len(t, pods.Items, 2)
 }
 
+// TestHandleUpdateReleasesStartGuardWhenCurrentUUIDCleared verifies that the controller releases its
+// in-memory start guard when it observes another replica clearing CurrentUUID.
+func TestHandleUpdateReleasesStartGuardWhenCurrentUUIDCleared(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	check := &khapi.HealthCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "uuid-cleared-check",
+			Namespace: "default",
+		},
+		Spec: khapi.HealthCheckSpec{
+			PodSpec: khapi.CheckPodSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  "test",
+						Image: "busybox",
+					}},
+				},
+			},
+		},
+	}
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	kh := New(context.Background(), cl)
+	kh.SetReportingURL("http://example.com")
+	kh.leaderMu.Lock()
+	kh.leaderRunning = true
+	kh.leaderContext = context.Background()
+	kh.leaderMu.Unlock()
+
+	namespacedName := types.NamespacedName{Namespace: check.Namespace, Name: check.Name}
+
+	require.NoError(t, kh.StartCheck(check))
+
+	oldCheck, err := kh.readCheck(namespacedName)
+	require.NoError(t, err)
+	require.NotEmpty(t, oldCheck.CurrentUUID())
+
+	completedCheck := oldCheck.DeepCopy()
+	completedCheck.Status.CurrentUUID = ""
+	require.NoError(t, khapi.UpdateCheck(context.Background(), cl, completedCheck))
+
+	kh.handleUpdate(context.Background(), oldCheck, completedCheck)
+
+	refreshed, err := kh.readCheck(namespacedName)
+	require.NoError(t, err)
+	require.Empty(t, refreshed.CurrentUUID())
+	require.NoError(t, kh.StartCheck(refreshed))
+
+	pods := &corev1.PodList{}
+	require.NoError(t, cl.List(context.Background(), pods))
+	require.Len(t, pods.Items, 2)
+}
+
 // toggleCreateClient wraps a controller-runtime client and injects pod creation failures when requested.
 type toggleCreateClient struct {
 	client.Client
