@@ -327,6 +327,66 @@ func TestStartCheckCanRunAgainAfterRelease(t *testing.T) {
 	require.Len(t, pods.Items, 2)
 }
 
+// TestStartCheckLastRunFailureReleasesStartGuard verifies that a post-pod-create
+// status update failure cannot permanently block future starts.
+func TestStartCheckLastRunFailureReleasesStartGuard(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	check := newStartGuardTestCheck("last-run-failure")
+	baseClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	client := &failingStatusUpdateClient{Client: baseClient, failStatusUpdateOn: 2}
+	kh := newLeaderForStartCheckTest(client)
+
+	err := kh.StartCheck(check)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "unable to set check start time")
+
+	nn := types.NamespacedName{Namespace: check.Namespace, Name: check.Name}
+	resetCheckCurrentUUID(t, baseClient, nn)
+
+	refreshed, getErr := khapi.GetCheck(context.Background(), client, nn)
+	require.NoError(t, getErr)
+	require.NoError(t, kh.StartCheck(refreshed))
+
+	pods := &corev1.PodList{}
+	require.NoError(t, client.List(context.Background(), pods))
+	require.Len(t, pods.Items, 2)
+}
+
+// TestStartCheckRefreshFailureReleasesStartGuard verifies that failing to refresh
+// the check before arming the timeout watcher cannot leak the start guard.
+func TestStartCheckRefreshFailureReleasesStartGuard(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	check := newStartGuardTestCheck("refresh-failure")
+	baseClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
+	client := &failingGetClient{Client: baseClient, failGetOn: 4}
+	kh := newLeaderForStartCheckTest(client)
+
+	err := kh.StartCheck(check)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to refresh check")
+
+	nn := types.NamespacedName{Namespace: check.Namespace, Name: check.Name}
+	resetCheckCurrentUUID(t, baseClient, nn)
+
+	refreshed, getErr := khapi.GetCheck(context.Background(), client, nn)
+	require.NoError(t, getErr)
+	require.NoError(t, kh.StartCheck(refreshed))
+
+	pods := &corev1.PodList{}
+	require.NoError(t, client.List(context.Background(), pods))
+	require.Len(t, pods.Items, 2)
+}
+
 // toggleCreateClient wraps a controller-runtime client and injects pod creation failures when requested.
 type toggleCreateClient struct {
 	client.Client
@@ -341,6 +401,89 @@ func (c *toggleCreateClient) Create(ctx context.Context, obj client.Object, opts
 		}
 	}
 	return c.Client.Create(ctx, obj, opts...)
+}
+
+type failingStatusUpdateClient struct {
+	client.Client
+	failStatusUpdateOn int
+	statusUpdates      int
+}
+
+func (c *failingStatusUpdateClient) Status() client.SubResourceWriter {
+	return &failingStatusWriter{delegate: c.Client.Status(), client: c}
+}
+
+type failingStatusWriter struct {
+	delegate client.SubResourceWriter
+	client   *failingStatusUpdateClient
+}
+
+func (w *failingStatusWriter) Create(ctx context.Context, obj client.Object, subResource client.Object, opts ...client.SubResourceCreateOption) error {
+	return w.delegate.Create(ctx, obj, subResource, opts...)
+}
+
+func (w *failingStatusWriter) Update(ctx context.Context, obj client.Object, opts ...client.SubResourceUpdateOption) error {
+	w.client.statusUpdates++
+	if w.client.statusUpdates == w.client.failStatusUpdateOn {
+		return errors.New("injected status update failure")
+	}
+	return w.delegate.Update(ctx, obj, opts...)
+}
+
+func (w *failingStatusWriter) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.SubResourcePatchOption) error {
+	return w.delegate.Patch(ctx, obj, patch, opts...)
+}
+
+type failingGetClient struct {
+	client.Client
+	failGetOn int
+	gets      int
+}
+
+func (c *failingGetClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	c.gets++
+	if c.gets == c.failGetOn {
+		return errors.New("injected get failure")
+	}
+	return c.Client.Get(ctx, key, obj, opts...)
+}
+
+func newLeaderForStartCheckTest(cl client.Client) *Kuberhealthy {
+	kh := New(context.Background(), cl)
+	kh.SetReportingURL("http://example.com")
+	kh.leaderMu.Lock()
+	kh.leaderRunning = true
+	kh.leaderContext = context.Background()
+	kh.leaderMu.Unlock()
+	return kh
+}
+
+func newStartGuardTestCheck(name string) *khapi.HealthCheck {
+	return &khapi.HealthCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "default",
+		},
+		Spec: khapi.HealthCheckSpec{
+			PodSpec: khapi.CheckPodSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  "test",
+						Image: "busybox",
+					}},
+				},
+			},
+		},
+	}
+}
+
+func resetCheckCurrentUUID(t *testing.T, cl client.Client, nn types.NamespacedName) {
+	t.Helper()
+
+	check, err := khapi.GetCheck(context.Background(), cl, nn)
+	require.NoError(t, err)
+	check.Status.CurrentUUID = ""
+	require.NoError(t, cl.Status().Update(context.Background(), check))
 }
 
 // TestScheduleStartsCheck confirms that scheduleChecks triggers a run when a check is due.
@@ -373,8 +516,7 @@ func TestScheduleStartsCheck(t *testing.T) {
 	}}
 
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).Build()
-	kh := New(context.Background(), cl)
-	startLeaderTasksForTest(t, kh)
+	kh := newLeaderForStartCheckTest(cl)
 
 	delay := kh.scheduleChecks(context.Background())
 	require.Equal(t, minimumScheduleInterval, delay)

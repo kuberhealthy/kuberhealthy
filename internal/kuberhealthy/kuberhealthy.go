@@ -890,6 +890,7 @@ func (kh *Kuberhealthy) StartCheck(healthCheck *khapi.HealthCheck) error {
 	// persist the start time now that the pod exists so timeout tracking resumes accurately
 	err = kh.setLastRunTime(checkName, startTime)
 	if err != nil {
+		kh.finishStartCheck(checkName)
 		return fmt.Errorf("unable to set check start time: %w", err)
 	}
 	if kh.Recorder != nil {
@@ -906,6 +907,7 @@ func (kh *Kuberhealthy) StartCheck(healthCheck *khapi.HealthCheck) error {
 
 	freshCheck, err := kh.readCheck(checkName)
 	if err != nil {
+		kh.finishStartCheck(checkName)
 		return fmt.Errorf("failed to refresh check %s after start: %w", checkName.String(), err)
 	}
 	kh.startTimeoutWatcher(ctx, freshCheck)
