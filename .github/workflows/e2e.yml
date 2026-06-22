@@ -52,3 +52,25 @@ jobs:
         env:
           IMAGE_URL: ${{ needs.build-image.outputs.image }}
         run: ./tests/.ci/e2e.sh "${IMAGE_URL}"
+
+  helm-e2e:
+    needs: build-image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.5'
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: "v0.20.0"
+      - uses: actions/download-artifact@v4
+        with:
+          name: kh-image
+      - name: Load image into kind
+        run: kind load image-archive kuberhealthy.tar
+      - name: Run Helm end to end test
+        env:
+          IMAGE_URL: ${{ needs.build-image.outputs.image }}
+        run: ./tests/.ci/e2e-helm.sh "${IMAGE_URL}"

@@ -87,6 +87,9 @@ securityContext:
   fsGroup: 999
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
   #seccompProfile:
   #  type: RuntimeDefault
 
