@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v*.*.*
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Package Helm chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Verify tag matches chart version
+        shell: bash
+        run: |
+          chart_version="$(helm show chart charts/kuberhealthy | awk -F': ' '$1 == "version" { print $2 }')"
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [[ "$chart_version" != "$tag_version" ]]; then
+            echo "tag $GITHUB_REF_NAME does not match chart version $chart_version"
+            exit 1
+          fi
+
+      - name: Lint chart
+        run: helm lint charts/kuberhealthy
+
+      - name: Render chart
+        run: helm template kuberhealthy charts/kuberhealthy --namespace kuberhealthy
+
+      - name: Package chart
+        run: |
+          mkdir -p .cr-release-packages
+          helm package charts/kuberhealthy --destination .cr-release-packages
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" .cr-release-packages/*.tgz \
+            --title "$GITHUB_REF_NAME" \
+            --notes "Kuberhealthy Helm chart ${GITHUB_REF_NAME#v}"

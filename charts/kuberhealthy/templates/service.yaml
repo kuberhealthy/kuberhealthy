@@ -1,0 +1,46 @@
+{{- $serviceType := .Values.service.type -}}
+{{- if and .Values.service.loadBalancer.provider (eq $serviceType "ClusterIP") -}}
+{{- $serviceType = "LoadBalancer" -}}
+{{- end -}}
+{{- $annotations := dict -}}
+{{- if .Values.service.loadBalancer.provider -}}
+  {{- if eq .Values.service.loadBalancer.provider "aws" -}}
+    {{- $_ := set $annotations "service.beta.kubernetes.io/aws-load-balancer-type" "external" -}}
+  {{- end -}}
+  {{- if eq .Values.service.loadBalancer.provider "gcp" -}}
+    {{- $_ := set $annotations "cloud.google.com/load-balancer-type" "External" -}}
+  {{- end -}}
+  {{- if eq .Values.service.loadBalancer.provider "azure" -}}
+    {{- $_ := set $annotations "service.beta.kubernetes.io/azure-load-balancer-internal" "false" -}}
+  {{- end -}}
+{{- end -}}
+{{- if .Values.service.prometheusScrape.enabled -}}
+  {{- $_ := set $annotations "prometheus.io/scrape" "true" -}}
+  {{- $_ := set $annotations "prometheus.io/port" (.Values.service.prometheusScrape.port | toString) -}}
+  {{- $_ := set $annotations "prometheus.io/path" (.Values.service.prometheusScrape.path | toString) -}}
+{{- end -}}
+{{- range $key, $value := .Values.service.annotations }}
+{{- $_ := set $annotations $key $value -}}
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ template "kuberhealthy.name" . }}
+  name: {{ template "kuberhealthy.name" . }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  {{- if $annotations }}
+  annotations:
+  {{- range $key, $value := $annotations }}
+    {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  {{- end }}
+spec:
+  type: {{ $serviceType }}
+  ports:
+  - port: {{ .Values.service.externalPort }}
+    name: http
+    targetPort: http
+  selector:
+    app: {{ template "kuberhealthy.name" . }}
