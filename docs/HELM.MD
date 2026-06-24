@@ -1,5 +1,9 @@
 # Helm Chart Deployment
 
+The Kuberhealthy Helm chart currently lives at `deploy/helm/kuberhealthy`.
+Migration work is prepared to move future chart releases to a dedicated
+repository; see [HELM_CHART_REPOSITORY_MIGRATION.md](HELM_CHART_REPOSITORY_MIGRATION.md).
+
 ## Install
 
 ```sh
