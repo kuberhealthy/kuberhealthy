@@ -9,11 +9,10 @@ chart releases can use independent tags and release notes.
 - Repository: `kuberhealthy/kuberhealthy-helm`
 - Default branch: `main`
 - Chart path: `charts/kuberhealthy`
-- Recommended initial chart release: `v1.0.1`
-- Recommended initial chart version: `1.0.1`
-- Initial chart app version: `v3.0.4`
-- Note: `v1.0.0` was published first, but is superseded by `v1.0.1` with the
-  final validation fixes.
+- Recommended chart release: `v1.0.1`
+- Superseded initial chart release: `v1.0.0`
+- Current chart version: `1.0.1`
+- Current chart app version: `v3.0.4`
 
 ## Published Chart Release
 
@@ -23,11 +22,14 @@ The dedicated chart repository has been created and seeded:
 https://github.com/kuberhealthy/kuberhealthy-helm
 ```
 
-The first recommended independent chart release has also been published:
+The current recommended independent chart release has also been published:
 
 ```text
 https://github.com/kuberhealthy/kuberhealthy-helm/releases/tag/v1.0.1
 ```
+
+The original `v1.0.0` chart release was published first, but it is superseded by
+`v1.0.1`, which includes the final validation fixes and `appVersion: v3.0.4`.
 
 That repository contains:
 
