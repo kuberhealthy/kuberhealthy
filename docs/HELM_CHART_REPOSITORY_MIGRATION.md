@@ -9,10 +9,11 @@ chart releases can use independent tags and release notes.
 - Repository: `kuberhealthy/kuberhealthy-helm`
 - Default branch: `main`
 - Chart path: `charts/kuberhealthy`
-- Initial chart release: `v1.0.0`
-- Initial chart version: `1.0.0`
-- Initial chart app version: unchanged from the in-tree chart until a maintainer
-  intentionally changes the default image tag behavior
+- Recommended initial chart release: `v1.0.1`
+- Recommended initial chart version: `1.0.1`
+- Initial chart app version: `v3.0.4`
+- Note: `v1.0.0` was published first, but is superseded by `v1.0.1` with the
+  final validation fixes.
 
 ## Published Chart Release
 
@@ -22,16 +23,16 @@ The dedicated chart repository has been created and seeded:
 https://github.com/kuberhealthy/kuberhealthy-helm
 ```
 
-The first independent chart release has also been published:
+The first recommended independent chart release has also been published:
 
 ```text
-https://github.com/kuberhealthy/kuberhealthy-helm/releases/tag/v1.0.0
+https://github.com/kuberhealthy/kuberhealthy-helm/releases/tag/v1.0.1
 ```
 
 That repository contains:
 
 - the extracted chart at `charts/kuberhealthy`
-- `Chart.yaml` normalized to `version: 1.0.0`
+- `Chart.yaml` normalized to `version: 1.0.1` and `appVersion: v3.0.4`
 - chart metadata pointing at `https://github.com/kuberhealthy/kuberhealthy-helm`
 - Helm lint/render workflow templates under `workflow-templates/`
 - release workflow template for independent `vX.Y.Z` chart tags
