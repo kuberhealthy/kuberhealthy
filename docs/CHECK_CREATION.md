@@ -41,6 +41,15 @@ Use a client library to handle reporting, deadline enforcement, and header wirin
 | [Java](https://github.com/kuberhealthy/java) | Maven / Gradle |
 | [Bash](https://github.com/kuberhealthy/bash) | Shell script helper |
 
+### AI assistant skills
+
+If you use an AI coding assistant to draft a check, these skill repositories provide Kuberhealthy v3-specific guardrails and examples:
+
+- [Codex skill](https://github.com/kuberhealthy/kuberhealthy-codex-skill)
+- [Claude skill](https://github.com/kuberhealthy/kuberhealthy-claude-skill)
+
+These are assistant aids. Treat this document and the [`HealthCheck` CRD reference](CRD_REFERENCE.MD) as the canonical project documentation.
+
 ### Example: Go check that validates an internal API
 
 ```go

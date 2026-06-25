@@ -17,6 +17,13 @@ The web interface at `/` shows HealthCheck status at a glance, `/json` provides 
 | [Java](https://github.com/kuberhealthy/java) | Maven / Gradle |
 | [Bash](https://github.com/kuberhealthy/bash) | Shell script helper |
 
+AI assistant aids for check authoring:
+
+- [Codex skill](https://github.com/kuberhealthy/kuberhealthy-codex-skill)
+- [Claude skill](https://github.com/kuberhealthy/kuberhealthy-claude-skill)
+
+These skills help draft v3-compatible checks, but the Kuberhealthy docs remain the canonical reference.
+
 ## Documentation Index
 
 | 📌 | Doc | Purpose |
