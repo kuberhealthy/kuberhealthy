@@ -1,78 +1,50 @@
 # Helm Chart Repository Migration
 
-The Kuberhealthy Helm chart currently lives in this repository at
-`deploy/helm/kuberhealthy`. The chart is moving to a dedicated repository so
-chart releases can use independent tags and release notes.
+Kuberhealthy now has a dedicated Helm chart repository for independent chart
+releases. This repository keeps the in-tree chart at `deploy/helm/kuberhealthy`
+as a source install path and compatibility reference.
 
 ## Dedicated Repository
 
 - Repository: `kuberhealthy/kuberhealthy-helm`
 - Default branch: `main`
 - Chart path: `charts/kuberhealthy`
-- Recommended chart release: `v1.0.1`
-- Superseded initial chart release: `v1.0.0`
-- Current chart version: `1.0.1`
-- Current chart app version: `v3.0.4`
+- Current release: `v1.0.1`
+- Chart version: `1.0.1`
+- App version: `v3.0.4`
+- Previous release: `v1.0.0`
 
-## Published Chart Release
+## Published Release
 
-The dedicated chart repository has been created and seeded:
-
-```text
-https://github.com/kuberhealthy/kuberhealthy-helm
-```
-
-The current recommended independent chart release has also been published:
+The current independent chart release is published at:
 
 ```text
 https://github.com/kuberhealthy/kuberhealthy-helm/releases/tag/v1.0.1
 ```
 
-The original `v1.0.0` chart release was published first, but it is superseded by
-`v1.0.1`, which includes the final validation fixes and `appVersion: v3.0.4`.
+Release `v1.0.1` supersedes the initial `v1.0.0` chart release and includes the
+final validation fixes with `appVersion: v3.0.4`.
 
-That repository contains:
+## Repository Contents
 
-- the extracted chart at `charts/kuberhealthy`
-- `Chart.yaml` normalized to `version: 1.0.1` and `appVersion: v3.0.4`
+The dedicated chart repository contains:
+
+- the chart at `charts/kuberhealthy`
+- `Chart.yaml` with `version: 1.0.1` and `appVersion: v3.0.4`
 - chart metadata pointing at `https://github.com/kuberhealthy/kuberhealthy-helm`
 - Helm lint/render workflow templates under `workflow-templates/`
-- release workflow template for independent `vX.Y.Z` chart tags
-- a README with source install, upgrade, release, and migration notes
+- a release workflow template for independent `vX.Y.Z` chart tags
+- README and release documentation for source install, upgrade, release, and
+  migration workflows
 
-The workflow files are intentionally stored as templates because the current
-GitHub App identity cannot push files under
-`.github/workflows` in `kuberhealthy/kuberhealthy-helm`.
+## Source Tree Chart
 
-## Workflow Installation Follow-Up
+This repository still includes the chart at:
 
-An organization owner or token with `workflows` permission should install the
-workflow templates in `kuberhealthy/kuberhealthy-helm`:
-
-```bash
-git clone https://github.com/kuberhealthy/kuberhealthy-helm.git
-cd kuberhealthy-helm
-mkdir -p .github/workflows
-git mv workflow-templates/helm.yaml .github/workflows/helm.yaml
-git mv workflow-templates/release.yaml .github/workflows/release.yaml
-rmdir workflow-templates
-git commit -m "Install Helm chart workflows"
-git push origin main
+```text
+deploy/helm/kuberhealthy
 ```
 
-Future chart releases should use semver tags in the chart repository. The
-release workflow template validates the tag against `charts/kuberhealthy/Chart.yaml`,
-runs `helm lint`, renders the chart, packages the chart, and attaches the
-package to the GitHub release for the tag.
-
-## Main Repository Follow-Up
-
-Do not delete `deploy/helm/kuberhealthy` from this repository until the new chart
-repository has a published release and users have migration instructions. After
-that release exists, this repository can either:
-
-1. keep the in-tree chart temporarily with a deprecation notice, or
-2. replace the in-tree chart with a pointer to `kuberhealthy/kuberhealthy-helm`.
-
-The least disruptive path is to keep the in-tree chart for one Kuberhealthy
-application release after the external chart repository is published.
+Use this path for local source-tree installs, examples, and development against
+this repository. Use `kuberhealthy/kuberhealthy-helm` for independent Helm chart
+releases and chart-specific release notes.
