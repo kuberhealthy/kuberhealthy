@@ -113,7 +113,7 @@ kubectl -n kuberhealthy get deployment kuberhealthy \
 
 If the release uses a custom namespace, release name, or `nameOverride`, replace
 `kuberhealthy` in the commands with the installed release, namespace, or
-Deployment name. If the release already sets `imageURL` or `image.tag`
+Deployment name. If the release sets `imageURL` or `image.tag`
 intentionally, keep that value in `kuberhealthy-values.yaml` and omit the
 `--set-string imageURL=...` override when it would conflict with the desired
 image policy.
