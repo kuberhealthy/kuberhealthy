@@ -12,7 +12,6 @@ as a source install path and compatibility reference.
 - Release: `v1.0.1`
 - Chart version: `1.0.1`
 - App version: `v3.0.4`
-- Superseded release: `v1.0.0`
 
 ## Published Release
 
@@ -22,8 +21,7 @@ The independent chart release is published at:
 https://github.com/kuberhealthy/kuberhealthy-helm/releases/tag/v1.0.1
 ```
 
-Release `v1.0.1` supersedes the initial `v1.0.0` chart release and includes the
-final validation fixes with `appVersion: v3.0.4`.
+Release `v1.0.1` uses chart version `1.0.1` and app version `v3.0.4`.
 
 ## Repository Contents
 
