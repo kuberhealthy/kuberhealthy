@@ -1,6 +1,6 @@
 # Helm Chart Repository Migration
 
-Kuberhealthy now has a dedicated Helm chart repository for independent chart
+Kuberhealthy uses a dedicated Helm chart repository for independent chart
 releases. This repository keeps the in-tree chart at `deploy/helm/kuberhealthy`
 as a source install path and compatibility reference.
 
@@ -9,14 +9,14 @@ as a source install path and compatibility reference.
 - Repository: `kuberhealthy/kuberhealthy-helm`
 - Default branch: `main`
 - Chart path: `charts/kuberhealthy`
-- Current release: `v1.0.1`
+- Release: `v1.0.1`
 - Chart version: `1.0.1`
 - App version: `v3.0.4`
-- Previous release: `v1.0.0`
+- Superseded release: `v1.0.0`
 
 ## Published Release
 
-The current independent chart release is published at:
+The independent chart release is published at:
 
 ```text
 https://github.com/kuberhealthy/kuberhealthy-helm/releases/tag/v1.0.1
@@ -39,7 +39,7 @@ The dedicated chart repository contains:
 
 ## Source Tree Chart
 
-This repository still includes the chart at:
+This repository includes the chart at:
 
 ```text
 deploy/helm/kuberhealthy
