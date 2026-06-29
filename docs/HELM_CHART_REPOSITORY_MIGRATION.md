@@ -9,19 +9,19 @@ as a source install path and compatibility reference.
 - Repository: `kuberhealthy/kuberhealthy-helm`
 - Default branch: `main`
 - Chart path: `charts/kuberhealthy`
-- Release: `v1.0.1`
-- Chart version: `1.0.1`
-- App version: `v3.0.4`
+- Release: `v1.0.2`
+- Chart version: `1.0.2`
+- App version: `v3.0.5`
 
 ## Published Release
 
 The independent chart release is published at:
 
 ```text
-https://github.com/kuberhealthy/kuberhealthy-helm/releases/tag/v1.0.1
+https://github.com/kuberhealthy/kuberhealthy-helm/releases/tag/v1.0.2
 ```
 
-Release `v1.0.1` uses chart version `1.0.1` and app version `v3.0.4`.
+Release `v1.0.2` uses chart version `1.0.2` and app version `v3.0.5`.
 The Helm repository index is published from the chart repository default branch:
 
 ```sh
@@ -34,7 +34,7 @@ helm repo update
 The dedicated chart repository contains:
 
 - the chart at `charts/kuberhealthy`
-- `Chart.yaml` with `version: 1.0.1` and `appVersion: v3.0.4`
+- `Chart.yaml` with `version: 1.0.2` and `appVersion: v3.0.5`
 - chart metadata pointing at `https://github.com/kuberhealthy/kuberhealthy-helm`
 - Helm lint/render workflow templates under `workflow-templates/`
 - a release workflow template for independent `vX.Y.Z` chart tags
@@ -72,7 +72,7 @@ helm get values kuberhealthy \
 Then capture the image that is running before the chart-source migration. This
 keeps the rendered Deployment image stable even when the old install relied on
 the in-tree chart default `appVersion: main` and the dedicated chart uses
-`appVersion: v3.0.4`.
+`appVersion: v3.0.5`.
 
 ```sh
 KUBERHEALTHY_IMAGE="$(kubectl -n kuberhealthy get deployment kuberhealthy \
@@ -85,7 +85,7 @@ applying it:
 ```sh
 helm upgrade kuberhealthy kuberhealthy/kuberhealthy \
   -n kuberhealthy \
-  --version 1.0.1 \
+  --version 1.0.2 \
   -f kuberhealthy-values.yaml \
   --set-string imageURL="${KUBERHEALTHY_IMAGE}" \
   --dry-run
@@ -96,7 +96,7 @@ Apply the in-place migration with the same inputs:
 ```sh
 helm upgrade kuberhealthy kuberhealthy/kuberhealthy \
   -n kuberhealthy \
-  --version 1.0.1 \
+  --version 1.0.2 \
   -f kuberhealthy-values.yaml \
   --set-string imageURL="${KUBERHEALTHY_IMAGE}"
 ```

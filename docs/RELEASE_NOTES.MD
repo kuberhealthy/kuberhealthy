@@ -34,7 +34,7 @@ helm repo add kuberhealthy https://raw.githubusercontent.com/kuberhealthy/kuberh
 helm repo update
 
 helm upgrade "${RELEASE}" kuberhealthy/kuberhealthy \
-  --version 1.0.1 \
+  --version 1.0.2 \
   -n "${NAMESPACE}" \
   --reuse-values \
   -f kuberhealthy-values.yaml \
