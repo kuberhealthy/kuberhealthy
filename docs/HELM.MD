@@ -1,5 +1,11 @@
 # Helm Chart Deployment
 
+The Kuberhealthy Helm chart is available from the dedicated
+[`kuberhealthy/kuberhealthy-helm`](https://github.com/kuberhealthy/kuberhealthy-helm)
+repository. This repository also keeps a source copy at
+`deploy/helm/kuberhealthy` for local installs and Kuberhealthy source-tree
+workflows; see [HELM_CHART_REPOSITORY_MIGRATION.md](HELM_CHART_REPOSITORY_MIGRATION.md).
+
 ## Install
 
 ```sh
