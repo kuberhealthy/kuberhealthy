@@ -845,7 +845,7 @@ func checkReportHandler(w http.ResponseWriter, r *http.Request) error {
 		if state.OK {
 			Globals.kh.Recorder.Event(healthCheck, v1.EventTypeNormal, "CheckReported", "check reported OK")
 		} else {
-			Globals.kh.Recorder.Eventf(healthCheck, v1.EventTypeWarning, "CheckReported", strings.Join(state.Errors, "; "))
+			Globals.kh.Recorder.Event(healthCheck, v1.EventTypeWarning, "CheckReported", strings.Join(state.Errors, "; "))
 		}
 	}
 
