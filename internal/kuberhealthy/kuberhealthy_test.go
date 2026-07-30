@@ -492,6 +492,10 @@ func (w *failingStatusWriter) Patch(ctx context.Context, obj client.Object, patc
 	return w.delegate.Patch(ctx, obj, patch, opts...)
 }
 
+func (w *failingStatusWriter) Apply(ctx context.Context, obj runtime.ApplyConfiguration, opts ...client.SubResourceApplyOption) error {
+	return w.delegate.Apply(ctx, obj, opts...)
+}
+
 type failingGetClient struct {
 	client.Client
 	failGetOn int
