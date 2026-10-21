@@ -13,6 +13,7 @@ import (
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -75,9 +76,10 @@ type Kuberhealthy struct {
 	leaderCancel  context.CancelFunc
 	leaderRunning bool
 
-	loopMu      sync.Mutex
-	loopRunning bool
-	doneChan    chan struct{} // signaled when shutdown completes
+	loopMu       sync.Mutex
+	loopRunning  bool
+	scheduleWake chan struct{} // signals the schedule loop to re-evaluate its next wake-up time
+	doneChan     chan struct{} // signaled when shutdown completes
 
 	metricsMu       sync.Mutex
 	metricsSnapshot controllerMetricsSnapshot
@@ -110,6 +112,27 @@ func New(ctx context.Context, checkClient client.Client, doneChan ...chan struct
 		MaxCheckPodAge:        0,
 		metricsSnapshot:       newControllerMetricsSnapshot(),
 		checkStarting:         make(map[types.NamespacedName]bool),
+		scheduleWake:          make(chan struct{}, 1),
+	}
+}
+
+// wakeChan returns the channel used to wake the schedule loop, creating it when the
+// instance was built without New.
+func (kh *Kuberhealthy) wakeChan() chan struct{} {
+	kh.loopMu.Lock()
+	defer kh.loopMu.Unlock()
+	if kh.scheduleWake == nil {
+		kh.scheduleWake = make(chan struct{}, 1)
+	}
+	return kh.scheduleWake
+}
+
+// WakeScheduler asks the schedule loop to re-evaluate all HealthChecks right away instead of
+// waiting for its current timer. It never blocks: if a wake-up is already pending it is a no-op.
+func (kh *Kuberhealthy) WakeScheduler() {
+	select {
+	case kh.wakeChan() <- struct{}{}:
+	default:
 	}
 }
 
@@ -339,16 +362,12 @@ func (kh *Kuberhealthy) startScheduleLoop(ctx context.Context) {
 	}
 	timer := time.NewTimer(delay)
 	defer timer.Stop()
+	wake := kh.wakeChan()
 
 	for {
 		select {
 		case <-ctx.Done():
-			if !timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
-			}
+			stopTimer(timer)
 			return
 		case <-timer.C:
 			delay = kh.scheduleChecks(ctx)
@@ -356,7 +375,27 @@ func (kh *Kuberhealthy) startScheduleLoop(ctx context.Context) {
 				delay = minimumScheduleInterval
 			}
 			timer.Reset(delay)
+		case <-wake:
+			// A HealthCheck was added, changed, or removed, so the delay computed
+			// from the previous scan may be stale. Rescan and re-arm the timer.
+			stopTimer(timer)
+			delay = kh.scheduleChecks(ctx)
+			if delay <= 0 {
+				delay = minimumScheduleInterval
+			}
+			timer.Reset(delay)
 		}
+	}
+}
+
+// stopTimer stops a timer and drains its channel so it can be safely reset.
+func stopTimer(timer *time.Timer) {
+	if timer.Stop() {
+		return
+	}
+	select {
+	case <-timer.C:
+	default:
 	}
 }
 
@@ -472,6 +511,7 @@ func (h *checkEventHandler) handleAdd(obj interface{}) {
 		return
 	}
 	h.kh.handleCreate(h.ctx, khc)
+	h.kh.WakeScheduler()
 }
 
 // handleUpdate handles HealthCheck updates.
@@ -487,6 +527,9 @@ func (h *checkEventHandler) handleUpdate(oldObj, newObj interface{}) {
 		return
 	}
 	h.kh.handleUpdate(h.ctx, oldCheck, newCheck)
+	if !apiequality.Semantic.DeepEqual(oldCheck.Spec, newCheck.Spec) {
+		h.kh.WakeScheduler()
+	}
 }
 
 // handleDelete handles HealthCheck deletions.
@@ -497,6 +540,7 @@ func (h *checkEventHandler) handleDelete(obj interface{}) {
 		return
 	}
 	h.kh.handleDelete(h.ctx, khc)
+	h.kh.WakeScheduler()
 }
 
 // startKHCheckWatch begins watching HealthCheck resources and reacts to events.

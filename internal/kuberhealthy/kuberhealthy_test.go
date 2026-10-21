@@ -806,3 +806,40 @@ func TestScheduleLoopStopsOnStop(t *testing.T) {
 	kh.loopMu.Unlock()
 	require.False(t, running)
 }
+
+// TestWakeSchedulerRescansPendingTimer verifies that the schedule loop rescans the HealthChecks when
+// woken, so a check added while the loop sleeps on a long timer is not left waiting for that timer.
+func TestWakeSchedulerRescansPendingTimer(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	// Start with a single check that already ran, so the loop arms a long timer.
+	longCheck := newStartGuardTestCheck("long-interval")
+	longCheck.Spec.RunInterval = &metav1.Duration{Duration: 24 * time.Hour}
+	longCheck.Status.LastRunUnix = time.Now().Unix()
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(longCheck).WithStatusSubresource(longCheck).Build()
+	kh := newLeaderForStartCheckTest(cl)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go kh.startScheduleLoop(ctx)
+
+	// Give the loop time to run its first scan and arm the 24h timer.
+	time.Sleep(200 * time.Millisecond)
+
+	// Add a never-run check; without a wake the loop would not notice it for 24h.
+	newCheck := newStartGuardTestCheck("new-check")
+	newCheck.Spec.RunInterval = &metav1.Duration{Duration: 5 * time.Minute}
+	require.NoError(t, cl.Create(context.Background(), newCheck))
+	kh.WakeScheduler()
+
+	nn := types.NamespacedName{Name: "new-check", Namespace: "default"}
+	require.Eventually(t, func() bool {
+		fetched, err := khapi.GetCheck(context.Background(), cl, nn)
+		if err != nil {
+			return false
+		}
+		return fetched.CurrentUUID() != ""
+	}, 5*time.Second, 50*time.Millisecond)
+}
