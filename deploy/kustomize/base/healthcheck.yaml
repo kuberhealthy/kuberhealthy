@@ -3623,6 +3623,8 @@ spec:
               properties:
                 additionalMetadata:
                   type: string
+                consecutiveFailures:
+                  type: integer
                 currentUUID:
                   type: string
                 errors:

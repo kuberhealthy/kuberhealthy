@@ -263,6 +263,7 @@ func TestStartCheckPodCreationFailureClearsRunState(t *testing.T) {
 	require.False(t, stored.Status.OK)
 	require.Len(t, stored.Status.Errors, 1)
 	require.Contains(t, stored.Status.Errors[0], "failed to create check pod")
+	require.Equal(t, 1, stored.Status.ConsecutiveFailures)
 
 	client.failCreates = false
 	refreshed, getErr := khapi.GetCheck(context.Background(), client, namespacedName)

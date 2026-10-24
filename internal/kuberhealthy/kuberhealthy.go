@@ -745,6 +745,7 @@ func (kh *Kuberhealthy) failRunIfOverdue(checkName types.NamespacedName, uuid st
 	check.SetCheckExecutionError([]string{statusMessage})
 	check.SetNotOK()
 	check.Status.FailureCount++
+	check.Status.ConsecutiveFailures++
 	check.Status.LastFailureUnix = time.Now().Unix()
 
 	err = khapi.UpdateCheck(ctx, kh.CheckClient, check)
@@ -783,6 +784,7 @@ func (kh *Kuberhealthy) recordPodCreationFailure(checkName types.NamespacedName,
 	check.SetCheckExecutionError([]string{message})
 	check.SetNotOK()
 	check.Status.FailureCount++
+	check.Status.ConsecutiveFailures++
 	check.Status.LastFailureUnix = time.Now().Unix()
 
 	// store the failure back to the API server
