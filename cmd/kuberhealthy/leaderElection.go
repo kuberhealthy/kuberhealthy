@@ -74,6 +74,19 @@ func startLeaderElection(ctx context.Context, cfg *Config, kubeClient kubernetes
 	}
 
 	log.Infoln("leader election: starting lease", cfg.LeaderElectionNamespace, cfg.LeaderElectionName)
-	go elector.Run(ctx)
+	go runLeaderElector(ctx, elector.Run, os.Exit)
 	return nil
+}
+
+// runLeaderElector runs the leader elector and exits the process when it returns while ctx is still active.
+// LeaderElector.Run is one-shot: it returns as soon as the lease can no longer be renewed, after which no
+// replica would ever contend for leadership again and all checks would stop. Exiting lets the Deployment
+// restart the pod, which then contends for the lease again.
+func runLeaderElector(ctx context.Context, run func(context.Context), exit func(int)) {
+	run(ctx)
+	if ctx.Err() != nil {
+		return
+	}
+	log.Errorln("leader election: leadership was lost, exiting so that the pod restarts and contends for the lease again")
+	exit(1)
 }
