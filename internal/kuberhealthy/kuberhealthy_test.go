@@ -263,6 +263,7 @@ func TestStartCheckPodCreationFailureClearsRunState(t *testing.T) {
 	require.False(t, stored.Status.OK)
 	require.Len(t, stored.Status.Errors, 1)
 	require.Contains(t, stored.Status.Errors[0], "failed to create check pod")
+	require.Equal(t, 1, stored.Status.ConsecutiveFailures)
 
 	client.failCreates = false
 	refreshed, getErr := khapi.GetCheck(context.Background(), client, namespacedName)
@@ -631,6 +632,7 @@ func TestCheckRunTimesOutAfterDeadline(t *testing.T) {
 	require.False(t, updated.Status.OK)
 	require.Len(t, updated.Status.Errors, 1)
 	require.Contains(t, updated.Status.Errors[0], "timed out")
+	require.Equal(t, 1, updated.Status.ConsecutiveFailures)
 	require.Empty(t, updated.CurrentUUID())
 
 	events := waitForEvents(t, kh.Recorder.(*record.FakeRecorder).Events, 1)
