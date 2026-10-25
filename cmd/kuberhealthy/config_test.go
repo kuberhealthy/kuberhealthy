@@ -188,3 +188,52 @@ func TestTargetNamespaceDefaultsBlank(t *testing.T) {
 		t.Errorf("expected blank TargetNamespace, got %s", cfg.TargetNamespace)
 	}
 }
+
+// TestKubeAPIRateLimitConfig verifies the Kubernetes API rate limit defaults and overrides.
+func TestKubeAPIRateLimitConfig(t *testing.T) {
+	// defaults match the client-go defaults so existing installs are unchanged
+	cfg := New()
+	if cfg.KubeAPIQPS != 5 || cfg.KubeAPIBurst != 10 {
+		t.Fatalf("unexpected defaults: qps=%v burst=%d", cfg.KubeAPIQPS, cfg.KubeAPIBurst)
+	}
+
+	// overrides are read from the environment
+	t.Setenv("KH_KUBE_API_QPS", "50.5")
+	t.Setenv("KH_KUBE_API_BURST", "100")
+	cfg = New()
+	err := cfg.LoadFromEnv()
+	if err != nil {
+		t.Fatalf("LoadFromEnv returned error: %v", err)
+	}
+	if cfg.KubeAPIQPS != 50.5 {
+		t.Errorf("KubeAPIQPS parsed incorrectly: %v", cfg.KubeAPIQPS)
+	}
+	if cfg.KubeAPIBurst != 100 {
+		t.Errorf("KubeAPIBurst parsed incorrectly: %d", cfg.KubeAPIBurst)
+	}
+}
+
+// TestKubeAPIRateLimitConfigInvalid verifies bad rate limit values are rejected.
+func TestKubeAPIRateLimitConfigInvalid(t *testing.T) {
+	tests := []struct {
+		name  string
+		key   string
+		value string
+	}{
+		{"qps not a number", "KH_KUBE_API_QPS", "fast"},
+		{"qps zero", "KH_KUBE_API_QPS", "0"},
+		{"qps negative", "KH_KUBE_API_QPS", "-1"},
+		{"burst not a number", "KH_KUBE_API_BURST", "lots"},
+		{"burst zero", "KH_KUBE_API_BURST", "0"},
+		{"burst negative", "KH_KUBE_API_BURST", "-5"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(tt.key, tt.value)
+			err := New().LoadFromEnv()
+			if err == nil {
+				t.Fatalf("expected an error for %s=%s", tt.key, tt.value)
+			}
+		})
+	}
+}
