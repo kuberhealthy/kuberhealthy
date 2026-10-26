@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -192,6 +193,9 @@ func (c *Config) LoadFromEnv() error {
 		parsedQPS, err := strconv.ParseFloat(kubeAPIQPS, 32)
 		if err != nil {
 			return fmt.Errorf("invalid KH_KUBE_API_QPS: %w", err)
+		}
+		if math.IsNaN(parsedQPS) || math.IsInf(parsedQPS, 0) {
+			return fmt.Errorf("invalid KH_KUBE_API_QPS: value must be a finite number")
 		}
 		if parsedQPS <= 0 {
 			return fmt.Errorf("invalid KH_KUBE_API_QPS: value must be greater than zero")
