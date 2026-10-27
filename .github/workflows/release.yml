@@ -33,5 +33,8 @@ jobs:
           context: .
           file: cmd/kuberhealthy/Containerfile
           push: true
-          tags: docker.io/kuberhealthy/kuberhealthy:${{ github.ref_name }}
+          # Stable releases also move `latest`; pre-releases (tags with a `-`) do not.
+          tags: |
+            docker.io/kuberhealthy/kuberhealthy:${{ github.ref_name }}
+            ${{ !contains(github.ref_name, '-') && 'docker.io/kuberhealthy/kuberhealthy:latest' || '' }}
           platforms: linux/amd64,linux/arm64
