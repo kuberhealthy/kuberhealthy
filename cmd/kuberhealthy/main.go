@@ -66,6 +66,8 @@ func main() {
 	if err != nil {
 		log.Fatalln("startup: failed to get kubernetes config:", err)
 	}
+	Globals.kubeConfig.QPS = GlobalConfig.KubeAPIQPS
+	Globals.kubeConfig.Burst = GlobalConfig.KubeAPIBurst
 	Globals.kubeClient, err = kubernetes.NewForConfig(Globals.kubeConfig)
 	if err != nil {
 		log.Fatalln("startup: failed to create kubernetes client:", err)

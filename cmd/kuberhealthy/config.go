@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -38,6 +39,8 @@ type Config struct {
 	LeaderElectionLeaseDuration time.Duration
 	LeaderElectionRenewDeadline time.Duration
 	LeaderElectionRetryPeriod   time.Duration
+	KubeAPIQPS                  float32 // client-side rate limit for Kubernetes API requests per second
+	KubeAPIBurst                int     // client-side burst allowance for Kubernetes API requests
 }
 
 // New creates a Config populated with sane defaults.
@@ -70,6 +73,8 @@ func New() *Config {
 		LeaderElectionLeaseDuration: time.Second * 15,
 		LeaderElectionRenewDeadline: time.Second * 10,
 		LeaderElectionRetryPeriod:   time.Second * 2,
+		KubeAPIQPS:                  5,  // matches the client-go default
+		KubeAPIBurst:                10, // matches the client-go default
 	}
 }
 
@@ -180,6 +185,33 @@ func (c *Config) LoadFromEnv() error {
 			return fmt.Errorf("invalid KH_ERROR_POD_RETENTION_TIME: value must be non-negative")
 		}
 		c.ErrorPodRetentionTime = parsedDuration
+	}
+
+	// parse the Kubernetes API client rate limit overrides
+	kubeAPIQPS := os.Getenv("KH_KUBE_API_QPS")
+	if kubeAPIQPS != "" {
+		parsedQPS, err := strconv.ParseFloat(kubeAPIQPS, 32)
+		if err != nil {
+			return fmt.Errorf("invalid KH_KUBE_API_QPS: %w", err)
+		}
+		if math.IsNaN(parsedQPS) || math.IsInf(parsedQPS, 0) {
+			return fmt.Errorf("invalid KH_KUBE_API_QPS: value must be a finite number")
+		}
+		if parsedQPS <= 0 {
+			return fmt.Errorf("invalid KH_KUBE_API_QPS: value must be greater than zero")
+		}
+		c.KubeAPIQPS = float32(parsedQPS)
+	}
+	kubeAPIBurst := os.Getenv("KH_KUBE_API_BURST")
+	if kubeAPIBurst != "" {
+		parsedBurst, err := strconv.Atoi(kubeAPIBurst)
+		if err != nil {
+			return fmt.Errorf("invalid KH_KUBE_API_BURST: %w", err)
+		}
+		if parsedBurst <= 0 {
+			return fmt.Errorf("invalid KH_KUBE_API_BURST: value must be greater than zero")
+		}
+		c.KubeAPIBurst = parsedBurst
 	}
 
 	// parse the metrics error suppression toggle

@@ -14,6 +14,8 @@ Environment variables only — no command-line flags.
 | `KH_MAX_COMPLETED_POD_COUNT` | Number of completed pods to retain (`0` deletes all completed pods) | `1` |
 | `KH_MAX_ERROR_POD_COUNT` | Number of errored pods to retain for debugging | `2` |
 | `KH_ERROR_POD_RETENTION_TIME` | Duration to retain failed pods (Go duration syntax) | `36h` |
+| `KH_KUBE_API_QPS` | Client-side Kubernetes API request rate limit (requests per second) | `5` |
+| `KH_KUBE_API_BURST` | Maximum burst of Kubernetes API requests allowed above the rate limit | `10` |
 | `POD_NAMESPACE` | Namespace Kuberhealthy runs in | `<pod namespace>` |
 | `KH_PROM_SUPPRESS_ERROR_LABEL` | Omit error label in Prometheus metrics | `false` |
 | `KH_PROM_ERROR_LABEL_MAX_LENGTH` | Maximum length for Prometheus error label | `0` |
