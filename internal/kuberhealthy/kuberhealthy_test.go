@@ -12,13 +12,16 @@ import (
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 // TestCheckPodSpec builds a pod from a check and asserts metadata and ownership are populated.
@@ -173,6 +176,44 @@ func TestSetFreshUUID(t *testing.T) {
 
 	nn := types.NamespacedName{Namespace: check.Namespace, Name: check.Name}
 	require.NoError(t, kh.setFreshUUID(nn))
+
+	fetched, err := kh.readCheck(nn)
+	require.NoError(t, err)
+	require.NotEmpty(t, fetched.CurrentUUID())
+}
+
+// TestSetFreshUUIDRetriesOnConflict ensures a conflict while updating the check status is retried
+// instead of failing the start until the next scheduled run.
+func TestSetFreshUUIDRetriesOnConflict(t *testing.T) {
+	t.Parallel()
+	scheme := runtime.NewScheme()
+	require.NoError(t, khapi.AddToScheme(scheme))
+
+	check := &khapi.HealthCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "uuid-conflict-check",
+			Namespace:       "default",
+			ResourceVersion: "1",
+		},
+	}
+
+	// fail the first status update with a conflict, as if something else updated the check in between
+	updates := 0
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(check).WithStatusSubresource(check).
+		WithInterceptorFuncs(interceptor.Funcs{
+			SubResourceUpdate: func(ctx context.Context, c client.Client, subResourceName string, obj client.Object, opts ...client.SubResourceUpdateOption) error {
+				updates++
+				if updates == 1 {
+					return apierrors.NewConflict(schema.GroupResource{Group: khapi.GroupVersion.Group, Resource: "healthchecks"}, obj.GetName(), errors.New("object was modified"))
+				}
+				return c.SubResource(subResourceName).Update(ctx, obj, opts...)
+			},
+		}).Build()
+	kh := New(context.Background(), cl)
+
+	nn := types.NamespacedName{Namespace: check.Namespace, Name: check.Name}
+	require.NoError(t, kh.setFreshUUID(nn))
+	require.Equal(t, 2, updates)
 
 	fetched, err := kh.readCheck(nn)
 	require.NoError(t, err)
