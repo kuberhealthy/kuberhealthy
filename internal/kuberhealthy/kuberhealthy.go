@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	record "k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/retry"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 	restconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
@@ -1567,21 +1568,24 @@ func (k *Kuberhealthy) clearUUID(checkName types.NamespacedName) error {
 func (k *Kuberhealthy) setFreshUUID(checkName types.NamespacedName) error {
 	ctx := k.controllerContext()
 
-	// get the check as it is right now
-	khCheck, err := k.readCheck(checkName)
-	if err != nil {
-		return fmt.Errorf("failed to get check: %w", err)
-	}
+	// retry on conflict so a concurrent update to the check does not make
+	// the start fail until the next scheduled run
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		// get the check as it is right now
+		khCheck, err := k.readCheck(checkName)
+		if err != nil {
+			return fmt.Errorf("failed to get check: %w", err)
+		}
 
-	// set the errors
-	khCheck.SetCurrentUUID(uuid.NewString())
+		khCheck.SetCurrentUUID(uuid.NewString())
 
-	// update the HealthCheck resource
-	err = khapi.UpdateCheck(ctx, k.CheckClient, khCheck)
-	if err != nil {
-		return fmt.Errorf("failed to update check with fresh uuid with error: %w", err)
-	}
-	return nil
+		// update the HealthCheck resource
+		err = khapi.UpdateCheck(ctx, k.CheckClient, khCheck)
+		if err != nil {
+			return fmt.Errorf("failed to update check with fresh uuid with error: %w", err)
+		}
+		return nil
+	})
 }
 
 // setOK sets the OK property on the status of a HealthCheck
