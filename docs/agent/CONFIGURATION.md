@@ -14,6 +14,8 @@ Configured via environment variables only — no flags. Defaults match `deploy/k
 | `KH_MAX_COMPLETED_POD_COUNT` | Maximum number of completed check pods to retain | `1` |
 | `KH_MAX_ERROR_POD_COUNT` | Number of failed check pods to retain for debugging | `2` |
 | `KH_ERROR_POD_RETENTION_TIME` | Duration to retain failed check pods when count-based retention is not reached | `36h` |
+| `KH_KUBE_API_QPS` | Client-side Kubernetes API request rate limit in requests per second. Raise it when many checks cause `Waited for ...` throttling | `5` |
+| `KH_KUBE_API_BURST` | Burst allowance for Kubernetes API requests above `KH_KUBE_API_QPS` | `10` |
 | `KH_PROM_SUPPRESS_ERROR_LABEL` | When `true`, omit the error label on Prometheus metrics | `false` |
 | `KH_PROM_ERROR_LABEL_MAX_LENGTH` | Maximum length of the Prometheus error label; `0` disables truncation | `0` |
 | `KH_PROM_LABEL_ALLOWLIST` | Comma-separated list of extra label keys to include (e.g. `severity,category`) | `severity,category` |

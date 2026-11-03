@@ -49,6 +49,10 @@ spec:
           value: "2"
         - name: KH_ERROR_POD_RETENTION_TIME
           value: "36h"
+        - name: KH_KUBE_API_QPS
+          value: "5"
+        - name: KH_KUBE_API_BURST
+          value: "10"
         - name: KH_PROM_SUPPRESS_ERROR_LABEL
           value: "false"
         - name: KH_PROM_ERROR_LABEL_MAX_LENGTH
