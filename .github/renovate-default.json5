@@ -7,7 +7,11 @@
   commitBodyTable: true,
   dependencyDashboard: true,
   // more managers: https://docs.renovatebot.com/modules/manager
-  enabledManagers: ['gomod'],
+  // dockerfile and github-actions keep the Go builder image and the setup-go versions current
+  enabledManagers: ['gomod', 'dockerfile', 'github-actions'],
+  dockerfile: {
+    managerFilePatterns: ['/(^|/)Containerfile$/'],
+  },
   extends: [':disablePrControls'],
   gitAuthor: "rachel-renovate <sheikhrachel97@gmail.com>",
   gitIgnoredAuthors: [
