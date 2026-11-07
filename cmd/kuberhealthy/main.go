@@ -66,8 +66,14 @@ func main() {
 	if err != nil {
 		log.Fatalln("startup: failed to get kubernetes config:", err)
 	}
-	Globals.kubeConfig.QPS = GlobalConfig.KubeAPIQPS
-	Globals.kubeConfig.Burst = GlobalConfig.KubeAPIBurst
+	// ctrl.GetConfig disables client-side rate limiting and relies on API Priority
+	// and Fairness, so only apply a limit when one is configured.
+	if GlobalConfig.KubeAPIQPS > 0 {
+		Globals.kubeConfig.QPS = GlobalConfig.KubeAPIQPS
+	}
+	if GlobalConfig.KubeAPIBurst > 0 {
+		Globals.kubeConfig.Burst = GlobalConfig.KubeAPIBurst
+	}
 	Globals.kubeClient, err = kubernetes.NewForConfig(Globals.kubeConfig)
 	if err != nil {
 		log.Fatalln("startup: failed to create kubernetes client:", err)
