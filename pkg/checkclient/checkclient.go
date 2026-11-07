@@ -26,8 +26,14 @@ var (
 	Debug bool
 )
 
-// Use exponential backoff for retries
-const maxElapsedTime = time.Second * 30
+// Use exponential backoff for retries. Variables so that tests can shorten them.
+var (
+	// maxElapsedTime is how long a report is retried before giving up.
+	maxElapsedTime = time.Second * 30
+	// reportAttemptTimeout bounds each attempt to deliver a report, so that an
+	// unresponsive Kuberhealthy cannot hold a report past the retry window.
+	reportAttemptTimeout = time.Second * 10
+)
 
 // ReportSuccess reports a successful check run to the Kuberhealthy service. We
 // do not return an error here because failures will cause the managing
@@ -109,7 +115,7 @@ func sendReport(s khapi.HealthCheckStatus) error {
 	exponentialBackOff.MaxElapsedTime = maxElapsedTime
 
 	// send to the server with a helper that implements the retry contract
-	client := &http.Client{}
+	client := &http.Client{Timeout: reportAttemptTimeout}
 	sender := reportSender{
 		client:  client,
 		request: req,

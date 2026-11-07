@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/envs"
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
@@ -182,5 +183,40 @@ func TestReportRetryResendsBody(t *testing.T) {
 		if b != bodies[0] || b == "" {
 			t.Fatalf("request %d body %q differs from first body %q", i, b, bodies[0])
 		}
+	}
+}
+
+// TestReportGivesUpOnUnresponsiveServer verifies a report to a server that never answers fails
+// within the retry window instead of hanging.
+func TestReportGivesUpOnUnresponsiveServer(t *testing.T) {
+	origAttempt, origElapsed := reportAttemptTimeout, maxElapsedTime
+	reportAttemptTimeout, maxElapsedTime = 50*time.Millisecond, 300*time.Millisecond
+	t.Cleanup(func() { reportAttemptTimeout, maxElapsedTime = origAttempt, origElapsed })
+
+	// the server accepts the request and never responds until the client gives up
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-r.Context().Done():
+		case <-release:
+		}
+	}))
+	t.Cleanup(srv.Close)
+	// runs before srv.Close, so a regression fails the test instead of hanging it
+	t.Cleanup(func() { close(release) })
+
+	t.Setenv(envs.KHReportingURL, srv.URL+"/check")
+	t.Setenv(envs.KHRunUUID, "test-uuid")
+
+	done := make(chan error, 1)
+	go func() { done <- ReportSuccess() }()
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("expected an error from an unresponsive server, got nil")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the report did not give up on an unresponsive server")
 	}
 }
