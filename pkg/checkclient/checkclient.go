@@ -136,6 +136,15 @@ func (r *reportSender) Attempt() error {
 	// log the attempt so debugging shows each retry
 	writeLog("DEBUG: Making POST request to kuberhealthy:")
 
+	// rewind the body because a previous attempt may have consumed it before failing
+	if r.request.GetBody != nil {
+		body, bodyErr := r.request.GetBody()
+		if bodyErr != nil {
+			return fmt.Errorf("failed to reset request body: %w", bodyErr)
+		}
+		r.request.Body = body
+	}
+
 	// send the request to the kuberhealthy server
 	resp, err := r.client.Do(r.request)
 	if err != nil {

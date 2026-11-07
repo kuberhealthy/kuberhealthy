@@ -143,3 +143,44 @@ func TestSendReportRetry(t *testing.T) {
 		}
 	}
 }
+
+// TestReportRetryResendsBody verifies a retry after a dropped connection still sends the whole report.
+func TestReportRetryResendsBody(t *testing.T) {
+	var mu sync.Mutex
+	var bodies []string
+
+	// drop the connection on the first report, then accept every later one
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		mu.Lock()
+		bodies = append(bodies, string(body))
+		first := len(bodies) == 1
+		mu.Unlock()
+		if first {
+			conn, _, err := w.(http.Hijacker).Hijack()
+			if err == nil {
+				conn.Close()
+			}
+		}
+	}))
+	defer srv.Close()
+
+	t.Setenv(envs.KHReportingURL, srv.URL+"/check")
+	t.Setenv(envs.KHRunUUID, "abc")
+
+	err := ReportFailure([]string{"boom"})
+	if err != nil {
+		t.Fatalf("expected the retry to deliver the report, got: %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if len(bodies) < 2 {
+		t.Fatalf("expected at least 2 requests, got %d", len(bodies))
+	}
+	for i, b := range bodies {
+		if b != bodies[0] || b == "" {
+			t.Fatalf("request %d body %q differs from first body %q", i, b, bodies[0])
+		}
+	}
+}
