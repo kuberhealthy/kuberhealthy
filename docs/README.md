@@ -36,6 +36,7 @@ These skills help draft v3-compatible checks, but the Kuberhealthy docs remain t
 | 🧱 | [Kustomize Manifests](KUSTOMIZE.MD) | Base and overlay kustomize deployment. |
 | 🧠 | [How Kuberhealthy Works](HOW_IT_WORKS.MD) | Operator internals and flow. |
 | 🔗 | [HTTP API](HTTP_API.MD) | Endpoints for UI, checks, and automation. |
+| 🚦 | [Argo Rollouts and Kargo](ARGO_ROLLOUTS.MD) | Gate rollouts on HealthCheck results. |
 | 🧪 | [Run Once Checks](RUN_ONCE_CHECKS.MD) | One-shot validation runs. |
 | 🧩 | [HealthCheck Creation](CHECK_CREATION.md) | Building custom checks. |
 | ✅ | [HealthCheck Registry](CHECKS_REGISTRY.md) | Ready-to-apply check catalog. |
