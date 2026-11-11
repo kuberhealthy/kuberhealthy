@@ -16,7 +16,8 @@ A `HealthCheck` has two main parts:
 - `spec`: what you want Kuberhealthy to run
 - `status`: what Kuberhealthy last observed
 
-The `spec` defines when the check runs, how long it can run, and which pod Kuberhealthy should create.
+The `spec` defines when the check runs, how long it can run, and which pod Kuberhealthy should create,
+or the HTTP or TCP probe Kuberhealthy should run itself.
 The `status` records the latest result and run history.
 
 ## Resource anatomy
@@ -130,6 +131,46 @@ This is where you put fields such as:
 - `restartPolicy`
 - `securityContext`
 - `terminationGracePeriodSeconds`
+
+## `spec.http` and `spec.tcp`
+
+For a simple reachability check you can describe an HTTP request or a TCP connection instead of a pod.
+Kuberhealthy then runs the probe itself, from the Kuberhealthy pod, and stores the result like a checker pod report.
+No checker pod or image is involved, so NetworkPolicies have to allow traffic from the Kuberhealthy pod to the target.
+Only one of `podSpec`, `http` or `tcp` can be set, and the probe is bounded by `spec.timeout`.
+
+```yaml
+spec:
+  runInterval: 1m
+  timeout: 30s
+  http:
+    url: https://payments.payments.svc:8443/healthz
+    method: GET
+    expectedStatusCodes: [200]
+    bodyContains: ok
+    headers:
+      X-Probe: kuberhealthy
+---
+spec:
+  runInterval: 30s
+  timeout: 10s
+  tcp:
+    address: postgres.db.svc:5432
+```
+
+### `spec.http`
+
+- `url` (required): the `http://` or `https://` address to request
+- `method`: HTTP method, defaults to `GET`
+- `expectedStatusCodes`: status codes that count as success, defaults to any 2xx code
+- `bodyContains`: a string the response body must contain
+- `bodyRegex`: a regular expression the response body must match
+- `headers`: headers added to the request
+- `insecureSkipVerify`: skip TLS certificate verification
+
+### `spec.tcp`
+
+- `address` (required): the `host:port` to connect to; the check passes when the connection opens
 
 ## `status` fields
 

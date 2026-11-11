@@ -3618,7 +3618,56 @@ spec:
                   type: object
                   additionalProperties:
                     type: string
+                http:
+                  description: HTTP makes Kuberhealthy send this HTTP request itself instead of running a checker pod.
+                  properties:
+                    url:
+                      description: URL is the http or https address to request.
+                      type: string
+                      pattern: '^https?://'
+                    method:
+                      description: Method is the HTTP method to use. Defaults to GET.
+                      type: string
+                    expectedStatusCodes:
+                      description: ExpectedStatusCodes lists the status codes that count as success. Defaults to any 2xx code.
+                      type: array
+                      items:
+                        type: integer
+                        minimum: 100
+                        maximum: 599
+                    bodyContains:
+                      description: BodyContains is a string that the response body must contain.
+                      type: string
+                    bodyRegex:
+                      description: BodyRegex is a regular expression that the response body must match.
+                      type: string
+                    headers:
+                      description: Headers are added to the request.
+                      type: object
+                      additionalProperties:
+                        type: string
+                    insecureSkipVerify:
+                      description: InsecureSkipVerify disables TLS certificate verification.
+                      type: boolean
+                  required:
+                    - url
+                  type: object
+                tcp:
+                  description: TCP makes Kuberhealthy open this TCP connection itself instead of running a checker pod.
+                  properties:
+                    address:
+                      description: Address is the host:port to connect to.
+                      type: string
+                      minLength: 1
+                  required:
+                    - address
+                  type: object
               type: object
+              x-kubernetes-validations:
+                - rule: '!(has(self.http) && has(self.tcp))'
+                  message: only one of http or tcp can be set
+                - rule: '!(has(self.http) || has(self.tcp)) || !has(self.podSpec)'
+                  message: podSpec cannot be set together with http or tcp
             status:
               properties:
                 additionalMetadata:
