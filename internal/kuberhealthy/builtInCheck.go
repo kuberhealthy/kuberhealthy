@@ -3,6 +3,7 @@ package kuberhealthy
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -221,6 +222,12 @@ func runHTTPProbe(ctx context.Context, probe *khapi.HTTPCheck) error {
 	}
 	defer resp.Body.Close()
 
+	// check how long the served certificates stay valid
+	err = checkCertificateValidity(probe, resp.TLS, time.Now())
+	if err != nil {
+		return fmt.Errorf("%s %s: %w", method, probe.URL, err)
+	}
+
 	// check the status code
 	if !statusCodeExpected(probe.ExpectedStatusCodes, resp.StatusCode) {
 		return fmt.Errorf("%s %s returned %d, expected %s", method, probe.URL, resp.StatusCode, describeExpectedCodes(probe.ExpectedStatusCodes))
@@ -295,4 +302,46 @@ func matchBody(body string, contains string, bodyRegex *regexp.Regexp) error {
 		return fmt.Errorf("body did not match %q", bodyRegex.String())
 	}
 	return nil
+}
+
+// checkCertificateValidity fails when a certificate the server sent expires within the configured minimum validity.
+func checkCertificateValidity(probe *khapi.HTTPCheck, state *tls.ConnectionState, now time.Time) error {
+	// nothing to check when no minimum validity is configured
+	if probe.MinCertificateValidity == nil {
+		return nil
+	}
+
+	// a minimum validity only makes sense for a TLS response
+	if state == nil || len(state.PeerCertificates) == 0 {
+		return errors.New("minCertificateValidity is set but the response was not served over TLS")
+	}
+
+	// the certificate that expires first decides how long the endpoint stays usable
+	cert := earliestExpiringCertificate(state.PeerCertificates)
+	remaining := cert.NotAfter.Sub(now)
+	minValidity := probe.MinCertificateValidity.Duration
+	if remaining >= minValidity {
+		return nil
+	}
+
+	// an expired certificate only gets here with insecureSkipVerify
+	if remaining <= 0 {
+		return fmt.Errorf("certificate %q expired at %s", cert.Subject.String(), cert.NotAfter.UTC().Format(time.RFC3339))
+	}
+
+	// report which certificate is about to expire and when
+	return fmt.Errorf("certificate %q expires at %s, in %s, which is less than minCertificateValidity %s",
+		cert.Subject.String(), cert.NotAfter.UTC().Format(time.RFC3339), remaining.Round(time.Second), minValidity)
+}
+
+// earliestExpiringCertificate returns the certificate of the chain with the earliest expiry.
+func earliestExpiringCertificate(certs []*x509.Certificate) *x509.Certificate {
+	// start from the leaf and keep the one that expires first
+	earliest := certs[0]
+	for _, cert := range certs[1:] {
+		if cert.NotAfter.Before(earliest.NotAfter) {
+			earliest = cert
+		}
+	}
+	return earliest
 }

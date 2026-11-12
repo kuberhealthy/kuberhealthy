@@ -3649,9 +3649,15 @@ spec:
                     insecureSkipVerify:
                       description: InsecureSkipVerify disables TLS certificate verification.
                       type: boolean
+                    minCertificateValidity:
+                      description: MinCertificateValidity fails the check when a certificate served for an https URL expires sooner than this.
+                      type: string
                   required:
                     - url
                   type: object
+                  x-kubernetes-validations:
+                    - rule: '!has(self.minCertificateValidity) || self.url.startsWith("https://")'
+                      message: minCertificateValidity needs an https url
                 tcp:
                   description: TCP makes Kuberhealthy open this TCP connection itself instead of running a checker pod.
                   properties:
