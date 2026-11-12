@@ -191,9 +191,9 @@ func TestTargetNamespaceDefaultsBlank(t *testing.T) {
 
 // TestKubeAPIRateLimitConfig verifies the Kubernetes API rate limit defaults and overrides.
 func TestKubeAPIRateLimitConfig(t *testing.T) {
-	// defaults match the client-go defaults so existing installs are unchanged
+	// no limit is set by default, so the client keeps rate limiting disabled
 	cfg := New()
-	if cfg.KubeAPIQPS != 5 || cfg.KubeAPIBurst != 10 {
+	if cfg.KubeAPIQPS != 0 || cfg.KubeAPIBurst != 0 {
 		t.Fatalf("unexpected defaults: qps=%v burst=%d", cfg.KubeAPIQPS, cfg.KubeAPIBurst)
 	}
 

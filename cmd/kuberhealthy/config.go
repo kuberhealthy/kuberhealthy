@@ -39,8 +39,8 @@ type Config struct {
 	LeaderElectionLeaseDuration time.Duration
 	LeaderElectionRenewDeadline time.Duration
 	LeaderElectionRetryPeriod   time.Duration
-	KubeAPIQPS                  float32 // client-side rate limit for Kubernetes API requests per second
-	KubeAPIBurst                int     // client-side burst allowance for Kubernetes API requests
+	KubeAPIQPS                  float32 // client-side rate limit for Kubernetes API requests per second; 0 leaves it disabled
+	KubeAPIBurst                int     // client-side burst allowance for Kubernetes API requests; 0 leaves the client default
 }
 
 // New creates a Config populated with sane defaults.
@@ -67,14 +67,12 @@ func New() *Config {
 			LabelAllowlist:      []string{"severity", "category"},
 			LabelValueMaxLength: 256,
 		},
-			LeaderElectionEnabled:       true,
+		LeaderElectionEnabled:       true,
 		LeaderElectionNamespace:     ns,
 		LeaderElectionName:          "kuberhealthy-controller",
 		LeaderElectionLeaseDuration: time.Second * 15,
 		LeaderElectionRenewDeadline: time.Second * 10,
 		LeaderElectionRetryPeriod:   time.Second * 2,
-		KubeAPIQPS:                  5,  // matches the client-go default
-		KubeAPIBurst:                10, // matches the client-go default
 	}
 }
 
