@@ -1,4 +1,4 @@
 - [x] Migrate /deploy/* to /deploy/kustomize
 - [ ] Add a Helm chart revision that continues from the existing old Kuberhealthy Helm chart
 - [ ] Explore adding checks like port checks and http content checks that kuberhealthy will run as CRDs
-- [ ] Explore integration or support for AnalysisTemplate from Argo and Kargo to run tasks
+- [x] Explore integration or support for AnalysisTemplate from Argo and Kargo to run tasks (see [docs/ARGO_ROLLOUTS.MD](docs/ARGO_ROLLOUTS.MD))
