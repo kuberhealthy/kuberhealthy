@@ -58,7 +58,47 @@ type HealthCheckSpec struct {
 	// ExtraLabels are applied to all checker pods.
 	ExtraLabels map[string]string `json:"extraLabels,omitempty"`
 	// PodSpec defines the pod executed for this check.
-	PodSpec CheckPodSpec `json:"podSpec,omitempty"`
+	// omitzero keeps an unset pod spec out of updates for HTTP and TCP checks.
+	PodSpec CheckPodSpec `json:"podSpec,omitzero"`
+	// HTTP makes Kuberhealthy send this HTTP request itself instead of running a checker pod.
+	HTTP *HTTPCheck `json:"http,omitempty"`
+	// TCP makes Kuberhealthy open this TCP connection itself instead of running a checker pod.
+	TCP *TCPCheck `json:"tcp,omitempty"`
+}
+
+// HTTPCheck describes an HTTP request that Kuberhealthy sends from its own pod.
+type HTTPCheck struct {
+	// URL is the http or https address to request.
+	URL string `json:"url"`
+	// Method is the HTTP method to use. Defaults to GET.
+	Method string `json:"method,omitempty"`
+	// ExpectedStatusCodes lists the status codes that count as success. Defaults to any 2xx code.
+	ExpectedStatusCodes []int `json:"expectedStatusCodes,omitempty"`
+	// BodyContains is a string that the response body must contain.
+	BodyContains string `json:"bodyContains,omitempty"`
+	// BodyRegex is a regular expression that the response body must match.
+	BodyRegex string `json:"bodyRegex,omitempty"`
+	// Headers are added to the request.
+	Headers map[string]string `json:"headers,omitempty"`
+	// InsecureSkipVerify disables TLS certificate verification.
+	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
+}
+
+// TCPCheck describes a TCP connection that Kuberhealthy opens from its own pod.
+type TCPCheck struct {
+	// Address is the host:port to connect to.
+	Address string `json:"address"`
+}
+
+// IsBuiltIn reports whether the check is run by Kuberhealthy itself rather than by a checker pod.
+func (s *HealthCheckSpec) IsBuiltIn() bool {
+	// an HTTP probe is run in the controller
+	if s.HTTP != nil {
+		return true
+	}
+
+	// a TCP probe is run in the controller too
+	return s.TCP != nil
 }
 
 // HealthCheckStatus defines the observed state of a HealthCheck.

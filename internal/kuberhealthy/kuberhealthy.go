@@ -929,6 +929,11 @@ func (kh *Kuberhealthy) StartCheck(healthCheck *khapi.HealthCheck) error {
 	startTime := time.Now()
 	healthCheck.Status.LastRunUnix = startTime.Unix()
 
+	// HTTP and TCP checks run in the controller instead of a checker pod
+	if healthCheck.Spec.IsBuiltIn() {
+		return kh.startBuiltInCheck(ctx, checkName, startTime)
+	}
+
 	// craft a full pod spec using the check's pod spec
 	podSpec := kh.CheckPodSpec(healthCheck)
 

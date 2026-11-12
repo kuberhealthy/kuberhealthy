@@ -42,6 +42,10 @@
 - **`CheckPodSpec` and `CheckPodMetadata`**
   - Define the pod template executed for each run, plus optional labels and
     annotations applied by the controller.
+- **`HTTPCheck` and `TCPCheck`**
+  - Optional `spec.http` and `spec.tcp` probes that the controller runs itself
+    instead of creating a checker pod (`internal/kuberhealthy/builtInCheck.go`).
+    `PodSpec` uses `omitzero` so these checks never send an empty pod spec.
 - **Helper Functions**
   - Functions such as `GetCheck`, `UpdateCheck`, and `SetCurrentUUID` wrap common
     CRUD tasks and guarantee consistent error handling across packages.
