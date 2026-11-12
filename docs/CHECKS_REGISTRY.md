@@ -2,6 +2,8 @@
 
 Ready-to-apply `HealthCheck` resources. Most examples assume the `kuberhealthy` namespace — update the namespace fields if you installed elsewhere. To add a check, open a PR.
 
+For a plain HTTP or TCP reachability check you may not need a checker image at all, see [BUILT_IN_CHECKS.MD](BUILT_IN_CHECKS.MD).
+
 | Check Name | Description | healthcheck Resource | Contributor |
 | --- | --- | --- | --- |
 | [Daemonset Check](https://github.com/kuberhealthy/daemonset-check)                             | Ensures daemonsets can be successfully deployed                                                                    | [healthcheck.yaml](https://github.com/kuberhealthy/daemonset-check/blob/main/healthcheck.yaml) ([example](healthchecks/DAEMONSET_CHECK.yaml))                                                                                                                                                   | @integrii @joshulyne |
