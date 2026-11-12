@@ -1,0 +1,28 @@
+# Built-in HTTP checks run by Kuberhealthy itself, no checker pod or image needed.
+# See docs/BUILT_IN_CHECKS.MD. Update the URLs to point at your services.
+---
+apiVersion: kuberhealthy.github.io/v2
+kind: HealthCheck
+metadata:
+  name: kuberhealthy-metrics
+  namespace: kuberhealthy
+spec:
+  runInterval: 1m
+  timeout: 15s
+  http:
+    # Kuberhealthy's own Service, swap in the in-cluster URL of the service you care about.
+    url: http://kuberhealthy.kuberhealthy.svc/metrics
+    expectedStatusCodes: [200]
+    bodyContains: kuberhealthy_
+---
+apiVersion: kuberhealthy.github.io/v2
+kind: HealthCheck
+metadata:
+  name: external-egress
+  namespace: kuberhealthy
+spec:
+  runInterval: 5m
+  timeout: 30s
+  http:
+    url: https://www.google.com/generate_204
+    expectedStatusCodes: [204]
