@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -1011,38 +1011,17 @@ func storeCheckState(c client.Client, checkName string, checkNamespace string, h
 		return err
 	}
 
-	// put the status on the CRD from the check
-	err = setCheckStatus(c, checkName, checkNamespace, healthCheckStatus)
-
-	//TODO: Make this retry of updating custom resources repeatable
-	//
-	// We commonly see a race here with the following type of error:
-	// "Error storing CRD state for check: pod-restarts in namespace kuberhealthy Operation cannot be fulfilled on healthchecks.kuberhealthy.github.io \"pod-restarts\": the object
-	// has been modified; please apply your changes to the latest version and try again"
-	//
-	// If we see this error, we fetch the updated object, re-apply our changes, and try again
-	delay := time.Duration(time.Second * 1)
-	maxTries := 7
-	tries := 0
-	for err != nil && strings.Contains(err.Error(), "the object has been modified") {
-		// if too many retries have occurred, we fail up the stack further
-		if tries > maxTries {
-			return fmt.Errorf("failed to update healthcheck status for check %s in namespace %s after %d with error %w", checkName, checkNamespace, maxTries, err)
-		}
-		log.Warnln("Failed to update healthcheck status because object was modified by another process.  Retrying in " + delay.String() + ".  Try " + strconv.Itoa(tries) + " of " + strconv.Itoa(maxTries) + ".")
-
-		// sleep and double the delay between checks (exponential backoff)
-		time.Sleep(delay)
-		delay = delay + delay
-
-		// try setting the check state again
-		err = setCheckStatus(c, checkName, checkNamespace, healthCheckStatus)
-
-		// count how many times we've retried
-		tries++
+	// Put the status on the CRD. Other writers (the controller, or another
+	// report for the same check) can update the object between our get and
+	// update, so setCheckStatus re-reads it and reapplies the change on a
+	// resource version conflict.
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return setCheckStatus(c, checkName, checkNamespace, healthCheckStatus)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update healthcheck status for check %s in namespace %s: %w", checkName, checkNamespace, err)
 	}
-
-	return err
+	return nil
 }
 
 // ensureCheckResourceExists ensures that the healthcheck resource exists so that status can be updated.
