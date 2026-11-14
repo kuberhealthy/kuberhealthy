@@ -45,6 +45,16 @@ func TestCheckCertificateValiditySkippedWhenUnset(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TestCheckCertificateValidityRejectsNegativeMinimum checks that a negative minimum fails instead of passing every certificate.
+func TestCheckCertificateValidityRejectsNegativeMinimum(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	state := newCertTestState(now.Add(-time.Hour))
+
+	err := checkCertificateValidity(newCertTestProbe(-time.Hour), state, now)
+	require.EqualError(t, err, "minCertificateValidity must not be negative, got -1h0m0s")
+}
+
 // TestCheckCertificateValidityRequiresTLS checks that a plain HTTP response fails when a minimum is set.
 func TestCheckCertificateValidityRequiresTLS(t *testing.T) {
 	t.Parallel()

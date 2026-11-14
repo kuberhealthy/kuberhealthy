@@ -3658,6 +3658,8 @@ spec:
                   x-kubernetes-validations:
                     - rule: '!has(self.minCertificateValidity) || self.url.startsWith("https://")'
                       message: minCertificateValidity needs an https url
+                    - rule: '!has(self.minCertificateValidity) || duration(self.minCertificateValidity) >= duration("0s")'
+                      message: minCertificateValidity must not be negative
                 tcp:
                   description: TCP makes Kuberhealthy open this TCP connection itself instead of running a checker pod.
                   properties:

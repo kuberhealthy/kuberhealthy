@@ -311,6 +311,11 @@ func checkCertificateValidity(probe *khapi.HTTPCheck, state *tls.ConnectionState
 		return nil
 	}
 
+	// a negative minimum would let every certificate pass, even an expired one
+	if probe.MinCertificateValidity.Duration < 0 {
+		return fmt.Errorf("minCertificateValidity must not be negative, got %s", probe.MinCertificateValidity.Duration)
+	}
+
 	// a minimum validity only makes sense for a TLS response
 	if state == nil || len(state.PeerCertificates) == 0 {
 		return errors.New("minCertificateValidity is set but the response was not served over TLS")
