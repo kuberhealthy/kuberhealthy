@@ -21,6 +21,7 @@ limitations under the License.
 package api
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -38,6 +39,11 @@ func (in *HTTPCheck) DeepCopyInto(out *HTTPCheck) {
 		for key, val := range *in {
 			(*out)[key] = val
 		}
+	}
+	if in.MinCertificateValidity != nil {
+		in, out := &in.MinCertificateValidity, &out.MinCertificateValidity
+		*out = new(metav1.Duration)
+		**out = **in
 	}
 }
 

@@ -82,6 +82,8 @@ type HTTPCheck struct {
 	Headers map[string]string `json:"headers,omitempty"`
 	// InsecureSkipVerify disables TLS certificate verification.
 	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
+	// MinCertificateValidity fails the check when a certificate served for an https URL expires sooner than this.
+	MinCertificateValidity *metav1.Duration `json:"minCertificateValidity,omitempty"`
 }
 
 // TCPCheck describes a TCP connection that Kuberhealthy opens from its own pod.
