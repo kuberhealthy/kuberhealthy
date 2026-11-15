@@ -1,5 +1,43 @@
 # Release Notes
 
+## v3.1.0
+
+Changes since [v3.0.33](https://github.com/kuberhealthy/kuberhealthy/releases/tag/v3.0.33).
+
+### Added
+
+- Built-in HTTP and TCP HealthChecks run directly from the Kuberhealthy controller without creating checker pods. HTTP probes support status-code expectations, headers, and response substring or regular-expression matching. (#1558, #1559)
+- HTTPS probes can enforce a minimum remaining validity for every served certificate with `spec.http.minCertificateValidity`. Negative thresholds are rejected. (#1560)
+- Guides and example manifests for built-in checks and Argo Rollouts/Kargo analysis. The JSON analysis example requires the expected healthy check and namespace, preventing empty results from approving a rollout. (#1556, #1559)
+
+### Fixed
+
+- Report retries resend the complete request body after transport failures. (#1547; fixes #1540)
+- Each report attempt has a bounded timeout so an unresponsive controller cannot block retries indefinitely. (#1553)
+- Status updates retry actual Kubernetes resource conflicts with a short backoff instead of matching error text and waiting for minutes. (#1561)
+- Kubernetes API client-side throttling is disabled unless configured, restoring the behavior before v3.0.23. When only QPS is configured, the client uses its default burst allowance of 10. (#1552; addresses #1551)
+- Stopping or deleting a built-in check cancels its active probe. UUID-scoped cleanup preserves replacement runs and their start guards.
+- Built-in probe deadlines include start bookkeeping, and results arriving after the recorded deadline cannot report success or emit success events.
+
+### Dependencies
+
+- Updated `devalue` from 5.8.1 to 5.9.4. (#1539)
+- Updated `source-map-js` from 1.2.1 to 1.2.2. (#1542)
+
+### Upgrade notes
+
+- Update the HealthCheck CRD before using `spec.http`, `spec.tcp`, or `minCertificateValidity`. Existing pod-based checks remain supported; set exactly one of `podSpec`, `http`, or `tcp`.
+- Built-in probes originate from the Kuberhealthy pod. Check NetworkPolicies, DNS names, and proxy settings accordingly. Header values are plaintext resource data; use a pod check with a Secret for credentials.
+- Operators who want client-side API throttling should set `KH_KUBE_API_QPS` and optionally `KH_KUBE_API_BURST`; leaving both unset disables the limiter.
+- This release publishes `docker.io/kuberhealthy/kuberhealthy:v3.1.0` for Linux AMD64 and ARM64 and updates the stable `latest` tag. It does not publish a new version of the separately maintained Helm chart. Explicitly select the release image when upgrading.
+- Go checks importing `pkg/checkclient` must update their dependency and rebuild their checker images to receive the report-delivery fixes.
+
+```sh
+kubectl apply -f https://raw.githubusercontent.com/kuberhealthy/kuberhealthy/v3.1.0/deploy/kustomize/base/healthcheck.yaml
+```
+
+See [BUILT_IN_CHECKS.MD](BUILT_IN_CHECKS.MD) for configuration and examples.
+
 ## v3 highlights
 
 - Leader election is available for multi-replica controller deployments. Only the leader runs checks and reaps pods, while all replicas serve the UI and APIs.

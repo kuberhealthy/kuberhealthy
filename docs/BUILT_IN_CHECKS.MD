@@ -64,6 +64,7 @@ spec:
 | `bodyRegex` | none | A [Go regular expression](https://pkg.go.dev/regexp/syntax) the body must match. |
 | `headers` | none | Headers added to the request. |
 | `insecureSkipVerify` | `false` | Skip TLS certificate verification. |
+| `minCertificateValidity` | none | For an HTTPS URL, fail if any served certificate expires sooner than this non-negative Go duration (for example `168h` for seven days). |
 
 Redirects are followed, and the status code of the final response is checked. When `bodyContains` or `bodyRegex` is set, only the first 1 MiB of the body is read, so put the marker near the start of large responses. If both are set, both have to match.
 
@@ -98,6 +99,26 @@ This tests egress from the cluster too, so it fails if the cluster loses outboun
 
 Header values are stored in the `HealthCheck` in plain text, and anyone who can read `HealthCheck` resources can see them. Don't put tokens or passwords there. For an endpoint that needs credentials, use a pod check that reads them from a Secret.
 
+### Checking certificate expiry
+
+Require every certificate served by the final HTTPS endpoint, including intermediates, to remain valid for at least seven days:
+
+```yaml
+apiVersion: kuberhealthy.github.io/v2
+kind: HealthCheck
+metadata:
+  name: payments-certificate
+  namespace: kuberhealthy
+spec:
+  runInterval: 1h
+  timeout: 30s
+  http:
+    url: https://payments.payments.svc:8443/healthz
+    minCertificateValidity: 168h
+```
+
+Normal TLS verification remains enabled. `insecureSkipVerify: true` disables trust and hostname verification but does not disable the expiry threshold. A value of `0s` rejects already-expired certificates; negative durations are rejected. The field requires an HTTPS URL, and a redirect ending on HTTP fails because there is no certificate to inspect. This checks the certificates the server sends, not an independently fetched certificate chain.
+
 ## TCP checks
 
 ```yaml
@@ -121,7 +142,7 @@ Built-in checks cover reachability and simple content checks. Write a pod check 
 - probe from a particular namespace, node or service account
 - send credentials from a Secret, or a request body
 - run several steps, like logging in and then calling an API
-- check something other than HTTP or TCP, such as DNS records or certificate expiry
+- check something other than HTTP or TCP, such as DNS records, or inspect certificate properties beyond the built-in expiry threshold
 
 ## Examples
 
