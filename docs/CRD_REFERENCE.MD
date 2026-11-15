@@ -167,6 +167,7 @@ spec:
 - `bodyRegex`: a regular expression the response body must match
 - `headers`: headers added to the request
 - `insecureSkipVerify`: skip TLS certificate verification
+- `minCertificateValidity`: for `https://` URLs, fail when a certificate the server sends expires sooner than this duration, e.g. `168h`. The leaf and any intermediates are checked, and the error names the certificate that expires first.
 
 ### `spec.tcp`
 
