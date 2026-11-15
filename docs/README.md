@@ -38,6 +38,7 @@ These skills help draft v3-compatible checks, but the Kuberhealthy docs remain t
 | 🔗 | [HTTP API](HTTP_API.MD) | Endpoints for UI, checks, and automation. |
 | 🚦 | [Argo Rollouts and Kargo](ARGO_ROLLOUTS.MD) | Gate rollouts on HealthCheck results. |
 | 🧪 | [Run Once Checks](RUN_ONCE_CHECKS.MD) | One-shot validation runs. |
+| 🌍 | [Built-in HTTP and TCP Checks](BUILT_IN_CHECKS.MD) | Probes Kuberhealthy runs without a checker pod. |
 | 🧩 | [HealthCheck Creation](CHECK_CREATION.md) | Building custom checks. |
 | ✅ | [HealthCheck Registry](CHECKS_REGISTRY.md) | Ready-to-apply check catalog. |
 | 🎛️ | [Configuration](FLAGS.md) | Environment configuration variables. |

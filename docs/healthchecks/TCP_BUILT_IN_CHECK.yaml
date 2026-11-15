@@ -1,0 +1,14 @@
+# Built-in TCP check run by Kuberhealthy itself, no checker pod or image needed.
+# See docs/BUILT_IN_CHECKS.MD. Update the address to point at your service.
+---
+apiVersion: kuberhealthy.github.io/v2
+kind: HealthCheck
+metadata:
+  name: cluster-dns-port
+  namespace: kuberhealthy
+spec:
+  runInterval: 30s
+  timeout: 10s
+  tcp:
+    # CoreDNS also listens on TCP 53.
+    address: kube-dns.kube-system.svc:53

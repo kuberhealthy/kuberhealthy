@@ -138,6 +138,7 @@ For a simple reachability check you can describe an HTTP request or a TCP connec
 Kuberhealthy then runs the probe itself, from the Kuberhealthy pod, and stores the result like a checker pod report.
 No checker pod or image is involved, so NetworkPolicies have to allow traffic from the Kuberhealthy pod to the target.
 Only one of `podSpec`, `http` or `tcp` can be set, and the probe is bounded by `spec.timeout`.
+See [BUILT_IN_CHECKS.MD](BUILT_IN_CHECKS.MD) for a guide with more examples.
 
 ```yaml
 spec:
