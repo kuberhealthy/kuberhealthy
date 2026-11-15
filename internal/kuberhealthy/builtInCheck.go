@@ -24,6 +24,12 @@ import (
 // maxProbeBodyBytes limits how much of an HTTP response body is read when matching its content.
 const maxProbeBodyBytes = 1 << 20
 
+// builtInRun ties cancellation to one run, so stale cleanup cannot stop its replacement.
+type builtInRun struct {
+	uuid   string
+	cancel context.CancelFunc
+}
+
 // startBuiltInCheck records the run start and runs the check's HTTP or TCP probe in a goroutine.
 // It is the pod-less counterpart of the pod creation in StartCheck.
 func (kh *Kuberhealthy) startBuiltInCheck(ctx context.Context, checkName types.NamespacedName, startTime time.Time) error {
@@ -34,12 +40,32 @@ func (kh *Kuberhealthy) startBuiltInCheck(ctx context.Context, checkName types.N
 		return fmt.Errorf("unable to set check start time: %w", err)
 	}
 
-	// refresh the check so we act on the UUID and spec that were just stored
+	// Serialize registration with cancellation. A stop that already cleared the UUID
+	// prevents registration; a later stop will find the registered cancellation.
+	kh.builtInMu.Lock()
 	check, err := kh.readCheck(checkName)
 	if err != nil {
+		kh.builtInMu.Unlock()
 		kh.finishStartCheck(checkName)
 		return fmt.Errorf("failed to refresh check %s after start: %w", checkName.String(), err)
 	}
+	if check.CurrentUUID() == "" {
+		kh.builtInMu.Unlock()
+		kh.finishStartCheck(checkName)
+		return nil
+	}
+
+	// Include bookkeeping time in the probe budget, rather than starting a new timeout.
+	timeout := kh.checkTimeoutDuration(check)
+	probeCtx, cancel := context.WithDeadline(ctx, startTime.Add(timeout))
+	if kh.builtInRuns == nil {
+		kh.builtInRuns = make(map[types.NamespacedName]builtInRun)
+	}
+	if previous, exists := kh.builtInRuns[checkName]; exists {
+		previous.cancel()
+	}
+	kh.builtInRuns[checkName] = builtInRun{uuid: check.CurrentUUID(), cancel: cancel}
+	kh.builtInMu.Unlock()
 
 	// note the run in the check's events like a pod start would be
 	if kh.Recorder != nil {
@@ -47,47 +73,63 @@ func (kh *Kuberhealthy) startBuiltInCheck(ctx context.Context, checkName types.N
 	}
 
 	// run the probe in the background and keep the timeout watcher as a safety net
-	timeout := kh.checkTimeoutDuration(check)
-	go kh.runBuiltInCheck(ctx, check, timeout)
+	go kh.runBuiltInCheck(probeCtx, check)
 	kh.startTimeoutWatcher(ctx, check)
 	return nil
 }
 
 // runBuiltInCheck runs the probe for one check run and stores the result on the check status.
-func (kh *Kuberhealthy) runBuiltInCheck(ctx context.Context, check *khapi.HealthCheck, timeout time.Duration) {
-	// bound the probe by the check timeout
-	probeCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
+func (kh *Kuberhealthy) runBuiltInCheck(ctx context.Context, check *khapi.HealthCheck) {
+	// Release only this run's cancellation and start guard.
+	checkName := types.NamespacedName{Namespace: check.Namespace, Name: check.Name}
+	defer kh.finishBuiltInCheck(checkName, check.CurrentUUID())
 
 	// run the probe and time it
 	started := time.Now()
-	probeErr := runProbe(probeCtx, &check.Spec)
+	probeErr := runProbe(ctx, &check.Spec)
 	duration := time.Since(started)
 
-	// skip the result when the controller is shutting down or lost leadership
+	// Stopped runs do not report; expired runs are failed by the timeout watcher.
 	if ctx.Err() != nil {
 		log.Infof("built-in check %s/%s stopped before it finished: %v", check.Namespace, check.Name, ctx.Err())
 		return
 	}
 
 	// store the result the same way a checker pod report would be stored
-	checkName := types.NamespacedName{Namespace: check.Namespace, Name: check.Name}
 	err := kh.recordBuiltInResult(checkName, check.CurrentUUID(), probeErr, duration)
 	if err != nil {
 		log.Errorf("built-in check %s/%s: failed to store result: %v", check.Namespace, check.Name, err)
 		return
 	}
+}
 
-	// surface the result as an event
-	kh.recordBuiltInEvent(check, probeErr)
+// cancelBuiltInCheckLocked removes and cancels the requested run before StopCheck
+// releases its start guard. The caller must hold builtInMu.
+func (kh *Kuberhealthy) cancelBuiltInCheckLocked(checkName types.NamespacedName, uuid string) {
+	run, exists := kh.builtInRuns[checkName]
+	if exists && run.uuid == uuid {
+		delete(kh.builtInRuns, checkName)
+		run.cancel()
+	}
+}
+
+// finishBuiltInCheck releases resources only while this run still owns the entry.
+func (kh *Kuberhealthy) finishBuiltInCheck(checkName types.NamespacedName, uuid string) {
+	kh.builtInMu.Lock()
+	defer kh.builtInMu.Unlock()
+
+	run, exists := kh.builtInRuns[checkName]
+	if !exists || run.uuid != uuid {
+		return
+	}
+	run.cancel()
+	delete(kh.builtInRuns, checkName)
+	kh.finishStartCheck(checkName)
 }
 
 // recordBuiltInResult writes a probe result to the check status and clears the run UUID.
 // Results for a run that is no longer current are dropped.
 func (kh *Kuberhealthy) recordBuiltInResult(checkName types.NamespacedName, uuid string, probeErr error, duration time.Duration) error {
-	// release the start guard once the result is stored or dropped
-	defer kh.finishStartCheck(checkName)
-
 	// retry on conflict so a concurrent status write does not lose the result
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		return kh.applyBuiltInResult(checkName, uuid, probeErr, duration)
@@ -102,8 +144,9 @@ func (kh *Kuberhealthy) applyBuiltInResult(checkName types.NamespacedName, uuid 
 		return fmt.Errorf("failed to get check: %w", err)
 	}
 
-	// drop the result if the run timed out or a newer run started
-	if check.CurrentUUID() != uuid {
+	// Apply the same UUID and deadline guard as checker pod reports, even before
+	// the timeout watcher has had a chance to clear an expired run's UUID.
+	if !kh.IsReportAllowed(check, uuid) {
 		return nil
 	}
 
@@ -114,7 +157,14 @@ func (kh *Kuberhealthy) applyBuiltInResult(checkName types.NamespacedName, uuid 
 	check.SetCurrentUUID("")
 
 	// store the status
-	return khapi.UpdateCheck(kh.controllerContext(), kh.CheckClient, check)
+	err = khapi.UpdateCheck(kh.controllerContext(), kh.CheckClient, check)
+	if err != nil {
+		return err
+	}
+
+	// Dropped results must not emit a misleading successful report event.
+	kh.recordBuiltInEvent(check, probeErr)
+	return nil
 }
 
 // applyProbeResult sets the OK flag, errors and counters on a status like a checker pod report does.

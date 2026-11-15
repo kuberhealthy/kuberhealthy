@@ -26,6 +26,9 @@
     reaper sweep timing, and deletion counts) for Prometheus export.
   - Exposes methods for starting and stopping the scheduler, beginning specific
     runs, tracking timeouts, and validating report UUIDs.
+  - Holds a mutex-protected `builtInRuns` map of namespaced check names to run UUIDs
+    and cancellation functions. Cancellation and cleanup act only on a matching
+    UUID, preserving a newer run's context and start guard.
 - **`checkRun` / `activeCheck` helpers**
   - Maintain in-memory bookkeeping for currently executing checks, ensuring
     duplicate runs do not overlap and that timeout cleanup can resume after a

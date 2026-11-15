@@ -31,6 +31,13 @@ Four primary flows starting in `cmd/kuberhealthy`:
    grace period and records Kubernetes events that describe failures.
 4. Once a pod exits successfully, the controller waits for a report from the pod
    before marking the run complete.
+5. Built-in HTTP/TCP checks instead run in a goroutine with a deadline derived
+   from the original run start, including bookkeeping time. Per-run UUID-scoped
+   cancellation stops a probe when its check is stopped or deleted; stale cleanup
+   cannot cancel a replacement run.
+6. Built-in results use the same UUID and stored-deadline guard as pod reports.
+   Expired results are dropped without report events, leaving the timeout watcher
+   to record the failure.
 
 ## Reporting Results
 

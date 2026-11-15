@@ -87,6 +87,9 @@ type Kuberhealthy struct {
 
 	checkStartMu  sync.Mutex
 	checkStarting map[types.NamespacedName]bool
+
+	builtInMu   sync.Mutex
+	builtInRuns map[types.NamespacedName]builtInRun
 }
 
 // New creates a new Kuberhealthy instance, event recorder, and optional shutdown notifier.
@@ -1111,7 +1114,11 @@ func (kh *Kuberhealthy) StopCheck(healthCheck *khapi.HealthCheck) error {
 	// clear CurrentUUID to indicate the check is no longer running
 	oldUUID := healthCheck.CurrentUUID()
 	checkName := createNamespacedName(healthCheck.GetName(), healthCheck.GetNamespace())
+	// Serialize cancellation and guard release with probe registration and completion.
+	kh.builtInMu.Lock()
+	kh.cancelBuiltInCheckLocked(checkName, oldUUID)
 	kh.clearUUID(checkName)
+	kh.builtInMu.Unlock()
 
 	// calculate the run time and record it
 	lastRunTime, err := kh.getLastRunTime(checkName)
