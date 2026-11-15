@@ -17,6 +17,7 @@ import (
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 )
@@ -224,8 +225,14 @@ func runProbe(ctx context.Context, spec *khapi.HealthCheckSpec) error {
 	return errors.New("no http or tcp probe is set")
 }
 
-// runTCPProbe succeeds when a TCP connection to the address can be opened.
+// runTCPProbe succeeds when a TCP connection to the address can be opened,
+// and, with tls set, when a TLS handshake over it completes.
 func runTCPProbe(ctx context.Context, probe *khapi.TCPCheck) error {
+	// the TLS options do nothing without a handshake, so don't ignore them silently
+	if !probe.TLS && (probe.ServerName != "" || probe.InsecureSkipVerify || probe.MinCertificateValidity != nil) {
+		return errors.New("serverName, insecureSkipVerify and minCertificateValidity need tls: true")
+	}
+
 	// dial the address within the probe deadline
 	dialer := net.Dialer{}
 	conn, err := dialer.DialContext(ctx, "tcp", probe.Address)
@@ -233,10 +240,49 @@ func runTCPProbe(ctx context.Context, probe *khapi.TCPCheck) error {
 		return fmt.Errorf("tcp connection to %s failed: %w", probe.Address, err)
 	}
 
-	// close the connection right away, reachability is all we check
-	closeErr := conn.Close()
-	if closeErr != nil {
-		log.Debugf("tcp probe: closing connection to %s: %v", probe.Address, closeErr)
+	// close the connection when the probe is done
+	defer func() {
+		closeErr := conn.Close()
+		if closeErr != nil {
+			log.Debugf("tcp probe: closing connection to %s: %v", probe.Address, closeErr)
+		}
+	}()
+
+	// without tls, reachability is all we check
+	if !probe.TLS {
+		return nil
+	}
+	return runTLSHandshake(ctx, conn, probe)
+}
+
+// runTLSHandshake completes a TLS handshake over an open connection and checks the served certificates.
+func runTLSHandshake(ctx context.Context, conn net.Conn, probe *khapi.TCPCheck) error {
+	// verify against the configured name, or the host part of the address
+	serverName := probe.ServerName
+	if serverName == "" {
+		host, _, err := net.SplitHostPort(probe.Address)
+		if err != nil {
+			return fmt.Errorf("invalid tcp address %s: %w", probe.Address, err)
+		}
+		serverName = host
+	}
+
+	// handshake within the probe deadline
+	tlsConn := tls.Client(conn, &tls.Config{
+		MinVersion:         tls.VersionTLS12,
+		ServerName:         serverName,
+		InsecureSkipVerify: probe.InsecureSkipVerify, // #nosec G402 -- opt-in per check
+	})
+	err := tlsConn.HandshakeContext(ctx)
+	if err != nil {
+		return fmt.Errorf("tls handshake with %s failed: %w", probe.Address, err)
+	}
+
+	// check how long the served certificates stay valid
+	state := tlsConn.ConnectionState()
+	err = checkCertificateValidity(probe.MinCertificateValidity, &state, time.Now())
+	if err != nil {
+		return fmt.Errorf("tls %s: %w", probe.Address, err)
 	}
 	return nil
 }
@@ -273,7 +319,7 @@ func runHTTPProbe(ctx context.Context, probe *khapi.HTTPCheck) error {
 	defer resp.Body.Close()
 
 	// check how long the served certificates stay valid
-	err = checkCertificateValidity(probe, resp.TLS, time.Now())
+	err = checkCertificateValidity(probe.MinCertificateValidity, resp.TLS, time.Now())
 	if err != nil {
 		return fmt.Errorf("%s %s: %w", method, probe.URL, err)
 	}
@@ -355,15 +401,15 @@ func matchBody(body string, contains string, bodyRegex *regexp.Regexp) error {
 }
 
 // checkCertificateValidity fails when a certificate the server sent expires within the configured minimum validity.
-func checkCertificateValidity(probe *khapi.HTTPCheck, state *tls.ConnectionState, now time.Time) error {
+func checkCertificateValidity(minCertificateValidity *metav1.Duration, state *tls.ConnectionState, now time.Time) error {
 	// nothing to check when no minimum validity is configured
-	if probe.MinCertificateValidity == nil {
+	if minCertificateValidity == nil {
 		return nil
 	}
 
 	// a negative minimum would let every certificate pass, even an expired one
-	if probe.MinCertificateValidity.Duration < 0 {
-		return fmt.Errorf("minCertificateValidity must not be negative, got %s", probe.MinCertificateValidity.Duration)
+	if minCertificateValidity.Duration < 0 {
+		return fmt.Errorf("minCertificateValidity must not be negative, got %s", minCertificateValidity.Duration)
 	}
 
 	// a minimum validity only makes sense for a TLS response
@@ -374,7 +420,7 @@ func checkCertificateValidity(probe *khapi.HTTPCheck, state *tls.ConnectionState
 	// the certificate that expires first decides how long the endpoint stays usable
 	cert := earliestExpiringCertificate(state.PeerCertificates)
 	remaining := cert.NotAfter.Sub(now)
-	minValidity := probe.MinCertificateValidity.Duration
+	minValidity := minCertificateValidity.Duration
 	if remaining >= minValidity {
 		return nil
 	}

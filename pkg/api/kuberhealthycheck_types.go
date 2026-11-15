@@ -90,6 +90,14 @@ type HTTPCheck struct {
 type TCPCheck struct {
 	// Address is the host:port to connect to.
 	Address string `json:"address"`
+	// TLS makes the check complete a TLS handshake after connecting.
+	TLS bool `json:"tls,omitempty"`
+	// ServerName is the name sent with SNI and verified against the certificate. Defaults to the host in address.
+	ServerName string `json:"serverName,omitempty"`
+	// InsecureSkipVerify disables TLS certificate verification.
+	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
+	// MinCertificateValidity fails the check when a certificate served in the handshake expires sooner than this.
+	MinCertificateValidity *metav1.Duration `json:"minCertificateValidity,omitempty"`
 }
 
 // IsBuiltIn reports whether the check is run by Kuberhealthy itself rather than by a checker pod.

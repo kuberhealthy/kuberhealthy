@@ -3667,9 +3667,26 @@ spec:
                       description: Address is the host:port to connect to.
                       type: string
                       minLength: 1
+                    tls:
+                      description: TLS makes the check complete a TLS handshake after connecting.
+                      type: boolean
+                    serverName:
+                      description: ServerName is the name sent with SNI and verified against the certificate. Defaults to the host in address.
+                      type: string
+                    insecureSkipVerify:
+                      description: InsecureSkipVerify disables TLS certificate verification.
+                      type: boolean
+                    minCertificateValidity:
+                      description: MinCertificateValidity fails the check when a certificate served in the handshake expires sooner than this.
+                      type: string
                   required:
                     - address
                   type: object
+                  x-kubernetes-validations:
+                    - rule: '(has(self.tls) && self.tls) || !(has(self.serverName) || (has(self.insecureSkipVerify) && self.insecureSkipVerify) || has(self.minCertificateValidity))'
+                      message: serverName, insecureSkipVerify and minCertificateValidity need tls set to true
+                    - rule: '!has(self.minCertificateValidity) || duration(self.minCertificateValidity) >= duration("0s")'
+                      message: minCertificateValidity must not be negative
               type: object
               x-kubernetes-validations:
                 - rule: '!(has(self.http) && has(self.tcp))'
