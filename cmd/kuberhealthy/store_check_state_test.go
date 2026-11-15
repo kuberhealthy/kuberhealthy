@@ -2,13 +2,16 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
 	khapi "github.com/kuberhealthy/kuberhealthy/v3/pkg/api"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -33,16 +36,13 @@ func (w *conflictStatusWriter) Update(ctx context.Context, obj client.Object, op
 	w.parent.updateCalls++
 	if w.parent.updateCalls == 1 {
 		// simulate resource version conflicts so storeCheckState must retry
-		return fmt.Errorf("the object has been modified")
+		return apierrors.NewConflict(khapi.GroupVersion.WithResource("healthchecks").GroupResource(), obj.GetName(), fmt.Errorf("the object has been modified"))
 	}
 	return w.StatusWriter.Update(ctx, obj, opts...)
 }
 
 // TestStoreCheckStateRetriesOnConflict verifies that storeCheckState retries updates when a conflict occurs.
 func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode")
-	}
 	scheme := runtime.NewScheme()
 	err := khapi.AddToScheme(scheme)
 	if err != nil {
@@ -73,5 +73,64 @@ func TestStoreCheckStateRetriesOnConflict(t *testing.T) {
 	}
 	if !updated.Status.OK {
 		t.Fatalf("expected status OK true, got false")
+	}
+}
+
+type failingClient struct {
+	client.Client
+	err         error
+	updateCalls int
+}
+
+// Status wraps the underlying status writer so every update fails with err.
+func (c *failingClient) Status() client.StatusWriter {
+	return &failingStatusWriter{StatusWriter: c.Client.Status(), parent: c}
+}
+
+type failingStatusWriter struct {
+	client.StatusWriter
+	parent *failingClient
+}
+
+// Update always returns the parent's error.
+func (w *failingStatusWriter) Update(context.Context, client.Object, ...client.SubResourceUpdateOption) error {
+	w.parent.updateCalls++
+	return w.parent.err
+}
+
+// TestStoreCheckStateRetryLimits verifies that only conflicts are retried and
+// that a conflict which never clears is given up on.
+func TestStoreCheckStateRetryLimits(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := khapi.AddToScheme(scheme); err != nil {
+		t.Fatalf("failed to add scheme: %v", err)
+	}
+	gr := khapi.GroupVersion.WithResource("healthchecks").GroupResource()
+
+	cases := []struct {
+		name      string
+		err       error
+		wantCalls int
+	}{
+		{name: "other error is not retried", err: apierrors.NewForbidden(gr, "limit-check", fmt.Errorf("nope")), wantCalls: 1},
+		{name: "persistent conflict gives up", err: apierrors.NewConflict(gr, "limit-check", fmt.Errorf("the object has been modified")), wantCalls: retry.DefaultRetry.Steps},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			existing := &khapi.HealthCheck{ObjectMeta: metav1.ObjectMeta{Name: "limit-check", Namespace: "default"}}
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(existing).WithStatusSubresource(existing).Build()
+			fc := &failingClient{Client: fakeClient, err: tc.err}
+
+			err := storeCheckState(fc, "limit-check", "default", &khapi.HealthCheckStatus{OK: true})
+			if err == nil {
+				t.Fatal("expected an error")
+			}
+			if !errors.Is(err, tc.err) {
+				t.Fatalf("expected the update error to be wrapped, got %v", err)
+			}
+			if fc.updateCalls != tc.wantCalls {
+				t.Fatalf("expected %d update calls, got %d", tc.wantCalls, fc.updateCalls)
+			}
+		})
 	}
 }
