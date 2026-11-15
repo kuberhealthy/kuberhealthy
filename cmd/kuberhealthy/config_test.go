@@ -3,7 +3,43 @@ package main
 import (
 	"testing"
 	"time"
+
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
+
+// TestKubeAPIRateLimitClient verifies accepted limits can construct the startup client without a server.
+func TestKubeAPIRateLimitClient(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name         string
+		config       Config
+		initialBurst int
+		wantQPS      float32
+		wantBurst    int
+	}{
+		{name: "unset preserves disabled limit", wantQPS: -1},
+		{name: "QPS only uses default burst", config: Config{KubeAPIQPS: 50}, wantQPS: 50, wantBurst: rest.DefaultBurst},
+		{name: "both configured", config: Config{KubeAPIQPS: 50, KubeAPIBurst: 100}, wantQPS: 50, wantBurst: 100},
+		{name: "burst only leaves limit disabled", config: Config{KubeAPIBurst: 100}, wantQPS: -1, wantBurst: 100},
+		{name: "QPS preserves existing burst", config: Config{KubeAPIQPS: 50}, initialBurst: 25, wantQPS: 50, wantBurst: 25},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			// Client construction validates rate limits but makes no network request.
+			cfg := &rest.Config{Host: "https://127.0.0.1:1", QPS: -1, Burst: tc.initialBurst}
+			tc.config.applyKubeAPIRateLimit(cfg)
+			_, err := kubernetes.NewForConfig(cfg)
+			if err != nil {
+				t.Fatalf("accepted configuration cannot construct client: %v", err)
+			}
+			if cfg.QPS != tc.wantQPS || cfg.Burst != tc.wantBurst {
+				t.Fatalf("got QPS=%v Burst=%d, want QPS=%v Burst=%d", cfg.QPS, cfg.Burst, tc.wantQPS, tc.wantBurst)
+			}
+		})
+	}
+}
 
 // TestLoadFromEnv populates configuration fields from environment variables.
 func TestLoadFromEnv(t *testing.T) {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/kuberhealthy/kuberhealthy/v3/internal/metrics"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/rest"
 )
 
 // Config holds all configurable options
@@ -41,6 +42,21 @@ type Config struct {
 	LeaderElectionRetryPeriod   time.Duration
 	KubeAPIQPS                  float32 // client-side rate limit for Kubernetes API requests per second; 0 leaves it disabled
 	KubeAPIBurst                int     // client-side burst allowance for Kubernetes API requests; 0 leaves the client default
+}
+
+// applyKubeAPIRateLimit applies explicit operator limits to the shared client configuration.
+func (c *Config) applyKubeAPIRateLimit(cfg *rest.Config) {
+	// Preserve controller-runtime's disabled rate limit unless QPS is configured.
+	if c.KubeAPIQPS > 0 {
+		cfg.QPS = c.KubeAPIQPS
+	}
+	if c.KubeAPIBurst > 0 {
+		cfg.Burst = c.KubeAPIBurst
+	}
+	// client-go requires a positive burst whenever an explicit QPS enables its limiter.
+	if cfg.QPS > 0 && cfg.Burst <= 0 {
+		cfg.Burst = rest.DefaultBurst
+	}
 }
 
 // New creates a Config populated with sane defaults.
