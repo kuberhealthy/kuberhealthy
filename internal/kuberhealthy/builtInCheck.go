@@ -263,17 +263,25 @@ func runHTTPProbe(ctx context.Context, probe *khapi.HTTPCheck) error {
 		req.Header.Set(k, v)
 	}
 
-	// send the request
+	// send the request and time how long the response headers take
 	client := newProbeHTTPClient(probe.InsecureSkipVerify)
 	defer client.CloseIdleConnections()
+	sent := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("%s %s failed: %w", method, probe.URL, err)
 	}
 	defer resp.Body.Close()
+	responseTime := time.Since(sent)
 
 	// check how long the served certificates stay valid
 	err = checkCertificateValidity(probe, resp.TLS, time.Now())
+	if err != nil {
+		return fmt.Errorf("%s %s: %w", method, probe.URL, err)
+	}
+
+	// check how long the response took
+	err = checkResponseTime(probe, responseTime)
 	if err != nil {
 		return fmt.Errorf("%s %s: %w", method, probe.URL, err)
 	}
@@ -352,6 +360,28 @@ func matchBody(body string, contains string, bodyRegex *regexp.Regexp) error {
 		return fmt.Errorf("body did not match %q", bodyRegex.String())
 	}
 	return nil
+}
+
+// checkResponseTime fails when the response headers took longer than the configured maximum.
+func checkResponseTime(probe *khapi.HTTPCheck, elapsed time.Duration) error {
+	// nothing to check when no maximum is configured
+	if probe.MaxResponseTime == nil {
+		return nil
+	}
+
+	// a negative maximum would fail every response
+	maxTime := probe.MaxResponseTime.Duration
+	if maxTime < 0 {
+		return fmt.Errorf("maxResponseTime must not be negative, got %s", maxTime)
+	}
+
+	// a response within the limit passes
+	if elapsed <= maxTime {
+		return nil
+	}
+
+	// report how slow the response was
+	return fmt.Errorf("response took %s, which is more than maxResponseTime %s", elapsed.Round(time.Millisecond), maxTime)
 }
 
 // checkCertificateValidity fails when a certificate the server sent expires within the configured minimum validity.
