@@ -3649,6 +3649,9 @@ spec:
                     insecureSkipVerify:
                       description: InsecureSkipVerify disables TLS certificate verification.
                       type: boolean
+                    maxResponseTime:
+                      description: MaxResponseTime fails the check when the response headers take longer than this to arrive.
+                      type: string
                     minCertificateValidity:
                       description: MinCertificateValidity fails the check when a certificate served for an https URL expires sooner than this.
                       type: string
@@ -3660,6 +3663,8 @@ spec:
                       message: minCertificateValidity needs an https url
                     - rule: '!has(self.minCertificateValidity) || duration(self.minCertificateValidity) >= duration("0s")'
                       message: minCertificateValidity must not be negative
+                    - rule: '!has(self.maxResponseTime) || duration(self.maxResponseTime) >= duration("0s")'
+                      message: maxResponseTime must not be negative
                 tcp:
                   description: TCP makes Kuberhealthy open this TCP connection itself instead of running a checker pod.
                   properties:
