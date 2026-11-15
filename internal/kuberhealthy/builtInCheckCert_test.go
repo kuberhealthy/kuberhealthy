@@ -41,7 +41,7 @@ func newCertTestProbe(minValidity time.Duration) *khapi.HTTPCheck {
 func TestCheckCertificateValiditySkippedWhenUnset(t *testing.T) {
 	t.Parallel()
 
-	err := checkCertificateValidity(&khapi.HTTPCheck{}, nil, time.Now())
+	err := checkCertificateValidity(nil, nil, time.Now())
 	require.NoError(t, err)
 }
 
@@ -51,7 +51,7 @@ func TestCheckCertificateValidityRejectsNegativeMinimum(t *testing.T) {
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	state := newCertTestState(now.Add(-time.Hour))
 
-	err := checkCertificateValidity(newCertTestProbe(-time.Hour), state, now)
+	err := checkCertificateValidity(newCertTestProbe(-time.Hour).MinCertificateValidity, state, now)
 	require.EqualError(t, err, "minCertificateValidity must not be negative, got -1h0m0s")
 }
 
@@ -59,7 +59,7 @@ func TestCheckCertificateValidityRejectsNegativeMinimum(t *testing.T) {
 func TestCheckCertificateValidityRequiresTLS(t *testing.T) {
 	t.Parallel()
 
-	err := checkCertificateValidity(newCertTestProbe(time.Hour), nil, time.Now())
+	err := checkCertificateValidity(newCertTestProbe(time.Hour).MinCertificateValidity, nil, time.Now())
 	require.EqualError(t, err, "minCertificateValidity is set but the response was not served over TLS")
 }
 
@@ -69,7 +69,7 @@ func TestCheckCertificateValidityPassesWithEnoughTimeLeft(t *testing.T) {
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	state := newCertTestState(now.Add(30*24*time.Hour), now.Add(365*24*time.Hour))
 
-	err := checkCertificateValidity(newCertTestProbe(7*24*time.Hour), state, now)
+	err := checkCertificateValidity(newCertTestProbe(7*24*time.Hour).MinCertificateValidity, state, now)
 	require.NoError(t, err)
 }
 
@@ -79,7 +79,7 @@ func TestCheckCertificateValidityUsesEarliestCertificate(t *testing.T) {
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	state := newCertTestState(now.Add(90*24*time.Hour), now.Add(48*time.Hour))
 
-	err := checkCertificateValidity(newCertTestProbe(7*24*time.Hour), state, now)
+	err := checkCertificateValidity(newCertTestProbe(7*24*time.Hour).MinCertificateValidity, state, now)
 	require.EqualError(t, err, `certificate "CN=cert-b" expires at 2026-01-03T00:00:00Z, in 48h0m0s, which is less than minCertificateValidity 168h0m0s`)
 }
 
@@ -89,7 +89,7 @@ func TestCheckCertificateValidityReportsExpired(t *testing.T) {
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	state := newCertTestState(now.Add(-time.Hour))
 
-	err := checkCertificateValidity(newCertTestProbe(time.Hour), state, now)
+	err := checkCertificateValidity(newCertTestProbe(time.Hour).MinCertificateValidity, state, now)
 	require.EqualError(t, err, `certificate "CN=cert-a" expired at 2025-12-31T23:00:00Z`)
 }
 
