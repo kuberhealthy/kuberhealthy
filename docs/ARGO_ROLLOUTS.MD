@@ -6,7 +6,7 @@ The analysis reads the most recent result of each HealthCheck. It doesn't start 
 
 ## Using the JSON status endpoint
 
-`GET /json` returns a top-level `OK` that is `true` only when every HealthCheck passed its last run. Use `?namespace=` to only look at the checks in some namespaces. See [HTTP API](HTTP_API.MD).
+`GET /json` returns a top-level `OK` that is `false` when a HealthCheck is failing, but can also be `true` when no checks exist in the requested namespace. Use `?namespace=` to select a namespace, and require the exact expected check to be present and healthy as well as the aggregate `OK`. See [HTTP API](HTTP_API.MD).
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
@@ -16,16 +16,23 @@ metadata:
 spec:
   args:
     - name: namespace
+    - name: check
   metrics:
     - name: kuberhealthy-checks
       interval: 1m
       count: 5
       failureLimit: 1
-      successCondition: result == true
+      successCondition: >-
+        result.OK == true &&
+        result.CheckDetails != nil &&
+        "{{args.check}}" in result.CheckDetails &&
+        result.CheckDetails["{{args.check}}"] != nil &&
+        result.CheckDetails["{{args.check}}"].namespace == "{{args.namespace}}" &&
+        result.CheckDetails["{{args.check}}"].ok == true
       provider:
         web:
           url: "http://kuberhealthy.kuberhealthy.svc.cluster.local/json?namespace={{args.namespace}}"
-          jsonPath: "{$.OK}"
+          jsonPath: "{$}"
 ```
 
 Reference it from a Rollout step:
@@ -41,9 +48,11 @@ strategy:
           args:
             - name: namespace
               value: my-app
+            - name: check
+              value: payments-api
 ```
 
-Each entry in `CheckDetails` also has its own `ok` field, keyed by HealthCheck name, if you want a `jsonPath` that only looks at one check.
+`jsonPath: "{$}"` maps the whole response into `result`. The condition checks for `payments-api` in `CheckDetails` before reading its fields, so empty results, a missing check, or a check from the wrong namespace cannot pass just because the aggregate `OK` is true. The `&&` guards short-circuit before indexing a missing or null entry. Set `check` to the exact HealthCheck resource name, not its pod name; repeat the presence and health requirements for each required check when gating on several checks.
 
 ## Using Prometheus metrics
 
@@ -85,6 +94,8 @@ spec:
     args:
       - name: namespace
         value: my-app
+      - name: check
+        value: payments-api
 ```
 
 The `AnalysisTemplate` has to be in the Stage's project namespace.
