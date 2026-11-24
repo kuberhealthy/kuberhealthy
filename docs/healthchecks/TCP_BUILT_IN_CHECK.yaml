@@ -12,3 +12,17 @@ spec:
   tcp:
     # CoreDNS also listens on TCP 53.
     address: kube-dns.kube-system.svc:53
+---
+apiVersion: kuberhealthy.github.io/v2
+kind: HealthCheck
+metadata:
+  name: ldaps-certificate
+  namespace: kuberhealthy
+spec:
+  runInterval: 1h
+  timeout: 30s
+  tcp:
+    # Completes a TLS handshake and fails a week before the certificate expires.
+    address: ldap.example.com:636
+    tls: true
+    minCertificateValidity: 168h

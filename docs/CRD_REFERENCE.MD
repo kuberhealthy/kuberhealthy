@@ -174,6 +174,12 @@ spec:
 ### `spec.tcp`
 
 - `address` (required): the `host:port` to connect to; the check passes when the connection opens
+- `tls`: also complete a TLS handshake after connecting
+- `serverName`: the name sent with SNI and verified against the certificate, defaults to the host in `address`
+- `insecureSkipVerify`: skip TLS certificate verification
+- `minCertificateValidity`: fail when a certificate served in the handshake expires sooner than this duration, e.g. `168h`
+
+`serverName`, `insecureSkipVerify` and `minCertificateValidity` need `tls: true`.
 
 ## `status` fields
 

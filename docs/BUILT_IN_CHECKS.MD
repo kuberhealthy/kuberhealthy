@@ -133,8 +133,25 @@ spec:
 | Field | Default | Description |
 | --- | --- | --- |
 | `address` | required | `host:port` to connect to. IPv6 addresses go in brackets, e.g. `[fd00::1]:5432`. |
+| `tls` | `false` | Complete a TLS handshake after connecting. |
+| `serverName` | host in `address` | Name sent with SNI and checked against the certificate. |
+| `insecureSkipVerify` | `false` | Skip TLS certificate verification. |
+| `minCertificateValidity` | none | Fail if any certificate served in the handshake expires sooner than this non-negative Go duration. |
 
-The check passes when the connection opens, and Kuberhealthy closes it right away. It doesn't send any data or do a TLS handshake, so it tells you the port is reachable, not that the service behind it works.
+The check passes when the connection opens, and Kuberhealthy closes it right away. It doesn't send any data, so it tells you the port is reachable, not that the service behind it works.
+
+### TLS services
+
+With `tls: true` the check also completes a TLS handshake, so it works for services that serve TLS directly but don't speak HTTP, like LDAPS, Kafka or Redis with TLS. The certificate is verified against the system roots and `serverName`, and `minCertificateValidity` works the same way as for HTTP checks:
+
+```yaml
+  tcp:
+    address: ldap.example.com:636
+    tls: true
+    minCertificateValidity: 168h
+```
+
+`serverName` is useful when you connect by IP or by a Service name the certificate doesn't list. `serverName`, `insecureSkipVerify` and `minCertificateValidity` need `tls: true`. Protocols that switch to TLS after a plaintext greeting, like PostgreSQL or SMTP with STARTTLS, aren't supported, use a pod check for those.
 
 ## When to use a pod check instead
 
