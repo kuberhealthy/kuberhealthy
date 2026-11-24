@@ -65,6 +65,7 @@ spec:
 | `headers` | none | Headers added to the request. |
 | `insecureSkipVerify` | `false` | Skip TLS certificate verification. |
 | `minCertificateValidity` | none | For an HTTPS URL, fail if any served certificate expires sooner than this non-negative Go duration (for example `168h` for seven days). |
+| `maxResponseTime` | none | Fail if the response headers take longer than this non-negative Go duration to arrive (for example `2s`). |
 
 Redirects are followed, and the status code of the final response is checked. When `bodyContains` or `bodyRegex` is set, only the first 1 MiB of the body is read, so put the marker near the start of large responses. If both are set, both have to match.
 
