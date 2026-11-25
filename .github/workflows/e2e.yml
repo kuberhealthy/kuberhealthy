@@ -27,7 +27,7 @@ jobs:
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
       - name: Export image
         run: docker save ${{ steps.build.outputs.image }} -o kuberhealthy.tar
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: kh-image
           path: kuberhealthy.tar
