@@ -8,7 +8,7 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v9
+      - uses: actions/stale@v11
         with:
           stale-issue-message: 'This issue is stale because it has been open 60 days with no activity. Remove stale label or comment on the issue or this will be closed in 90 days.'
           close-issue-message: 'This issue was closed because it has been stalled for 90 days with no activity. Please reopen and comment on the issue if you believe it should stay open.'
