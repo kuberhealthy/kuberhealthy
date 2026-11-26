@@ -34,7 +34,7 @@ jobs:
           echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
           echo "GIT_REV=${SHORT_SHA}" >> $GITHUB_ENV
       - name: Build and push (multi-arch)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: cmd/kuberhealthy/Containerfile
